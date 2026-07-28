@@ -50,7 +50,6 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/content",
     icon: PenSquare,
     description: "Draft and manage marketing content",
-    comingSoon: true,
   },
   {
     label: "Content Calendar",

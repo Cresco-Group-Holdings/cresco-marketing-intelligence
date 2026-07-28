@@ -240,6 +240,15 @@ model UserProfile {
   socialConnectionsConnected SocialConnection[] @relation("SocialConnectionConnector")
   oauthAuthorisationStates OAuthAuthorisationState[] @relation("OAuthAuthorisationUser")
   credentialRotationEvents CredentialRotationEvent[] @relation("CredentialRotationActor")
+  contentItemsOwned      ContentItem[] @relation("ContentItemOwner")
+  contentItemsCreated    ContentItem[] @relation("ContentItemCreator")
+  contentItemsApproved   ContentItem[] @relation("ContentItemApprover")
+  contentRevisionsEdited ContentRevision[] @relation("ContentRevisionEditor")
+  contentApprovalsRequested ContentApproval[] @relation("ContentApprovalRequester")
+  contentApprovalsDecided ContentApproval[] @relation("ContentApprovalDecider")
+  contentCommentsAuthored ContentComment[] @relation("ContentCommentAuthor")
+  contentCommentsResolved ContentComment[] @relation("ContentCommentResolver")
+  contentStatusChanges   ContentStatusHistory[] @relation("ContentStatusChanger")
 
   @@index([email])
 }
@@ -309,6 +318,16 @@ model Organisation {
   socialAccounts       SocialAccount[]
   oauthAuthorisationStates OAuthAuthorisationState[]
   credentialRotationEvents CredentialRotationEvent[]
+  contentItems             ContentItem[]
+  contentWorkflowSettings  OrganisationContentSettings?
+  contentVariants          ContentVariant[]
+  contentAssets            ContentAsset[]
+  contentRevisions         ContentRevision[]
+  contentApprovals         ContentApproval[]
+  contentComments          ContentComment[]
+  contentProvenanceRecords ContentProvenance[]
+  contentComplianceChecks  ContentComplianceCheck[]
+  contentStatusHistory     ContentStatusHistory[]
 
   @@index([status])
   @@index([archivedAt])
@@ -373,6 +392,15 @@ model Project {
   socialAccounts       SocialAccount[]
   oauthAuthorisationStates OAuthAuthorisationState[]
   credentialRotationEvents CredentialRotationEvent[]
+  contentItems             ContentItem[]
+  contentVariants          ContentVariant[]
+  contentAssets            ContentAsset[]
+  contentRevisions         ContentRevision[]
+  contentApprovals         ContentApproval[]
+  contentComments          ContentComment[]
+  contentProvenanceRecords ContentProvenance[]
+  contentComplianceChecks  ContentComplianceCheck[]
+  contentStatusHistory     ContentStatusHistory[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -426,6 +454,15 @@ model Brand {
   socialAccounts        SocialAccount[]
   oauthAuthorisationStates OAuthAuthorisationState[]
   credentialRotationEvents CredentialRotationEvent[]
+  contentItems             ContentItem[]
+  contentVariants          ContentVariant[]
+  contentAssets            ContentAsset[]
+  contentRevisions         ContentRevision[]
+  contentApprovals         ContentApproval[]
+  contentComments          ContentComment[]
+  contentProvenanceRecords ContentProvenance[]
+  contentComplianceChecks  ContentComplianceCheck[]
+  contentStatusHistory     ContentStatusHistory[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -546,6 +583,7 @@ model MarketingObjective {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItems ContentItem[]
 
   @@unique([brandId, objectiveType])
   @@index([organisationId])
@@ -598,6 +636,7 @@ model BrandAudience {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItems ContentItem[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -849,6 +888,8 @@ model MarketingAsset {
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
   uploadedBy   UserProfile  @relation("MarketingAssetUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  contentAssets ContentAsset[]
+  thumbnailVariants ContentVariant[] @relation("ContentVariantThumbnail")
 
   @@index([organisationId])
   @@index([projectId])
@@ -1413,6 +1454,7 @@ model SocialAccount {
   brand            Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
   socialConnection SocialConnection        @relation(fields: [socialConnectionId], references: [id], onDelete: Cascade)
   capabilities     SocialAccountCapability[]
+  contentVariants  ContentVariant[]
 
   @@unique([socialConnectionId, providerAccountId])
   @@index([organisationId])
@@ -1482,5 +1524,375 @@ model CredentialRotationEvent {
   rotatedBy        UserProfile?     @relation("CredentialRotationActor", fields: [rotatedByUserId], references: [id], onDelete: SetNull)
 
   @@index([socialConnectionId])
+  @@index([createdAt])
+}
+
+enum ContentType {
+  TEXT_POST
+  IMAGE_POST
+  CAROUSEL
+  SHORT_VIDEO
+  LONG_VIDEO
+  STORY
+  ARTICLE_LINK
+  POLL
+  THREAD
+}
+
+enum ContentStatus {
+  IDEA
+  DRAFT
+  AI_GENERATED
+  IN_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  PARTIALLY_PUBLISHED
+  FAILED
+  CANCELLED
+  ARCHIVED
+}
+
+enum ContentPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ContentRevisionSource {
+  USER
+  AI
+  IMPORT
+  PLATFORM_ADAPTATION
+  COMPLIANCE_FIX
+}
+
+enum ContentApprovalMode {
+  NO_APPROVAL_REQUIRED
+  ONE_APPROVER
+  TWO_APPROVERS
+  COMPLIANCE_APPROVAL_REQUIRED
+}
+
+enum ContentApprovalDecision {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+}
+
+enum ContentCommentStatus {
+  OPEN
+  RESOLVED
+}
+
+enum ContentComplianceCheckType {
+  MISSING_DISCLAIMER
+  PROHIBITED_CLAIM
+  MISSING_DESTINATION_URL
+  MISSING_ALT_TEXT
+  UNAPPROVED_ASSET
+  EXPIRED_ASSET_LICENCE
+  UNSUPPORTED_PLATFORM_FORMAT
+  EXCESSIVE_TEXT_LENGTH
+  UNAPPROVED_MUSIC
+  MISSING_CONSENT
+}
+
+enum ContentComplianceResult {
+  PASS
+  FAIL
+  WARNING
+}
+
+model OrganisationContentSettings {
+  id                       String              @id @default(cuid())
+  organisationId           String              @unique
+  approvalMode             ContentApprovalMode @default(ONE_APPROVER)
+  separationOfDutiesEnabled Boolean             @default(true)
+  createdAt                DateTime            @default(now())
+  updatedAt                DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+}
+
+model ContentItem {
+  id                String          @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  title             String
+  objectiveId       String?
+  campaignName      String?
+  contentPillar     String?
+  contentType       ContentType
+  primaryMessage    String?
+  targetAudienceId  String?
+  primaryCTA        String?
+  destinationUrl    String?
+  status            ContentStatus   @default(IDEA)
+  priority          ContentPriority @default(NORMAL)
+  ownerUserId       String
+  createdByUserId   String
+  approvedByUserId  String?
+  approvedAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  archivedAt        DateTime?
+
+  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  objective      MarketingObjective? @relation(fields: [objectiveId], references: [id], onDelete: SetNull)
+  targetAudience BrandAudience?  @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
+  owner          UserProfile     @relation("ContentItemOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy      UserProfile     @relation("ContentItemCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approvedBy     UserProfile?    @relation("ContentItemApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  variants       ContentVariant[]
+  assets         ContentAsset[]
+  revisions      ContentRevision[]
+  approvals      ContentApproval[]
+  comments       ContentComment[]
+  provenance     ContentProvenance?
+  complianceChecks ContentComplianceCheck[]
+  statusHistory  ContentStatusHistory[]
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([status])
+  @@index([ownerUserId])
+  @@index([createdByUserId])
+  @@index([archivedAt])
+  @@index([createdAt])
+}
+
+model ContentVariant {
+  id                String        @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  contentItemId     String
+  provider          SocialProvider
+  socialAccountId   String?
+  format            ContentType
+  caption           String?
+  headline          String?
+  description       String?
+  hashtags          String[]      @default([])
+  mentions          String[]      @default([])
+  destinationUrl    String?
+  firstComment      String?
+  altText           String?
+  thumbnailAssetId  String?
+  durationSeconds   Int?
+  aspectRatio       String?
+  status            ContentStatus @default(DRAFT)
+  validationErrors  Json?
+  providerMetadata  Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  organisation    Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem     ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  socialAccount   SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+  thumbnailAsset  MarketingAsset? @relation("ContentVariantThumbnail", fields: [thumbnailAssetId], references: [id], onDelete: SetNull)
+  comments        ContentComment[]
+  complianceChecks ContentComplianceCheck[]
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([contentItemId])
+  @@index([provider])
+  @@index([status])
+}
+
+model ContentAsset {
+  id               String   @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  contentItemId    String
+  marketingAssetId String
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem    ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  marketingAsset MarketingAsset @relation(fields: [marketingAssetId], references: [id], onDelete: Restrict)
+
+  @@unique([contentItemId, marketingAssetId])
+  @@index([organisationId])
+  @@index([brandId])
+}
+
+model ContentRevision {
+  id             String                @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  contentItemId  String
+  revisionNumber Int
+  changedFields  Json
+  snapshot       Json
+  editorUserId   String
+  source         ContentRevisionSource @default(USER)
+  changeNote     String?
+  createdAt      DateTime              @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  editor       UserProfile  @relation("ContentRevisionEditor", fields: [editorUserId], references: [id], onDelete: Restrict)
+
+  @@unique([contentItemId, revisionNumber])
+  @@index([organisationId])
+  @@index([contentItemId])
+  @@index([createdAt])
+}
+
+model ContentApproval {
+  id                String                  @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  contentItemId     String
+  approvalMode      ContentApprovalMode
+  decision          ContentApprovalDecision @default(PENDING)
+  requestedByUserId String
+  approverUserId    String?
+  decisionNote      String?
+  decidedAt         DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  requestedBy  UserProfile  @relation("ContentApprovalRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  approver     UserProfile? @relation("ContentApprovalDecider", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([contentItemId])
+  @@index([decision])
+}
+
+model ContentComment {
+  id               String               @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  contentItemId    String
+  contentVariantId String?
+  authorUserId     String
+  body             String
+  status           ContentCommentStatus @default(OPEN)
+  resolvedByUserId String?
+  resolvedAt       DateTime?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem    ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  contentVariant ContentVariant? @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
+  author         UserProfile    @relation("ContentCommentAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+  resolvedBy     UserProfile?   @relation("ContentCommentResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([contentItemId])
+  @@index([contentVariantId])
+  @@index([status])
+}
+
+model ContentProvenance {
+  id                     String    @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  contentItemId          String    @unique
+  createdManually        Boolean   @default(true)
+  aiProvider             String?
+  aiModel                String?
+  promptTemplateVersionId String?
+  sourceAssetIds         String[]  @default([])
+  sourceDocumentIds      String[]  @default([])
+  musicLicence           String?
+  imageLicence           String?
+  voiceConsent           Boolean   @default(false)
+  faceConsent            Boolean   @default(false)
+  commercialUsePermission Boolean  @default(false)
+  requiredAttribution    String?
+  generatedAt            DateTime?
+  metadata               Json?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([brandId])
+}
+
+model ContentComplianceCheck {
+  id               String                    @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  contentItemId    String
+  contentVariantId String?
+  checkType        ContentComplianceCheckType
+  result           ContentComplianceResult
+  message          String
+  blocking         Boolean                   @default(false)
+  checkedAt        DateTime                  @default(now())
+  metadata         Json?
+
+  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem    ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  contentVariant ContentVariant? @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([contentItemId])
+  @@index([checkType])
+  @@index([result])
+}
+
+model ContentStatusHistory {
+  id              String        @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  contentItemId   String
+  fromStatus      ContentStatus?
+  toStatus        ContentStatus
+  changedByUserId String
+  reason          String?
+  createdAt       DateTime      @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  changedBy    UserProfile  @relation("ContentStatusChanger", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([contentItemId])
   @@index([createdAt])
 }
