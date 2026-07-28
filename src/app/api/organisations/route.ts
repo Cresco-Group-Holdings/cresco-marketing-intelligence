@@ -1,31 +1,24 @@
 import { NextRequest } from "next/server";
-import { createRequestId, apiSuccess, handleApiError } from "@/lib/api/response";
-import { getIntegrationStatus, getServerEnv } from "@/lib/environment";
-import { requireCurrentOrganisationContext } from "@/lib/tenancy/context";
-import { withTenantContext } from "@/lib/tenancy/guards";
+import {
+  apiSuccess,
+  jsonBody,
+  parseBody,
+  withApiHandler,
+} from "@/lib/api/handler";
+import { organisationCreateSchema } from "@/lib/validation/workspace";
 import { organisationService } from "@/server/services";
 
 export async function GET(request: NextRequest) {
-  const requestId = createRequestId();
-
-  try {
-    const organisationId = request.nextUrl.searchParams.get("organisationId");
-    if (!organisationId) {
-      return apiSuccess(
-        {
-          integrations: getIntegrationStatus(getServerEnv()),
-        },
-        { requestId },
-      );
-    }
-
-    const organisations = await withTenantContext({ organisationId }, async () => {
-      const context = requireCurrentOrganisationContext();
-      return organisationService.getAccessibleOrganisations(context);
-    });
-
+  return withApiHandler(request, async ({ requestId, user }) => {
+    const organisations = await organisationService.listForUser(user.userProfileId);
     return apiSuccess({ organisations }, { requestId });
-  } catch (error) {
-    return handleApiError(error, requestId);
-  }
+  });
+}
+
+export async function POST(request: NextRequest) {
+  return withApiHandler(request, async ({ request, requestId, user }) => {
+    const body = parseBody(organisationCreateSchema, await jsonBody(request));
+    const organisation = await organisationService.create(body, user.userProfileId, requestId);
+    return apiSuccess({ organisation }, { requestId });
+  });
 }

@@ -1,25 +1,38 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
-import { ModuleEmptyState } from "@/components/layout/module-empty-state";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+const settingsLinks = [
+  { href: "/settings/organisation", title: "Organisation", description: "Name, legal details, timezone, and archive controls." },
+  { href: "/settings/projects", title: "Projects", description: "Create and manage projects in the current organisation." },
+  { href: "/settings/members", title: "Members", description: "View members, roles, and membership status." },
+  { href: "/settings/invitations", title: "Invitations", description: "Invite teammates and manage pending invitations." },
+  { href: "/settings/audit-log", title: "Audit log", description: "Review security-relevant workspace events." },
+];
 
 export default function SettingsPage() {
   return (
     <>
       <PageHeader
         title="Settings"
-        description="Manage organisation membership, security preferences, and workspace defaults."
+        description="Manage organisation administration, projects, members, and security preferences."
         breadcrumbs={[{ label: "Overview", href: "/dashboard" }, { label: "Settings" }]}
       />
-      <ModuleEmptyState
-        title="Workspace settings"
-        description="Organisation administration, member roles, and security controls will be configurable here."
-        futureCapabilities={[
-          "Member invitations and role management",
-          "Organisation profile and defaults",
-          "Security and audit preferences",
-          "Notification and workspace policies",
-        ]}
-        comingSoon={false}
-      />
+      <div className="grid gap-4 md:grid-cols-2">
+        {settingsLinks.map((item) => (
+          <Link key={item.href} href={item.href}>
+            <Card className="h-full transition hover:border-slate-300">
+              <CardHeader>
+                <CardTitle>{item.title}</CardTitle>
+                <CardDescription>{item.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <span className="text-sm font-medium text-slate-900">Open</span>
+              </CardContent>
+            </Card>
+          </Link>
+        ))}
+      </div>
     </>
   );
 }
