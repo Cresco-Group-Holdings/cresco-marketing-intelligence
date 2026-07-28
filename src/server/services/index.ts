@@ -17,3 +17,4 @@ export * from "@/server/services/foundation-dashboard-service";
 export * from "@/server/services/social-connection-service";
 export * from "@/server/services/social-credential-service";
 export * from "@/server/services/social-oauth-service";
+export * from "@/server/services/content-service";

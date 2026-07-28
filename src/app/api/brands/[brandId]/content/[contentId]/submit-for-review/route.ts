@@ -1,0 +1,25 @@
+import { NextRequest } from "next/server";
+import { apiSuccess } from "@/lib/api/handler";
+import {
+  requireOrganisationId,
+  withContentSubmit,
+} from "@/lib/api/content-handler";
+import { contentService } from "@/server/services/content-service";
+
+type Params = { params: Promise<{ brandId: string; contentId: string }> };
+
+export async function POST(request: NextRequest, { params }: Params) {
+  const { brandId, contentId } = await params;
+  const organisationId = requireOrganisationId(request);
+
+  return withContentSubmit(request, organisationId, async ({ requestId, tenant }) => {
+    const item = await contentService.submitForReview(
+      brandId,
+      organisationId,
+      contentId,
+      tenant!,
+      requestId,
+    );
+    return apiSuccess({ item }, { requestId });
+  });
+}

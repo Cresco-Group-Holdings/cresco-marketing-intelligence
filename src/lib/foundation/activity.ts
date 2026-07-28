@@ -21,6 +21,15 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   "social.connectionDisconnected": "Social connection disconnected",
   "social.accountAssigned": "Social account assigned",
   "social.permissionsChanged": "Social permissions changed",
+  "content.created": "Content created",
+  "content.updated": "Content updated",
+  "content.submittedForReview": "Content submitted for review",
+  "content.approved": "Content approved",
+  "content.changesRequested": "Content changes requested",
+  "content.archived": "Content archived",
+  "content.revisionRestored": "Content revision restored",
+  "content.commentAdded": "Content comment added",
+  "content.workflowSettingsUpdated": "Content workflow settings updated",
   "onboarding.completed": "Onboarding completed",
 };
 
@@ -59,6 +68,7 @@ export function isFoundationAuditAction(action: string): boolean {
     "invitation",
     "connector",
     "social",
+    "content",
     "onboarding",
     "profile",
     "knowledge",

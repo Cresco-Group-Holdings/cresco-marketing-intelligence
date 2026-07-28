@@ -32,6 +32,15 @@ export const PERMISSIONS = {
   "socialConnections.reconnect": "socialConnections.reconnect",
   "socialConnections.disconnect": "socialConnections.disconnect",
   "socialAccounts.assign": "socialAccounts.assign",
+  "content.read": "content.read",
+  "content.create": "content.create",
+  "content.edit": "content.edit",
+  "content.submitForReview": "content.submitForReview",
+  "content.requestChanges": "content.requestChanges",
+  "content.approve": "content.approve",
+  "content.schedule": "content.schedule",
+  "content.publish": "content.publish",
+  "content.archive": "content.archive",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -69,6 +78,15 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["socialConnections.reconnect"],
     PERMISSIONS["socialConnections.disconnect"],
     PERMISSIONS["socialAccounts.assign"],
+    PERMISSIONS["content.read"],
+    PERMISSIONS["content.create"],
+    PERMISSIONS["content.edit"],
+    PERMISSIONS["content.submitForReview"],
+    PERMISSIONS["content.requestChanges"],
+    PERMISSIONS["content.approve"],
+    PERMISSIONS["content.schedule"],
+    PERMISSIONS["content.publish"],
+    PERMISSIONS["content.archive"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -93,6 +111,11 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["socialConnections.reconnect"],
     PERMISSIONS["socialConnections.disconnect"],
     PERMISSIONS["socialAccounts.assign"],
+    PERMISSIONS["content.read"],
+    PERMISSIONS["content.create"],
+    PERMISSIONS["content.edit"],
+    PERMISSIONS["content.submitForReview"],
+    PERMISSIONS["content.archive"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -105,6 +128,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["ai.usage.read"],
     PERMISSIONS["connectors.read"],
     PERMISSIONS["socialConnections.read"],
+    PERMISSIONS["content.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -117,6 +141,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["marketingAssets.read"],
     PERMISSIONS["connectors.read"],
     PERMISSIONS["socialConnections.read"],
+    PERMISSIONS["content.read"],
   ],
 };
 
