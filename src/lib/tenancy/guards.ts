@@ -2,7 +2,7 @@ import { MembershipStatus, OrganisationRole } from "@prisma/client";
 import { AppError } from "@/lib/errors";
 import { hasMinimumRole } from "@/lib/tenancy/roles";
 import { createSupabaseServerClient } from "@/lib/auth/supabase-server";
-import { ensureUserProfile } from "@/lib/auth/provisioning";
+import { ensureUserProfile, extractProviderMetadata } from "@/lib/auth/provisioning";
 import { prisma } from "@/lib/database/prisma";
 import {
   getCurrentOrganisationContext,
@@ -40,12 +40,11 @@ export async function requireAuthenticatedUser(): Promise<AuthenticatedUser> {
     throw new AppError("UNAUTHORIZED", "Authentication is required.");
   }
 
+  const metadata = extractProviderMetadata(user.user_metadata);
   const provisioned = await ensureUserProfile({
     authUserId: user.id,
     email: user.email,
-    displayName: user.user_metadata?.full_name ?? null,
-    firstName: user.user_metadata?.first_name ?? null,
-    lastName: user.user_metadata?.last_name ?? null,
+    ...metadata,
   });
 
   return {

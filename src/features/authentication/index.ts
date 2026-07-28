@@ -1,4 +1,6 @@
 export const authenticationFeature = {
   name: "authentication",
-  status: "foundation",
+  status: "production",
+  methods: ["email", "google"],
+  extensionPoints: ["microsoft"],
 };

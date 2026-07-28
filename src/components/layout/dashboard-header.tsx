@@ -1,8 +1,17 @@
+import { requireAuthenticatedUser } from "@/lib/tenancy/guards";
+import { prisma } from "@/lib/database/prisma";
+import { UserMenu } from "@/components/auth/user-menu";
 import { WorkspaceSelectors } from "@/components/workspace/workspace-selectors";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
 import { APP_NAME } from "@/lib/constants";
 
-export function DashboardHeader() {
+export async function DashboardHeader() {
+  const user = await requireAuthenticatedUser();
+  const profile = await prisma.userProfile.findUnique({
+    where: { id: user.userProfileId },
+    select: { displayName: true, email: true },
+  });
+
   return (
     <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
       <div className="flex h-auto min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
@@ -22,6 +31,10 @@ export function DashboardHeader() {
           <div className="lg:hidden">
             <WorkspaceSelectors />
           </div>
+          <UserMenu
+            email={profile?.email ?? user.email}
+            displayName={profile?.displayName}
+          />
         </div>
       </div>
     </header>

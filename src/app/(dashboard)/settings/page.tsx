@@ -3,6 +3,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const settingsLinks = [
+  { href: "/settings/account", title: "Account", description: "Display name, timezone, locale, and avatar URL." },
+  { href: "/settings/security", title: "Security", description: "Password, connected providers, and reauthentication." },
+  { href: "/settings/sessions", title: "Sessions", description: "Review the current session and revoke access globally." },
   { href: "/settings/organisation", title: "Organisation", description: "Name, legal details, timezone, and archive controls." },
   { href: "/settings/projects", title: "Projects", description: "Create and manage projects in the current organisation." },
   { href: "/settings/members", title: "Members", description: "View members, roles, and membership status." },
