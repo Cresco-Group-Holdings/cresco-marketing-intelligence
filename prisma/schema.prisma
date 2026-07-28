@@ -1,0 +1,113 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum OrganisationRole {
+  OWNER
+  ADMIN
+  MARKETER
+  ANALYST
+  VIEWER
+}
+
+model UserProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  email     String
+  fullName  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships OrganisationMembership[]
+  auditLogs   AuditLog[]
+
+  @@index([email])
+}
+
+model Organisation {
+  id         String    @id @default(cuid())
+  name       String
+  slug       String    @unique
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  archivedAt DateTime?
+
+  memberships OrganisationMembership[]
+  projects    Project[]
+  auditLogs   AuditLog[]
+}
+
+model OrganisationMembership {
+  id             String           @id @default(cuid())
+  organisationId String
+  userProfileId  String
+  role           OrganisationRole @default(VIEWER)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  userProfile  UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, userProfileId])
+  @@index([organisationId])
+  @@index([userProfileId])
+}
+
+model Project {
+  id             String    @id @default(cuid())
+  organisationId String
+  name           String
+  slug           String
+  description    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  archivedAt     DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brands       Brand[]
+
+  @@unique([organisationId, slug])
+  @@index([organisationId])
+}
+
+model Brand {
+  id             String    @id @default(cuid())
+  organisationId String
+  projectId      String
+  name           String
+  slug           String
+  description    String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  archivedAt     DateTime?
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, slug])
+  @@index([organisationId])
+  @@index([projectId])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organisationId String
+  actorUserId    String?
+  action         String
+  resourceType   String
+  resourceId     String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  actor        UserProfile? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([actorUserId])
+  @@index([createdAt])
+}

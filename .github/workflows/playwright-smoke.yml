@@ -1,0 +1,27 @@
+name: Playwright Smoke Tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cresco_marketing?schema=public
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/cresco_marketing?schema=public
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: public-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: service-role-key
+      APP_URL: http://localhost:3000
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
