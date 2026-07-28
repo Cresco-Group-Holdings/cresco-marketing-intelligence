@@ -10,7 +10,10 @@ import {
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { canChangeRole } from "@/lib/tenancy/permissions";
-import type { TenantContext } from "@/lib/tenancy/context";
+import {
+  assertOrganisationScope,
+  type TenantContext,
+} from "@/lib/tenancy/context";
 import {
   generateInvitationToken,
   hashInvitationToken,
@@ -18,6 +21,7 @@ import {
 } from "@/lib/security/invitations";
 import { slugFromName } from "@/lib/utils/slug";
 import { recordAuditEvent } from "@/server/services/audit-service";
+import { buildTenantContextForUser } from "@/lib/tenancy/guards";
 
 const ACTIVE_MEMBERSHIP: MembershipStatus = MembershipStatus.ACTIVE;
 
@@ -56,7 +60,9 @@ export const organisationService = {
     });
   },
 
-  async getById(organisationId: string) {
+  async getById(organisationId: string, context: TenantContext) {
+    assertOrganisationScope(organisationId, context);
+
     const organisation = await prisma.organisation.findFirst({
       where: {
         id: organisationId,
@@ -162,6 +168,8 @@ export const organisationService = {
     context: TenantContext,
     requestId?: string,
   ) {
+    assertOrganisationScope(organisationId, context);
+
     const organisation = await prisma.organisation.update({
       where: { id: organisationId },
       data: input,
@@ -180,6 +188,8 @@ export const organisationService = {
   },
 
   async archive(organisationId: string, context: TenantContext, requestId?: string) {
+    assertOrganisationScope(organisationId, context);
+
     const organisation = await prisma.organisation.update({
       where: { id: organisationId },
       data: {
@@ -202,7 +212,9 @@ export const organisationService = {
 };
 
 export const projectService = {
-  async listActive(organisationId: string) {
+  async listActive(organisationId: string, context: TenantContext) {
+    assertOrganisationScope(organisationId, context);
+
     return prisma.project.findMany({
       where: {
         organisationId,
@@ -213,7 +225,9 @@ export const projectService = {
     });
   },
 
-  async getById(projectId: string, organisationId: string) {
+  async getById(projectId: string, organisationId: string, context: TenantContext) {
+    assertOrganisationScope(organisationId, context);
+
     const project = await prisma.project.findFirst({
       where: {
         id: projectId,
@@ -280,7 +294,7 @@ export const projectService = {
     context: TenantContext,
     requestId?: string,
   ) {
-    await projectService.getById(projectId, organisationId);
+    await projectService.getById(projectId, organisationId, context);
 
     const project = await prisma.project.update({
       where: { id: projectId },
@@ -306,7 +320,7 @@ export const projectService = {
     context: TenantContext,
     requestId?: string,
   ) {
-    await projectService.getById(projectId, organisationId);
+    await projectService.getById(projectId, organisationId, context);
 
     const project = await prisma.project.update({
       where: { id: projectId },
@@ -331,7 +345,9 @@ export const projectService = {
 };
 
 export const brandService = {
-  async listForProject(organisationId: string, projectId: string) {
+  async listForProject(organisationId: string, projectId: string, context: TenantContext) {
+    assertOrganisationScope(organisationId, context);
+
     return prisma.brand.findMany({
       where: {
         organisationId,
@@ -344,7 +360,9 @@ export const brandService = {
     });
   },
 
-  async getById(brandId: string, organisationId: string, projectId?: string) {
+  async getById(brandId: string, organisationId: string, context: TenantContext, projectId?: string) {
+    assertOrganisationScope(organisationId, context);
+
     const brand = await prisma.brand.findFirst({
       where: {
         id: brandId,
@@ -382,7 +400,7 @@ export const brandService = {
     context: TenantContext,
     requestId?: string,
   ) {
-    await projectService.getById(projectId, organisationId);
+    await projectService.getById(projectId, organisationId, context);
 
     const existing = await prisma.brand.findFirst({
       where: { projectId, slug: input.slug },
@@ -437,7 +455,7 @@ export const brandService = {
     context: TenantContext,
     requestId?: string,
   ) {
-    const existing = await brandService.getById(brandId, organisationId);
+    const existing = await brandService.getById(brandId, organisationId, context);
 
     const brand = await prisma.brand.update({
       where: { id: brandId },
@@ -464,7 +482,7 @@ export const brandService = {
     context: TenantContext,
     requestId?: string,
   ) {
-    const existing = await brandService.getById(brandId, organisationId);
+    const existing = await brandService.getById(brandId, organisationId, context);
 
     const brand = await prisma.brand.update({
       where: { id: brandId },
@@ -490,8 +508,8 @@ export const brandService = {
 };
 
 export const brandProfileService = {
-  async get(brandId: string, organisationId: string) {
-    const brand = await brandService.getById(brandId, organisationId);
+  async get(brandId: string, organisationId: string, context: TenantContext) {
+    const brand = await brandService.getById(brandId, organisationId, context);
     if (!brand.profile) {
       throw new AppError("NOT_FOUND", "Brand profile was not found.");
     }
@@ -505,7 +523,7 @@ export const brandProfileService = {
     context: TenantContext,
     requestId?: string,
   ) {
-    const brand = await brandService.getById(brandId, organisationId);
+    const brand = await brandService.getById(brandId, organisationId, context);
 
     const profile = await prisma.brandProfile.upsert({
       where: { brandId },
@@ -887,7 +905,12 @@ export const workspaceService = {
     }
 
     const projects = currentOrganisationId
-      ? await projectService.listActive(currentOrganisationId)
+      ? await projectService.listActive(
+          currentOrganisationId,
+          await buildTenantContextForUser(userProfileId, {
+            organisationId: currentOrganisationId,
+          }),
+        )
       : [];
 
     if (!currentProjectId || !projects.some((project) => project.id === currentProjectId)) {
@@ -897,7 +920,14 @@ export const workspaceService = {
 
     const brands =
       currentOrganisationId && currentProjectId
-        ? await brandService.listForProject(currentOrganisationId, currentProjectId)
+        ? await brandService.listForProject(
+            currentOrganisationId,
+            currentProjectId,
+            await buildTenantContextForUser(userProfileId, {
+              organisationId: currentOrganisationId,
+              projectId: currentProjectId,
+            }),
+          )
         : [];
 
     if (!currentBrandId || !brands.some((brand) => brand.id === currentBrandId)) {
@@ -963,12 +993,21 @@ export const workspaceService = {
 
     const projectId = input.currentProjectId ?? null;
     if (organisationId && projectId) {
-      await projectService.getById(projectId, organisationId);
+      const tenantContext = await buildTenantContextForUser(userProfileId, {
+        organisationId,
+        projectId,
+      });
+      await projectService.getById(projectId, organisationId, tenantContext);
     }
 
     const brandId = input.currentBrandId ?? null;
     if (organisationId && projectId && brandId) {
-      await brandService.getById(brandId, organisationId, projectId);
+      const tenantContext = await buildTenantContextForUser(userProfileId, {
+        organisationId,
+        projectId,
+        brandId,
+      });
+      await brandService.getById(brandId, organisationId, tenantContext, projectId);
     }
 
     const preference = await prisma.workspacePreference.upsert({

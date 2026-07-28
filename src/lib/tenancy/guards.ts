@@ -105,6 +105,81 @@ export async function requireOrganisationRole(
   return membership;
 }
 
+export async function buildTenantContextForUser(
+  userProfileId: string,
+  input: {
+    organisationId: string;
+    projectId?: string;
+    brandId?: string;
+    authUserId?: string;
+  },
+): Promise<TenantContext> {
+  const membership = await prisma.organisationMembership.findFirst({
+    where: {
+      organisationId: input.organisationId,
+      userId: userProfileId,
+      status: MembershipStatus.ACTIVE,
+      organisation: {
+        archivedAt: null,
+        status: { not: "ARCHIVED" },
+      },
+    },
+    select: {
+      organisationId: true,
+      role: true,
+    },
+  });
+
+  if (!membership) {
+    throw new AppError(
+      "ORGANISATION_MEMBERSHIP_REQUIRED",
+      "You do not have access to this organisation.",
+    );
+  }
+
+  if (input.projectId) {
+    const project = await prisma.project.findFirst({
+      where: {
+        id: input.projectId,
+        organisationId: input.organisationId,
+        archivedAt: null,
+        status: { not: "ARCHIVED" },
+      },
+      select: { id: true },
+    });
+
+    if (!project) {
+      throw new AppError("NOT_FOUND", "Project was not found in this organisation.");
+    }
+  }
+
+  if (input.brandId) {
+    const brand = await prisma.brand.findFirst({
+      where: {
+        id: input.brandId,
+        organisationId: input.organisationId,
+        ...(input.projectId ? { projectId: input.projectId } : {}),
+        archivedAt: null,
+        status: { not: "ARCHIVED" },
+      },
+      select: { id: true },
+    });
+
+    if (!brand) {
+      throw new AppError("NOT_FOUND", "Brand was not found in this organisation.");
+    }
+  }
+
+  return {
+    userId: input.authUserId ?? userProfileId,
+    userProfileId,
+    organisationId: membership.organisationId,
+    organisationRole: membership.role,
+    projectId: input.projectId,
+    brandId: input.brandId,
+  };
+}
+
 export async function buildTenantContext(input: {
   organisationId: string;
   projectId?: string;

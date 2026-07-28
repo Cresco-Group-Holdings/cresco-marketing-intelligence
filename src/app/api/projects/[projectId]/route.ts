@@ -22,8 +22,8 @@ export async function GET(request: NextRequest, { params }: Params) {
 
   return withApiHandler(
     request,
-    async ({ requestId }) => {
-      const project = await projectService.getById(projectId, organisationId);
+    async ({ requestId, tenant }) => {
+      const project = await projectService.getById(projectId, organisationId, tenant!);
       return apiSuccess({ project }, { requestId });
     },
     { organisationId, projectId, permission: PERMISSIONS["projects.read"] },

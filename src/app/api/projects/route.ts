@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
 
   return withApiHandler(
     request,
-    async ({ requestId }) => {
-      const projects = await projectService.listActive(organisationId);
+    async ({ requestId, tenant }) => {
+      const projects = await projectService.listActive(organisationId, tenant!);
       return apiSuccess({ projects }, { requestId });
     },
     { organisationId, permission: PERMISSIONS["projects.read"] },

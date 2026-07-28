@@ -21,8 +21,8 @@ export async function GET(request: NextRequest) {
 
   return withApiHandler(
     request,
-    async ({ requestId }) => {
-      const brands = await brandService.listForProject(organisationId, projectId);
+    async ({ requestId, tenant }) => {
+      const brands = await brandService.listForProject(organisationId, projectId, tenant!);
       return apiSuccess({ brands }, { requestId });
     },
     { organisationId, projectId, permission: PERMISSIONS["brands.read"] },

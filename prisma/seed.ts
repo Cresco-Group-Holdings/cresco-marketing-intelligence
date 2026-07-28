@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { slugFromName } from "../src/lib/utils/slug";
 
 const prisma = new PrismaClient();
 

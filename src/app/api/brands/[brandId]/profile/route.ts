@@ -22,8 +22,8 @@ export async function GET(request: NextRequest, { params }: Params) {
 
   return withApiHandler(
     request,
-    async ({ requestId }) => {
-      const profile = await brandProfileService.get(brandId, organisationId);
+    async ({ requestId, tenant }) => {
+      const profile = await brandProfileService.get(brandId, organisationId, tenant!);
       return apiSuccess({ profile }, { requestId });
     },
     { organisationId, permission: PERMISSIONS["brandProfile.read"] },

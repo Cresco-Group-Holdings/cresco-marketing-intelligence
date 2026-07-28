@@ -1,5 +1,6 @@
 import { OrganisationRole } from "@prisma/client";
 import { AsyncLocalStorage } from "node:async_hooks";
+import { AppError } from "@/lib/errors";
 
 export type TenantContext = {
   userId: string;
@@ -23,7 +24,7 @@ export function getCurrentOrganisationContext(): TenantContext | null {
 export function requireCurrentOrganisationContext(): TenantContext {
   const context = getCurrentOrganisationContext();
   if (!context) {
-    throw new Error("Tenant context is required but was not established.");
+    throw new AppError("TENANT_CONTEXT_REQUIRED", "Tenant context is required but was not established.");
   }
 
   return context;
@@ -34,7 +35,7 @@ export function assertOrganisationScope(
   context: TenantContext = requireCurrentOrganisationContext(),
 ): void {
   if (recordOrganisationId !== context.organisationId) {
-    throw new Error("Cross-organisation access is not permitted.");
+    throw new AppError("FORBIDDEN", "Cross-organisation access is not permitted.");
   }
 }
 
@@ -43,10 +44,10 @@ export function assertProjectScope(
   context: TenantContext = requireCurrentOrganisationContext(),
 ): void {
   if (!context.projectId) {
-    throw new Error("Project context is required for this operation.");
+    throw new AppError("TENANT_CONTEXT_REQUIRED", "Project context is required for this operation.");
   }
 
   if (recordProjectId !== context.projectId) {
-    throw new Error("Cross-project access is not permitted.");
+    throw new AppError("FORBIDDEN", "Cross-project access is not permitted.");
   }
 }
