@@ -1,0 +1,18 @@
+/**
+ * Deterministic non-production environment values for Vitest.
+ * Loaded before each test file so application modules can call getServerEnv().
+ */
+const env = process.env as Record<string, string | undefined>;
+
+const testServerSecrets = {
+  supabaseServiceRole: "test-placeholder",
+} as const;
+
+env.NODE_ENV = "test";
+env.DATABASE_URL = "postgresql://test:test@localhost:5432/test";
+env.DIRECT_URL = "postgresql://test:test@localhost:5432/test";
+env["SUPABASE_SERVICE_ROLE_KEY"] = testServerSecrets.supabaseServiceRole;
+env.APP_URL = "http://localhost:3000";
+env.ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef";
+env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";

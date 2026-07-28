@@ -13,6 +13,7 @@ const serverEnvSchema = z.object({
   ENCRYPTION_KEY: z.string().min(32, "ENCRYPTION_KEY must be at least 32 characters"),
   OPENAI_API_KEY: optionalNonEmptyString,
   ANTHROPIC_API_KEY: optionalNonEmptyString,
+  GOOGLE_AI_API_KEY: optionalNonEmptyString,
   GOOGLE_CLIENT_ID: optionalNonEmptyString,
   GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
   META_APP_ID: optionalNonEmptyString,

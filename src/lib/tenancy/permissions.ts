@@ -23,6 +23,8 @@ export const PERMISSIONS = {
   "brandKnowledge.update": "brandKnowledge.update",
   "marketingAssets.read": "marketingAssets.read",
   "marketingAssets.update": "marketingAssets.update",
+  "ai.diagnostics": "ai.diagnostics",
+  "ai.usage.read": "ai.usage.read",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -51,6 +53,8 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["brandKnowledge.update"],
     PERMISSIONS["marketingAssets.read"],
     PERMISSIONS["marketingAssets.update"],
+    PERMISSIONS["ai.diagnostics"],
+    PERMISSIONS["ai.usage.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -77,6 +81,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["brandProfile.read"],
     PERMISSIONS["brandKnowledge.read"],
     PERMISSIONS["marketingAssets.read"],
+    PERMISSIONS["ai.usage.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [

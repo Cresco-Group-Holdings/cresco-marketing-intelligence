@@ -1,4 +1,6 @@
 export const aiFeature = {
   name: "ai",
-  status: "placeholder",
+  status: "core-ready",
 };
+
+export type { AIProvider, AIExecutionInput, AIExecutionResult } from "@/lib/ai/types";
