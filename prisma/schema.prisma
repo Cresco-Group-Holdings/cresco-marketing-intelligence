@@ -93,6 +93,48 @@ enum OnboardingStepKey {
   REVIEW
 }
 
+enum BrandOfferAvailabilityStatus {
+  AVAILABLE
+  LIMITED
+  COMING_SOON
+  DISCONTINUED
+}
+
+enum BrandAssetType {
+  LOGO
+  FAVICON
+  COLOUR_PALETTE
+  FONT
+  SCREENSHOT
+  PRODUCT_IMAGE
+  PRESENTATION
+  VIDEO_CLIP
+}
+
+enum BrandReferenceType {
+  STYLE_GUIDE
+  DOCUMENTATION
+  EXTERNAL_LINK
+  RESEARCH
+  OTHER
+}
+
+enum BrandComplianceRuleType {
+  PROHIBITED_CLAIM
+  REQUIRED_DISCLAIMER
+  GRANT_ELIGIBILITY
+  PRIVACY
+  REGULATED_MARKET
+  CONTENT_APPROVAL
+  OTHER
+}
+
+enum BrandComplianceSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
 model UserProfile {
   id          String   @id @default(cuid())
   authUserId  String   @unique
@@ -163,6 +205,15 @@ model Organisation {
   auditLogs     AuditLog[]
   marketingObjectives MarketingObjective[]
   channelPreferences  BrandChannelPreference[]
+  brandAudiences      BrandAudience[]
+  brandPersonas       BrandPersona[]
+  brandOffers         BrandOffer[]
+  brandMessages       BrandMessage[]
+  brandVoiceRules     BrandVoiceRule[]
+  brandCompetitors    BrandCompetitor[]
+  brandAssets         BrandAsset[]
+  brandReferences     BrandReference[]
+  brandComplianceRules BrandComplianceRule[]
 
   @@index([status])
   @@index([archivedAt])
@@ -207,6 +258,15 @@ model Project {
   brandProfiles BrandProfile[]
   marketingObjectives MarketingObjective[]
   channelPreferences  BrandChannelPreference[]
+  brandAudiences      BrandAudience[]
+  brandPersonas       BrandPersona[]
+  brandOffers         BrandOffer[]
+  brandMessages       BrandMessage[]
+  brandVoiceRules     BrandVoiceRule[]
+  brandCompetitors    BrandCompetitor[]
+  brandAssets         BrandAsset[]
+  brandReferences     BrandReference[]
+  brandComplianceRules BrandComplianceRule[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -240,6 +300,15 @@ model Brand {
   profile      BrandProfile?
   marketingObjectives MarketingObjective[]
   channelPreferences  BrandChannelPreference[]
+  audiences           BrandAudience[]
+  personas            BrandPersona[]
+  offers              BrandOffer[]
+  message             BrandMessage?
+  voiceRule           BrandVoiceRule?
+  competitors         BrandCompetitor[]
+  assets              BrandAsset[]
+  references          BrandReference[]
+  complianceRules     BrandComplianceRule[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -386,6 +455,247 @@ model BrandChannelPreference {
   @@index([organisationId])
   @@index([projectId])
   @@index([brandId])
+}
+
+model BrandAudience {
+  id               String    @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  name             String
+  description      String?
+  countries        String[]  @default([])
+  industries       String[]  @default([])
+  organisationType String?
+  companySize      String?
+  jobRoles         String[]  @default([])
+  painPoints       String[]  @default([])
+  motivations      String[]  @default([])
+  objections       String[]  @default([])
+  buyingTriggers   String[]  @default([])
+  preferredChannels String[] @default([])
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  archivedAt       DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([archivedAt])
+}
+
+model BrandPersona {
+  id                String    @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  name              String
+  description       String?
+  roleTitle         String?
+  goals             String[]  @default([])
+  painPoints        String[]  @default([])
+  motivations       String[]  @default([])
+  objections        String[]  @default([])
+  buyingTriggers    String[]  @default([])
+  preferredChannels String[]  @default([])
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  archivedAt        DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([archivedAt])
+}
+
+model BrandOffer {
+  id                      String                       @id @default(cuid())
+  organisationId          String
+  projectId               String
+  brandId                 String
+  name                    String
+  shortDescription        String?
+  features                String[]                     @default([])
+  benefits                String[]                     @default([])
+  priceDescription        String?
+  trialAvailable          Boolean                      @default(false)
+  primaryCta              String?
+  landingPageUrl          String?
+  eligibilityRestrictions String?
+  availabilityStatus      BrandOfferAvailabilityStatus @default(AVAILABLE)
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+  archivedAt              DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([archivedAt])
+}
+
+model BrandMessage {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String   @unique
+  elevatorPitch       String?
+  coreMessage         String?
+  supportingMessages  String[] @default([])
+  proofPoints         String[] @default([])
+  differentiators     String[] @default([])
+  objectionResponses  Json?
+  ctaLibrary          String[] @default([])
+  prohibitedClaims    String[] @default([])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+}
+
+model BrandVoiceRule {
+  id                    String   @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String   @unique
+  preferredTone         String?
+  vocabulary            String[] @default([])
+  prohibitedVocabulary  String[] @default([])
+  sentenceStyle         String?
+  emojiPolicy           String?
+  humourPolicy          String?
+  preferredSpelling     String?
+  languageVariants      String[] @default([])
+  approvedExamples      String[] @default([])
+  unacceptableExamples  String[] @default([])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+}
+
+model BrandCompetitor {
+  id             String    @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  name           String
+  website        String?
+  description    String?
+  strengths      String[]  @default([])
+  weaknesses     String[]  @default([])
+  positioning    String?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  archivedAt     DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([archivedAt])
+}
+
+model BrandAsset {
+  id             String         @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  assetType      BrandAssetType
+  name           String
+  description    String?
+  fileUrl        String?
+  mimeType       String?
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  archivedAt     DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([assetType])
+  @@index([archivedAt])
+}
+
+model BrandReference {
+  id             String             @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  referenceType  BrandReferenceType @default(OTHER)
+  title          String
+  url            String?
+  description    String?
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  archivedAt     DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([archivedAt])
+}
+
+model BrandComplianceRule {
+  id             String                  @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  ruleType       BrandComplianceRuleType
+  title          String
+  description    String?
+  ruleText       String
+  severity       BrandComplianceSeverity @default(WARNING)
+  appliesTo      String[]                @default([])
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+  archivedAt     DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([ruleType])
+  @@index([archivedAt])
 }
 
 model OnboardingProgress {

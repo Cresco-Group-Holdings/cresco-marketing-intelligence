@@ -44,9 +44,14 @@ export default function BrandDetailPage() {
           { label: brand?.name ?? "Brand" },
         ]}
         actions={
-          <Link href={`/brands/${params.brandId}/profile`} className="text-sm font-medium text-slate-900 hover:underline">
-            Edit brand profile
-          </Link>
+          <div className="flex gap-4">
+            <Link href={`/brands/${params.brandId}/knowledge`} className="text-sm font-medium text-slate-900 hover:underline">
+              Knowledge base
+            </Link>
+            <Link href={`/brands/${params.brandId}/profile`} className="text-sm font-medium text-slate-900 hover:underline">
+              Edit brand profile
+            </Link>
+          </div>
         }
       />
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
