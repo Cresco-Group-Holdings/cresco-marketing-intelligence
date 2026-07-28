@@ -1,7 +1,9 @@
 import {
   BarChart3,
+  BookOpen,
   Bot,
   CalendarDays,
+  FolderOpen,
   LayoutDashboard,
   Link2,
   Megaphone,
@@ -15,6 +17,7 @@ export type NavigationItem = {
   href: string;
   icon: typeof LayoutDashboard;
   description: string;
+  comingSoon?: boolean;
 };
 
 export const dashboardNavigation: NavigationItem[] = [
@@ -31,28 +34,44 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Brand profiles and positioning",
   },
   {
+    label: "Knowledge Base",
+    href: "/knowledge",
+    icon: BookOpen,
+    description: "Brand knowledge and messaging",
+  },
+  {
+    label: "Assets",
+    href: "/assets",
+    icon: FolderOpen,
+    description: "Marketing asset library",
+  },
+  {
     label: "Content Studio",
     href: "/content",
     icon: PenSquare,
     description: "Draft and manage marketing content",
+    comingSoon: true,
   },
   {
     label: "Content Calendar",
     href: "/calendar",
     icon: CalendarDays,
     description: "Plan and schedule campaigns",
+    comingSoon: true,
   },
   {
     label: "Social Media",
     href: "/social",
     icon: Share2,
     description: "Social distribution workflows",
+    comingSoon: true,
   },
   {
     label: "Analytics",
     href: "/analytics",
     icon: BarChart3,
     description: "Performance and intelligence",
+    comingSoon: true,
   },
   {
     label: "Connectors",
@@ -65,6 +84,7 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/ai-agents",
     icon: Bot,
     description: "AI-assisted marketing workflows",
+    comingSoon: true,
   },
   {
     label: "Settings",
