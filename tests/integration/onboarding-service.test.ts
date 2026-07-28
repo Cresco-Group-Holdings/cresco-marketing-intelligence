@@ -1,26 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MarketingChannel, MarketingObjectiveType, OnboardingStepKey } from "@prisma/client";
 import { AppError } from "@/lib/errors";
+import {
+  applyOnboardingProgressUpdate,
+  createInitialProgressState,
+  createMockBrand,
+  createMockMembership,
+  createMockOnboardingProgress,
+  createMockProject,
+  createOnboardingProgressDelegate,
+  onboardingTestIds,
+  type OnboardingProgressWithUser,
+} from "../helpers/onboarding-mocks";
 
-const userProfileId = "profile-1";
-const organisationId = "org-1";
-const projectId = "project-1";
-const brandId = "brand-1";
+const { userProfileId, organisationId, projectId, brandId } = onboardingTestIds;
 
-const progressState = {
-  id: "progress-1",
-  userId: userProfileId,
-  organisationId: null as string | null,
-  projectId: null as string | null,
-  brandId: null as string | null,
-  currentStep: OnboardingStepKey.ACCOUNT_PROFILE,
-  completedSteps: [] as OnboardingStepKey[],
-  stepData: null,
-  templateKey: null,
-  completedAt: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
+let currentProgress: OnboardingProgressWithUser;
 
 vi.mock("@/lib/database/prisma", () => ({
   prisma: {
@@ -131,20 +126,33 @@ import { onboardingService } from "@/server/services/onboarding-service";
 describe("onboarding service resilience", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    progressState.organisationId = null;
-    progressState.projectId = null;
-    progressState.brandId = null;
-    progressState.completedSteps = [];
-    progressState.currentStep = OnboardingStepKey.ACCOUNT_PROFILE;
+    currentProgress = createInitialProgressState();
 
-    vi.mocked(prisma.onboardingProgress.upsert).mockImplementation(async () => ({ ...progressState }) as never);
-    vi.mocked(prisma.onboardingProgress.update).mockImplementation(async ({ data }) => ({
-      ...progressState,
-      ...(typeof data === "object" && data ? data : {}),
-    }) as never);
-    vi.mocked(organisationService.update).mockResolvedValue({ id: organisationId } as never);
-    vi.mocked(prisma.userProfile.update).mockResolvedValue({} as never);
-    vi.mocked(prisma.organisationMembership.findFirst).mockResolvedValue({ id: "membership-1" } as never);
+    vi.mocked(prisma.onboardingProgress.upsert).mockImplementation(() =>
+      createOnboardingProgressDelegate(currentProgress),
+    );
+    vi.mocked(prisma.onboardingProgress.update).mockImplementation((args) => {
+      currentProgress = applyOnboardingProgressUpdate(currentProgress, args.data);
+      return createOnboardingProgressDelegate(currentProgress);
+    });
+    vi.mocked(organisationService.update).mockResolvedValue({
+      id: organisationId,
+      name: "Acme Ltd",
+      slug: "acme-ltd",
+      legalName: null,
+      website: null,
+      logoUrl: null,
+      industry: null,
+      countryCode: null,
+      defaultTimezone: "UTC",
+      status: "ACTIVE",
+      createdByUserId: userProfileId,
+      createdAt: currentProgress.createdAt,
+      updatedAt: currentProgress.updatedAt,
+      archivedAt: null,
+    });
+    vi.mocked(prisma.userProfile.update).mockResolvedValue(createMockOnboardingProgress().user);
+    vi.mocked(prisma.organisationMembership.findFirst).mockResolvedValue(createMockMembership());
   });
 
   it("saves account profile and advances to organisation", async () => {
@@ -158,7 +166,9 @@ describe("onboarding service resilience", () => {
   });
 
   it("updates an existing organisation instead of creating duplicates", async () => {
-    progressState.organisationId = organisationId;
+    currentProgress = createMockOnboardingProgress({
+      organisationId,
+    });
 
     await onboardingService.saveOrganisation(
       userProfileId,
@@ -170,7 +180,9 @@ describe("onboarding service resilience", () => {
   });
 
   it("rejects cross-tenant organisation access during onboarding", async () => {
-    progressState.organisationId = organisationId;
+    currentProgress = createMockOnboardingProgress({
+      organisationId,
+    });
     vi.mocked(prisma.organisationMembership.findFirst).mockResolvedValue(null);
 
     await expect(
@@ -182,11 +194,13 @@ describe("onboarding service resilience", () => {
   });
 
   it("upserts marketing objectives without creating fake performance data", async () => {
-    progressState.organisationId = organisationId;
-    progressState.projectId = projectId;
-    progressState.brandId = brandId;
-    vi.mocked(prisma.project.findFirst).mockResolvedValue({ id: projectId } as never);
-    vi.mocked(prisma.brand.findFirst).mockResolvedValue({ id: brandId } as never);
+    currentProgress = createMockOnboardingProgress({
+      organisationId,
+      projectId,
+      brandId,
+    });
+    vi.mocked(prisma.project.findFirst).mockResolvedValue(createMockProject());
+    vi.mocked(prisma.brand.findFirst).mockResolvedValue(createMockBrand());
 
     const progress = await onboardingService.saveMarketingObjectives(userProfileId, {
       objectives: [
@@ -205,11 +219,13 @@ describe("onboarding service resilience", () => {
   });
 
   it("saves channel preferences as configuration only", async () => {
-    progressState.organisationId = organisationId;
-    progressState.projectId = projectId;
-    progressState.brandId = brandId;
-    vi.mocked(prisma.project.findFirst).mockResolvedValue({ id: projectId } as never);
-    vi.mocked(prisma.brand.findFirst).mockResolvedValue({ id: brandId } as never);
+    currentProgress = createMockOnboardingProgress({
+      organisationId,
+      projectId,
+      brandId,
+    });
+    vi.mocked(prisma.project.findFirst).mockResolvedValue(createMockProject());
+    vi.mocked(prisma.brand.findFirst).mockResolvedValue(createMockBrand());
 
     const progress = await onboardingService.saveChannelPreferences(userProfileId, {
       channels: [MarketingChannel.WEBSITE, MarketingChannel.SEO],
