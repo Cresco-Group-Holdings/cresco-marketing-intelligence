@@ -25,6 +25,8 @@ Permissions are defined centrally in `src/lib/tenancy/permissions.ts` and enforc
 | brandProfile.update | ✓ | ✓ | ✓ | | |
 | brandKnowledge.read | ✓ | ✓ | ✓ | ✓ | ✓ |
 | brandKnowledge.update | ✓ | ✓ | ✓ | | |
+| marketingAssets.read | ✓ | ✓ | ✓ | ✓ | ✓ |
+| marketingAssets.update | ✓ | ✓ | ✓ | | |
 | auditLogs.read | ✓ | ✓ | | ✓ | |
 
 ## Special rules

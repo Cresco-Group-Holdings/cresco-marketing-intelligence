@@ -100,6 +100,6 @@ The page provides section tabs for readiness, audiences, personas, offers, messa
 
 ## Deferred work
 
-- File storage for brand assets (Task 1.6)
+- ~~File storage for brand assets (Task 1.6)~~ — see `docs/BRAND_ASSETS.md`
 - AI provider integration (later tasks)
 - Competitor site scraping (later tasks)

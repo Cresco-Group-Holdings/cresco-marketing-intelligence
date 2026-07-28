@@ -45,6 +45,9 @@ export default function BrandDetailPage() {
         ]}
         actions={
           <div className="flex gap-4">
+            <Link href={`/brands/${params.brandId}/assets`} className="text-sm font-medium text-slate-900 hover:underline">
+              Asset library
+            </Link>
             <Link href={`/brands/${params.brandId}/knowledge`} className="text-sm font-medium text-slate-900 hover:underline">
               Knowledge base
             </Link>

@@ -135,6 +135,20 @@ enum BrandComplianceSeverity {
   CRITICAL
 }
 
+enum MarketingAssetStatus {
+  PROCESSING
+  READY
+  REJECTED
+  ARCHIVED
+}
+
+enum MarketingAssetType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
 model UserProfile {
   id          String   @id @default(cuid())
   authUserId  String   @unique
@@ -156,6 +170,7 @@ model UserProfile {
   organisationsCreated Organisation[]           @relation("OrganisationCreator")
   projectsCreated      Project[]                @relation("ProjectCreator")
   brandsCreated        Brand[]                  @relation("BrandCreator")
+  marketingAssetsUploaded MarketingAsset[]      @relation("MarketingAssetUploader")
   securityAuditLogs    SecurityAuditLog[]
   onboardingProgress   OnboardingProgress?
 
@@ -214,6 +229,7 @@ model Organisation {
   brandAssets         BrandAsset[]
   brandReferences     BrandReference[]
   brandComplianceRules BrandComplianceRule[]
+  marketingAssets      MarketingAsset[]
 
   @@index([status])
   @@index([archivedAt])
@@ -267,6 +283,7 @@ model Project {
   brandAssets         BrandAsset[]
   brandReferences     BrandReference[]
   brandComplianceRules BrandComplianceRule[]
+  marketingAssets      MarketingAsset[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -309,6 +326,7 @@ model Brand {
   assets              BrandAsset[]
   references          BrandReference[]
   complianceRules     BrandComplianceRule[]
+  marketingAssets       MarketingAsset[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -696,6 +714,50 @@ model BrandComplianceRule {
   @@index([brandId])
   @@index([ruleType])
   @@index([archivedAt])
+}
+
+model MarketingAsset {
+  id                   String               @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  filename             String
+  originalFilename     String
+  storageKey           String               @unique
+  mimeType             String
+  sizeBytes            Int
+  width                Int?
+  height               Int?
+  durationSeconds      Decimal?             @db.Decimal(10, 3)
+  assetType            MarketingAssetType
+  title                String
+  description          String?
+  tags                 String[]             @default([])
+  status               MarketingAssetStatus @default(PROCESSING)
+  uploadedByUserId     String
+  approvedForMarketing Boolean              @default(false)
+  approvedPlatforms    String[]             @default([])
+  licenceOwner         String?
+  licenceNotes         String?
+  licenceExpiresAt     DateTime?
+  attributionRequired  Boolean              @default(false)
+  consentNotes         String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  archivedAt           DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  uploadedBy   UserProfile  @relation("MarketingAssetUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([status])
+  @@index([assetType])
+  @@index([archivedAt])
+  @@index([uploadedByUserId])
 }
 
 model OnboardingProgress {
