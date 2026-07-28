@@ -8,3 +8,8 @@ export * from "@/server/services/marketing-asset-service";
 export * from "@/server/services/ai-request-service";
 export * from "@/server/services/ai-usage-recorder";
 export * from "@/server/services/prompt-template-service";
+export * from "@/server/services/connector-service";
+export * from "@/server/services/connector-credential-service";
+export * from "@/server/services/connector-oauth-service";
+export * from "@/server/services/connector-sync-service";
+export * from "@/server/services/webhook-service";

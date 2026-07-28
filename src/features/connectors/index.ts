@@ -1,4 +1,4 @@
 export const connectorsFeature = {
   name: "connectors",
-  status: "placeholder",
+  status: "active",
 };
