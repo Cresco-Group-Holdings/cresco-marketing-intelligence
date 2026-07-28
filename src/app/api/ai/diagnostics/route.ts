@@ -8,7 +8,6 @@ import { getUsageSummary } from "@/lib/ai/cost-controls";
 import { PERMISSIONS } from "@/lib/tenancy/permissions";
 import { aiDiagnosticsTestSchema } from "@/lib/validation/ai";
 import { aiRequestService } from "@/server/services/ai-request-service";
-import { getOrganisationUsageDashboard } from "@/server/services/ai-usage-recorder";
 
 function requireOrganisationId(request: NextRequest): string {
   const organisationId = getOrganisationIdFromRequest(request);
