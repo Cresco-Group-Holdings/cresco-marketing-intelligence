@@ -36,7 +36,7 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
-  if (pathname.startsWith("/api/health")) {
+  if (pathname.startsWith("/api/health") || pathname.startsWith("/api/readiness")) {
     return false;
   }
 

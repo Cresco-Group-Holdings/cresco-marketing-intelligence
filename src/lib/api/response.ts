@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 import { NextResponse } from "next/server";
 import { AppError, mapErrorToAppError, toSafeErrorMessage } from "@/lib/errors";
 import { logger } from "@/lib/logging";
+import { getErrorMonitor } from "@/lib/observability/error-monitor";
 
 export type ApiErrorPayload = {
   code: string;
@@ -68,6 +69,12 @@ export function handleApiError(
     code: appError.code,
     message: appError.message,
     expose: appError.expose,
+  });
+
+  getErrorMonitor().captureException(error, {
+    requestId,
+    component: "api",
+    metadata: { code: appError.code, expose: appError.expose },
   });
 
   return apiFailure(appError, requestId);

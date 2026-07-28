@@ -18,8 +18,9 @@ describe("route protection rules", () => {
     expect(isProtectedRoute("/settings/account")).toBe(true);
   });
 
-  it("allows health, auth callback, and auth API routes", () => {
+  it("allows health, readiness, auth callback, and auth API routes", () => {
     expect(isProtectedRoute("/api/health")).toBe(false);
+    expect(isProtectedRoute("/api/readiness")).toBe(false);
     expect(isProtectedRoute("/auth/callback")).toBe(false);
     expect(isProtectedRoute("/api/auth/login")).toBe(false);
   });
