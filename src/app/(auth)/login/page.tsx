@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ButtonLink } from "@/components/ui/button";
+import { Suspense } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { LoginForm } from "@/components/auth/login-form";
 import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -19,40 +19,19 @@ export default function LoginPage() {
           </Link>
           <h1 className="mt-4 text-2xl font-semibold text-slate-900">Sign in</h1>
           <p className="mt-2 text-sm text-slate-600">
-            Access your marketing workspace with Supabase authentication.
+            Access your marketing workspace with email, password, or Google.
           </p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Welcome back</CardTitle>
-            <CardDescription>
-              Authentication is configured through Supabase. Connect your project credentials to
-              enable sign-in.
-            </CardDescription>
+            <CardDescription>Sign in to continue to your workspace.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form className="space-y-4" action="/auth/callback" method="get">
-              <Input
-                label="Email address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                placeholder="you@company.com"
-                disabled
-              />
-              <Input
-                label="Password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                placeholder="••••••••"
-                disabled
-              />
-              <ButtonLink href="/dashboard" className="w-full">
-                Continue to platform (dev placeholder)
-              </ButtonLink>
-            </form>
+            <Suspense fallback={<p className="text-sm text-slate-600">Loading sign-in...</p>}>
+              <LoginForm />
+            </Suspense>
             <p className="mt-4 text-center text-sm text-slate-600">
               <Link href="/forgot-password" className="font-medium text-slate-900 hover:underline">
                 Forgot password?

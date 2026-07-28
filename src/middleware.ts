@@ -2,6 +2,11 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAuthRoute, isProtectedRoute } from "@/lib/auth/routes";
 import { applySecurityHeaders } from "@/lib/security/headers";
+import { resolveSafeRedirectPath } from "@/lib/security/redirects";
+
+function isTestAuthEnabled(): boolean {
+  return process.env.ALLOW_TEST_AUTH === "true" && Boolean(process.env.TEST_AUTH_USER_ID);
+}
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -12,8 +17,20 @@ export async function middleware(request: NextRequest) {
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { pathname } = request.nextUrl;
+
+  if (isTestAuthEnabled() && isProtectedRoute(pathname)) {
+    return applySecurityHeaders(response);
+  }
 
   if (!supabaseUrl || !supabaseAnonKey) {
+    if (isProtectedRoute(pathname)) {
+      const redirectUrl = request.nextUrl.clone();
+      redirectUrl.pathname = "/login";
+      redirectUrl.searchParams.set("redirect", pathname);
+      return applySecurityHeaders(NextResponse.redirect(redirectUrl));
+    }
+
     return applySecurityHeaders(response);
   }
 
@@ -40,21 +57,23 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
-
   if (isProtectedRoute(pathname) && !user) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
-    redirectUrl.searchParams.set("redirect", pathname);
+    redirectUrl.searchParams.set("redirect", resolveSafeRedirectPath(pathname, "/dashboard"));
+    redirectUrl.searchParams.delete("code");
     return applySecurityHeaders(NextResponse.redirect(redirectUrl));
   }
 
   if (isAuthRoute(pathname) && user) {
+    const redirectParam = request.nextUrl.searchParams.get("redirect");
     const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/dashboard";
+    redirectUrl.pathname = resolveSafeRedirectPath(redirectParam, "/dashboard");
     redirectUrl.search = "";
     return applySecurityHeaders(NextResponse.redirect(redirectUrl));
   }
+
+  response.headers.set("x-pathname", pathname);
 
   return applySecurityHeaders(response);
 }

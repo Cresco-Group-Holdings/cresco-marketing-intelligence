@@ -69,8 +69,27 @@ model UserProfile {
   organisationsCreated Organisation[]           @relation("OrganisationCreator")
   projectsCreated      Project[]                @relation("ProjectCreator")
   brandsCreated        Brand[]                  @relation("BrandCreator")
+  securityAuditLogs    SecurityAuditLog[]
 
   @@index([email])
+}
+
+model SecurityAuditLog {
+  id           String   @id @default(cuid())
+  actorUserId  String?
+  action       String
+  resourceType String
+  resourceId   String?
+  requestId    String?
+  ipAddress    String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  actor UserProfile? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([createdAt])
 }
 
 model Organisation {

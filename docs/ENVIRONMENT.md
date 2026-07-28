@@ -31,6 +31,16 @@ These may be omitted during local development. The environment module reports wh
 | `LINKEDIN_CLIENT_ID` | Server only | LinkedIn OAuth |
 | `LINKEDIN_CLIENT_SECRET` | Server only | LinkedIn OAuth |
 
+## Test authentication variables
+
+These are used only in automated tests and local test flows. They are not required for normal development.
+
+| Variable | Exposure | Purpose |
+| --- | --- | --- |
+| `ALLOW_TEST_AUTH` | Server only | Bypass Supabase auth in middleware and API handlers |
+| `TEST_AUTH_USER_ID` | Server only | Auth user ID used for test bypass |
+| `TEST_AUTH_EMAIL` | Server only | Email used when provisioning the test profile |
+
 Only `NEXT_PUBLIC_*` variables may be exposed to the browser.
 
 ## Local development

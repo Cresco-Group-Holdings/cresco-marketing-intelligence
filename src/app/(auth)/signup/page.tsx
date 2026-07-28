@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { SignupForm } from "@/components/auth/signup-form";
 import { APP_NAME } from "@/lib/constants";
 
 export const metadata: Metadata = {
@@ -26,31 +25,19 @@ export default function SignupPage() {
         <Card>
           <CardHeader>
             <CardTitle>Get started</CardTitle>
-            <CardDescription>
-              Account provisioning will be connected to Supabase Auth in the next setup phase.
-            </CardDescription>
+            <CardDescription>Create an account with email or Google.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <Input label="Full name" name="fullName" autoComplete="name" disabled />
-            <Input
-              label="Work email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              disabled
-            />
-            <Input
-              label="Password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              disabled
-            />
-            <ButtonLink href="/login" className="w-full">
-              Return to sign in
-            </ButtonLink>
+          <CardContent>
+            <SignupForm />
           </CardContent>
         </Card>
+
+        <p className="text-center text-sm text-slate-600">
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-slate-900 hover:underline">
+            Sign in
+          </Link>
+        </p>
       </div>
     </div>
   );

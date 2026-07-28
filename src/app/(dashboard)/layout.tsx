@@ -1,11 +1,18 @@
+import { headers } from "next/headers";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { OnboardingRedirect } from "@/components/onboarding/onboarding-redirect";
+import { DashboardAuthGate } from "@/components/auth/dashboard-auth-gate";
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? "/dashboard";
+
   return (
-    <DashboardShell>
-      <OnboardingRedirect />
-      {children}
-    </DashboardShell>
+    <DashboardAuthGate pathname={pathname}>
+      <DashboardShell>
+        <OnboardingRedirect />
+        {children}
+      </DashboardShell>
+    </DashboardAuthGate>
   );
 }

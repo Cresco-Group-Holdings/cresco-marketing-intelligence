@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createRequestId, apiSuccess, handleApiError } from "@/lib/api/response";
 import { AppError } from "@/lib/errors";
-import { ensureUserProfile } from "@/lib/auth/provisioning";
+import { ensureUserProfile, extractProviderMetadata } from "@/lib/auth/provisioning";
 import { createSupabaseServerClient } from "@/lib/auth/supabase-server";
 import { hasPermission, type Permission } from "@/lib/tenancy/permissions";
 import {
@@ -46,12 +46,11 @@ export async function resolveApiUser(): Promise<AuthenticatedUser> {
     throw new AppError("UNAUTHORIZED", "Authentication is required.");
   }
 
+  const metadata = extractProviderMetadata(user.user_metadata);
   const provisioned = await ensureUserProfile({
     authUserId: user.id,
     email: user.email,
-    displayName: user.user_metadata?.full_name ?? null,
-    firstName: user.user_metadata?.first_name ?? null,
-    lastName: user.user_metadata?.last_name ?? null,
+    ...metadata,
   });
 
   return {
