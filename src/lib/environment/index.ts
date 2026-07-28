@@ -22,6 +22,8 @@ const serverEnvSchema = z.object({
   TIKTOK_CLIENT_SECRET: optionalNonEmptyString,
   LINKEDIN_CLIENT_ID: optionalNonEmptyString,
   LINKEDIN_CLIENT_SECRET: optionalNonEmptyString,
+  X_CLIENT_ID: optionalNonEmptyString,
+  X_CLIENT_SECRET: optionalNonEmptyString,
 });
 
 const clientEnvSchema = z.object({
@@ -46,6 +48,7 @@ export type IntegrationConfigStatus = {
   meta: IntegrationStatus;
   tiktok: IntegrationStatus;
   linkedin: IntegrationStatus;
+  x: IntegrationStatus;
 };
 
 function formatZodError(error: z.ZodError): string {
@@ -67,6 +70,7 @@ export function getIntegrationStatus(env: ServerEnv): IntegrationConfigStatus {
     meta: integrationStatus("Meta", env.META_APP_ID, env.META_APP_SECRET),
     tiktok: integrationStatus("TikTok", env.TIKTOK_CLIENT_KEY, env.TIKTOK_CLIENT_SECRET),
     linkedin: integrationStatus("LinkedIn", env.LINKEDIN_CLIENT_ID, env.LINKEDIN_CLIENT_SECRET),
+    x: integrationStatus("X", env.X_CLIENT_ID, env.X_CLIENT_SECRET),
   };
 }
 

@@ -14,3 +14,6 @@ export * from "@/server/services/connector-oauth-service";
 export * from "@/server/services/connector-sync-service";
 export * from "@/server/services/webhook-service";
 export * from "@/server/services/foundation-dashboard-service";
+export * from "@/server/services/social-connection-service";
+export * from "@/server/services/social-credential-service";
+export * from "@/server/services/social-oauth-service";

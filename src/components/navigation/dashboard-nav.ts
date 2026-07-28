@@ -64,7 +64,6 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/social",
     icon: Share2,
     description: "Social distribution workflows",
-    comingSoon: true,
   },
   {
     label: "Analytics",

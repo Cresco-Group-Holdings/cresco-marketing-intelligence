@@ -14,6 +14,13 @@ const AUDIT_ACTION_LABELS: Record<string, string> = {
   "connector.connect.complete": "Connector configured",
   "connector.disconnect": "Connector disconnected",
   "connector.reconnect": "Connector reconnected",
+  "social.connectionStarted": "Social connection started",
+  "social.connectionCompleted": "Social connection completed",
+  "social.connectionFailed": "Social connection failed",
+  "social.connectionReauthorised": "Social connection reauthorised",
+  "social.connectionDisconnected": "Social connection disconnected",
+  "social.accountAssigned": "Social account assigned",
+  "social.permissionsChanged": "Social permissions changed",
   "onboarding.completed": "Onboarding completed",
 };
 
@@ -51,6 +58,7 @@ export function isFoundationAuditAction(action: string): boolean {
     "member",
     "invitation",
     "connector",
+    "social",
     "onboarding",
     "profile",
     "knowledge",

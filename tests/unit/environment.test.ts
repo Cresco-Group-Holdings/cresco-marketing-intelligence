@@ -38,9 +38,21 @@ describe("environment validation", () => {
   });
 
   it("reports integration configuration status", () => {
+    delete process.env.GOOGLE_CLIENT_ID;
+    delete process.env.GOOGLE_CLIENT_SECRET;
+    delete process.env.META_APP_ID;
+    delete process.env.META_APP_SECRET;
+    delete process.env.LINKEDIN_CLIENT_ID;
+    delete process.env.LINKEDIN_CLIENT_SECRET;
+    delete process.env.TIKTOK_CLIENT_KEY;
+    delete process.env.TIKTOK_CLIENT_SECRET;
+    delete process.env.X_CLIENT_ID;
+    delete process.env.X_CLIENT_SECRET;
+    resetEnvCacheForTests();
     const status = getIntegrationStatus(getServerEnv());
     expect(status.openai.configured).toBe(false);
     expect(status.google.configured).toBe(false);
+    expect(status.x.configured).toBe(false);
   });
 
   it("throws a clear error for missing required values", () => {
