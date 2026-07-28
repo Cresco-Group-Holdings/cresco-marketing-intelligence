@@ -13,3 +13,4 @@ export * from "@/server/services/connector-credential-service";
 export * from "@/server/services/connector-oauth-service";
 export * from "@/server/services/connector-sync-service";
 export * from "@/server/services/webhook-service";
+export * from "@/server/services/foundation-dashboard-service";
