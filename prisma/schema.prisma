@@ -236,6 +236,7 @@ model UserProfile {
   promptTemplateVersions  PromptTemplateVersion[] @relation("PromptTemplateVersionCreator")
   securityAuditLogs    SecurityAuditLog[]
   onboardingProgress   OnboardingProgress?
+  connectorAccountsConnected ConnectorAccount[] @relation("ConnectorAccountConnector")
 
   @@index([email])
 }
@@ -296,6 +297,11 @@ model Organisation {
   aiRequests           AIRequest[]
   aiUsageRecords       AIUsageRecord[]
   promptTemplates      PromptTemplate[]
+  connectorAccounts    ConnectorAccount[]
+  connectorSyncs       ConnectorSync[]
+  connectorErrors      ConnectorError[]
+  webhookEndpoints     WebhookEndpoint[]
+  connectorOAuthStates ConnectorOAuthState[]
 
   @@index([status])
   @@index([archivedAt])
@@ -351,6 +357,11 @@ model Project {
   brandComplianceRules BrandComplianceRule[]
   marketingAssets      MarketingAsset[]
   aiRequests           AIRequest[]
+  connectorAccounts    ConnectorAccount[]
+  connectorSyncs       ConnectorSync[]
+  connectorErrors      ConnectorError[]
+  webhookEndpoints     WebhookEndpoint[]
+  connectorOAuthStates ConnectorOAuthState[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -395,6 +406,11 @@ model Brand {
   complianceRules     BrandComplianceRule[]
   marketingAssets       MarketingAsset[]
   aiRequests            AIRequest[]
+  connectorAccounts     ConnectorAccount[]
+  connectorSyncs        ConnectorSync[]
+  connectorErrors       ConnectorError[]
+  webhookEndpoints      WebhookEndpoint[]
+  connectorOAuthStates  ConnectorOAuthState[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -981,4 +997,282 @@ model OnboardingProgress {
   @@index([projectId])
   @@index([brandId])
   @@index([currentStep])
+}
+
+enum ConnectorType {
+  GOOGLE_ANALYTICS_4
+  GOOGLE_SEARCH_CONSOLE
+  GOOGLE_ADS
+  META
+  INSTAGRAM
+  LINKEDIN
+  TIKTOK
+  YOUTUBE
+  X
+  STRIPE
+  EMAIL_PROVIDER
+  CRM_PROVIDER
+}
+
+enum ConnectorPlatformAvailability {
+  COMING_SOON
+  AVAILABLE
+}
+
+enum ConnectorStatus {
+  NOT_CONFIGURED
+  AVAILABLE
+  CONNECTING
+  CONNECTED
+  ERROR
+  REAUTH_REQUIRED
+  DISABLED
+}
+
+enum ConnectorSyncType {
+  INITIAL
+  INCREMENTAL
+}
+
+enum ConnectorSyncStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum ConnectorErrorCategory {
+  AUTHENTICATION
+  AUTHORIZATION
+  RATE_LIMIT
+  NETWORK
+  VALIDATION
+  PROVIDER
+  INTERNAL
+}
+
+enum WebhookEndpointStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum WebhookEventStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  DUPLICATE
+}
+
+model ConnectorDefinition {
+  id                    String                      @id @default(cuid())
+  key                   ConnectorType               @unique
+  name                  String
+  description           String
+  category              String
+  requiredScopes        String[]                    @default([])
+  optionalScopes        String[]                    @default([])
+  supportsOAuth         Boolean                     @default(true)
+  platformAvailability  ConnectorPlatformAvailability @default(COMING_SOON)
+  documentationUrl      String?
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  accounts ConnectorAccount[]
+
+  @@index([platformAvailability])
+}
+
+model ConnectorAccount {
+  id                     String          @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  connectorDefinitionId  String
+  connectorType          ConnectorType
+  status                 ConnectorStatus @default(NOT_CONFIGURED)
+  displayName            String?
+  externalAccountId      String?
+  externalAccountLabel   String?
+  grantedScopes          String[]        @default([])
+  connectedByUserId      String?
+  connectedAt            DateTime?
+  disconnectedAt         DateTime?
+  lastSuccessfulSyncAt   DateTime?
+  lastSyncAttemptAt      DateTime?
+  lastErrorAt            DateTime?
+  lastErrorMessage       String?
+  metadata               Json?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  organisation  Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  definition    ConnectorDefinition @relation(fields: [connectorDefinitionId], references: [id], onDelete: Restrict)
+  connectedBy   UserProfile?        @relation("ConnectorAccountConnector", fields: [connectedByUserId], references: [id], onDelete: SetNull)
+  credential    ConnectorCredential?
+  syncs         ConnectorSync[]
+  errors        ConnectorError[]
+  syncCursors   ConnectorSyncCursor[]
+  webhookEndpoints WebhookEndpoint[]
+
+  @@unique([brandId, connectorType])
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([status])
+  @@index([connectorType])
+}
+
+model ConnectorCredential {
+  id                      String   @id @default(cuid())
+  connectorAccountId      String   @unique
+  encryptionKeyVersion    Int      @default(1)
+  encryptedAccessToken    String?
+  encryptedRefreshToken   String?
+  tokenExpiresAt          DateTime?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  connectorAccount ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+
+  @@index([tokenExpiresAt])
+}
+
+model ConnectorSync {
+  id                 String              @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  connectorAccountId String
+  syncType           ConnectorSyncType
+  status             ConnectorSyncStatus @default(PENDING)
+  idempotencyKey     String
+  recordsProcessed   Int                 @default(0)
+  recordsFailed      Int                 @default(0)
+  partialFailure     Boolean             @default(false)
+  errorMessage       String?
+  startedAt          DateTime?
+  completedAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  organisation     Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connectorAccount ConnectorAccount      @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  cursors          ConnectorSyncCursor[]
+  errors           ConnectorError[]
+
+  @@unique([connectorAccountId, idempotencyKey])
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ConnectorSyncCursor {
+  id                 String   @id @default(cuid())
+  connectorAccountId String
+  connectorSyncId    String?
+  cursorKey          String
+  cursorValue        String
+  updatedAt          DateTime @updatedAt
+  createdAt          DateTime @default(now())
+
+  connectorAccount ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  connectorSync    ConnectorSync?   @relation(fields: [connectorSyncId], references: [id], onDelete: SetNull)
+
+  @@unique([connectorAccountId, cursorKey])
+  @@index([connectorSyncId])
+}
+
+model ConnectorError {
+  id                 String                 @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  connectorAccountId String
+  connectorSyncId    String?
+  category           ConnectorErrorCategory
+  message            String
+  retryable          Boolean                @default(false)
+  metadata           Json?
+  occurredAt         DateTime               @default(now())
+
+  organisation     Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connectorAccount ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  connectorSync    ConnectorSync?   @relation(fields: [connectorSyncId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([connectorAccountId])
+  @@index([occurredAt])
+}
+
+model WebhookEndpoint {
+  id                 String                @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  connectorAccountId String?
+  path               String
+  secretDigest       String
+  status             WebhookEndpointStatus @default(ACTIVE)
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  organisation     Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connectorAccount ConnectorAccount? @relation(fields: [connectorAccountId], references: [id], onDelete: SetNull)
+  events           WebhookEvent[]
+
+  @@unique([brandId, path])
+  @@index([organisationId])
+  @@index([status])
+}
+
+model WebhookEvent {
+  id                String             @id @default(cuid())
+  webhookEndpointId String
+  idempotencyKey    String
+  payloadDigest     String
+  status            WebhookEventStatus @default(PENDING)
+  errorMessage      String?
+  receivedAt        DateTime           @default(now())
+  processedAt       DateTime?
+
+  webhookEndpoint WebhookEndpoint @relation(fields: [webhookEndpointId], references: [id], onDelete: Cascade)
+
+  @@unique([webhookEndpointId, idempotencyKey])
+  @@index([status])
+  @@index([receivedAt])
+}
+
+model ConnectorOAuthState {
+  id             String        @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  connectorType  ConnectorType
+  state          String        @unique
+  codeVerifier   String?
+  scopes         String[]      @default([])
+  redirectUri    String
+  expiresAt      DateTime
+  createdAt      DateTime      @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([brandId])
+  @@index([expiresAt])
 }
