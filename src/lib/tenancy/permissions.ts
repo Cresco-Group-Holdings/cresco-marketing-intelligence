@@ -27,6 +27,11 @@ export const PERMISSIONS = {
   "ai.usage.read": "ai.usage.read",
   "connectors.read": "connectors.read",
   "connectors.update": "connectors.update",
+  "socialConnections.read": "socialConnections.read",
+  "socialConnections.create": "socialConnections.create",
+  "socialConnections.reconnect": "socialConnections.reconnect",
+  "socialConnections.disconnect": "socialConnections.disconnect",
+  "socialAccounts.assign": "socialAccounts.assign",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -59,6 +64,11 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["ai.usage.read"],
     PERMISSIONS["connectors.read"],
     PERMISSIONS["connectors.update"],
+    PERMISSIONS["socialConnections.read"],
+    PERMISSIONS["socialConnections.create"],
+    PERMISSIONS["socialConnections.reconnect"],
+    PERMISSIONS["socialConnections.disconnect"],
+    PERMISSIONS["socialAccounts.assign"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -78,6 +88,11 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["marketingAssets.update"],
     PERMISSIONS["connectors.read"],
     PERMISSIONS["connectors.update"],
+    PERMISSIONS["socialConnections.read"],
+    PERMISSIONS["socialConnections.create"],
+    PERMISSIONS["socialConnections.reconnect"],
+    PERMISSIONS["socialConnections.disconnect"],
+    PERMISSIONS["socialAccounts.assign"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -89,6 +104,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["marketingAssets.read"],
     PERMISSIONS["ai.usage.read"],
     PERMISSIONS["connectors.read"],
+    PERMISSIONS["socialConnections.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -100,6 +116,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["brandKnowledge.read"],
     PERMISSIONS["marketingAssets.read"],
     PERMISSIONS["connectors.read"],
+    PERMISSIONS["socialConnections.read"],
   ],
 };
 

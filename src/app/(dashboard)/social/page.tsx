@@ -1,24 +1,32 @@
+import Link from "next/link";
 import { PageHeader } from "@/components/layout/page-header";
-import { ModuleEmptyState } from "@/components/layout/module-empty-state";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SocialPage() {
   return (
     <>
       <PageHeader
         title="Social Media"
-        description="Prepare social distribution workflows once publishing connectors are available."
+        description="Connect social accounts and prepare distribution workflows for the selected brand."
         breadcrumbs={[{ label: "Overview", href: "/dashboard" }, { label: "Social Media" }]}
       />
-      <ModuleEmptyState
-        title="Social distribution"
-        description="Social publishing and analytics are not connected in this release. This module will coordinate channel-ready content and scheduling."
-        futureCapabilities={[
-          "Channel account connections",
-          "Post scheduling and approvals",
-          "Platform-specific formatting",
-          "Social performance reporting",
-        ]}
-      />
+      <Card>
+        <CardHeader>
+          <CardTitle>Account connections</CardTitle>
+          <CardDescription>
+            Securely connect Instagram, Facebook, LinkedIn, TikTok, YouTube, and X accounts to
+            your brand. Publishing and analytics will be added in later stages.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Link
+            href="/social/connections"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            Manage social connections
+          </Link>
+        </CardContent>
+      </Card>
     </>
   );
 }

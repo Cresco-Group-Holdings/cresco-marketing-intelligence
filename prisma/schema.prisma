@@ -237,6 +237,9 @@ model UserProfile {
   securityAuditLogs    SecurityAuditLog[]
   onboardingProgress   OnboardingProgress?
   connectorAccountsConnected ConnectorAccount[] @relation("ConnectorAccountConnector")
+  socialConnectionsConnected SocialConnection[] @relation("SocialConnectionConnector")
+  oauthAuthorisationStates OAuthAuthorisationState[] @relation("OAuthAuthorisationUser")
+  credentialRotationEvents CredentialRotationEvent[] @relation("CredentialRotationActor")
 
   @@index([email])
 }
@@ -302,6 +305,10 @@ model Organisation {
   connectorErrors      ConnectorError[]
   webhookEndpoints     WebhookEndpoint[]
   connectorOAuthStates ConnectorOAuthState[]
+  socialConnections    SocialConnection[]
+  socialAccounts       SocialAccount[]
+  oauthAuthorisationStates OAuthAuthorisationState[]
+  credentialRotationEvents CredentialRotationEvent[]
 
   @@index([status])
   @@index([archivedAt])
@@ -362,6 +369,10 @@ model Project {
   connectorErrors      ConnectorError[]
   webhookEndpoints     WebhookEndpoint[]
   connectorOAuthStates ConnectorOAuthState[]
+  socialConnections    SocialConnection[]
+  socialAccounts       SocialAccount[]
+  oauthAuthorisationStates OAuthAuthorisationState[]
+  credentialRotationEvents CredentialRotationEvent[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -411,6 +422,10 @@ model Brand {
   connectorErrors       ConnectorError[]
   webhookEndpoints      WebhookEndpoint[]
   connectorOAuthStates  ConnectorOAuthState[]
+  socialConnections     SocialConnection[]
+  socialAccounts        SocialAccount[]
+  oauthAuthorisationStates OAuthAuthorisationState[]
+  credentialRotationEvents CredentialRotationEvent[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -1275,4 +1290,197 @@ model ConnectorOAuthState {
   @@index([organisationId])
   @@index([brandId])
   @@index([expiresAt])
+}
+
+enum SocialProvider {
+  INSTAGRAM
+  FACEBOOK
+  LINKEDIN
+  TIKTOK
+  YOUTUBE
+  X
+}
+
+enum SocialConnectionStatus {
+  CONNECTING
+  CONNECTED
+  REAUTH_REQUIRED
+  PERMISSION_MISSING
+  ERROR
+  DISCONNECTED
+}
+
+enum SocialAccountType {
+  INSTAGRAM_BUSINESS
+  FACEBOOK_PAGE
+  LINKEDIN_ORGANISATION
+  LINKEDIN_MEMBER
+  TIKTOK_BUSINESS
+  YOUTUBE_CHANNEL
+  X_ACCOUNT
+}
+
+enum SocialCapability {
+  PUBLISH_TEXT
+  PUBLISH_IMAGE
+  PUBLISH_CAROUSEL
+  PUBLISH_VIDEO
+  PUBLISH_SHORT_VIDEO
+  SCHEDULE_NATIVELY
+  READ_INSIGHTS
+  READ_COMMENTS
+  MANAGE_COMMENTS
+  READ_MESSAGES
+  WEBHOOK_SUPPORT
+}
+
+enum CredentialRotationReason {
+  SCHEDULED
+  KEY_ROTATION
+  MANUAL
+  COMPROMISE_RESPONSE
+}
+
+model SocialConnection {
+  id                  String                 @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  provider            SocialProvider
+  status              SocialConnectionStatus @default(CONNECTING)
+  grantedScopes       String[]               @default([])
+  connectedByUserId   String?
+  tokenExpiresAt      DateTime?
+  lastValidatedAt     DateTime?
+  lastRefreshAt       DateTime?
+  reconnectRequiredAt DateTime?
+  pendingAccounts     Json?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  disconnectedAt      DateTime?
+
+  organisation  Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connectedBy   UserProfile?               @relation("SocialConnectionConnector", fields: [connectedByUserId], references: [id], onDelete: SetNull)
+  credential    SocialConnectionCredential?
+  accounts      SocialAccount[]
+  rotationEvents CredentialRotationEvent[]
+  oauthStates   OAuthAuthorisationState[]
+
+  @@unique([brandId, provider])
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([status])
+  @@index([provider])
+}
+
+model SocialConnectionCredential {
+  id                    String   @id @default(cuid())
+  socialConnectionId    String   @unique
+  encryptionKeyVersion  Int      @default(1)
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  socialConnection SocialConnection @relation(fields: [socialConnectionId], references: [id], onDelete: Cascade)
+
+  @@index([encryptionKeyVersion])
+}
+
+model SocialAccount {
+  id                 String                 @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  socialConnectionId String
+  provider           SocialProvider
+  providerAccountId  String
+  accountType        SocialAccountType
+  username           String?
+  displayName        String?
+  profileUrl         String?
+  avatarUrl          String?
+  status             SocialConnectionStatus @default(CONNECTED)
+  metadata           Json?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  organisation     Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  socialConnection SocialConnection        @relation(fields: [socialConnectionId], references: [id], onDelete: Cascade)
+  capabilities     SocialAccountCapability[]
+
+  @@unique([socialConnectionId, providerAccountId])
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([provider])
+  @@index([status])
+}
+
+model SocialAccountCapability {
+  id              String           @id @default(cuid())
+  socialAccountId String
+  capability      SocialCapability
+  createdAt       DateTime         @default(now())
+
+  socialAccount SocialAccount @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([socialAccountId, capability])
+  @@index([capability])
+}
+
+model OAuthAuthorisationState {
+  id                 String         @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  userId             String
+  socialConnectionId String
+  provider           SocialProvider
+  state              String         @unique
+  codeVerifier       String?
+  scopes             String[]       @default([])
+  redirectUri        String
+  expiresAt          DateTime
+  consumedAt         DateTime?
+  createdAt          DateTime       @default(now())
+
+  organisation     Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  user             UserProfile      @relation("OAuthAuthorisationUser", fields: [userId], references: [id], onDelete: Cascade)
+  socialConnection SocialConnection @relation(fields: [socialConnectionId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([brandId])
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([consumedAt])
+}
+
+model CredentialRotationEvent {
+  id                 String                   @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  socialConnectionId String
+  fromKeyVersion     Int
+  toKeyVersion       Int
+  reason             CredentialRotationReason
+  rotatedByUserId    String?
+  createdAt          DateTime                 @default(now())
+
+  organisation     Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  socialConnection SocialConnection @relation(fields: [socialConnectionId], references: [id], onDelete: Cascade)
+  rotatedBy        UserProfile?     @relation("CredentialRotationActor", fields: [rotatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([socialConnectionId])
+  @@index([createdAt])
 }
