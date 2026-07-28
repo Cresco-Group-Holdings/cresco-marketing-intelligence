@@ -149,6 +149,67 @@ enum MarketingAssetType {
   DOCUMENT
 }
 
+enum AIProviderName {
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  MOCK
+}
+
+enum AICapability {
+  TEXT_GENERATION
+  STRUCTURED_OUTPUT
+  IMAGE_GENERATION
+  AUDIO_GENERATION
+  VIDEO_GENERATION
+  EMBEDDINGS
+}
+
+enum AIPurpose {
+  DIAGNOSTICS_TEST
+  BRAND_CONTEXT_SUMMARY
+  CONTENT_DRAFT
+  SEO_ANALYSIS
+  ANALYTICS_INSIGHT
+  SALES_ASSIST
+}
+
+enum AIRequestStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum AIExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum AIErrorCategory {
+  PROVIDER_ERROR
+  VALIDATION_ERROR
+  RATE_LIMIT
+  TIMEOUT
+  CANCELLED
+  CONFIGURATION_ERROR
+  SAFETY_FILTER
+  BUDGET_EXCEEDED
+  UNKNOWN
+}
+
+enum PromptTemplateVersionStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
 model UserProfile {
   id          String   @id @default(cuid())
   authUserId  String   @unique
@@ -171,6 +232,8 @@ model UserProfile {
   projectsCreated      Project[]                @relation("ProjectCreator")
   brandsCreated        Brand[]                  @relation("BrandCreator")
   marketingAssetsUploaded MarketingAsset[]      @relation("MarketingAssetUploader")
+  aiRequests              AIRequest[]             @relation("AIRequestInitiator")
+  promptTemplateVersions  PromptTemplateVersion[] @relation("PromptTemplateVersionCreator")
   securityAuditLogs    SecurityAuditLog[]
   onboardingProgress   OnboardingProgress?
 
@@ -230,6 +293,9 @@ model Organisation {
   brandReferences     BrandReference[]
   brandComplianceRules BrandComplianceRule[]
   marketingAssets      MarketingAsset[]
+  aiRequests           AIRequest[]
+  aiUsageRecords       AIUsageRecord[]
+  promptTemplates      PromptTemplate[]
 
   @@index([status])
   @@index([archivedAt])
@@ -284,6 +350,7 @@ model Project {
   brandReferences     BrandReference[]
   brandComplianceRules BrandComplianceRule[]
   marketingAssets      MarketingAsset[]
+  aiRequests           AIRequest[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -327,6 +394,7 @@ model Brand {
   references          BrandReference[]
   complianceRules     BrandComplianceRule[]
   marketingAssets       MarketingAsset[]
+  aiRequests            AIRequest[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -758,6 +826,139 @@ model MarketingAsset {
   @@index([assetType])
   @@index([archivedAt])
   @@index([uploadedByUserId])
+}
+
+model AIRequest {
+  id               String          @id @default(cuid())
+  organisationId   String
+  projectId        String?
+  brandId          String?
+  userProfileId    String
+  purpose          AIPurpose
+  provider         AIProviderName
+  model            String
+  status           AIRequestStatus @default(PENDING)
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  estimatedCostUsd Decimal?        @db.Decimal(12, 6)
+  latencyMs        Int?
+  requestId        String?
+  errorCategory    AIErrorCategory?
+  inputDigest      String?
+  inputPreview     String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  startedAt        DateTime?
+  completedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  initiatedBy  UserProfile  @relation("AIRequestInitiator", fields: [userProfileId], references: [id], onDelete: Restrict)
+  executions   AIExecution[]
+  usageRecords AIUsageRecord[]
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([userProfileId])
+  @@index([purpose])
+  @@index([status])
+  @@index([createdAt])
+  @@index([requestId])
+}
+
+model AIExecution {
+  id               String            @id @default(cuid())
+  aiRequestId      String
+  provider         AIProviderName
+  model            String
+  status           AIExecutionStatus @default(PENDING)
+  attemptNumber    Int               @default(1)
+  latencyMs        Int?
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  estimatedCostUsd Decimal?          @db.Decimal(12, 6)
+  outputDigest     String?
+  outputPreview    String?
+  structuredOutput Json?
+  errorCategory    AIErrorCategory?
+  errorMessage     String?
+  startedAt        DateTime          @default(now())
+  completedAt      DateTime?
+
+  aiRequest    AIRequest      @relation(fields: [aiRequestId], references: [id], onDelete: Cascade)
+  usageRecords AIUsageRecord[]
+
+  @@index([aiRequestId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+model AIUsageRecord {
+  id               String         @id @default(cuid())
+  organisationId   String
+  projectId        String?
+  userProfileId    String?
+  aiRequestId      String?
+  aiExecutionId    String?
+  provider         AIProviderName
+  model            String
+  purpose          AIPurpose
+  promptTokens     Int            @default(0)
+  completionTokens Int            @default(0)
+  totalTokens      Int            @default(0)
+  estimatedCostUsd Decimal?       @db.Decimal(12, 6)
+  recordedAt       DateTime       @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  aiRequest    AIRequest?   @relation(fields: [aiRequestId], references: [id], onDelete: SetNull)
+  aiExecution  AIExecution? @relation(fields: [aiExecutionId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([userProfileId])
+  @@index([recordedAt])
+  @@index([purpose])
+}
+
+model PromptTemplate {
+  id              String   @id @default(cuid())
+  organisationId  String?
+  key             String   @unique
+  name            String
+  description     String?
+  purpose         AIPurpose
+  activeVersionId String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organisation  Organisation?           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  versions      PromptTemplateVersion[] @relation("TemplateVersions")
+  activeVersion PromptTemplateVersion?  @relation("ActiveTemplateVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([purpose])
+}
+
+model PromptTemplateVersion {
+  id               String                      @id @default(cuid())
+  promptTemplateId String
+  version          Int
+  systemPrompt     String
+  outputSchemaKey  String?
+  status           PromptTemplateVersionStatus @default(DRAFT)
+  createdByUserId  String?
+  createdAt        DateTime                    @default(now())
+
+  promptTemplate  PromptTemplate  @relation("TemplateVersions", fields: [promptTemplateId], references: [id], onDelete: Cascade)
+  createdBy       UserProfile?    @relation("PromptTemplateVersionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  activeForTemplate PromptTemplate? @relation("ActiveTemplateVersion")
+
+  @@unique([promptTemplateId, version])
+  @@index([promptTemplateId])
+  @@index([status])
 }
 
 model OnboardingProgress {
