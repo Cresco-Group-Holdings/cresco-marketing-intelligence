@@ -10,17 +10,20 @@ export const organisationRepository = {
       where: {
         id: organisationId,
         archivedAt: null,
+        status: { not: "ARCHIVED" },
       },
     });
   },
 
-  async listForUser(userProfileId: string) {
+  async listForUser(userId: string) {
     return prisma.organisation.findMany({
       where: {
         archivedAt: null,
+        status: { not: "ARCHIVED" },
         memberships: {
           some: {
-            userProfileId,
+            userId,
+            status: "ACTIVE",
           },
         },
       },
@@ -37,6 +40,7 @@ export const projectRepository = {
       where: {
         organisationId,
         archivedAt: null,
+        status: { not: "ARCHIVED" },
       },
       orderBy: { name: "asc" },
     });
@@ -54,6 +58,7 @@ export const brandRepository = {
         organisationId: context.organisationId,
         projectId,
         archivedAt: null,
+        status: { not: "ARCHIVED" },
       },
       orderBy: { name: "asc" },
     });

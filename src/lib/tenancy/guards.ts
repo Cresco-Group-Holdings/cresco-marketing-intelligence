@@ -1,7 +1,8 @@
-import { OrganisationRole } from "@prisma/client";
+import { MembershipStatus, OrganisationRole } from "@prisma/client";
 import { AppError } from "@/lib/errors";
 import { hasMinimumRole } from "@/lib/tenancy/roles";
 import { createSupabaseServerClient } from "@/lib/auth/supabase-server";
+import { ensureUserProfile } from "@/lib/auth/provisioning";
 import { prisma } from "@/lib/database/prisma";
 import {
   getCurrentOrganisationContext,
@@ -16,43 +17,61 @@ export type AuthenticatedUser = {
 };
 
 export async function requireAuthenticatedUser(): Promise<AuthenticatedUser> {
+  if (process.env.ALLOW_TEST_AUTH === "true" && process.env.TEST_AUTH_USER_ID) {
+    const provisioned = await ensureUserProfile({
+      authUserId: process.env.TEST_AUTH_USER_ID,
+      email: process.env.TEST_AUTH_EMAIL ?? "test@example.com",
+      displayName: "Test User",
+    });
+    return {
+      userId: provisioned.authUserId,
+      email: provisioned.email,
+      userProfileId: provisioned.userProfileId,
+    };
+  }
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
     error,
   } = await supabase.auth.getUser();
 
-  if (error || !user) {
+  if (error || !user?.email) {
     throw new AppError("UNAUTHORIZED", "Authentication is required.");
   }
 
-  const profile = await prisma.userProfile.findUnique({
-    where: { userId: user.id },
+  const provisioned = await ensureUserProfile({
+    authUserId: user.id,
+    email: user.email,
+    displayName: user.user_metadata?.full_name ?? null,
+    firstName: user.user_metadata?.first_name ?? null,
+    lastName: user.user_metadata?.last_name ?? null,
   });
 
-  if (!profile) {
-    throw new AppError("UNAUTHORIZED", "User profile is not provisioned.");
-  }
-
   return {
-    userId: user.id,
-    email: profile.email,
-    userProfileId: profile.id,
+    userId: provisioned.authUserId,
+    email: provisioned.email,
+    userProfileId: provisioned.userProfileId,
   };
 }
 
 export async function requireOrganisationMembership(
   organisationId: string,
   user?: AuthenticatedUser,
-): Promise<{ organisationId: string; role: OrganisationRole }> {
+): Promise<{ organisationId: string; role: OrganisationRole; membershipId: string }> {
   const authenticatedUser = user ?? (await requireAuthenticatedUser());
   const membership = await prisma.organisationMembership.findFirst({
     where: {
       organisationId,
-      userProfileId: authenticatedUser.userProfileId,
-      organisation: { archivedAt: null },
+      userId: authenticatedUser.userProfileId,
+      status: MembershipStatus.ACTIVE,
+      organisation: {
+        archivedAt: null,
+        status: { not: "ARCHIVED" },
+      },
     },
     select: {
+      id: true,
       organisationId: true,
       role: true,
     },
@@ -65,14 +84,18 @@ export async function requireOrganisationMembership(
     );
   }
 
-  return membership;
+  return {
+    organisationId: membership.organisationId,
+    role: membership.role,
+    membershipId: membership.id,
+  };
 }
 
 export async function requireOrganisationRole(
   organisationId: string,
   requiredRole: OrganisationRole,
   user?: AuthenticatedUser,
-): Promise<{ organisationId: string; role: OrganisationRole }> {
+): Promise<{ organisationId: string; role: OrganisationRole; membershipId: string }> {
   const membership = await requireOrganisationMembership(organisationId, user);
 
   if (!hasMinimumRole(membership.role, requiredRole)) {
@@ -85,6 +108,7 @@ export async function requireOrganisationRole(
 export async function buildTenantContext(input: {
   organisationId: string;
   projectId?: string;
+  brandId?: string;
 }): Promise<TenantContext> {
   const user = await requireAuthenticatedUser();
   const membership = await requireOrganisationMembership(input.organisationId, user);
@@ -95,6 +119,7 @@ export async function buildTenantContext(input: {
         id: input.projectId,
         organisationId: input.organisationId,
         archivedAt: null,
+        status: { not: "ARCHIVED" },
       },
       select: { id: true },
     });
@@ -104,17 +129,35 @@ export async function buildTenantContext(input: {
     }
   }
 
+  if (input.brandId) {
+    const brand = await prisma.brand.findFirst({
+      where: {
+        id: input.brandId,
+        organisationId: input.organisationId,
+        ...(input.projectId ? { projectId: input.projectId } : {}),
+        archivedAt: null,
+        status: { not: "ARCHIVED" },
+      },
+      select: { id: true, projectId: true },
+    });
+
+    if (!brand) {
+      throw new AppError("NOT_FOUND", "Brand was not found in this organisation.");
+    }
+  }
+
   return {
     userId: user.userId,
     userProfileId: user.userProfileId,
     organisationId: membership.organisationId,
     organisationRole: membership.role,
     projectId: input.projectId,
+    brandId: input.brandId,
   };
 }
 
 export async function withTenantContext<T>(
-  input: { organisationId: string; projectId?: string },
+  input: { organisationId: string; projectId?: string; brandId?: string },
   callback: () => Promise<T> | T,
 ): Promise<T> {
   const context = await buildTenantContext(input);

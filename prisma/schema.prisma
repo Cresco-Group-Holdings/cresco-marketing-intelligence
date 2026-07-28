@@ -16,91 +16,249 @@ enum OrganisationRole {
   VIEWER
 }
 
-model UserProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  email     String
-  fullName  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+enum OrganisationStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
 
-  memberships OrganisationMembership[]
-  auditLogs   AuditLog[]
+enum MembershipStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  REMOVED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum BrandStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+model UserProfile {
+  id          String   @id @default(cuid())
+  authUserId  String   @unique
+  email       String
+  displayName String?
+  firstName   String?
+  lastName    String?
+  avatarUrl   String?
+  timezone    String?  @default("UTC")
+  locale      String?  @default("en-GB")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  memberships          OrganisationMembership[]
+  auditLogs            AuditLog[]
+  workspacePreference  WorkspacePreference?
+  invitationsSent      Invitation[]             @relation("InvitationsSent")
+  invitationsAccepted  Invitation[]             @relation("InvitationsAccepted")
+  organisationsCreated Organisation[]           @relation("OrganisationCreator")
+  projectsCreated      Project[]                @relation("ProjectCreator")
+  brandsCreated        Brand[]                  @relation("BrandCreator")
 
   @@index([email])
 }
 
 model Organisation {
-  id         String    @id @default(cuid())
-  name       String
-  slug       String    @unique
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-  archivedAt DateTime?
+  id               String             @id @default(cuid())
+  name             String
+  slug             String             @unique
+  legalName        String?
+  website          String?
+  logoUrl          String?
+  industry         String?
+  countryCode      String?
+  defaultTimezone  String?            @default("UTC")
+  status           OrganisationStatus @default(ACTIVE)
+  createdByUserId  String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  archivedAt       DateTime?
 
-  memberships OrganisationMembership[]
-  projects    Project[]
-  auditLogs   AuditLog[]
+  createdBy     UserProfile              @relation("OrganisationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  memberships   OrganisationMembership[]
+  projects      Project[]
+  brands        Brand[]
+  brandProfiles BrandProfile[]
+  invitations   Invitation[]
+  auditLogs     AuditLog[]
+
+  @@index([status])
+  @@index([archivedAt])
+  @@index([createdAt])
 }
 
 model OrganisationMembership {
   id             String           @id @default(cuid())
   organisationId String
-  userProfileId  String
+  userId         String
   role           OrganisationRole @default(VIEWER)
+  status         MembershipStatus @default(ACTIVE)
+  joinedAt       DateTime?
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  userProfile  UserProfile  @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  user         UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([organisationId, userProfileId])
+  @@unique([organisationId, userId])
   @@index([organisationId])
-  @@index([userProfileId])
+  @@index([userId])
+  @@index([status])
 }
 
 model Project {
-  id             String    @id @default(cuid())
-  organisationId String
-  name           String
-  slug           String
-  description    String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  archivedAt     DateTime?
+  id              String        @id @default(cuid())
+  organisationId  String
+  name            String
+  slug            String
+  description     String?
+  website         String?
+  status          ProjectStatus @default(ACTIVE)
+  createdByUserId String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  archivedAt      DateTime?
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  brands       Brand[]
+  organisation  Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdBy     UserProfile    @relation("ProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  brands        Brand[]
+  brandProfiles BrandProfile[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
+  @@index([status])
+  @@index([archivedAt])
 }
 
 model Brand {
-  id             String    @id @default(cuid())
-  organisationId String
-  projectId      String
-  name           String
-  slug           String
-  description    String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  archivedAt     DateTime?
+  id              String      @id @default(cuid())
+  organisationId  String
+  projectId       String
+  name            String
+  slug            String
+  description     String?
+  website         String?
+  primaryDomain   String?
+  logoUrl         String?
+  faviconUrl      String?
+  primaryColour   String?
+  secondaryColour String?
+  accentColour    String?
+  status          BrandStatus @default(DRAFT)
+  createdByUserId String
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  archivedAt      DateTime?
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile  @relation("BrandCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  profile      BrandProfile?
 
   @@unique([projectId, slug])
   @@index([organisationId])
   @@index([projectId])
+  @@index([status])
+  @@index([archivedAt])
+}
+
+model BrandProfile {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String   @unique
+  shortDescription    String?
+  longDescription     String?
+  mission             String?
+  valueProposition    String?
+  targetAudience      String?
+  customerProblems    String?
+  keyBenefits         String?
+  productsAndServices String?
+  preferredTone       String?
+  prohibitedTone      String?
+  preferredLanguage   String?
+  targetCountries     String[] @default([])
+  targetIndustries    String[] @default([])
+  competitors         String[] @default([])
+  complianceNotes     String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+}
+
+model WorkspacePreference {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  currentOrganisationId String?
+  currentProjectId      String?
+  currentBrandId        String?
+  onboardingCompletedAt DateTime?
+  onboardingStep        String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([currentOrganisationId])
+  @@index([currentProjectId])
+  @@index([currentBrandId])
+}
+
+model Invitation {
+  id              String           @id @default(cuid())
+  organisationId  String
+  email           String
+  role            OrganisationRole @default(VIEWER)
+  tokenHash       String           @unique
+  status          InvitationStatus @default(PENDING)
+  expiresAt       DateTime
+  invitedByUserId String
+  acceptedByUserId String?
+  acceptedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  invitedBy    UserProfile  @relation("InvitationsSent", fields: [invitedByUserId], references: [id], onDelete: Restrict)
+  acceptedBy   UserProfile? @relation("InvitationsAccepted", fields: [acceptedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([email])
+  @@index([status])
+  @@index([expiresAt])
 }
 
 model AuditLog {
   id             String   @id @default(cuid())
   organisationId String
+  projectId      String?
   actorUserId    String?
   action         String
   resourceType   String
   resourceId     String?
+  requestId      String?
   metadata       Json?
   createdAt      DateTime @default(now())
 
@@ -108,6 +266,8 @@ model AuditLog {
   actor        UserProfile? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([organisationId])
+  @@index([projectId])
   @@index([actorUserId])
   @@index([createdAt])
+  @@index([action])
 }

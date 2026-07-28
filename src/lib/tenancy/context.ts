@@ -7,6 +7,7 @@ export type TenantContext = {
   organisationId: string;
   organisationRole: OrganisationRole;
   projectId?: string;
+  brandId?: string;
 };
 
 const tenantStorage = new AsyncLocalStorage<TenantContext>();

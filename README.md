@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# cresco-marketing-intelligence
-AI-powered marketing intelligence platform for content generation, campaign automation, SEO, social media publishing, lead generation, analytics, and CRM integration.
-=======
 # Cresco Marketing Intelligence
 
 AI Marketing & Growth Platform for planning, creating, publishing, measuring, and optimising marketing campaigns across websites, search engines, email, advertising platforms, and social media.
@@ -61,4 +57,3 @@ The platform is being built to support:
 ## License
 
 Proprietary — Cresco Group.
->>>>>>> 5a905a3 (feat: establish Cresco Marketing Intelligence platform foundation)
