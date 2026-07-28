@@ -48,6 +48,51 @@ enum InvitationStatus {
   REVOKED
 }
 
+enum MarketingObjectiveType {
+  BRAND_AWARENESS
+  WEBSITE_TRAFFIC
+  LEAD_GENERATION
+  DEMO_BOOKINGS
+  TRIAL_SIGNUPS
+  PAID_SUBSCRIPTIONS
+  COMMUNITY_GROWTH
+  EMAIL_LIST_GROWTH
+  SEO_GROWTH
+  CUSTOMER_RETENTION
+}
+
+enum MarketingObjectiveStatus {
+  PLANNED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum MarketingChannel {
+  WEBSITE
+  SEO
+  GOOGLE_ADS
+  LINKEDIN
+  INSTAGRAM
+  TIKTOK
+  FACEBOOK
+  YOUTUBE
+  X
+  EMAIL
+}
+
+enum OnboardingStepKey {
+  ACCOUNT_PROFILE
+  ORGANISATION
+  PROJECT
+  BRAND
+  BRAND_PROFILE
+  MARKETING_OBJECTIVES
+  CHANNEL_PREFERENCES
+  REVIEW
+}
+
 model UserProfile {
   id          String   @id @default(cuid())
   authUserId  String   @unique
@@ -70,6 +115,7 @@ model UserProfile {
   projectsCreated      Project[]                @relation("ProjectCreator")
   brandsCreated        Brand[]                  @relation("BrandCreator")
   securityAuditLogs    SecurityAuditLog[]
+  onboardingProgress   OnboardingProgress?
 
   @@index([email])
 }
@@ -115,6 +161,8 @@ model Organisation {
   brandProfiles BrandProfile[]
   invitations   Invitation[]
   auditLogs     AuditLog[]
+  marketingObjectives MarketingObjective[]
+  channelPreferences  BrandChannelPreference[]
 
   @@index([status])
   @@index([archivedAt])
@@ -157,6 +205,8 @@ model Project {
   createdBy     UserProfile    @relation("ProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   brands        Brand[]
   brandProfiles BrandProfile[]
+  marketingObjectives MarketingObjective[]
+  channelPreferences  BrandChannelPreference[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -188,6 +238,8 @@ model Brand {
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdBy    UserProfile  @relation("BrandCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   profile      BrandProfile?
+  marketingObjectives MarketingObjective[]
+  channelPreferences  BrandChannelPreference[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -289,4 +341,71 @@ model AuditLog {
   @@index([actorUserId])
   @@index([createdAt])
   @@index([action])
+}
+
+model MarketingObjective {
+  id             String                   @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  objectiveType  MarketingObjectiveType
+  description    String
+  priority       Int                      @default(1)
+  targetValue    Decimal                  @db.Decimal(18, 4)
+  targetPeriod   String
+  status         MarketingObjectiveStatus @default(PLANNED)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, objectiveType])
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([status])
+}
+
+model BrandChannelPreference {
+  id             String           @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  channel        MarketingChannel
+  enabled        Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, channel])
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+}
+
+model OnboardingProgress {
+  id             String            @id @default(cuid())
+  userId         String            @unique
+  organisationId String?
+  projectId      String?
+  brandId        String?
+  currentStep    OnboardingStepKey @default(ACCOUNT_PROFILE)
+  completedSteps OnboardingStepKey[] @default([])
+  stepData       Json?
+  templateKey    String?
+  completedAt    DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([currentStep])
 }
