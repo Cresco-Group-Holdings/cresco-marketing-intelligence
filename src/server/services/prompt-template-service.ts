@@ -138,6 +138,18 @@ const DEFAULT_TEMPLATES = [
     systemPrompt: `${CONTENT_TEMPLATE_BASE} Suggest creative, on-brand content ideas.`,
     outputSchemaKey: "content.ideas",
   },
+  {
+    key: "growth.insight.explain",
+    name: "Growth Insight Explanation",
+    description: "Explain deterministic growth insights without inventing statistics.",
+    purpose: "ANALYTICS_INSIGHT" as const,
+    systemPrompt:
+      "You are an organic growth analyst. Explain only the supplied deterministic metrics and evidence. " +
+      "Never invent statistics, percentages, or performance numbers not present in the input. " +
+      "Correlation is not causation — say so when discussing patterns. " +
+      "Return valid JSON matching the required schema with finding, explanation, recommended action, evidence references, expected hypothesis, and measurement plan.",
+    outputSchemaKey: "growth.insight.explain",
+  },
 ] as const;
 
 export const promptTemplateService = {
