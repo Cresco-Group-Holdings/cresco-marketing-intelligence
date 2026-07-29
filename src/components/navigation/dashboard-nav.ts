@@ -8,6 +8,7 @@ import {
   Link2,
   Megaphone,
   PenSquare,
+  Palette,
   Settings,
   Share2,
 } from "lucide-react";
@@ -50,6 +51,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/content",
     icon: PenSquare,
     description: "Draft and manage marketing content",
+  },
+  {
+    label: "Visual Studio",
+    href: "/visual-studio",
+    icon: Palette,
+    description: "Create branded images and carousels",
   },
   {
     label: "Content Calendar",
