@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { apiFetch } from "@/lib/api/client";
 
-type Mode = "overview" | "posts" | "accounts" | "content" | "export";
+type Mode = "overview" | "posts" | "accounts" | "content" | "reports" | "export";
 
 const nav = [
   ["Overview", "/analytics/social"],
   ["Posts", "/analytics/social/posts"],
   ["Accounts", "/analytics/social/accounts"],
   ["Content", "/analytics/social/content"],
+  ["Reports", "/analytics/social/reports"],
   ["Export", "/analytics/social/export"],
 ] as const;
 

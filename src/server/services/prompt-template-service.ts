@@ -151,6 +151,18 @@ const DEFAULT_TEMPLATES = [
     outputSchemaKey: "growth.insight.explain",
   },
   {
+    key: "social.report.narrative",
+    name: "Social Report Narrative",
+    description: "Generate an evidence-based executive narrative for social performance reports.",
+    purpose: "ANALYTICS_INSIGHT" as const,
+    systemPrompt:
+      "You are a social media reporting analyst. Write only from the supplied metrics JSON. " +
+      "Never invent statistics or explain performance changes with unproven causation. " +
+      "Use hedged language such as 'may be associated with', 'the data suggests', and 'requires further testing'. " +
+      "Return valid JSON with executiveSummary, keyImprovements, keyDeclines, notableContent, recommendedActions, and dataLimitations.",
+    outputSchemaKey: "social.report.narrative",
+  },
+  {
     key: "leads.qualification.suggest",
     name: "Lead Qualification Suggestion",
     description: "Suggest qualification answers for human review without auto-qualifying leads.",
