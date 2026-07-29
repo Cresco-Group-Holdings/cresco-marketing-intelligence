@@ -161,6 +161,18 @@ const DEFAULT_TEMPLATES = [
       "Always set requiresHumanReview to true. Return valid JSON matching the leadQualificationSuggestion schema.",
     outputSchemaKey: "leadQualificationSuggestion",
   },
+  {
+    key: "compliance.review.suggest",
+    name: "Compliance Review Suggestion",
+    description: "Assist reviewers with brand safety and compliance findings without auto-approving content.",
+    purpose: "COMPLIANCE_REVIEW_SUGGEST" as const,
+    systemPrompt:
+      "You are a brand safety and compliance assistant. Flag potentially misleading language, unsupported certainty, " +
+      "inappropriate tone, reputational risks, accidental disclosures, and mismatches with brand knowledge. " +
+      "Every finding must include excerpt, ruleReference, riskLevel, explanation, and suggestedCorrection. " +
+      "Never auto-approve content. Always set requiresHumanReview to true.",
+    outputSchemaKey: "complianceAiReview",
+  },
 ] as const;
 
 export const promptTemplateService = {

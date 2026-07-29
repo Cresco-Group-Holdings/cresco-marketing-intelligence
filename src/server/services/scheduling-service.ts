@@ -3,6 +3,7 @@ import { AppError } from "@/lib/errors";
 import type { TenantContext } from "@/lib/tenancy/context";
 import type { ScheduleCreateInput } from "@/lib/validation/scheduling";
 import { recordAuditEvent } from "@/server/services/audit-service";
+import { complianceAgentService } from "@/server/services/compliance-agent-service";
 import { brandService } from "@/server/services/workspace-service";
 
 export const schedulingService = {
@@ -12,6 +13,7 @@ export const schedulingService = {
     if (scheduledFor <= new Date()) throw new AppError("VALIDATION_ERROR", "Scheduling in the past is not allowed.");
     const item = await prisma.contentItem.findFirst({ where: { id: contentId, organisationId, brandId, archivedAt: null }, include: { variants: true } });
     if (!item || item.status !== "APPROVED") throw new AppError("VALIDATION_ERROR", "Only approved content may be scheduled.");
+    await complianceAgentService.assertPublishable(brandId, organisationId, contentId, context, input.contentVariantId);
     const variant = item.variants.find((entry) => entry.id === input.contentVariantId);
     if (!variant || variant.socialAccountId !== input.socialAccountId || (variant.validationErrors && Array.isArray(variant.validationErrors) && variant.validationErrors.length)) throw new AppError("VALIDATION_ERROR", "Variant must be valid and assigned to the selected account.");
     const account = await prisma.socialAccount.findFirst({ where: { id: input.socialAccountId, organisationId, brandId, status: "CONNECTED", socialConnection: { status: "CONNECTED" } } });

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { CONTENT_OUTPUT_SCHEMAS } from "@/lib/ai/content-output-schemas";
+import { COMPLIANCE_OUTPUT_SCHEMAS } from "@/lib/ai/compliance-output-schemas";
 import { GROWTH_OUTPUT_SCHEMAS } from "@/lib/ai/growth-output-schemas";
 import { LEADS_OUTPUT_SCHEMAS } from "@/lib/ai/leads-output-schemas";
 import {
@@ -34,6 +35,7 @@ const OUTPUT_SCHEMAS = {
   ...CONTENT_OUTPUT_SCHEMAS,
   ...GROWTH_OUTPUT_SCHEMAS,
   ...LEADS_OUTPUT_SCHEMAS,
+  ...COMPLIANCE_OUTPUT_SCHEMAS,
   "diagnostics.ping": z.object({
     ok: z.boolean(),
     message: z.string(),

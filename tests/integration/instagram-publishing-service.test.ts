@@ -31,6 +31,11 @@ vi.mock("@/lib/storage/supabase-storage-provider", () => ({
   createObjectStorageProvider: () => storageMock,
 }));
 vi.mock("@/server/services/audit-service", () => ({ recordAuditEvent: vi.fn() }));
+vi.mock("@/server/services/compliance-agent-service", () => ({
+  complianceAgentService: {
+    assertPublishable: vi.fn().mockResolvedValue(undefined),
+  },
+}));
 vi.mock("@/server/services/workspace-service", () => ({
   brandService: { getById: vi.fn().mockResolvedValue({ id: "brand-1", projectId: "project-1" }) },
 }));
