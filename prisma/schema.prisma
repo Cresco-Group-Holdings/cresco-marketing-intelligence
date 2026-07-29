@@ -223,32 +223,32 @@ model UserProfile {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  memberships          OrganisationMembership[]
-  auditLogs            AuditLog[]
-  workspacePreference  WorkspacePreference?
-  invitationsSent      Invitation[]             @relation("InvitationsSent")
-  invitationsAccepted  Invitation[]             @relation("InvitationsAccepted")
-  organisationsCreated Organisation[]           @relation("OrganisationCreator")
-  projectsCreated      Project[]                @relation("ProjectCreator")
-  brandsCreated        Brand[]                  @relation("BrandCreator")
-  marketingAssetsUploaded MarketingAsset[]      @relation("MarketingAssetUploader")
-  aiRequests              AIRequest[]             @relation("AIRequestInitiator")
-  promptTemplateVersions  PromptTemplateVersion[] @relation("PromptTemplateVersionCreator")
-  securityAuditLogs    SecurityAuditLog[]
-  onboardingProgress   OnboardingProgress?
-  connectorAccountsConnected ConnectorAccount[] @relation("ConnectorAccountConnector")
-  socialConnectionsConnected SocialConnection[] @relation("SocialConnectionConnector")
-  oauthAuthorisationStates OAuthAuthorisationState[] @relation("OAuthAuthorisationUser")
-  credentialRotationEvents CredentialRotationEvent[] @relation("CredentialRotationActor")
-  contentItemsOwned      ContentItem[] @relation("ContentItemOwner")
-  contentItemsCreated    ContentItem[] @relation("ContentItemCreator")
-  contentItemsApproved   ContentItem[] @relation("ContentItemApprover")
-  contentRevisionsEdited ContentRevision[] @relation("ContentRevisionEditor")
-  contentApprovalsRequested ContentApproval[] @relation("ContentApprovalRequester")
-  contentApprovalsDecided ContentApproval[] @relation("ContentApprovalDecider")
-  contentCommentsAuthored ContentComment[] @relation("ContentCommentAuthor")
-  contentCommentsResolved ContentComment[] @relation("ContentCommentResolver")
-  contentStatusChanges   ContentStatusHistory[] @relation("ContentStatusChanger")
+  memberships                OrganisationMembership[]
+  auditLogs                  AuditLog[]
+  workspacePreference        WorkspacePreference?
+  invitationsSent            Invitation[]              @relation("InvitationsSent")
+  invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
+  organisationsCreated       Organisation[]            @relation("OrganisationCreator")
+  projectsCreated            Project[]                 @relation("ProjectCreator")
+  brandsCreated              Brand[]                   @relation("BrandCreator")
+  marketingAssetsUploaded    MarketingAsset[]          @relation("MarketingAssetUploader")
+  aiRequests                 AIRequest[]               @relation("AIRequestInitiator")
+  promptTemplateVersions     PromptTemplateVersion[]   @relation("PromptTemplateVersionCreator")
+  securityAuditLogs          SecurityAuditLog[]
+  onboardingProgress         OnboardingProgress?
+  connectorAccountsConnected ConnectorAccount[]        @relation("ConnectorAccountConnector")
+  socialConnectionsConnected SocialConnection[]        @relation("SocialConnectionConnector")
+  oauthAuthorisationStates   OAuthAuthorisationState[] @relation("OAuthAuthorisationUser")
+  credentialRotationEvents   CredentialRotationEvent[] @relation("CredentialRotationActor")
+  contentItemsOwned          ContentItem[]             @relation("ContentItemOwner")
+  contentItemsCreated        ContentItem[]             @relation("ContentItemCreator")
+  contentItemsApproved       ContentItem[]             @relation("ContentItemApprover")
+  contentRevisionsEdited     ContentRevision[]         @relation("ContentRevisionEditor")
+  contentApprovalsRequested  ContentApproval[]         @relation("ContentApprovalRequester")
+  contentApprovalsDecided    ContentApproval[]         @relation("ContentApprovalDecider")
+  contentCommentsAuthored    ContentComment[]          @relation("ContentCommentAuthor")
+  contentCommentsResolved    ContentComment[]          @relation("ContentCommentResolver")
+  contentStatusChanges       ContentStatusHistory[]    @relation("ContentStatusChanger")
 
   @@index([email])
 }
@@ -272,50 +272,50 @@ model SecurityAuditLog {
 }
 
 model Organisation {
-  id               String             @id @default(cuid())
-  name             String
-  slug             String             @unique
-  legalName        String?
-  website          String?
-  logoUrl          String?
-  industry         String?
-  countryCode      String?
-  defaultTimezone  String?            @default("UTC")
-  status           OrganisationStatus @default(ACTIVE)
-  createdByUserId  String
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  archivedAt       DateTime?
+  id              String             @id @default(cuid())
+  name            String
+  slug            String             @unique
+  legalName       String?
+  website         String?
+  logoUrl         String?
+  industry        String?
+  countryCode     String?
+  defaultTimezone String?            @default("UTC")
+  status          OrganisationStatus @default(ACTIVE)
+  createdByUserId String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  archivedAt      DateTime?
 
-  createdBy     UserProfile              @relation("OrganisationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  memberships   OrganisationMembership[]
-  projects      Project[]
-  brands        Brand[]
-  brandProfiles BrandProfile[]
-  invitations   Invitation[]
-  auditLogs     AuditLog[]
-  marketingObjectives MarketingObjective[]
-  channelPreferences  BrandChannelPreference[]
-  brandAudiences      BrandAudience[]
-  brandPersonas       BrandPersona[]
-  brandOffers         BrandOffer[]
-  brandMessages       BrandMessage[]
-  brandVoiceRules     BrandVoiceRule[]
-  brandCompetitors    BrandCompetitor[]
-  brandAssets         BrandAsset[]
-  brandReferences     BrandReference[]
-  brandComplianceRules BrandComplianceRule[]
-  marketingAssets      MarketingAsset[]
-  aiRequests           AIRequest[]
-  aiUsageRecords       AIUsageRecord[]
-  promptTemplates      PromptTemplate[]
-  connectorAccounts    ConnectorAccount[]
-  connectorSyncs       ConnectorSync[]
-  connectorErrors      ConnectorError[]
-  webhookEndpoints     WebhookEndpoint[]
-  connectorOAuthStates ConnectorOAuthState[]
-  socialConnections    SocialConnection[]
-  socialAccounts       SocialAccount[]
+  createdBy                UserProfile                  @relation("OrganisationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  memberships              OrganisationMembership[]
+  projects                 Project[]
+  brands                   Brand[]
+  brandProfiles            BrandProfile[]
+  invitations              Invitation[]
+  auditLogs                AuditLog[]
+  marketingObjectives      MarketingObjective[]
+  channelPreferences       BrandChannelPreference[]
+  brandAudiences           BrandAudience[]
+  brandPersonas            BrandPersona[]
+  brandOffers              BrandOffer[]
+  brandMessages            BrandMessage[]
+  brandVoiceRules          BrandVoiceRule[]
+  brandCompetitors         BrandCompetitor[]
+  brandAssets              BrandAsset[]
+  brandReferences          BrandReference[]
+  brandComplianceRules     BrandComplianceRule[]
+  marketingAssets          MarketingAsset[]
+  aiRequests               AIRequest[]
+  aiUsageRecords           AIUsageRecord[]
+  promptTemplates          PromptTemplate[]
+  connectorAccounts        ConnectorAccount[]
+  connectorSyncs           ConnectorSync[]
+  connectorErrors          ConnectorError[]
+  webhookEndpoints         WebhookEndpoint[]
+  connectorOAuthStates     ConnectorOAuthState[]
+  socialConnections        SocialConnection[]
+  socialAccounts           SocialAccount[]
   oauthAuthorisationStates OAuthAuthorisationState[]
   credentialRotationEvents CredentialRotationEvent[]
   contentItems             ContentItem[]
@@ -328,6 +328,13 @@ model Organisation {
   contentProvenanceRecords ContentProvenance[]
   contentComplianceChecks  ContentComplianceCheck[]
   contentStatusHistory     ContentStatusHistory[]
+  visualTemplates          VisualTemplate[]
+  visualProjects           VisualProject[]
+  visualPages              VisualPage[]
+  visualElements           VisualElement[]
+  visualExports            VisualExport[]
+  visualGenerations        VisualGeneration[]
+  contentVariantAssets     ContentVariantAsset[]
 
   @@index([status])
   @@index([archivedAt])
@@ -366,30 +373,30 @@ model Project {
   updatedAt       DateTime      @updatedAt
   archivedAt      DateTime?
 
-  organisation  Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  createdBy     UserProfile    @relation("ProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  brands        Brand[]
-  brandProfiles BrandProfile[]
-  marketingObjectives MarketingObjective[]
-  channelPreferences  BrandChannelPreference[]
-  brandAudiences      BrandAudience[]
-  brandPersonas       BrandPersona[]
-  brandOffers         BrandOffer[]
-  brandMessages       BrandMessage[]
-  brandVoiceRules     BrandVoiceRule[]
-  brandCompetitors    BrandCompetitor[]
-  brandAssets         BrandAsset[]
-  brandReferences     BrandReference[]
-  brandComplianceRules BrandComplianceRule[]
-  marketingAssets      MarketingAsset[]
-  aiRequests           AIRequest[]
-  connectorAccounts    ConnectorAccount[]
-  connectorSyncs       ConnectorSync[]
-  connectorErrors      ConnectorError[]
-  webhookEndpoints     WebhookEndpoint[]
-  connectorOAuthStates ConnectorOAuthState[]
-  socialConnections    SocialConnection[]
-  socialAccounts       SocialAccount[]
+  organisation             Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdBy                UserProfile               @relation("ProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  brands                   Brand[]
+  brandProfiles            BrandProfile[]
+  marketingObjectives      MarketingObjective[]
+  channelPreferences       BrandChannelPreference[]
+  brandAudiences           BrandAudience[]
+  brandPersonas            BrandPersona[]
+  brandOffers              BrandOffer[]
+  brandMessages            BrandMessage[]
+  brandVoiceRules          BrandVoiceRule[]
+  brandCompetitors         BrandCompetitor[]
+  brandAssets              BrandAsset[]
+  brandReferences          BrandReference[]
+  brandComplianceRules     BrandComplianceRule[]
+  marketingAssets          MarketingAsset[]
+  aiRequests               AIRequest[]
+  connectorAccounts        ConnectorAccount[]
+  connectorSyncs           ConnectorSync[]
+  connectorErrors          ConnectorError[]
+  webhookEndpoints         WebhookEndpoint[]
+  connectorOAuthStates     ConnectorOAuthState[]
+  socialConnections        SocialConnection[]
+  socialAccounts           SocialAccount[]
   oauthAuthorisationStates OAuthAuthorisationState[]
   credentialRotationEvents CredentialRotationEvent[]
   contentItems             ContentItem[]
@@ -401,6 +408,13 @@ model Project {
   contentProvenanceRecords ContentProvenance[]
   contentComplianceChecks  ContentComplianceCheck[]
   contentStatusHistory     ContentStatusHistory[]
+  visualTemplates          VisualTemplate[]
+  visualProjects           VisualProject[]
+  visualPages              VisualPage[]
+  visualElements           VisualElement[]
+  visualExports            VisualExport[]
+  visualGenerations        VisualGeneration[]
+  contentVariantAssets     ContentVariantAsset[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -428,30 +442,30 @@ model Brand {
   updatedAt       DateTime    @updatedAt
   archivedAt      DateTime?
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdBy    UserProfile  @relation("BrandCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  profile      BrandProfile?
-  marketingObjectives MarketingObjective[]
-  channelPreferences  BrandChannelPreference[]
-  audiences           BrandAudience[]
-  personas            BrandPersona[]
-  offers              BrandOffer[]
-  message             BrandMessage?
-  voiceRule           BrandVoiceRule?
-  competitors         BrandCompetitor[]
-  assets              BrandAsset[]
-  references          BrandReference[]
-  complianceRules     BrandComplianceRule[]
-  marketingAssets       MarketingAsset[]
-  aiRequests            AIRequest[]
-  connectorAccounts     ConnectorAccount[]
-  connectorSyncs        ConnectorSync[]
-  connectorErrors       ConnectorError[]
-  webhookEndpoints      WebhookEndpoint[]
-  connectorOAuthStates  ConnectorOAuthState[]
-  socialConnections     SocialConnection[]
-  socialAccounts        SocialAccount[]
+  organisation             Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                  Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy                UserProfile               @relation("BrandCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  profile                  BrandProfile?
+  marketingObjectives      MarketingObjective[]
+  channelPreferences       BrandChannelPreference[]
+  audiences                BrandAudience[]
+  personas                 BrandPersona[]
+  offers                   BrandOffer[]
+  message                  BrandMessage?
+  voiceRule                BrandVoiceRule?
+  competitors              BrandCompetitor[]
+  assets                   BrandAsset[]
+  references               BrandReference[]
+  complianceRules          BrandComplianceRule[]
+  marketingAssets          MarketingAsset[]
+  aiRequests               AIRequest[]
+  connectorAccounts        ConnectorAccount[]
+  connectorSyncs           ConnectorSync[]
+  connectorErrors          ConnectorError[]
+  webhookEndpoints         WebhookEndpoint[]
+  connectorOAuthStates     ConnectorOAuthState[]
+  socialConnections        SocialConnection[]
+  socialAccounts           SocialAccount[]
   oauthAuthorisationStates OAuthAuthorisationState[]
   credentialRotationEvents CredentialRotationEvent[]
   contentItems             ContentItem[]
@@ -463,6 +477,13 @@ model Brand {
   contentProvenanceRecords ContentProvenance[]
   contentComplianceChecks  ContentComplianceCheck[]
   contentStatusHistory     ContentStatusHistory[]
+  visualTemplates          VisualTemplate[]
+  visualProjects           VisualProject[]
+  visualPages              VisualPage[]
+  visualElements           VisualElement[]
+  visualExports            VisualExport[]
+  visualGenerations        VisualGeneration[]
+  contentVariantAssets     ContentVariantAsset[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -503,15 +524,15 @@ model BrandProfile {
 }
 
 model WorkspacePreference {
-  id                    String   @id @default(cuid())
-  userId                String   @unique
+  id                    String    @id @default(cuid())
+  userId                String    @unique
   currentOrganisationId String?
   currentProjectId      String?
   currentBrandId        String?
   onboardingCompletedAt DateTime?
   onboardingStep        String?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -521,18 +542,18 @@ model WorkspacePreference {
 }
 
 model Invitation {
-  id              String           @id @default(cuid())
-  organisationId  String
-  email           String
-  role            OrganisationRole @default(VIEWER)
-  tokenHash       String           @unique
-  status          InvitationStatus @default(PENDING)
-  expiresAt       DateTime
-  invitedByUserId String
+  id               String           @id @default(cuid())
+  organisationId   String
+  email            String
+  role             OrganisationRole @default(VIEWER)
+  tokenHash        String           @unique
+  status           InvitationStatus @default(PENDING)
+  expiresAt        DateTime
+  invitedByUserId  String
   acceptedByUserId String?
-  acceptedAt      DateTime?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  acceptedAt       DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   invitedBy    UserProfile  @relation("InvitationsSent", fields: [invitedByUserId], references: [id], onDelete: Restrict)
@@ -580,9 +601,9 @@ model MarketingObjective {
   createdAt      DateTime                 @default(now())
   updatedAt      DateTime                 @updatedAt
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
   contentItems ContentItem[]
 
   @@unique([brandId, objectiveType])
@@ -613,29 +634,29 @@ model BrandChannelPreference {
 }
 
 model BrandAudience {
-  id               String    @id @default(cuid())
-  organisationId   String
-  projectId        String
-  brandId          String
-  name             String
-  description      String?
-  countries        String[]  @default([])
-  industries       String[]  @default([])
-  organisationType String?
-  companySize      String?
-  jobRoles         String[]  @default([])
-  painPoints       String[]  @default([])
-  motivations      String[]  @default([])
-  objections       String[]  @default([])
-  buyingTriggers   String[]  @default([])
-  preferredChannels String[] @default([])
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  archivedAt       DateTime?
+  id                String    @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  name              String
+  description       String?
+  countries         String[]  @default([])
+  industries        String[]  @default([])
+  organisationType  String?
+  companySize       String?
+  jobRoles          String[]  @default([])
+  painPoints        String[]  @default([])
+  motivations       String[]  @default([])
+  objections        String[]  @default([])
+  buyingTriggers    String[]  @default([])
+  preferredChannels String[]  @default([])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  archivedAt        DateTime?
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
   contentItems ContentItem[]
 
   @@index([organisationId])
@@ -703,20 +724,20 @@ model BrandOffer {
 }
 
 model BrandMessage {
-  id                  String   @id @default(cuid())
-  organisationId      String
-  projectId           String
-  brandId             String   @unique
-  elevatorPitch       String?
-  coreMessage         String?
-  supportingMessages  String[] @default([])
-  proofPoints         String[] @default([])
-  differentiators     String[] @default([])
-  objectionResponses  Json?
-  ctaLibrary          String[] @default([])
-  prohibitedClaims    String[] @default([])
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String   @unique
+  elevatorPitch      String?
+  coreMessage        String?
+  supportingMessages String[] @default([])
+  proofPoints        String[] @default([])
+  differentiators    String[] @default([])
+  objectionResponses Json?
+  ctaLibrary         String[] @default([])
+  prohibitedClaims   String[] @default([])
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -727,22 +748,22 @@ model BrandMessage {
 }
 
 model BrandVoiceRule {
-  id                    String   @id @default(cuid())
-  organisationId        String
-  projectId             String
-  brandId               String   @unique
-  preferredTone         String?
-  vocabulary            String[] @default([])
-  prohibitedVocabulary  String[] @default([])
-  sentenceStyle         String?
-  emojiPolicy           String?
-  humourPolicy          String?
-  preferredSpelling     String?
-  languageVariants      String[] @default([])
-  approvedExamples      String[] @default([])
-  unacceptableExamples  String[] @default([])
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String   @unique
+  preferredTone        String?
+  vocabulary           String[] @default([])
+  prohibitedVocabulary String[] @default([])
+  sentenceStyle        String?
+  emojiPolicy          String?
+  humourPolicy         String?
+  preferredSpelling    String?
+  languageVariants     String[] @default([])
+  approvedExamples     String[] @default([])
+  unacceptableExamples String[] @default([])
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -884,12 +905,15 @@ model MarketingAsset {
   updatedAt            DateTime             @updatedAt
   archivedAt           DateTime?
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  uploadedBy   UserProfile  @relation("MarketingAssetUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
-  contentAssets ContentAsset[]
-  thumbnailVariants ContentVariant[] @relation("ContentVariantThumbnail")
+  organisation            Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                 Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                   Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  uploadedBy              UserProfile           @relation("MarketingAssetUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  contentAssets           ContentAsset[]
+  thumbnailVariants       ContentVariant[]      @relation("ContentVariantThumbnail")
+  contentVariantAssets    ContentVariantAsset[]
+  visualExports           VisualExport[]
+  visualGenerationSources VisualGeneration[]    @relation("VisualGenerationSourceAsset")
 
   @@index([organisationId])
   @@index([projectId])
@@ -900,8 +924,247 @@ model MarketingAsset {
   @@index([uploadedByUserId])
 }
 
+enum VisualOutputType {
+  SQUARE_POST
+  PORTRAIT_POST
+  LANDSCAPE_POST
+  INSTAGRAM_CAROUSEL
+  LINKEDIN_CAROUSEL
+  REEL_COVER
+  TIKTOK_COVER
+  YOUTUBE_THUMBNAIL
+  STORY_GRAPHIC
+  QUOTE_CARD
+  SIMPLE_INFOGRAPHIC
+}
+
+enum VisualElementType {
+  TEXT
+  IMAGE
+  LOGO
+  SHAPE
+  BACKGROUND
+  ICON
+  CTA
+  PAGE_NUMBER
+}
+
+enum VisualProjectStatus {
+  DRAFT
+  IN_REVIEW
+  EXPORTED
+  ARCHIVED
+}
+
+enum VisualExportFormat {
+  PNG
+  JPG
+  WEBP
+  PDF
+  ZIP
+}
+
+enum VisualExportStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model VisualTemplate {
+  id              String           @id @default(cuid())
+  organisationId  String?
+  brandId         String?
+  name            String
+  description     String?
+  outputType      VisualOutputType
+  activeVersionId String?          @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  archivedAt      DateTime?
+
+  organisation  Organisation?           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand         Brand?                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  versions      VisualTemplateVersion[] @relation("VisualTemplateVersions")
+  activeVersion VisualTemplateVersion?  @relation("ActiveVisualTemplateVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  projects      VisualProject[]
+  project       Project?                @relation(fields: [projectId], references: [id])
+  projectId     String?
+
+  @@index([organisationId])
+  @@index([brandId])
+  @@index([outputType])
+}
+
+model VisualTemplateVersion {
+  id               String   @id @default(cuid())
+  visualTemplateId String
+  version          Int
+  canvasWidth      Int
+  canvasHeight     Int
+  layout           Json
+  status           String   @default("ACTIVE")
+  createdAt        DateTime @default(now())
+
+  visualTemplate    VisualTemplate  @relation("VisualTemplateVersions", fields: [visualTemplateId], references: [id], onDelete: Cascade)
+  activeForTemplate VisualTemplate? @relation("ActiveVisualTemplateVersion")
+  projects          VisualProject[]
+
+  @@unique([visualTemplateId, version])
+  @@index([visualTemplateId])
+}
+
+model VisualProject {
+  id                String              @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  templateId        String?
+  templateVersionId String?
+  title             String
+  outputType        VisualOutputType
+  status            VisualProjectStatus @default(DRAFT)
+  settings          Json?
+  sourceContentId   String?
+  createdByUserId   String
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  archivedAt        DateTime?
+
+  organisation    Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  template        VisualTemplate?        @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateVersion VisualTemplateVersion? @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
+  pages           VisualPage[]
+  exports         VisualExport[]
+  generations     VisualGeneration[]
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([status])
+}
+
+model VisualPage {
+  id              String   @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  visualProjectId String
+  pageNumber      Int
+  title           String?
+  background      Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organisation  Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  visualProject VisualProject   @relation(fields: [visualProjectId], references: [id], onDelete: Cascade)
+  elements      VisualElement[]
+
+  @@unique([visualProjectId, pageNumber])
+  @@index([organisationId])
+  @@index([brandId])
+}
+
+model VisualElement {
+  id             String            @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  visualPageId   String
+  elementType    VisualElementType
+  sortOrder      Int               @default(0)
+  properties     Json
+  locked         Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  visualPage   VisualPage   @relation(fields: [visualPageId], references: [id], onDelete: Cascade)
+
+  @@index([visualPageId])
+  @@index([organisationId])
+}
+
+model VisualExport {
+  id               String             @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  visualProjectId  String
+  format           VisualExportFormat
+  status           VisualExportStatus @default(PENDING)
+  marketingAssetId String?
+  metadata         Json?
+  failureReason    String?
+  createdAt        DateTime           @default(now())
+  completedAt      DateTime?
+
+  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  visualProject  VisualProject   @relation(fields: [visualProjectId], references: [id], onDelete: Cascade)
+  marketingAsset MarketingAsset? @relation(fields: [marketingAssetId], references: [id], onDelete: SetNull)
+
+  @@index([visualProjectId])
+  @@index([organisationId])
+}
+
+model VisualGeneration {
+  id                    String   @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  visualProjectId       String?
+  sourceAssetId         String?
+  provider              String
+  model                 String
+  promptVersion         String
+  parameters            Json
+  moderation            Json?
+  estimatedCostUsd      Decimal? @db.Decimal(12, 6)
+  commercialUseMetadata Json?
+  createdAt             DateTime @default(now())
+
+  organisation  Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  visualProject VisualProject?  @relation(fields: [visualProjectId], references: [id], onDelete: SetNull)
+  sourceAsset   MarketingAsset? @relation("VisualGenerationSourceAsset", fields: [sourceAssetId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([brandId])
+  @@index([visualProjectId])
+}
+
+model ContentVariantAsset {
+  id               String   @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  contentVariantId String
+  marketingAssetId String
+  sortOrder        Int      @default(0)
+  altText          String?
+  createdAt        DateTime @default(now())
+
+  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentVariant ContentVariant @relation(fields: [contentVariantId], references: [id], onDelete: Cascade)
+  marketingAsset MarketingAsset @relation(fields: [marketingAssetId], references: [id], onDelete: Restrict)
+
+  @@unique([contentVariantId, marketingAssetId])
+  @@index([organisationId])
+  @@index([brandId])
+}
+
 model AIRequest {
-  id               String          @id @default(cuid())
+  id               String           @id @default(cuid())
   organisationId   String
   projectId        String?
   brandId          String?
@@ -909,25 +1172,25 @@ model AIRequest {
   purpose          AIPurpose
   provider         AIProviderName
   model            String
-  status           AIRequestStatus @default(PENDING)
+  status           AIRequestStatus  @default(PENDING)
   promptTokens     Int?
   completionTokens Int?
   totalTokens      Int?
-  estimatedCostUsd Decimal?        @db.Decimal(12, 6)
+  estimatedCostUsd Decimal?         @db.Decimal(12, 6)
   latencyMs        Int?
   requestId        String?
   errorCategory    AIErrorCategory?
   inputDigest      String?
   inputPreview     String?
-  createdAt        DateTime        @default(now())
-  updatedAt        DateTime        @updatedAt
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   startedAt        DateTime?
   completedAt      DateTime?
 
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  initiatedBy  UserProfile  @relation("AIRequestInitiator", fields: [userProfileId], references: [id], onDelete: Restrict)
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?          @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  initiatedBy  UserProfile     @relation("AIRequestInitiator", fields: [userProfileId], references: [id], onDelete: Restrict)
   executions   AIExecution[]
   usageRecords AIUsageRecord[]
 
@@ -961,7 +1224,7 @@ model AIExecution {
   startedAt        DateTime          @default(now())
   completedAt      DateTime?
 
-  aiRequest    AIRequest      @relation(fields: [aiRequestId], references: [id], onDelete: Cascade)
+  aiRequest    AIRequest       @relation(fields: [aiRequestId], references: [id], onDelete: Cascade)
   usageRecords AIUsageRecord[]
 
   @@index([aiRequestId])
@@ -996,15 +1259,15 @@ model AIUsageRecord {
 }
 
 model PromptTemplate {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   organisationId  String?
-  key             String   @unique
+  key             String    @unique
   name            String
   description     String?
   purpose         AIPurpose
-  activeVersionId String?  @unique
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  activeVersionId String?   @unique
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   organisation  Organisation?           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   versions      PromptTemplateVersion[] @relation("TemplateVersions")
@@ -1024,8 +1287,8 @@ model PromptTemplateVersion {
   createdByUserId  String?
   createdAt        DateTime                    @default(now())
 
-  promptTemplate  PromptTemplate  @relation("TemplateVersions", fields: [promptTemplateId], references: [id], onDelete: Cascade)
-  createdBy       UserProfile?    @relation("PromptTemplateVersionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  promptTemplate    PromptTemplate  @relation("TemplateVersions", fields: [promptTemplateId], references: [id], onDelete: Cascade)
+  createdBy         UserProfile?    @relation("PromptTemplateVersionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   activeForTemplate PromptTemplate? @relation("ActiveTemplateVersion")
 
   @@unique([promptTemplateId, version])
@@ -1034,18 +1297,18 @@ model PromptTemplateVersion {
 }
 
 model OnboardingProgress {
-  id             String            @id @default(cuid())
-  userId         String            @unique
+  id             String              @id @default(cuid())
+  userId         String              @unique
   organisationId String?
   projectId      String?
   brandId        String?
-  currentStep    OnboardingStepKey @default(ACCOUNT_PROFILE)
+  currentStep    OnboardingStepKey   @default(ACCOUNT_PROFILE)
   completedSteps OnboardingStepKey[] @default([])
   stepData       Json?
   templateKey    String?
   completedAt    DateTime?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 
   user UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1122,18 +1385,18 @@ enum WebhookEventStatus {
 }
 
 model ConnectorDefinition {
-  id                    String                      @id @default(cuid())
-  key                   ConnectorType               @unique
-  name                  String
-  description           String
-  category              String
-  requiredScopes        String[]                    @default([])
-  optionalScopes        String[]                    @default([])
-  supportsOAuth         Boolean                     @default(true)
-  platformAvailability  ConnectorPlatformAvailability @default(COMING_SOON)
-  documentationUrl      String?
-  createdAt             DateTime                    @default(now())
-  updatedAt             DateTime                    @updatedAt
+  id                   String                        @id @default(cuid())
+  key                  ConnectorType                 @unique
+  name                 String
+  description          String
+  category             String
+  requiredScopes       String[]                      @default([])
+  optionalScopes       String[]                      @default([])
+  supportsOAuth        Boolean                       @default(true)
+  platformAvailability ConnectorPlatformAvailability @default(COMING_SOON)
+  documentationUrl     String?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
 
   accounts ConnectorAccount[]
 
@@ -1141,37 +1404,37 @@ model ConnectorDefinition {
 }
 
 model ConnectorAccount {
-  id                     String          @id @default(cuid())
-  organisationId         String
-  projectId              String
-  brandId                String
-  connectorDefinitionId  String
-  connectorType          ConnectorType
-  status                 ConnectorStatus @default(NOT_CONFIGURED)
-  displayName            String?
-  externalAccountId      String?
-  externalAccountLabel   String?
-  grantedScopes          String[]        @default([])
-  connectedByUserId      String?
-  connectedAt            DateTime?
-  disconnectedAt         DateTime?
-  lastSuccessfulSyncAt   DateTime?
-  lastSyncAttemptAt      DateTime?
-  lastErrorAt            DateTime?
-  lastErrorMessage       String?
-  metadata               Json?
-  createdAt              DateTime        @default(now())
-  updatedAt              DateTime        @updatedAt
+  id                    String          @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  connectorDefinitionId String
+  connectorType         ConnectorType
+  status                ConnectorStatus @default(NOT_CONFIGURED)
+  displayName           String?
+  externalAccountId     String?
+  externalAccountLabel  String?
+  grantedScopes         String[]        @default([])
+  connectedByUserId     String?
+  connectedAt           DateTime?
+  disconnectedAt        DateTime?
+  lastSuccessfulSyncAt  DateTime?
+  lastSyncAttemptAt     DateTime?
+  lastErrorAt           DateTime?
+  lastErrorMessage      String?
+  metadata              Json?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
-  organisation  Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand         Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  definition    ConnectorDefinition @relation(fields: [connectorDefinitionId], references: [id], onDelete: Restrict)
-  connectedBy   UserProfile?        @relation("ConnectorAccountConnector", fields: [connectedByUserId], references: [id], onDelete: SetNull)
-  credential    ConnectorCredential?
-  syncs         ConnectorSync[]
-  errors        ConnectorError[]
-  syncCursors   ConnectorSyncCursor[]
+  organisation     Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  definition       ConnectorDefinition   @relation(fields: [connectorDefinitionId], references: [id], onDelete: Restrict)
+  connectedBy      UserProfile?          @relation("ConnectorAccountConnector", fields: [connectedByUserId], references: [id], onDelete: SetNull)
+  credential       ConnectorCredential?
+  syncs            ConnectorSync[]
+  errors           ConnectorError[]
+  syncCursors      ConnectorSyncCursor[]
   webhookEndpoints WebhookEndpoint[]
 
   @@unique([brandId, connectorType])
@@ -1183,14 +1446,14 @@ model ConnectorAccount {
 }
 
 model ConnectorCredential {
-  id                      String   @id @default(cuid())
-  connectorAccountId      String   @unique
-  encryptionKeyVersion    Int      @default(1)
-  encryptedAccessToken    String?
-  encryptedRefreshToken   String?
-  tokenExpiresAt          DateTime?
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                    String    @id @default(cuid())
+  connectorAccountId    String    @unique
+  encryptionKeyVersion  Int       @default(1)
+  encryptedAccessToken  String?
+  encryptedRefreshToken String?
+  tokenExpiresAt        DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
   connectorAccount ConnectorAccount @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
 
@@ -1400,14 +1663,14 @@ model SocialConnection {
   updatedAt           DateTime               @updatedAt
   disconnectedAt      DateTime?
 
-  organisation  Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project       Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand         Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  connectedBy   UserProfile?               @relation("SocialConnectionConnector", fields: [connectedByUserId], references: [id], onDelete: SetNull)
-  credential    SocialConnectionCredential?
-  accounts      SocialAccount[]
+  organisation   Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connectedBy    UserProfile?                @relation("SocialConnectionConnector", fields: [connectedByUserId], references: [id], onDelete: SetNull)
+  credential     SocialConnectionCredential?
+  accounts       SocialAccount[]
   rotationEvents CredentialRotationEvent[]
-  oauthStates   OAuthAuthorisationState[]
+  oauthStates    OAuthAuthorisationState[]
 
   @@unique([brandId, provider])
   @@index([organisationId])
@@ -1449,10 +1712,10 @@ model SocialAccount {
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
 
-  organisation     Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project          Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand            Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  socialConnection SocialConnection        @relation(fields: [socialConnectionId], references: [id], onDelete: Cascade)
+  organisation     Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  socialConnection SocialConnection          @relation(fields: [socialConnectionId], references: [id], onDelete: Cascade)
   capabilities     SocialAccountCapability[]
   contentVariants  ContentVariant[]
 
@@ -1609,56 +1872,56 @@ enum ContentComplianceResult {
 }
 
 model OrganisationContentSettings {
-  id                       String              @id @default(cuid())
-  organisationId           String              @unique
-  approvalMode             ContentApprovalMode @default(ONE_APPROVER)
+  id                        String              @id @default(cuid())
+  organisationId            String              @unique
+  approvalMode              ContentApprovalMode @default(ONE_APPROVER)
   separationOfDutiesEnabled Boolean             @default(true)
-  createdAt                DateTime            @default(now())
-  updatedAt                DateTime            @updatedAt
+  createdAt                 DateTime            @default(now())
+  updatedAt                 DateTime            @updatedAt
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 }
 
 model ContentItem {
-  id                String          @id @default(cuid())
-  organisationId    String
-  projectId         String
-  brandId           String
-  title             String
-  objectiveId       String?
-  campaignName      String?
-  contentPillar     String?
-  contentType       ContentType
-  primaryMessage    String?
-  targetAudienceId  String?
-  primaryCTA        String?
-  destinationUrl    String?
-  status            ContentStatus   @default(IDEA)
-  priority          ContentPriority @default(NORMAL)
-  ownerUserId       String
-  createdByUserId   String
-  approvedByUserId  String?
-  approvedAt        DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
-  archivedAt        DateTime?
+  id               String          @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  title            String
+  objectiveId      String?
+  campaignName     String?
+  contentPillar    String?
+  contentType      ContentType
+  primaryMessage   String?
+  targetAudienceId String?
+  primaryCTA       String?
+  destinationUrl   String?
+  status           ContentStatus   @default(IDEA)
+  priority         ContentPriority @default(NORMAL)
+  ownerUserId      String
+  createdByUserId  String
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  archivedAt       DateTime?
 
-  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand          Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  objective      MarketingObjective? @relation(fields: [objectiveId], references: [id], onDelete: SetNull)
-  targetAudience BrandAudience?  @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
-  owner          UserProfile     @relation("ContentItemOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
-  createdBy      UserProfile     @relation("ContentItemCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  approvedBy     UserProfile?    @relation("ContentItemApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
-  variants       ContentVariant[]
-  assets         ContentAsset[]
-  revisions      ContentRevision[]
-  approvals      ContentApproval[]
-  comments       ContentComment[]
-  provenance     ContentProvenance?
+  organisation     Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  objective        MarketingObjective?      @relation(fields: [objectiveId], references: [id], onDelete: SetNull)
+  targetAudience   BrandAudience?           @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
+  owner            UserProfile              @relation("ContentItemOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy        UserProfile              @relation("ContentItemCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approvedBy       UserProfile?             @relation("ContentItemApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  variants         ContentVariant[]
+  assets           ContentAsset[]
+  revisions        ContentRevision[]
+  approvals        ContentApproval[]
+  comments         ContentComment[]
+  provenance       ContentProvenance?
   complianceChecks ContentComplianceCheck[]
-  statusHistory  ContentStatusHistory[]
+  statusHistory    ContentStatusHistory[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -1671,39 +1934,40 @@ model ContentItem {
 }
 
 model ContentVariant {
-  id                String        @id @default(cuid())
-  organisationId    String
-  projectId         String
-  brandId           String
-  contentItemId     String
-  provider          SocialProvider
-  socialAccountId   String?
-  format            ContentType
-  caption           String?
-  headline          String?
-  description       String?
-  hashtags          String[]      @default([])
-  mentions          String[]      @default([])
-  destinationUrl    String?
-  firstComment      String?
-  altText           String?
-  thumbnailAssetId  String?
-  durationSeconds   Int?
-  aspectRatio       String?
-  status            ContentStatus @default(DRAFT)
-  validationErrors  Json?
-  providerMetadata  Json?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  id               String         @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  contentItemId    String
+  provider         SocialProvider
+  socialAccountId  String?
+  format           ContentType
+  caption          String?
+  headline         String?
+  description      String?
+  hashtags         String[]       @default([])
+  mentions         String[]       @default([])
+  destinationUrl   String?
+  firstComment     String?
+  altText          String?
+  thumbnailAssetId String?
+  durationSeconds  Int?
+  aspectRatio      String?
+  status           ContentStatus  @default(DRAFT)
+  validationErrors Json?
+  providerMetadata Json?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  organisation    Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project         Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand           Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  contentItem     ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
-  socialAccount   SocialAccount? @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
-  thumbnailAsset  MarketingAsset? @relation("ContentVariantThumbnail", fields: [thumbnailAssetId], references: [id], onDelete: SetNull)
-  comments        ContentComment[]
+  organisation     Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem      ContentItem              @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  socialAccount    SocialAccount?           @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+  thumbnailAsset   MarketingAsset?          @relation("ContentVariantThumbnail", fields: [thumbnailAssetId], references: [id], onDelete: SetNull)
+  comments         ContentComment[]
   complianceChecks ContentComplianceCheck[]
+  visualAssets     ContentVariantAsset[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -1802,13 +2066,13 @@ model ContentComment {
   createdAt        DateTime             @default(now())
   updatedAt        DateTime             @updatedAt
 
-  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  contentItem    ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem    ContentItem     @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
   contentVariant ContentVariant? @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
-  author         UserProfile    @relation("ContentCommentAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
-  resolvedBy     UserProfile?   @relation("ContentCommentResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  author         UserProfile     @relation("ContentCommentAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+  resolvedBy     UserProfile?    @relation("ContentCommentResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
 
   @@index([organisationId])
   @@index([contentItemId])
@@ -1817,27 +2081,27 @@ model ContentComment {
 }
 
 model ContentProvenance {
-  id                     String    @id @default(cuid())
-  organisationId         String
-  projectId              String
-  brandId                String
-  contentItemId          String    @unique
-  createdManually        Boolean   @default(true)
-  aiProvider             String?
-  aiModel                String?
+  id                      String    @id @default(cuid())
+  organisationId          String
+  projectId               String
+  brandId                 String
+  contentItemId           String    @unique
+  createdManually         Boolean   @default(true)
+  aiProvider              String?
+  aiModel                 String?
   promptTemplateVersionId String?
-  sourceAssetIds         String[]  @default([])
-  sourceDocumentIds      String[]  @default([])
-  musicLicence           String?
-  imageLicence           String?
-  voiceConsent           Boolean   @default(false)
-  faceConsent            Boolean   @default(false)
-  commercialUsePermission Boolean  @default(false)
-  requiredAttribution    String?
-  generatedAt            DateTime?
-  metadata               Json?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  sourceAssetIds          String[]  @default([])
+  sourceDocumentIds       String[]  @default([])
+  musicLicence            String?
+  imageLicence            String?
+  voiceConsent            Boolean   @default(false)
+  faceConsent             Boolean   @default(false)
+  commercialUsePermission Boolean   @default(false)
+  requiredAttribution     String?
+  generatedAt             DateTime?
+  metadata                Json?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -1849,7 +2113,7 @@ model ContentProvenance {
 }
 
 model ContentComplianceCheck {
-  id               String                    @id @default(cuid())
+  id               String                     @id @default(cuid())
   organisationId   String
   projectId        String
   brandId          String
@@ -1858,14 +2122,14 @@ model ContentComplianceCheck {
   checkType        ContentComplianceCheckType
   result           ContentComplianceResult
   message          String
-  blocking         Boolean                   @default(false)
-  checkedAt        DateTime                  @default(now())
+  blocking         Boolean                    @default(false)
+  checkedAt        DateTime                   @default(now())
   metadata         Json?
 
-  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  contentItem    ContentItem    @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem    ContentItem     @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
   contentVariant ContentVariant? @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
 
   @@index([organisationId])
@@ -1875,7 +2139,7 @@ model ContentComplianceCheck {
 }
 
 model ContentStatusHistory {
-  id              String        @id @default(cuid())
+  id              String         @id @default(cuid())
   organisationId  String
   projectId       String
   brandId         String
@@ -1884,7 +2148,7 @@ model ContentStatusHistory {
   toStatus        ContentStatus
   changedByUserId String
   reason          String?
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime       @default(now())
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
