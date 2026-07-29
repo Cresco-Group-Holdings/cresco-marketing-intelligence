@@ -249,6 +249,8 @@ model UserProfile {
   contentCommentsAuthored    ContentComment[]          @relation("ContentCommentAuthor")
   contentCommentsResolved    ContentComment[]          @relation("ContentCommentResolver")
   contentStatusChanges       ContentStatusHistory[]    @relation("ContentStatusChanger")
+  growthExperimentsCreated   GrowthExperiment[]        @relation("GrowthExperimentCreator")
+  recommendationOutcomes     RecommendationOutcome[]   @relation("RecommendationOutcomeUser")
 
   @@index([email])
 }
@@ -335,6 +337,13 @@ model Organisation {
   visualExports            VisualExport[]
   visualGenerations        VisualGeneration[]
   contentVariantAssets     ContentVariantAsset[]
+  growthInsights           GrowthInsight[]
+  growthRecommendations    GrowthRecommendation[]
+  contentPatterns          ContentPattern[]
+  performanceBenchmarks    PerformanceBenchmark[]
+  insightEvidence          InsightEvidence[]
+  recommendationOutcomes   RecommendationOutcome[]
+  growthExperiments        GrowthExperiment[]
 
   @@index([status])
   @@index([archivedAt])
@@ -415,6 +424,11 @@ model Project {
   visualExports            VisualExport[]
   visualGenerations        VisualGeneration[]
   contentVariantAssets     ContentVariantAsset[]
+  growthInsights           GrowthInsight[]
+  growthRecommendations    GrowthRecommendation[]
+  contentPatterns          ContentPattern[]
+  performanceBenchmarks    PerformanceBenchmark[]
+  growthExperiments        GrowthExperiment[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -485,6 +499,13 @@ model Brand {
   visualExports            VisualExport[]
   visualGenerations        VisualGeneration[]
   contentVariantAssets     ContentVariantAsset[]
+  growthInsights           GrowthInsight[]
+  growthRecommendations    GrowthRecommendation[]
+  contentPatterns          ContentPattern[]
+  performanceBenchmarks    PerformanceBenchmark[]
+  insightEvidence          InsightEvidence[]
+  recommendationOutcomes   RecommendationOutcome[]
+  growthExperiments        GrowthExperiment[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2480,4 +2501,264 @@ model ContentStatusHistory {
   @@index([organisationId])
   @@index([contentItemId])
   @@index([createdAt])
+}
+
+enum GrowthInsightType {
+  HIGH_PERFORMING_TOPIC
+  HIGH_PERFORMING_FORMAT
+  LOW_ENGAGEMENT
+  STRONG_HOOK
+  WEAK_CTA
+  POSTING_GAP
+  BEST_PUBLISHING_WINDOW
+  AUDIENCE_GROWTH
+  DECLINING_REACH
+  VIDEO_RETENTION_DROP
+  CHANNEL_OPPORTUNITY
+  REPURPOSING_OPPORTUNITY
+}
+
+enum BenchmarkType {
+  PREVIOUS_PERIOD
+  MOVING_AVERAGE
+  BRAND_MEDIAN
+  CHANNEL_MEDIAN
+  CONTENT_TYPE_MEDIAN
+  CAMPAIGN_MEDIAN
+}
+
+enum GrowthConfidenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum GrowthDataStatus {
+  SUFFICIENT
+  INSUFFICIENT
+}
+
+enum GrowthRecommendationStatus {
+  ACTIVE
+  EXPIRED
+  SUPERSEDED
+}
+
+enum RecommendationFeedbackStatus {
+  ACCEPTED
+  DISMISSED
+  PLANNED
+  IMPLEMENTED
+  SUCCESSFUL
+  UNSUCCESSFUL
+  INCONCLUSIVE
+}
+
+enum GrowthExperimentStatus {
+  PLANNED
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+enum RecommendationDraftType {
+  CONTENT_IDEA
+  STUDIO_BRIEF
+  EXPERIMENT
+  CALENDAR_PLACEHOLDER
+}
+
+model GrowthInsight {
+  id                     String                @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  insightType            GrowthInsightType
+  title                  String
+  summary                String
+  dataStatus             GrowthDataStatus      @default(INSUFFICIENT)
+  confidenceLevel        GrowthConfidenceLevel @default(LOW)
+  comparedPeriodStart    DateTime?
+  comparedPeriodEnd      DateTime?
+  analysisPeriodStart    DateTime
+  analysisPeriodEnd      DateTime
+  minimumDataThreshold   Json
+  sourceMetrics          Json                  @default("{}")
+  supportingContentIds   String[]              @default([])
+  correlationDisclaimer  String                @default("Patterns reflect correlation with performance, not proven causation.")
+  generatedAt            DateTime              @default(now())
+  expiresAt              DateTime
+  supersededAt           DateTime?
+  metadata               Json?
+
+  organisation      Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  evidence          InsightEvidence[]
+  recommendations   GrowthRecommendation[]
+
+  @@index([organisationId, brandId, generatedAt])
+  @@index([brandId, insightType])
+  @@index([dataStatus])
+  @@index([expiresAt])
+}
+
+model InsightEvidence {
+  id               String   @id @default(cuid())
+  organisationId   String
+  brandId          String
+  growthInsightId  String
+  evidenceKey      String
+  evidenceLabel    String?
+  evidenceValue    Json
+  contentItemId    String?
+  contentVariantId String?
+  providerPostId   String?
+  sortOrder        Int      @default(0)
+  createdAt        DateTime @default(now())
+
+  organisation  Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  growthInsight GrowthInsight @relation(fields: [growthInsightId], references: [id], onDelete: Cascade)
+
+  @@index([growthInsightId])
+  @@index([organisationId, brandId])
+  @@index([contentItemId])
+}
+
+model PerformanceBenchmark {
+  id             String        @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  benchmarkType  BenchmarkType
+  metricKey      String
+  segmentKey     String?
+  segmentLabel   String?
+  value          Decimal       @db.Decimal(24, 6)
+  sampleSize     Int
+  periodStart    DateTime
+  periodEnd      DateTime
+  computedAt     DateTime      @default(now())
+  metadata       Json?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, benchmarkType])
+  @@index([brandId, metricKey])
+  @@index([computedAt])
+}
+
+model ContentPattern {
+  id                    String   @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  dimension             String
+  dimensionValue        String
+  metricKey             String
+  metricValue           Decimal  @db.Decimal(24, 6)
+  sampleSize            Int
+  correlationNote       String   @default("Correlation with performance; not proven causation.")
+  periodStart           DateTime
+  periodEnd             DateTime
+  supportingContentIds  String[] @default([])
+  computedAt            DateTime @default(now())
+  metadata              Json?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, dimension])
+  @@index([brandId, computedAt])
+}
+
+model GrowthRecommendation {
+  id                 String                     @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  growthInsightId    String?
+  insightType        GrowthInsightType?
+  title              String
+  description        String
+  priority           Int                        @default(50)
+  status             GrowthRecommendationStatus @default(ACTIVE)
+  finding            String?
+  explanation        String?
+  recommendedAction  String?
+  evidenceSummary    Json                       @default("[]")
+  expectedHypothesis String?
+  measurementPlan    String?
+  aiGenerated        Boolean                    @default(false)
+  aiRequestId        String?
+  draftContentItemId String?
+  draftExperimentId  String?
+  expiresAt          DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  organisation   Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  growthInsight  GrowthInsight?          @relation(fields: [growthInsightId], references: [id], onDelete: SetNull)
+  outcomes       RecommendationOutcome[]
+  experiments    GrowthExperiment[]
+
+  @@index([organisationId, brandId, status])
+  @@index([brandId, createdAt])
+  @@index([growthInsightId])
+}
+
+model RecommendationOutcome {
+  id                     String                     @id @default(cuid())
+  organisationId         String
+  brandId                String
+  growthRecommendationId String
+  userProfileId          String
+  feedbackStatus         RecommendationFeedbackStatus
+  reason                 String?
+  outcomeNotes           String?
+  measuredOutcome        Json?
+  createdAt              DateTime                   @default(now())
+
+  organisation         Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand                Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  growthRecommendation GrowthRecommendation @relation(fields: [growthRecommendationId], references: [id], onDelete: Cascade)
+  user                 UserProfile          @relation("RecommendationOutcomeUser", fields: [userProfileId], references: [id], onDelete: Restrict)
+
+  @@index([growthRecommendationId])
+  @@index([organisationId, brandId])
+  @@index([feedbackStatus])
+}
+
+model GrowthExperiment {
+  id                     String                 @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  growthRecommendationId String?
+  title                  String
+  hypothesis             String
+  status                 GrowthExperimentStatus @default(PLANNED)
+  measurementPlan        String?
+  startDate              DateTime?
+  endDate                DateTime?
+  resultSummary          String?
+  linkedContentItemId    String?
+  createdByUserId        String
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  organisation         Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project              Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  growthRecommendation GrowthRecommendation? @relation(fields: [growthRecommendationId], references: [id], onDelete: SetNull)
+  createdBy            UserProfile           @relation("GrowthExperimentCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, brandId, status])
+  @@index([growthRecommendationId])
 }
