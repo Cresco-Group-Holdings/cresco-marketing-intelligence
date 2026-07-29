@@ -1860,6 +1860,40 @@ model ContentSchedule {
   @@index([scheduledFor])
 }
 
+enum TikTokPrivacyLevel {
+  PUBLIC_TO_EVERYONE
+  MUTUAL_FOLLOW_FRIENDS
+  FOLLOWER_OF_CREATOR
+  SELF_ONLY
+}
+
+/// User-selected TikTok posting settings. Stored per variant so a publish never
+/// infers privacy or interaction defaults on the creator's behalf.
+model TikTokPublishSetting {
+  id                     String             @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  contentVariantId       String             @unique
+  privacyLevel           TikTokPrivacyLevel
+  disableComment         Boolean            @default(false)
+  disableDuet            Boolean            @default(false)
+  disableStitch          Boolean            @default(false)
+  commercialContent      Boolean            @default(false)
+  brandOrganicToggle     Boolean            @default(false)
+  brandedContentToggle   Boolean            @default(false)
+  videoCoverTimestampMs  Int?
+  creatorOptionsSnapshot Json
+  selectedByUserId       String
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  contentVariant ContentVariant @relation(fields: [contentVariantId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([brandId])
+}
+
 model PublishingWindow {
   id             String         @id @default(cuid())
   organisationId String
@@ -1893,6 +1927,11 @@ model PublishingJob {
   publishedMediaId    String?   @unique
   permalink           String?
   refreshAttemptCount Int       @default(0)
+
+  directPublishAvailable  Boolean   @default(true)
+  manualPublicUrl         String?
+  manualConfirmedAt       DateTime?
+  manualConfirmedByUserId String?
 
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
@@ -2092,6 +2131,7 @@ model ContentVariant {
   complianceChecks ContentComplianceCheck[]
   visualAssets     ContentVariantAsset[]
   schedules        ContentSchedule[]
+  tikTokSetting    TikTokPublishSetting?
 
   @@index([organisationId])
   @@index([projectId])

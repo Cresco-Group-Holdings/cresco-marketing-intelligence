@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiSuccess } from "@/lib/api/handler";
 import { isAuthorisedWorkerRequest } from "@/lib/api/worker-auth";
-import { instagramPublishingService } from "@/server/services/instagram-publishing-service";
+import { processPublishingJob } from "@/server/services/publishing-worker";
 
 type Params = { params: Promise<{ jobId: string }> };
 
@@ -17,5 +17,5 @@ export async function POST(request: NextRequest, { params }: Params) {
   }
 
   const { jobId } = await params;
-  return apiSuccess({ result: await instagramPublishingService.process(jobId) }, { requestId });
+  return apiSuccess({ result: await processPublishingJob(jobId) }, { requestId });
 }
