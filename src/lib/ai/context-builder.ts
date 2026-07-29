@@ -51,6 +51,8 @@ export function buildBrandKnowledgeContext(snapshot: BrandKnowledgeSnapshot): Br
   };
 }
 
-export function serialiseBrandContext(context: BrandContextPayload): string {
+export function serialiseBrandContext(
+  context: BrandContextPayload | Record<string, unknown>,
+): string {
   return JSON.stringify(context, null, 2);
 }

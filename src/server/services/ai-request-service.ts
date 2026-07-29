@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { CONTENT_OUTPUT_SCHEMAS } from "@/lib/ai/content-output-schemas";
 import {
   AI_MAX_INPUT_CHARACTERS,
   AI_MAX_OUTPUT_TOKENS_DEFAULT,
@@ -28,6 +29,7 @@ import { aiUsageRecorder } from "@/server/services/ai-usage-recorder";
 import { promptTemplateService } from "@/server/services/prompt-template-service";
 
 const OUTPUT_SCHEMAS = {
+  ...CONTENT_OUTPUT_SCHEMAS,
   "diagnostics.ping": z.object({
     ok: z.boolean(),
     message: z.string(),
@@ -37,6 +39,7 @@ const OUTPUT_SCHEMAS = {
     provider: z.string(),
     latencyCategory: z.enum(["fast", "normal", "slow"]),
   }),
+  ...CONTENT_OUTPUT_SCHEMAS,
 } as const;
 
 type OutputSchemaKey = keyof typeof OUTPUT_SCHEMAS;
@@ -45,7 +48,11 @@ function estimateTokensFromText(text: string): number {
   return Math.max(1, Math.ceil(text.length / 4));
 }
 
-async function withTimeout<T>(operation: () => Promise<T>, timeoutMs: number, signal?: AbortSignal): Promise<T> {
+async function withTimeout<T>(
+  operation: () => Promise<T>,
+  timeoutMs: number,
+  signal?: AbortSignal,
+): Promise<T> {
   const controller = new AbortController();
   const abortFromParent = () => controller.abort();
   signal?.addEventListener("abort", abortFromParent, { once: true });
@@ -97,7 +104,9 @@ export const aiRequestService = {
       throw aiErrorMapper.mapValidationError("User input exceeds maximum size.");
     }
     if (detectPromptInjection(sanitisedInput)) {
-      throw aiErrorMapper.mapValidationError("User input contains disallowed instruction patterns.");
+      throw aiErrorMapper.mapValidationError(
+        "User input contains disallowed instruction patterns.",
+      );
     }
 
     const redactor = createSensitiveDataRedactor();
@@ -218,9 +227,7 @@ export const aiRequestService = {
             outputDigest: aiResponseParser.digest(textOutput),
             outputPreview: aiResponseParser.preview(textOutput),
             structuredOutput:
-              "data" in response
-                ? (response.data as Prisma.InputJsonValue)
-                : undefined,
+              "data" in response ? (response.data as Prisma.InputJsonValue) : undefined,
             completedAt: new Date(),
           },
         });
@@ -266,7 +273,11 @@ export const aiRequestService = {
         const providerError =
           error && typeof error === "object" && "category" in error
             ? (error as { category: string; message: string; retryable?: boolean })
-            : { category: "UNKNOWN", message: error instanceof Error ? error.message : "Unknown error", retryable: false };
+            : {
+                category: "UNKNOWN",
+                message: error instanceof Error ? error.message : "Unknown error",
+                retryable: false,
+              };
 
         await prisma.aIExecution.update({
           where: { id: execution.id },

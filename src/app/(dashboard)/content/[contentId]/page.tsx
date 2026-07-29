@@ -17,7 +17,21 @@ type ContentDetail = {
   contentType: string;
   primaryMessage: string | null;
   variants: Array<{ id: string; provider: string; format: string; caption: string | null }>;
-  complianceChecks: Array<{ checkType: string; result: string; message: string; blocking: boolean }>;
+  complianceChecks: Array<{
+    checkType: string;
+    result: string;
+    message: string;
+    blocking: boolean;
+  }>;
+  provenance: {
+    aiProvider?: string | null;
+    aiModel?: string | null;
+    generatedAt?: string | null;
+    metadata?: {
+      estimatedCostUsd?: number;
+      safetyFlags?: Array<{ message: string; requiresReview: boolean }>;
+    } | null;
+  } | null;
 };
 
 export default function ContentDetailPage() {
@@ -65,10 +79,7 @@ export default function ContentDetailPage() {
       <PageHeader
         title={item.title}
         description="Review content details, variants, and compliance findings."
-        breadcrumbs={[
-          { label: "Content Studio", href: "/content" },
-          { label: item.title },
-        ]}
+        breadcrumbs={[{ label: "Content Studio", href: "/content" }, { label: item.title }]}
       />
       <div className="mb-4 flex flex-wrap gap-2">
         <Badge>{item.status}</Badge>
@@ -127,12 +138,38 @@ export default function ContentDetailPage() {
                   <p className="font-medium">
                     {check.checkType} · {check.result}
                   </p>
-                  <p className={check.blocking ? "text-red-700" : "text-slate-600"}>{check.message}</p>
+                  <p className={check.blocking ? "text-red-700" : "text-slate-600"}>
+                    {check.message}
+                  </p>
                 </div>
               ))
             )}
           </CardContent>
         </Card>
+        {item.provenance?.aiProvider ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>AI generation</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-1 text-sm">
+              <p>
+                {item.provenance.aiProvider} · {item.provenance.aiModel}
+              </p>
+              <p className="text-slate-600">
+                Estimated cost: ${item.provenance.metadata?.estimatedCostUsd ?? 0}
+              </p>
+              <p className="text-slate-600">
+                Generated content remains a draft and requires review before approval.
+              </p>
+              {(item.provenance.metadata?.safetyFlags?.length ?? 0) > 0 ? (
+                <p className="text-amber-700">
+                  Manual review flagged:{" "}
+                  {item.provenance.metadata?.safetyFlags?.map((flag) => flag.message).join(" ")}
+                </p>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </>
   );
