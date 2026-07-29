@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bot,
   CalendarDays,
+  FlaskConical,
   FolderOpen,
   LayoutDashboard,
   Link2,
@@ -84,6 +85,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/growth",
     icon: Sprout,
     description: "Evidence-backed content recommendations",
+  },
+  {
+    label: "Experiments",
+    href: "/experiments",
+    icon: FlaskConical,
+    description: "Transparent social content experiments",
   },
   {
     label: "Leads",
