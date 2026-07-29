@@ -42,14 +42,16 @@ vi.mock("@/lib/auth/provisioning", () => ({
   extractProviderMetadata: vi.fn().mockReturnValue({}),
 }));
 
-import { GET as listConversations } from "@/app/api/brands/[brandId]/social/inbox/conversations/route";
-import { POST as sendReply } from "@/app/api/brands/[brandId]/social/inbox/conversations/[conversationId]/reply/route";
-import { POST as suggestReply } from "@/app/api/brands/[brandId]/social/inbox/conversations/[conversationId]/suggest/route";
+import { GET as listConversations } from "@/app/api/brands/[brandId]/inbox/conversations/route";
+import { POST as conversationActions } from "@/app/api/brands/[brandId]/inbox/conversations/[conversationId]/actions/route";
 
 const originalAllowTestAuth = process.env.ALLOW_TEST_AUTH;
 const originalTestAuthUserId = process.env.TEST_AUTH_USER_ID;
 
-function buildRequest(path: string, init: RequestInit = {}) {
+function buildRequest(
+  path: string,
+  init?: ConstructorParameters<typeof NextRequest>[1],
+) {
   return new NextRequest(`https://app.test${path}`, init);
 }
 
@@ -99,20 +101,20 @@ describe("inbox route authorization", () => {
   it("returns conversations when the caller has inbox read permission", async () => {
     const response = await listConversations(
       buildRequest(
-        `/api/brands/${inboxTestIds.brandId}/social/inbox/conversations?organisationId=${inboxTestIds.organisationId}`,
+        `/api/brands/${inboxTestIds.brandId}/inbox/conversations?organisationId=${inboxTestIds.organisationId}`,
       ),
       brandParams,
     );
 
     expect(response.status).toBe(200);
     expect(queryService.listConversations).toHaveBeenCalled();
-    expect((await response.json()).data.conversations).toEqual({ items: [], nextCursor: null });
+    expect((await response.json()).data).toEqual({ items: [], nextCursor: null });
   });
 
   it("rejects inbox read when organisation context is missing", async () => {
     await expectTenantRequired(() =>
       listConversations(
-        buildRequest(`/api/brands/${inboxTestIds.brandId}/social/inbox/conversations`),
+        buildRequest(`/api/brands/${inboxTestIds.brandId}/inbox/conversations`),
         brandParams,
       ),
     );
@@ -129,7 +131,7 @@ describe("inbox route authorization", () => {
 
     const response = await listConversations(
       buildRequest(
-        `/api/brands/${inboxTestIds.brandId}/social/inbox/conversations?organisationId=${inboxTestIds.organisationId}`,
+        `/api/brands/${inboxTestIds.brandId}/inbox/conversations?organisationId=${inboxTestIds.organisationId}`,
       ),
       brandParams,
     );
@@ -139,13 +141,14 @@ describe("inbox route authorization", () => {
   });
 
   it("sends replies when the caller has inbox reply permission", async () => {
-    const response = await sendReply(
+    const response = await conversationActions(
       buildRequest(
-        `/api/brands/${inboxTestIds.brandId}/social/inbox/conversations/${inboxTestIds.conversationId}/reply?organisationId=${inboxTestIds.organisationId}&socialAccountId=${inboxTestIds.socialAccountId}`,
+        `/api/brands/${inboxTestIds.brandId}/inbox/conversations/${inboxTestIds.conversationId}/actions?action=reply&organisationId=${inboxTestIds.organisationId}`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
+            socialAccountId: inboxTestIds.socialAccountId,
             body: "Thanks for your message!",
             idempotencyKey: "reply-key-123456",
           }),
@@ -175,13 +178,14 @@ describe("inbox route authorization", () => {
       organisationRole: OrganisationRole.VIEWER,
     });
 
-    const response = await sendReply(
+    const response = await conversationActions(
       buildRequest(
-        `/api/brands/${inboxTestIds.brandId}/social/inbox/conversations/${inboxTestIds.conversationId}/reply?organisationId=${inboxTestIds.organisationId}&socialAccountId=${inboxTestIds.socialAccountId}`,
+        `/api/brands/${inboxTestIds.brandId}/inbox/conversations/${inboxTestIds.conversationId}/actions?action=reply&organisationId=${inboxTestIds.organisationId}`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
+            socialAccountId: inboxTestIds.socialAccountId,
             body: "Thanks!",
             idempotencyKey: "reply-key-123456",
           }),
@@ -195,13 +199,16 @@ describe("inbox route authorization", () => {
   });
 
   it("returns AI suggestions as drafts without sending to the provider", async () => {
-    const response = await suggestReply(
+    const response = await conversationActions(
       buildRequest(
-        `/api/brands/${inboxTestIds.brandId}/social/inbox/conversations/${inboxTestIds.conversationId}/suggest?organisationId=${inboxTestIds.organisationId}&socialAccountId=${inboxTestIds.socialAccountId}`,
+        `/api/brands/${inboxTestIds.brandId}/inbox/conversations/${inboxTestIds.conversationId}/actions?action=suggest&organisationId=${inboxTestIds.organisationId}`,
         {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ tone: "friendly" }),
+          body: JSON.stringify({
+            socialAccountId: inboxTestIds.socialAccountId,
+            tone: "friendly",
+          }),
         },
       ),
       conversationParams,
@@ -209,7 +216,7 @@ describe("inbox route authorization", () => {
 
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(body.data.suggestion).toMatchObject({
+    expect(body.data).toMatchObject({
       draft: "Suggested reply",
       autoSent: false,
     });
@@ -219,13 +226,15 @@ describe("inbox route authorization", () => {
 
   it("requires organisation context for AI suggestions", async () => {
     await expectTenantRequired(() =>
-      suggestReply(
+      conversationActions(
         buildRequest(
-          `/api/brands/${inboxTestIds.brandId}/social/inbox/conversations/${inboxTestIds.conversationId}/suggest?socialAccountId=${inboxTestIds.socialAccountId}`,
+          `/api/brands/${inboxTestIds.brandId}/inbox/conversations/${inboxTestIds.conversationId}/actions?action=suggest`,
           {
             method: "POST",
             headers: { "content-type": "application/json" },
-            body: JSON.stringify({}),
+            body: JSON.stringify({
+              socialAccountId: inboxTestIds.socialAccountId,
+            }),
           },
         ),
         conversationParams,

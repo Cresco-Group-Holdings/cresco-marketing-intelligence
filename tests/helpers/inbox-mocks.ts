@@ -43,6 +43,13 @@ export function createMockConversation(
     providerAccountId: string;
     relatedProviderPostId: string | null;
     providerConversationId: string;
+    socialAccount: {
+      id: string;
+      providerAccountId: string;
+      socialConnectionId: string;
+      capabilities: Array<{ capability: string }>;
+      socialConnection: { id: string };
+    };
   }> = {},
 ) {
   return {
