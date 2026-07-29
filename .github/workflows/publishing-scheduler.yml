@@ -1,0 +1,31 @@
+name: Publishing Scheduler
+
+on:
+  schedule:
+    # Every five minutes — publishing is time-sensitive.
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Maximum publishing jobs to drain in this run
+        required: false
+        default: "10"
+
+concurrency:
+  group: publishing-scheduler
+  cancel-in-progress: false
+
+jobs:
+  scheduler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enqueue and drain due publishing jobs
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          PUBLISHING_WORKER_TOKEN: ${{ secrets.PUBLISHING_WORKER_TOKEN }}
+          PUBLISHING_WORKER_BATCH: ${{ github.event.inputs.limit || '10' }}
+        run: node scripts/run-publishing-scheduler.mjs

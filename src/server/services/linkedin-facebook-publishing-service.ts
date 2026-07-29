@@ -14,6 +14,8 @@ import { createObjectStorageProvider } from "@/lib/storage/supabase-storage-prov
 import { linkedInCredentialAdapter } from "@/lib/social/linkedin-credential-adapter";
 import { metaCredentialAdapter } from "@/lib/social/meta-credential-adapter";
 import type { TenantContext } from "@/lib/tenancy/context";
+import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities";
+import { isProviderPublishingDisabled } from "@/lib/publishing/config";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { socialCredentialService } from "@/server/services/social-credential-service";
 import { brandService } from "@/server/services/workspace-service";
@@ -73,6 +75,12 @@ export const linkedInFacebookPublishingService = {
     requestId?: string,
   ) {
     const brand = await brandService.getById(brandId, organisationId, context);
+    if (isProviderPublishingDisabled(input.settings.provider)) {
+      throw new AppError(
+        "FORBIDDEN",
+        `${input.settings.provider} publishing is temporarily disabled by an operator.`,
+      );
+    }
     const existing = await prisma.publishingJob.findFirst({
       where: { organisationId, brandId, idempotencyKey: input.idempotencyKey },
     });
@@ -113,6 +121,7 @@ export const linkedInFacebookPublishingService = {
     });
     if (!account)
       throw new AppError("VALIDATION_ERROR", "The selected platform account is not connected.");
+    await assertAccountPublishingCapability(account.id, variant.format);
     if (!account.socialConnection.grantedScopes.includes(requiredScope(input.settings))) {
       throw new AppError(
         "FORBIDDEN",
