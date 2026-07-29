@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api/client";
+import { TikTokPublishPanel } from "@/components/publishing/tiktok-publish-panel";
 
 type ContentDetail = {
   id: string;
@@ -16,7 +17,13 @@ type ContentDetail = {
   status: string;
   contentType: string;
   primaryMessage: string | null;
-  variants: Array<{ id: string; provider: string; socialAccountId: string | null; format: string; caption: string | null }>;
+  variants: Array<{
+    id: string;
+    provider: string;
+    socialAccountId: string | null;
+    format: string;
+    caption: string | null;
+  }>;
   complianceChecks: Array<{
     checkType: string;
     result: string;
@@ -70,15 +77,27 @@ export default function ContentDetailPage() {
     await loadItem();
   }
   async function publishInstagram() {
-    const variant = item?.variants.find((entry) => entry.provider === "INSTAGRAM" && entry.socialAccountId);
+    const variant = item?.variants.find(
+      (entry) => entry.provider === "INSTAGRAM" && entry.socialAccountId,
+    );
     if (!organisationId || !brandId || !variant) return;
-    const confirmed = window.confirm(`Publish this approved content to the selected Instagram account now?\n\nCaption: ${variant.caption ?? ""}`);
+    const confirmed = window.confirm(
+      `Publish this approved content to the selected Instagram account now?\n\nCaption: ${variant.caption ?? ""}`,
+    );
     if (!confirmed) return;
-    await apiFetch(`/api/brands/${brandId}/content/${contentId}/instagram-publish?organisationId=${organisationId}`, {
-      method: "POST",
-      organisationId,
-      body: JSON.stringify({ contentVariantId: variant.id, socialAccountId: variant.socialAccountId, confirmed: true, idempotencyKey: crypto.randomUUID() }),
-    });
+    await apiFetch(
+      `/api/brands/${brandId}/content/${contentId}/instagram-publish?organisationId=${organisationId}`,
+      {
+        method: "POST",
+        organisationId,
+        body: JSON.stringify({
+          contentVariantId: variant.id,
+          socialAccountId: variant.socialAccountId,
+          confirmed: true,
+          idempotencyKey: crypto.randomUUID(),
+        }),
+      },
+    );
     await loadItem();
   }
 
@@ -109,8 +128,13 @@ export default function ContentDetailPage() {
             Submit for review
           </Button>
         ) : null}
-        {item.status === "APPROVED" && item.variants.some((variant) => variant.provider === "INSTAGRAM" && variant.socialAccountId) ? (
-          <Button size="sm" onClick={() => void publishInstagram()}>Confirm & publish to Instagram</Button>
+        {item.status === "APPROVED" &&
+        item.variants.some(
+          (variant) => variant.provider === "INSTAGRAM" && variant.socialAccountId,
+        ) ? (
+          <Button size="sm" onClick={() => void publishInstagram()}>
+            Confirm & publish to Instagram
+          </Button>
         ) : null}
       </div>
 
@@ -139,6 +163,21 @@ export default function ContentDetailPage() {
             ))}
           </CardContent>
         </Card>
+
+        {item.status === "APPROVED" && organisationId && brandId
+          ? item.variants
+              .filter((variant) => variant.provider === "TIKTOK" && variant.socialAccountId)
+              .map((variant) => (
+                <div key={variant.id} className="lg:col-span-2">
+                  <TikTokPublishPanel
+                    brandId={brandId}
+                    organisationId={organisationId}
+                    contentId={contentId}
+                    contentVariantId={variant.id}
+                  />
+                </div>
+              ))
+          : null}
 
         <Card className="lg:col-span-2">
           <CardHeader>
