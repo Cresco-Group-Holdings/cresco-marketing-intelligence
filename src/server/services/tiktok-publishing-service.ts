@@ -19,6 +19,8 @@ import type {
 } from "@/lib/validation/tiktok-publishing";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { socialCredentialService } from "@/server/services/social-credential-service";
+import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities";
+import { isProviderPublishingDisabled } from "@/lib/publishing/config";
 import { brandService } from "@/server/services/workspace-service";
 
 export const MAX_TIKTOK_POLL_ATTEMPTS = 20;
@@ -240,6 +242,9 @@ export const tikTokPublishingService = {
     requestId?: string,
   ) {
     const brand = await brandService.getById(brandId, organisationId, context);
+    if (isProviderPublishingDisabled("TIKTOK")) {
+      throw new AppError("FORBIDDEN", "TikTok publishing is temporarily disabled by an operator.");
+    }
 
     const existing = await prisma.publishingJob.findFirst({
       where: { organisationId, brandId, idempotencyKey: input.idempotencyKey },
@@ -274,6 +279,7 @@ export const tikTokPublishingService = {
       },
     });
     if (!account) throw new AppError("VALIDATION_ERROR", "TikTok account is not connected.");
+    await assertAccountPublishingCapability(account.id, variant.format);
 
     const schedule = await prisma.contentSchedule.create({
       data: {

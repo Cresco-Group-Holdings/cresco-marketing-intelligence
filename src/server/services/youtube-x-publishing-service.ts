@@ -14,6 +14,8 @@ import {
   youtubeCredentialAdapter,
 } from "@/lib/social/youtube-x-credential-adapters";
 import { xPublishSchema, youtubePublishSchema } from "@/lib/validation/youtube-x-publishing";
+import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities";
+import { isProviderPublishingDisabled } from "@/lib/publishing/config";
 import { socialCredentialService } from "@/server/services/social-credential-service";
 import { brandService } from "@/server/services/workspace-service";
 
@@ -95,6 +97,12 @@ export const youtubeXPublishingService = {
     context: TenantContext,
   ) {
     const brand = await brandService.getById(brandId, organisationId, context);
+    if (isProviderPublishingDisabled(provider)) {
+      throw new AppError(
+        "FORBIDDEN",
+        `${provider} publishing is temporarily disabled by an operator.`,
+      );
+    }
     const existing = await prisma.publishingJob.findFirst({
       where: { organisationId, brandId, idempotencyKey: input.idempotencyKey },
     });
@@ -120,6 +128,7 @@ export const youtubeXPublishingService = {
     if (!variant?.socialAccount || variant.socialAccount.status !== "CONNECTED") {
       throw new AppError("VALIDATION_ERROR", "The selected provider account is not connected.");
     }
+    await assertAccountPublishingCapability(variant.socialAccount.id, variant.format);
     if (provider === "YOUTUBE") {
       const youtube = input as YouTubeInput;
       const video = variant.visualAssets.find(
