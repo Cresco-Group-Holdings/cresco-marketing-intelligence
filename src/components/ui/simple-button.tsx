@@ -1,7 +1,6 @@
 import { cn } from "@/lib/utils";
 
-export type SimpleButtonProps =
-  React.ButtonHTMLAttributes<HTMLButtonElement>;
+export type SimpleButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
 
 export function SimpleButton({
   children,
