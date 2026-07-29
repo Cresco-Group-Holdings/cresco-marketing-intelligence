@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api/client";
 import { TikTokPublishPanel } from "@/components/publishing/tiktok-publish-panel";
+import { LinkedInFacebookPublishPanel } from "@/components/publishing/linkedin-facebook-publish-panel";
 
 type ContentDetail = {
   id: string;
@@ -23,6 +24,14 @@ type ContentDetail = {
     socialAccountId: string | null;
     format: string;
     caption: string | null;
+    headline?: string | null;
+    destinationUrl?: string | null;
+    socialAccount: {
+      providerAccountId: string;
+      accountType: string;
+      displayName: string | null;
+      username: string | null;
+    } | null;
   }>;
   complianceChecks: Array<{
     checkType: string;
@@ -174,6 +183,31 @@ export default function ContentDetailPage() {
                     organisationId={organisationId}
                     contentId={contentId}
                     contentVariantId={variant.id}
+                  />
+                </div>
+              ))
+          : null}
+
+        {item.status === "APPROVED" && organisationId && brandId
+          ? item.variants
+              .filter(
+                (variant) =>
+                  (variant.provider === "LINKEDIN" || variant.provider === "FACEBOOK") &&
+                  variant.socialAccountId &&
+                  variant.socialAccount,
+              )
+              .map((variant) => (
+                <div key={`publish-${variant.id}`} className="lg:col-span-2">
+                  <LinkedInFacebookPublishPanel
+                    brandId={brandId}
+                    organisationId={organisationId}
+                    contentId={contentId}
+                    variant={{
+                      ...variant,
+                      provider: variant.provider as "LINKEDIN" | "FACEBOOK",
+                      socialAccountId: variant.socialAccountId!,
+                      socialAccount: variant.socialAccount!,
+                    }}
                   />
                 </div>
               ))
