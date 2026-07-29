@@ -335,6 +335,14 @@ model Organisation {
   visualExports            VisualExport[]
   visualGenerations        VisualGeneration[]
   contentVariantAssets     ContentVariantAsset[]
+  videoProjects            VideoProject[]
+  videoScenes              VideoScene[]
+  videoTracks              VideoTrack[]
+  voiceoverTracks          VoiceoverTrack[]
+  subtitleTracks           SubtitleTrack[]
+  musicTracks              MusicTrack[]
+  videoRenderJobs          VideoRenderJob[]
+  videoRenderOutputs       VideoRenderOutput[]
 
   @@index([status])
   @@index([archivedAt])
@@ -415,6 +423,14 @@ model Project {
   visualExports            VisualExport[]
   visualGenerations        VisualGeneration[]
   contentVariantAssets     ContentVariantAsset[]
+  videoProjects            VideoProject[]
+  videoScenes              VideoScene[]
+  videoTracks              VideoTrack[]
+  voiceoverTracks          VoiceoverTrack[]
+  subtitleTracks           SubtitleTrack[]
+  musicTracks              MusicTrack[]
+  videoRenderJobs          VideoRenderJob[]
+  videoRenderOutputs       VideoRenderOutput[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -484,6 +500,14 @@ model Brand {
   visualExports            VisualExport[]
   visualGenerations        VisualGeneration[]
   contentVariantAssets     ContentVariantAsset[]
+  videoProjects            VideoProject[]
+  videoScenes              VideoScene[]
+  videoTracks              VideoTrack[]
+  voiceoverTracks          VoiceoverTrack[]
+  subtitleTracks           SubtitleTrack[]
+  musicTracks              MusicTrack[]
+  videoRenderJobs          VideoRenderJob[]
+  videoRenderOutputs       VideoRenderOutput[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -914,6 +938,9 @@ model MarketingAsset {
   contentVariantAssets    ContentVariantAsset[]
   visualExports           VisualExport[]
   visualGenerationSources VisualGeneration[]    @relation("VisualGenerationSourceAsset")
+  videoSceneAssets        VideoScene[]          @relation("VideoSceneSourceAsset")
+  musicTracks             MusicTrack[]
+  videoRenderOutputs      VideoRenderOutput[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -1161,6 +1188,252 @@ model ContentVariantAsset {
   @@unique([contentVariantId, marketingAssetId])
   @@index([organisationId])
   @@index([brandId])
+}
+
+enum VideoProjectStatus {
+  DRAFT
+  SCRIPT_READY
+  ASSETS_REQUIRED
+  READY_TO_RENDER
+  RENDERING
+  RENDERED
+  FAILED
+  APPROVED
+  ARCHIVED
+}
+
+enum VideoProjectType {
+  TALKING_POINTS
+  ANIMATED_TEXT
+  SLIDESHOW
+  PRODUCT_WALKTHROUGH
+  EDUCATIONAL_EXPLAINER
+  LIST_FORMAT
+  PROBLEM_AND_SOLUTION
+  PROMOTIONAL_ANNOUNCEMENT
+}
+
+enum VideoRenderJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model VideoProject {
+  id              String             @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  contentItemId   String?
+  title           String
+  videoType       VideoProjectType
+  aspectRatio     String             @default("9:16")
+  targetDuration  Int
+  status          VideoProjectStatus @default(DRAFT)
+  settings        Json?
+  createdByUserId String
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  archivedAt      DateTime?
+
+  organisation    Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem     ContentItem?        @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  scenes          VideoScene[]
+  tracks          VideoTrack[]
+  voiceoverTracks VoiceoverTrack[]
+  subtitleTracks  SubtitleTrack[]
+  musicTracks     MusicTrack[]
+  renderJobs      VideoRenderJob[]
+  outputs         VideoRenderOutput[]
+
+  @@index([organisationId])
+  @@index([projectId])
+  @@index([brandId])
+  @@index([contentItemId])
+  @@index([status])
+}
+
+model VideoScene {
+  id                String   @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  videoProjectId    String
+  sceneNumber       Int
+  durationSeconds   Decimal  @db.Decimal(7, 2)
+  narration         String?
+  onScreenText      String?
+  visualInstruction String?
+  transition        String?
+  cta               String?
+  sourceAssetId     String?
+  generatedAssetId  String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  videoProject VideoProject    @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+  sourceAsset  MarketingAsset? @relation("VideoSceneSourceAsset", fields: [sourceAssetId], references: [id], onDelete: SetNull)
+
+  @@unique([videoProjectId, sceneNumber])
+  @@index([organisationId])
+  @@index([brandId])
+}
+
+model VideoTrack {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  videoProjectId String
+  trackType      String
+  configuration  Json
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  videoProject VideoProject @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+
+  @@index([videoProjectId])
+}
+
+model VoiceoverTrack {
+  id                       String   @id @default(cuid())
+  organisationId           String
+  projectId                String
+  brandId                  String
+  videoProjectId           String
+  provider                 String
+  voiceId                  String
+  language                 String
+  accent                   String?
+  licenceMetadata          Json
+  pronunciationOverrides   Json?
+  estimatedDurationSeconds Decimal? @db.Decimal(7, 2)
+  clonedVoiceConsentRecord String?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  videoProject VideoProject @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+
+  @@index([videoProjectId])
+}
+
+model SubtitleTrack {
+  id               String   @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  videoProjectId   String
+  cues             Json
+  style            Json?
+  safeAreaPosition String   @default("bottom")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  videoProject VideoProject @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+
+  @@index([videoProjectId])
+}
+
+model MusicTrack {
+  id                      String    @id @default(cuid())
+  organisationId          String
+  projectId               String
+  brandId                 String
+  videoProjectId          String
+  sourceAssetId           String?
+  libraryReference        String?
+  licenceOwner            String?
+  licenceType             String?
+  attribution             String?
+  licenceExpiresAt        DateTime?
+  commercialUsePermission Boolean   @default(false)
+  allowedPlatforms        String[]  @default([])
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  videoProject VideoProject    @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+  sourceAsset  MarketingAsset? @relation(fields: [sourceAssetId], references: [id], onDelete: SetNull)
+
+  @@index([videoProjectId])
+}
+
+model VideoRenderJob {
+  id               String               @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  videoProjectId   String
+  idempotencyKey   String
+  status           VideoRenderJobStatus @default(QUEUED)
+  progress         Int                  @default(0)
+  attemptCount     Int                  @default(0)
+  maxAttempts      Int                  @default(3)
+  timeoutAt        DateTime?
+  cancelledAt      DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  logs             Json?
+  failureReason    String?
+  estimatedCostUsd Decimal?             @db.Decimal(12, 6)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  videoProject VideoProject        @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+  outputs      VideoRenderOutput[]
+
+  @@unique([videoProjectId, idempotencyKey])
+  @@index([organisationId])
+  @@index([status])
+}
+
+model VideoRenderOutput {
+  id               String   @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  videoProjectId   String
+  videoRenderJobId String
+  marketingAssetId String
+  thumbnailAssetId String?
+  validationReport Json
+  durationSeconds  Decimal  @db.Decimal(7, 2)
+  width            Int
+  height           Int
+  codec            String
+  fileSizeBytes    Int
+  createdAt        DateTime @default(now())
+
+  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  videoProject   VideoProject   @relation(fields: [videoProjectId], references: [id], onDelete: Cascade)
+  videoRenderJob VideoRenderJob @relation(fields: [videoRenderJobId], references: [id], onDelete: Cascade)
+  marketingAsset MarketingAsset @relation(fields: [marketingAssetId], references: [id], onDelete: Restrict)
+
+  @@index([videoProjectId])
+  @@index([videoRenderJobId])
 }
 
 model AIRequest {
@@ -1922,6 +2195,7 @@ model ContentItem {
   provenance       ContentProvenance?
   complianceChecks ContentComplianceCheck[]
   statusHistory    ContentStatusHistory[]
+  videoProjects    VideoProject[]
 
   @@index([organisationId])
   @@index([projectId])
