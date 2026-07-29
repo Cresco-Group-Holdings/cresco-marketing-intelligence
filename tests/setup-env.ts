@@ -2,6 +2,8 @@
  * Deterministic non-production environment values for Vitest.
  * Loaded before each test file so application modules can call getServerEnv().
  */
+export {};
+
 const env = process.env as Record<string, string | undefined>;
 
 const testServerSecrets = {

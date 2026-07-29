@@ -14,6 +14,7 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
+    "test:database": "vitest run --config vitest.database.config.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:foundation": "playwright test tests/e2e/stage-1-foundation.spec.ts",
