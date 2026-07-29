@@ -17,6 +17,17 @@ export default function EditContentPage() {
   const [title, setTitle] = useState("");
   const [primaryMessage, setPrimaryMessage] = useState("");
   const [destinationUrl, setDestinationUrl] = useState("");
+  const [variants, setVariants] = useState<
+    Array<{
+      provider: string;
+      format: string;
+      caption: string;
+      headline: string;
+      hashtags: string[];
+    }>
+  >([]);
+  const [activePlatform, setActivePlatform] = useState(0);
+  const [transforming, setTransforming] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const organisationId = preference.currentOrganisationId;
@@ -26,13 +37,33 @@ export default function EditContentPage() {
   const loadItem = useCallback(async () => {
     if (!organisationId || !brandId) return;
     const data = await apiFetch<{
-      item: { title: string; primaryMessage: string | null; destinationUrl: string | null };
+      item: {
+        title: string;
+        primaryMessage: string | null;
+        destinationUrl: string | null;
+        variants: Array<{
+          provider: string;
+          format: string;
+          caption: string | null;
+          headline: string | null;
+          hashtags: string[];
+        }>;
+      };
     }>(`/api/brands/${brandId}/content/${contentId}?organisationId=${organisationId}`, {
       organisationId,
     });
     setTitle(data.item.title);
     setPrimaryMessage(data.item.primaryMessage ?? "");
     setDestinationUrl(data.item.destinationUrl ?? "");
+    setVariants(
+      data.item.variants.map((variant) => ({
+        provider: variant.provider,
+        format: variant.format,
+        caption: variant.caption ?? "",
+        headline: variant.headline ?? "",
+        hashtags: variant.hashtags,
+      })),
+    );
   }, [organisationId, brandId, contentId]);
 
   useEffect(() => {
@@ -46,10 +77,38 @@ export default function EditContentPage() {
     await apiFetch(`/api/brands/${brandId}/content/${contentId}?organisationId=${organisationId}`, {
       method: "PATCH",
       organisationId,
-      body: JSON.stringify({ title, primaryMessage, destinationUrl }),
+      body: JSON.stringify({ title, primaryMessage, destinationUrl, variants }),
     });
     setLoading(false);
     router.push(`/content/${contentId}`);
+  }
+
+  async function regenerateCaption() {
+    const variant = variants[activePlatform];
+    if (!organisationId || !brandId || !variant?.caption) return;
+    setTransforming(true);
+    try {
+      const data = await apiFetch<{
+        item: { variants: Array<{ provider: string; caption: string | null }> };
+      }>(
+        `/api/brands/${brandId}/content/${contentId}/regenerate?organisationId=${organisationId}`,
+        {
+          method: "POST",
+          organisationId,
+          body: JSON.stringify({ field: "caption", platform: variant.provider }),
+        },
+      );
+      const regenerated = data.item.variants.find((item) => item.provider === variant.provider);
+      if (regenerated?.caption) {
+        setVariants((current) =>
+          current.map((item, index) =>
+            index === activePlatform ? { ...item, caption: regenerated.caption ?? "" } : item,
+          ),
+        );
+      }
+    } finally {
+      setTransforming(false);
+    }
   }
 
   return (
@@ -57,10 +116,7 @@ export default function EditContentPage() {
       <PageHeader
         title="Edit content"
         description="Update the core content brief and destination details."
-        breadcrumbs={[
-          { label: "Content Studio", href: "/content" },
-          { label: "Edit" },
-        ]}
+        breadcrumbs={[{ label: "Content Studio", href: "/content" }, { label: "Edit" }]}
       />
       <Card>
         <CardHeader>
@@ -80,6 +136,54 @@ export default function EditContentPage() {
               onChange={(e) => setDestinationUrl(e.target.value)}
               placeholder="Destination URL"
             />
+            {variants.length > 0 ? (
+              <div className="space-y-3 rounded-md border p-3">
+                <div className="flex flex-wrap gap-2">
+                  {variants.map((variant, index) => (
+                    <Button
+                      key={variant.provider}
+                      type="button"
+                      size="sm"
+                      variant={activePlatform === index ? "primary" : "outline"}
+                      onClick={() => setActivePlatform(index)}
+                    >
+                      {variant.provider}
+                    </Button>
+                  ))}
+                </div>
+                <Input
+                  label={`${variants[activePlatform]?.provider} headline`}
+                  value={variants[activePlatform]?.headline ?? ""}
+                  onChange={(event) =>
+                    setVariants((current) =>
+                      current.map((item, index) =>
+                        index === activePlatform ? { ...item, headline: event.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+                <textarea
+                  className="min-h-32 w-full rounded-md border px-3 py-2 text-sm"
+                  value={variants[activePlatform]?.caption ?? ""}
+                  onChange={(event) =>
+                    setVariants((current) =>
+                      current.map((item, index) =>
+                        index === activePlatform ? { ...item, caption: event.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={transforming}
+                  onClick={() => void regenerateCaption()}
+                >
+                  {transforming ? "Regenerating…" : "Regenerate selected caption"}
+                </Button>
+              </div>
+            ) : null}
             <div className="flex gap-2">
               <Button type="submit" disabled={loading}>
                 Save changes

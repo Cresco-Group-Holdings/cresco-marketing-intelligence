@@ -1,4 +1,5 @@
 import type { z } from "zod";
+import { SocialProvider } from "@prisma/client";
 import type {
   AIProviderStructuredRequest,
   AIProviderStructuredResponse,
@@ -7,6 +8,43 @@ import type {
 } from "@/lib/ai/types";
 import { BaseAIProvider } from "@/lib/ai/providers/base";
 import { aiResponseParser } from "@/lib/ai/response-parser";
+
+function defaultPlatforms(): SocialProvider[] {
+  return ["LINKEDIN", "INSTAGRAM"];
+}
+
+function mockSocialContent(schemaName: string) {
+  const platforms = schemaName.includes("linkedin")
+    ? ["LINKEDIN"]
+    : schemaName.includes("facebook")
+      ? ["FACEBOOK"]
+      : schemaName.includes("youtube")
+        ? ["YOUTUBE"]
+        : defaultPlatforms();
+
+  return {
+    hook: "Discover smarter ways to grow your brand.",
+    body: "Share practical insights that help your audience take the next step with confidence.",
+    caption:
+      "Ready to create content that resonates? Start with a clear message and a strong hook.",
+    headline: "Brand content that connects",
+    cta: "Learn more",
+    hashtags: ["#marketing", "#brand", "#content"],
+    videoScript:
+      "Hook: Stop scrolling — here is what matters.\nScene 1: Problem.\nScene 2: Solution.\nCTA: Learn more.",
+    sceneSuggestions: ["Open with a bold text overlay", "Cut to product demo", "End with CTA card"],
+    visualBrief: "Clean brand colours, bold typography, energetic pacing.",
+    complianceNotes: [],
+    platformAdaptations: platforms.map((provider) => ({
+      provider,
+      caption: `Platform-ready caption for ${provider}.`,
+      headline: "Headline",
+      hashtags: ["#brand", "#content"],
+      hook: "Strong hook",
+      cta: "Learn more",
+    })),
+  };
+}
 
 export class MockAIProvider extends BaseAIProvider {
   readonly name = "MOCK" as const;
@@ -40,10 +78,38 @@ export class MockAIProvider extends BaseAIProvider {
     request: AIProviderStructuredRequest<TSchema>,
   ): Promise<AIProviderStructuredResponse<TSchema>> {
     const started = Date.now();
-    const payload =
-      request.schemaName === "diagnostics.structured"
-        ? { ok: true, provider: "MOCK", latencyCategory: "fast" as const }
-        : { ok: true, message: "mock structured response" };
+    let payload: Record<string, unknown>;
+
+    if (request.schemaName === "diagnostics.structured") {
+      payload = { ok: true, provider: "MOCK", latencyCategory: "fast" };
+    } else if (request.schemaName === "content.ideas") {
+      payload = {
+        ideas: [
+          {
+            title: "Audience pain point spotlight",
+            angle: "Address a key challenge your audience faces.",
+            suggestedPlatforms: defaultPlatforms(),
+            contentPillar: "Education",
+          },
+        ],
+      };
+    } else if (
+      request.schemaName === "content.rewrite" ||
+      request.schemaName === "content.transform" ||
+      request.schemaName === "content.cta.improve"
+    ) {
+      payload = { result: "Improved brand-aligned copy.", notes: "Mock transform output." };
+    } else if (request.schemaName === "content.hashtags") {
+      payload = {
+        hashtags: ["#marketing", "#brand", "#social"],
+        rationale: "Relevant brand-safe hashtags.",
+      };
+    } else if (request.schemaName.startsWith("content.")) {
+      payload = mockSocialContent(request.schemaName);
+    } else {
+      payload = { ok: true, message: "mock structured response" };
+    }
+
     const rawContent = JSON.stringify(payload);
     const data = aiResponseParser.parseStructured(
       {
