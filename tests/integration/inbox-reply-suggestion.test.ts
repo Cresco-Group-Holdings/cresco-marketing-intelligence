@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { OrganisationRole } from "@prisma/client";
 import { AppError } from "@/lib/errors";
+import { hasPermission, PERMISSIONS } from "@/lib/tenancy/permissions";
 import {
   createMockConversation,
   inboxTenantContext,
@@ -147,7 +147,8 @@ describe("inboxReplySuggestionService", () => {
     ).rejects.toBeInstanceOf(AppError);
   });
 
-  it("does not expose reply permission to viewers", () => {
-    expect(inboxTenantContext.organisationRole).toBe(OrganisationRole.OWNER);
+  it("does not grant viewers permission to reply via the inbox", () => {
+    expect(hasPermission("VIEWER", PERMISSIONS["socialInbox.reply"])).toBe(false);
+    expect(hasPermission("MARKETER", PERMISSIONS["socialInbox.reply"])).toBe(true);
   });
 });

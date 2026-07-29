@@ -33,6 +33,14 @@ vi.mock("@/lib/tenancy/guards", async (importOriginal) => {
     buildTenantContext,
   };
 });
+vi.mock("@/lib/auth/provisioning", () => ({
+  ensureUserProfile: vi.fn().mockResolvedValue({
+    authUserId: "test-auth-user",
+    email: "test@example.com",
+    userProfileId: inboxTestIds.userProfileId,
+  }),
+  extractProviderMetadata: vi.fn().mockReturnValue({}),
+}));
 
 import { GET as listConversations } from "@/app/api/brands/[brandId]/social/inbox/conversations/route";
 import { POST as sendReply } from "@/app/api/brands/[brandId]/social/inbox/conversations/[conversationId]/reply/route";
@@ -43,6 +51,12 @@ const originalTestAuthUserId = process.env.TEST_AUTH_USER_ID;
 
 function buildRequest(path: string, init: RequestInit = {}) {
   return new NextRequest(`https://app.test${path}`, init);
+}
+
+async function expectTenantRequired(call: () => Promise<Response>) {
+  await expect(call()).rejects.toMatchObject({
+    code: "TENANT_CONTEXT_REQUIRED",
+  });
 }
 
 const brandParams = { params: Promise.resolve({ brandId: inboxTestIds.brandId }) };
@@ -96,22 +110,21 @@ describe("inbox route authorization", () => {
   });
 
   it("rejects inbox read when organisation context is missing", async () => {
-    const response = await listConversations(
-      buildRequest(`/api/brands/${inboxTestIds.brandId}/social/inbox/conversations`),
-      brandParams,
+    await expectTenantRequired(() =>
+      listConversations(
+        buildRequest(`/api/brands/${inboxTestIds.brandId}/social/inbox/conversations`),
+        brandParams,
+      ),
     );
-
-    expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("TENANT_CONTEXT_REQUIRED");
     expect(queryService.listConversations).not.toHaveBeenCalled();
   });
 
-  it("rejects inbox read for viewers without socialInbox.read", async () => {
+  it("allows analysts to read the inbox", async () => {
     buildTenantContext.mockResolvedValue({
       userId: "test-auth-user",
       userProfileId: inboxTestIds.userProfileId,
       organisationId: inboxTestIds.organisationId,
-      organisationRole: OrganisationRole.VIEWER,
+      organisationRole: OrganisationRole.ANALYST,
     });
 
     const response = await listConversations(
@@ -121,9 +134,8 @@ describe("inbox route authorization", () => {
       brandParams,
     );
 
-    expect(response.status).toBe(403);
-    expect((await response.json()).error.code).toBe("FORBIDDEN");
-    expect(queryService.listConversations).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(queryService.listConversations).toHaveBeenCalled();
   });
 
   it("sends replies when the caller has inbox reply permission", async () => {
@@ -206,20 +218,19 @@ describe("inbox route authorization", () => {
   });
 
   it("requires organisation context for AI suggestions", async () => {
-    const response = await suggestReply(
-      buildRequest(
-        `/api/brands/${inboxTestIds.brandId}/social/inbox/conversations/${inboxTestIds.conversationId}/suggest?socialAccountId=${inboxTestIds.socialAccountId}`,
-        {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({}),
-        },
+    await expectTenantRequired(() =>
+      suggestReply(
+        buildRequest(
+          `/api/brands/${inboxTestIds.brandId}/social/inbox/conversations/${inboxTestIds.conversationId}/suggest?socialAccountId=${inboxTestIds.socialAccountId}`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({}),
+          },
+        ),
+        conversationParams,
       ),
-      conversationParams,
     );
-
-    expect(response.status).toBe(400);
-    expect((await response.json()).error.code).toBe("TENANT_CONTEXT_REQUIRED");
     expect(suggestionService.suggestReply).not.toHaveBeenCalled();
   });
 });

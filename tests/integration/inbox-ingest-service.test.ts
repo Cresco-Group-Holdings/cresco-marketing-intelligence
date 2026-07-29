@@ -38,7 +38,14 @@ describe("socialInboxIngestService", () => {
     prismaMock.socialParticipant.upsert.mockImplementation(async (args: { create: { providerParticipantId: string } }) => ({
       id: `participant-${args.create.providerParticipantId}`,
     }));
-    prismaMock.socialConversation.findUnique.mockResolvedValue(null);
+    prismaMock.socialConversation.findUnique.mockImplementation(
+      async (args: { where: { id?: string; socialAccountId_providerConversationId?: unknown } }) => {
+        if (args.where.id) {
+          return { unreadCount: 0, safetyFlags: [] };
+        }
+        return null;
+      },
+    );
     prismaMock.socialConversation.upsert.mockImplementation(
       async (args: { create: { providerConversationId: string; safetyFlags?: string[]; requiresHumanReview?: boolean } }) => ({
         id: `conv-${args.create.providerConversationId}`,
