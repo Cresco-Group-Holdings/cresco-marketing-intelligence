@@ -31,6 +31,21 @@ function parseConfirmedOffset(range: string | null): number {
   return match ? Number(match[1]) + 1 : 0;
 }
 
+async function youtubeFetch(input: RequestInfo | URL, init?: RequestInit) {
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: init?.signal ?? AbortSignal.timeout(60_000),
+    });
+  } catch {
+    throw new YouTubeProviderError(
+      "TRANSIENT",
+      "YouTube did not respond before the request timeout.",
+      true,
+    );
+  }
+}
+
 export function normaliseYouTubeError(status: number, reason?: string) {
   if (status === 401)
     return new YouTubeProviderError("TOKEN_EXPIRED", "YouTube credentials expired.", true);
@@ -72,7 +87,7 @@ export class YouTubePublishingAdapter {
       publishAt?: string;
     };
   }) {
-    const response = await fetch(
+    const response = await youtubeFetch(
       `${this.uploadBase}/videos?uploadType=resumable&part=snippet,status`,
       {
         method: "POST",
@@ -109,7 +124,7 @@ export class YouTubePublishingAdapter {
   }
 
   async probeUploadSession(uploadUrl: string, totalBytes: number): Promise<YouTubeSessionProbe> {
-    const response = await fetch(uploadUrl, {
+    const response = await youtubeFetch(uploadUrl, {
       method: "PUT",
       headers: { "content-length": "0", "content-range": `bytes */${totalBytes}` },
     });
@@ -135,7 +150,7 @@ export class YouTubePublishingAdapter {
     end: number;
     totalBytes: number;
   }): Promise<YouTubeChunkResult> {
-    const source = await fetch(input.sourceUrl, {
+    const source = await youtubeFetch(input.sourceUrl, {
       headers: { range: `bytes=${input.start}-${input.end}` },
     });
     if (!source.ok && source.status !== 206) {
@@ -146,7 +161,7 @@ export class YouTubePublishingAdapter {
       );
     }
     const bytes = await source.arrayBuffer();
-    const response = await fetch(input.uploadUrl, {
+    const response = await youtubeFetch(input.uploadUrl, {
       method: "PUT",
       headers: {
         "content-type": input.mimeType,
@@ -178,7 +193,7 @@ export class YouTubePublishingAdapter {
   }
 
   async getProcessingStatus(videoId: string, accessToken: string) {
-    const response = await fetch(
+    const response = await youtubeFetch(
       `${this.apiBase}/videos?part=processingDetails,status&id=${encodeURIComponent(videoId)}`,
       { headers: { authorization: `Bearer ${accessToken}` } },
     );
@@ -202,10 +217,10 @@ export class YouTubePublishingAdapter {
   }
 
   async uploadThumbnail(videoId: string, accessToken: string, sourceUrl: string, mimeType: string) {
-    const source = await fetch(sourceUrl);
+    const source = await youtubeFetch(sourceUrl);
     if (!source.ok)
       throw new YouTubeProviderError("UPLOAD_FAILED", "Could not read the thumbnail.", true);
-    const response = await fetch(
+    const response = await youtubeFetch(
       `${this.uploadBase}/thumbnails/set?videoId=${encodeURIComponent(videoId)}&uploadType=media`,
       {
         method: "POST",

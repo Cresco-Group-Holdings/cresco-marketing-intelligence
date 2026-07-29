@@ -33,6 +33,17 @@ export function normaliseXError(status: number, detail?: string) {
   return new XProviderError("PROVIDER_ERROR", detail ?? "X publishing failed.", false);
 }
 
+async function xFetch(input: RequestInfo | URL, init?: RequestInit) {
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: init?.signal ?? AbortSignal.timeout(60_000),
+    });
+  } catch {
+    throw new XProviderError("TRANSIENT", "X did not respond before the request timeout.", true);
+  }
+}
+
 export class XPublishingAdapter {
   constructor(
     private readonly apiBase = "https://api.x.com/2",
@@ -45,7 +56,7 @@ export class XPublishingAdapter {
     mediaIds?: string[];
     replyToId?: string;
   }) {
-    const response = await fetch(`${this.apiBase}/tweets`, {
+    const response = await xFetch(`${this.apiBase}/tweets`, {
       method: "POST",
       headers: { authorization: `Bearer ${input.accessToken}`, "content-type": "application/json" },
       body: JSON.stringify({
@@ -69,7 +80,7 @@ export class XPublishingAdapter {
     category: "tweet_image" | "tweet_video";
   }) {
     const mediaId = await this.initMedia(input);
-    const source = await fetch(input.sourceUrl);
+    const source = await xFetch(input.sourceUrl);
     if (!source.ok)
       throw new XProviderError("MEDIA_FAILED", "Could not read the signed media asset.", true);
     await this.appendSegment(
@@ -110,7 +121,7 @@ export class XPublishingAdapter {
     form.set("media_id", mediaId);
     form.set("segment_index", String(segmentIndex));
     form.set("media", new Blob([bytes], { type: mimeType }));
-    const append = await fetch(this.mediaBase, {
+    const append = await xFetch(this.mediaBase, {
       method: "POST",
       headers: { authorization: `Bearer ${accessToken}` },
       body: form,
@@ -131,7 +142,7 @@ export class XPublishingAdapter {
     const url = new URL(this.mediaBase);
     url.searchParams.set("command", "STATUS");
     url.searchParams.set("media_id", mediaId);
-    const response = await fetch(url, { headers: { authorization: `Bearer ${accessToken}` } });
+    const response = await xFetch(url, { headers: { authorization: `Bearer ${accessToken}` } });
     if (!response.ok) throw normaliseXError(response.status, await response.text());
     const data = (await response.json()) as {
       processing_info?: { state?: string; error?: { message?: string } };
@@ -147,7 +158,7 @@ export class XPublishingAdapter {
   }
 
   private async mediaCommand(accessToken: string, values: Record<string, string>) {
-    const response = await fetch(this.mediaBase, {
+    const response = await xFetch(this.mediaBase, {
       method: "POST",
       headers: {
         authorization: `Bearer ${accessToken}`,

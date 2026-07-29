@@ -455,9 +455,15 @@ export const youtubeXPublishingService = {
             if (upload.confirmedSegments.includes(segment)) continue;
             const start = segment * upload.chunkSize;
             const end = Math.min(start + upload.chunkSize - 1, upload.totalBytes - 1);
-            const source = await fetch(signed.url, {
-              headers: { range: `bytes=${start}-${end}` },
-            });
+            let source;
+            try {
+              source = await fetch(signed.url, {
+                headers: { range: `bytes=${start}-${end}` },
+                signal: AbortSignal.timeout(60_000),
+              });
+            } catch {
+              throw new XProviderError("TRANSIENT", "The signed X media source timed out.", true);
+            }
             if (!source.ok && source.status !== 206) {
               throw new XProviderError(
                 "MEDIA_FAILED",
