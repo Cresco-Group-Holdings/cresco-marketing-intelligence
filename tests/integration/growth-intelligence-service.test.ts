@@ -4,15 +4,22 @@ const prisma = vi.hoisted(() => ({
   growthInsight: {
     create: vi.fn(),
     findMany: vi.fn(),
-    findFirst: vi.fn(),
     updateMany: vi.fn(),
     groupBy: vi.fn(),
   },
-  growthRecommendation: { create: vi.fn(), count: vi.fn(), findFirst: vi.fn() },
+  growthRecommendation: { create: vi.fn(), count: vi.fn(), updateMany: vi.fn() },
+  growthAnalysisRun: {
+    findUnique: vi.fn(),
+    upsert: vi.fn(),
+    update: vi.fn(),
+    updateMany: vi.fn(),
+  },
   performanceBenchmark: { deleteMany: vi.fn(), createMany: vi.fn(), findMany: vi.fn() },
   contentPattern: { deleteMany: vi.fn(), createMany: vi.fn(), findMany: vi.fn() },
   contentProvenance: { findMany: vi.fn() },
   contentVariant: { findMany: vi.fn() },
+  contentItem: { findMany: vi.fn() },
+  brandOffer: { findMany: vi.fn() },
   growthExperiment: { count: vi.fn() },
   $transaction: vi.fn((fn: (tx: typeof prisma) => unknown) => fn(prisma)),
 }));
@@ -32,7 +39,15 @@ vi.mock("@/server/services/social-analytics-query-service", () => ({
 
 import { growthIntelligenceService } from "@/server/services/growth-intelligence-service";
 
-const context = { organisationId: "org-1", userProfileId: "user-1" } as never;
+const context = {
+  organisationId: "org-1",
+  userProfileId: "user-1",
+} as never;
+
+const filters = {
+  from: new Date("2026-07-01T00:00:00Z"),
+  to: new Date("2026-07-31T23:59:59Z"),
+};
 
 describe("growthIntelligenceService", () => {
   beforeEach(() => {
@@ -44,13 +59,18 @@ describe("growthIntelligenceService", () => {
     });
     socialAnalyticsQueryService.resolveTimezone.mockResolvedValue({
       timezone: "UTC",
-      from: new Date("2026-07-01"),
-      to: new Date("2026-07-31"),
+      from: filters.from,
+      to: filters.to,
     });
     socialAnalyticsQueryService.posts.mockResolvedValue([]);
     socialAnalyticsQueryService.accounts.mockResolvedValue([]);
     prisma.contentProvenance.findMany.mockResolvedValue([]);
     prisma.contentVariant.findMany.mockResolvedValue([]);
+    prisma.contentItem.findMany.mockResolvedValue([]);
+    prisma.brandOffer.findMany.mockResolvedValue([]);
+    prisma.growthAnalysisRun.findUnique.mockResolvedValue(null);
+    prisma.growthAnalysisRun.upsert.mockResolvedValue({ id: "run-1" });
+    prisma.growthAnalysisRun.update.mockResolvedValue({ id: "run-1", status: "COMPLETED" });
     prisma.growthInsight.create.mockImplementation(async ({ data }) => ({
       id: `insight-${data.insightType}`,
       ...data,
@@ -66,20 +86,22 @@ describe("growthIntelligenceService", () => {
     await growthIntelligenceService.getSummary("brand-1", "org-1", context);
     expect(prisma.growthInsight.groupBy).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ organisationId: "org-1", brandId: "brand-1" }),
+        where: expect.objectContaining({
+          organisationId: "org-1",
+          brandId: "brand-1",
+        }),
       }),
     );
   });
 
-  it("generates one insight per type even with no data", async () => {
-    const result = await growthIntelligenceService.analyze(
-      "brand-1",
-      "org-1",
-      { from: new Date("2026-07-01"), to: new Date("2026-07-31") },
-      context,
+  it("supersedes prior active records inside the analysis transaction", async () => {
+    await growthIntelligenceService.analyze("brand-1", "org-1", filters, context, { force: true });
+    expect(prisma.growthInsight.updateMany).toHaveBeenCalled();
+    expect(prisma.growthRecommendation.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { status: "SUPERSEDED" },
+      }),
     );
-    expect(result.insightCount).toBe(12);
-    expect(result.sufficientInsights).toBe(0);
     expect(prisma.growthInsight.create).toHaveBeenCalledTimes(12);
   });
 });

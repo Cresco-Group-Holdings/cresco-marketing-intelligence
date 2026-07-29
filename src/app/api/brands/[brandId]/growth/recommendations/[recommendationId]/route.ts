@@ -1,11 +1,7 @@
 import { NextRequest } from "next/server";
 import { apiSuccess, parseBody } from "@/lib/api/handler";
 import { AppError } from "@/lib/errors";
-import {
-  requireOrganisationId,
-  withGrowthGenerate,
-  withGrowthRead,
-} from "@/lib/api/growth-handler";
+import { withGrowthGenerate, withGrowthRead } from "@/lib/api/growth-handler";
 import {
   growthDraftSchema,
   growthFeedbackSchema,
@@ -16,11 +12,10 @@ type Params = { params: Promise<{ brandId: string; recommendationId: string }> }
 
 export async function GET(request: NextRequest, { params }: Params) {
   const { brandId, recommendationId } = await params;
-  const organisationId = requireOrganisationId(request);
-  return withGrowthRead(request, organisationId, async ({ requestId, tenant }) => {
+  return withGrowthRead(request, async ({ requestId, tenant }) => {
     const recommendation = await growthRecommendationService.getById(
       brandId,
-      organisationId,
+      tenant!.organisationId,
       recommendationId,
       tenant!,
     );
@@ -31,15 +26,14 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function POST(request: NextRequest, { params }: Params) {
   const { brandId, recommendationId } = await params;
-  const organisationId = requireOrganisationId(request);
   const action = request.nextUrl.searchParams.get("action");
 
   if (action === "explain") {
-    return withGrowthGenerate(request, organisationId, async ({ requestId, tenant }) =>
+    return withGrowthGenerate(request, async ({ requestId, tenant }) =>
       apiSuccess(
         await growthRecommendationService.explainWithAi(
           brandId,
-          organisationId,
+          tenant!.organisationId,
           recommendationId,
           tenant!,
           requestId,
@@ -52,11 +46,11 @@ export async function POST(request: NextRequest, { params }: Params) {
   if (action === "draft") {
     const body = await request.json();
     const input = parseBody(growthDraftSchema, body);
-    return withGrowthGenerate(request, organisationId, async ({ requestId, tenant }) =>
+    return withGrowthGenerate(request, async ({ requestId, tenant }) =>
       apiSuccess(
         await growthRecommendationService.createDraft(
           brandId,
-          organisationId,
+          tenant!.organisationId,
           recommendationId,
           input,
           tenant!,
@@ -69,11 +63,11 @@ export async function POST(request: NextRequest, { params }: Params) {
 
   const body = await request.json();
   const input = parseBody(growthFeedbackSchema, body);
-  return withGrowthRead(request, organisationId, async ({ requestId, tenant }) =>
+  return withGrowthRead(request, async ({ requestId, tenant }) =>
     apiSuccess(
       await growthRecommendationService.recordFeedback(
         brandId,
-        organisationId,
+        tenant!.organisationId,
         recommendationId,
         input,
         tenant!,

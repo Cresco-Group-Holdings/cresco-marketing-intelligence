@@ -9,6 +9,7 @@ export const growthFeedbackSchema = z.object({
   reason: z.string().max(2000).optional(),
   outcomeNotes: z.string().max(4000).optional(),
   measuredOutcome: z.record(z.string(), z.unknown()).optional(),
+  linkedExperimentId: z.string().optional(),
 });
 
 export const growthDraftSchema = z.object({

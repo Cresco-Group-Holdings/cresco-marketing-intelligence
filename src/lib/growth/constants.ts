@@ -55,6 +55,8 @@ export const PATTERN_DIMENSIONS = [
   "platform",
   "audience",
   "offer",
+  "campaign",
+  "owner",
 ] as const;
 
 export type PatternDimension = (typeof PATTERN_DIMENSIONS)[number];

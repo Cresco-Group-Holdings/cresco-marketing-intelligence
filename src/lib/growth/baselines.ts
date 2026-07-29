@@ -13,6 +13,12 @@ export type PostSnapshot = {
     campaignName?: string | null;
     primaryCTA?: string | null;
     targetAudienceId?: string | null;
+    ownerUserId?: string | null;
+    topic?: string | null;
+    topicSource?: "provenance" | "title" | "primaryMessage" | "campaign" | "pillar" | null;
+    offerId?: string | null;
+    offerName?: string | null;
+    offerSource?: "provenance" | "campaign" | null;
     hook?: string | null;
     captionLength?: number | null;
     durationSeconds?: number | null;

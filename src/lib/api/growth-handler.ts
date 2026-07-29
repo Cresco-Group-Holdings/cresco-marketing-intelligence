@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { withApiHandler, parseBody } from "@/lib/api/handler";
+import { createRequestId, handleApiError } from "@/lib/api/response";
 import { AppError } from "@/lib/errors";
 import { PERMISSIONS } from "@/lib/tenancy/permissions";
 import { growthAnalyzeSchema } from "@/lib/validation/growth";
@@ -12,25 +13,32 @@ export function requireOrganisationId(request: NextRequest) {
   return id;
 }
 
+async function withGrowthPermission(
+  request: NextRequest,
+  permission: (typeof PERMISSIONS)[keyof typeof PERMISSIONS],
+  handler: Parameters<typeof withApiHandler>[1],
+) {
+  const requestId = createRequestId();
+  try {
+    const organisationId = requireOrganisationId(request);
+    return withApiHandler(request, handler, {
+      organisationId,
+      permission,
+    });
+  } catch (error) {
+    return handleApiError(error, requestId);
+  }
+}
+
 export const withGrowthRead = (
   request: NextRequest,
-  organisationId: string,
   handler: Parameters<typeof withApiHandler>[1],
-) =>
-  withApiHandler(request, handler, {
-    organisationId,
-    permission: PERMISSIONS["growth.read"],
-  });
+) => withGrowthPermission(request, PERMISSIONS["growth.read"], handler);
 
 export const withGrowthGenerate = (
   request: NextRequest,
-  organisationId: string,
   handler: Parameters<typeof withApiHandler>[1],
-) =>
-  withApiHandler(request, handler, {
-    organisationId,
-    permission: PERMISSIONS["growth.generate"],
-  });
+) => withGrowthPermission(request, PERMISSIONS["growth.generate"], handler);
 
 function rawFilters(request: NextRequest) {
   const read = (key: string) => request.nextUrl.searchParams.get(key) ?? undefined;

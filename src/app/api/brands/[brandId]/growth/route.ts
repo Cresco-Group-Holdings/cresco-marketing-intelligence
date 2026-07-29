@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { apiSuccess } from "@/lib/api/handler";
 import {
   growthFilters,
-  requireOrganisationId,
   withGrowthGenerate,
   withGrowthRead,
 } from "@/lib/api/growth-handler";
@@ -12,10 +11,9 @@ type Params = { params: Promise<{ brandId: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
   const { brandId } = await params;
-  const organisationId = requireOrganisationId(request);
-  return withGrowthRead(request, organisationId, async ({ requestId, tenant }) =>
+  return withGrowthRead(request, async ({ requestId, tenant }) =>
     apiSuccess(
-      await growthIntelligenceService.getSummary(brandId, organisationId, tenant!),
+      await growthIntelligenceService.getSummary(brandId, tenant!.organisationId, tenant!),
       { requestId },
     ),
   );
@@ -23,11 +21,13 @@ export async function GET(request: NextRequest, { params }: Params) {
 
 export async function POST(request: NextRequest, { params }: Params) {
   const { brandId } = await params;
-  const organisationId = requireOrganisationId(request);
   const filters = growthFilters(request);
-  return withGrowthGenerate(request, organisationId, async ({ requestId, tenant }) =>
+  const force = request.nextUrl.searchParams.get("force") === "true";
+  return withGrowthGenerate(request, async ({ requestId, tenant }) =>
     apiSuccess(
-      await growthIntelligenceService.analyze(brandId, organisationId, filters, tenant!),
+      await growthIntelligenceService.analyze(brandId, tenant!.organisationId, filters, tenant!, {
+        force,
+      }),
       { requestId },
     ),
   );

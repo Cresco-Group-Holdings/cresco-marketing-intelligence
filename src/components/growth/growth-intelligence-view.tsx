@@ -53,7 +53,9 @@ type Recommendation = {
   priority: number;
   status: string;
   insightType?: string | null;
-  aiGenerated: boolean;
+  explanation?: string | null;
+  explanationSource?: string | null;
+  latestFeedbackStatus?: string | null;
 };
 
 type Experiment = {
@@ -76,6 +78,11 @@ export function GrowthIntelligenceView({ mode }: { mode: Mode }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [explainState, setExplainState] = useState<Record<string, "loading" | "success" | "fallback" | "error">>({});
+  const [calendarTarget, setCalendarTarget] = useState<string | null>(null);
+  const [socialAccountId, setSocialAccountId] = useState("");
+  const [scheduledFor, setScheduledFor] = useState("");
+  const [timezone, setTimezone] = useState("UTC");
 
   const query = useMemo(() => {
     const to = new Date();
@@ -160,20 +167,84 @@ export function GrowthIntelligenceView({ mode }: { mode: Mode }) {
     }
   };
 
+  const explainRecommendation = async (recommendationId: string) => {
+    if (!brandId || !organisationId) return;
+    setExplainState((current) => ({ ...current, [recommendationId]: "loading" }));
+    setError(null);
+    try {
+      const result = await apiFetch<{ explanationSource?: string }>(
+        `/api/brands/${brandId}/growth/recommendations/${recommendationId}?organisationId=${organisationId}&action=explain`,
+        { method: "POST" },
+      );
+      setExplainState((current) => ({
+        ...current,
+        [recommendationId]: result.explanationSource === "DETERMINISTIC_FALLBACK" ? "fallback" : "success",
+      }));
+      setMessage(
+        result.explanationSource === "DETERMINISTIC_FALLBACK"
+          ? "AI provider unavailable. Showing deterministic explanation."
+          : "AI explanation generated from validated evidence.",
+      );
+      await load();
+    } catch (err) {
+      setExplainState((current) => ({ ...current, [recommendationId]: "error" }));
+      setError(err instanceof Error ? err.message : "Failed to generate AI explanation.");
+    }
+  };
+
+  const explainInsight = async (insightId: string) => {
+    if (!brandId || !organisationId) return;
+    setExplainState((current) => ({ ...current, [insightId]: "loading" }));
+    setError(null);
+    try {
+      const result = await apiFetch<{ explanation: { explanationSource?: string } }>(
+        `/api/brands/${brandId}/growth/insights/${insightId}?organisationId=${organisationId}&action=explain`,
+        { method: "POST" },
+      );
+      setExplainState((current) => ({
+        ...current,
+        [insightId]:
+          result.explanation.explanationSource === "DETERMINISTIC_FALLBACK" ? "fallback" : "success",
+      }));
+      setMessage(
+        result.explanation.explanationSource === "DETERMINISTIC_FALLBACK"
+          ? "AI provider unavailable. Showing deterministic explanation."
+          : "AI explanation generated from validated evidence.",
+      );
+      await load();
+    } catch (err) {
+      setExplainState((current) => ({ ...current, [insightId]: "error" }));
+      setError(err instanceof Error ? err.message : "Failed to generate AI explanation.");
+    }
+  };
+
   const createDraft = async (recommendationId: string, draftType: string) => {
     if (!brandId || !organisationId) return;
     try {
-      const result = await apiFetch<{ contentItemId?: string; experimentId?: string }>(
+      const body: Record<string, string> = { draftType };
+      if (draftType === "CALENDAR_PLACEHOLDER") {
+        if (!socialAccountId || !scheduledFor || !timezone) {
+          setError("Calendar placeholder requires account, schedule time, and timezone.");
+          return;
+        }
+        body.socialAccountId = socialAccountId;
+        body.scheduledFor = new Date(scheduledFor).toISOString();
+        body.timezone = timezone;
+      }
+      const result = await apiFetch<{ contentItemId?: string; experimentId?: string; scheduleId?: string }>(
         `/api/brands/${brandId}/growth/recommendations/${recommendationId}?organisationId=${organisationId}&action=draft`,
         {
           method: "POST",
-          body: JSON.stringify({ draftType }),
+          body: JSON.stringify(body),
         },
       );
+      setCalendarTarget(null);
       setMessage(
         draftType === "EXPERIMENT"
           ? `Experiment created: ${result.experimentId}`
-          : `Draft created: ${result.contentItemId}`,
+          : draftType === "CALENDAR_PLACEHOLDER"
+            ? `Calendar placeholder created: ${result.scheduleId}`
+            : `Draft created: ${result.contentItemId}`,
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create draft.");
@@ -253,6 +324,26 @@ export function GrowthIntelligenceView({ mode }: { mode: Mode }) {
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-muted-foreground">{insight.summary}</p>
+                  {insight.dataStatus === "SUFFICIENT" ? (
+                    <div className="mt-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={explainState[insight.id] === "loading"}
+                        onClick={() => void explainInsight(insight.id)}
+                      >
+                        {explainState[insight.id] === "loading"
+                          ? "Explaining…"
+                          : explainState[insight.id] === "fallback"
+                            ? "Deterministic explanation shown"
+                            : explainState[insight.id] === "success"
+                              ? "Explanation ready"
+                              : explainState[insight.id] === "error"
+                                ? "Retry explain with AI"
+                                : "Explain with AI"}
+                      </Button>
+                    </div>
+                  ) : null}
                 </div>
               ))
             )}
@@ -274,7 +365,26 @@ export function GrowthIntelligenceView({ mode }: { mode: Mode }) {
                   {rec.recommendedAction ? (
                     <p className="mt-2 text-sm"><strong>Action:</strong> {rec.recommendedAction}</p>
                   ) : null}
+                  {rec.explanation ? (
+                    <p className="mt-2 text-sm text-muted-foreground">{rec.explanation}</p>
+                  ) : null}
                   <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={explainState[rec.id] === "loading"}
+                      onClick={() => void explainRecommendation(rec.id)}
+                    >
+                      {explainState[rec.id] === "loading"
+                        ? "Explaining…"
+                        : explainState[rec.id] === "fallback"
+                          ? "Deterministic explanation shown"
+                          : explainState[rec.id] === "success"
+                            ? "Explanation ready"
+                            : explainState[rec.id] === "error"
+                              ? "Retry explain with AI"
+                              : "Explain with AI"}
+                    </Button>
                     <Button size="sm" variant="outline" onClick={() => void createDraft(rec.id, "CONTENT_IDEA")}>
                       Create idea
                     </Button>
@@ -284,12 +394,53 @@ export function GrowthIntelligenceView({ mode }: { mode: Mode }) {
                     <Button size="sm" variant="outline" onClick={() => void createDraft(rec.id, "EXPERIMENT")}>
                       Experiment
                     </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setCalendarTarget(calendarTarget === rec.id ? null : rec.id)}
+                    >
+                      Calendar placeholder
+                    </Button>
                     {feedbackOptions.map((status) => (
                       <Button key={status} size="sm" variant="ghost" onClick={() => void sendFeedback(rec.id, status)}>
                         {status}
                       </Button>
                     ))}
                   </div>
+                  {calendarTarget === rec.id ? (
+                    <div className="mt-3 grid gap-2 rounded border bg-muted/30 p-3 md:grid-cols-3">
+                      <label className="text-sm">
+                        Social account ID
+                        <input
+                          className="mt-1 w-full rounded border px-2 py-1"
+                          value={socialAccountId}
+                          onChange={(event) => setSocialAccountId(event.target.value)}
+                        />
+                      </label>
+                      <label className="text-sm">
+                        Scheduled for
+                        <input
+                          className="mt-1 w-full rounded border px-2 py-1"
+                          type="datetime-local"
+                          value={scheduledFor}
+                          onChange={(event) => setScheduledFor(event.target.value)}
+                        />
+                      </label>
+                      <label className="text-sm">
+                        Timezone
+                        <input
+                          className="mt-1 w-full rounded border px-2 py-1"
+                          value={timezone}
+                          onChange={(event) => setTimezone(event.target.value)}
+                        />
+                      </label>
+                      <div className="md:col-span-3">
+                        <Button size="sm" onClick={() => void createDraft(rec.id, "CALENDAR_PLACEHOLDER")}>
+                          Create calendar placeholder
+                        </Button>
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               ))
             )}

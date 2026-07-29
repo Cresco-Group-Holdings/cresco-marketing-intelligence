@@ -14,59 +14,72 @@ export type PatternResult = {
   sampleSize: number;
   supportingContentIds: string[];
   correlationNote: string;
+  metadata?: Record<string, unknown>;
 };
 
 function extractDimensionValue(
   post: PostSnapshot,
   dimension: PatternDimension,
-): string | null {
+): { value: string | null; source?: string } {
   const attr = post.attribution;
   switch (dimension) {
     case "contentPillar":
-      return attr?.contentPillar ?? null;
+      return { value: attr?.contentPillar ?? null };
     case "hookType":
-      return attr?.hook ? attr.hook.slice(0, 80) : null;
+      return { value: attr?.hook ? attr.hook.slice(0, 80) : null };
     case "topic":
-      return attr?.contentPillar ?? attr?.campaignName ?? null;
+      if (attr?.topic) {
+        return { value: attr.topic, source: attr.topicSource ?? "provenance" };
+      }
+      return { value: null };
     case "format":
-      return attr?.contentType ?? null;
+      return { value: attr?.contentType ?? null };
     case "duration": {
       const seconds = attr?.durationSeconds;
-      if (seconds === null || seconds === undefined) return null;
-      if (seconds < 30) return "short";
-      if (seconds < 90) return "medium";
-      return "long";
+      if (seconds === null || seconds === undefined) return { value: null };
+      if (seconds < 30) return { value: "short" };
+      if (seconds < 90) return { value: "medium" };
+      return { value: "long" };
     }
     case "captionLength": {
       const len = attr?.captionLength;
-      if (len === null || len === undefined) return null;
-      if (len < 100) return "short";
-      if (len < 300) return "medium";
-      return "long";
+      if (len === null || len === undefined) return { value: null };
+      if (len < 100) return { value: "short" };
+      if (len < 300) return { value: "medium" };
+      return { value: "long" };
     }
     case "cta":
-      return attr?.primaryCTA ?? null;
+      return { value: attr?.primaryCTA ?? null };
     case "hashtagGroup": {
       const count = attr?.hashtags?.length ?? 0;
-      if (count === 0) return "none";
-      if (count <= 3) return "few";
-      if (count <= 10) return "moderate";
-      return "many";
+      if (count === 0) return { value: "none" };
+      if (count <= 3) return { value: "few" };
+      if (count <= 10) return { value: "moderate" };
+      return { value: "many" };
     }
     case "day":
-      return post.publishedAt
-        ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][post.publishedAt.getUTCDay()]!
-        : null;
+      return {
+        value: post.publishedAt
+          ? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][post.publishedAt.getUTCDay()]!
+          : null,
+      };
     case "hour":
-      return post.publishedAt ? String(post.publishedAt.getUTCHours()) : null;
+      return { value: post.publishedAt ? String(post.publishedAt.getUTCHours()) : null };
     case "platform":
-      return post.provider;
+      return { value: post.provider };
     case "audience":
-      return attr?.targetAudienceId ?? null;
+      return { value: attr?.targetAudienceId ?? null };
     case "offer":
-      return attr?.campaignName ?? null;
+      if (attr?.offerName) {
+        return { value: attr.offerName, source: attr.offerSource ?? "provenance" };
+      }
+      return { value: null };
+    case "campaign":
+      return { value: attr?.campaignName ?? null };
+    case "owner":
+      return { value: attr?.ownerUserId ?? null };
     default:
-      return null;
+      return { value: null };
   }
 }
 
@@ -75,6 +88,7 @@ export function analyzeContentPatterns(posts: PostSnapshot[]): PatternResult[] {
   const dimensions: PatternDimension[] = [
     "contentPillar",
     "hookType",
+    "topic",
     "format",
     "duration",
     "captionLength",
@@ -85,21 +99,23 @@ export function analyzeContentPatterns(posts: PostSnapshot[]): PatternResult[] {
     "platform",
     "audience",
     "offer",
+    "campaign",
+    "owner",
   ];
 
   for (const dimension of dimensions) {
-    const buckets = new Map<string, PostSnapshot[]>();
+    const buckets = new Map<string, { posts: PostSnapshot[]; source?: string }>();
     for (const post of posts) {
-      const value = extractDimensionValue(post, dimension);
-      if (!value) continue;
-      const bucket = buckets.get(value) ?? [];
-      bucket.push(post);
-      buckets.set(value, bucket);
+      const extracted = extractDimensionValue(post, dimension);
+      if (!extracted.value) continue;
+      const bucket = buckets.get(extracted.value) ?? { posts: [], source: extracted.source };
+      bucket.posts.push(post);
+      buckets.set(extracted.value, bucket);
     }
 
     for (const [dimensionValue, bucket] of buckets) {
-      if (bucket.length < MIN_SEGMENT_POSTS) continue;
-      const values = collectMetricValues(bucket, "engagementRate");
+      if (bucket.posts.length < MIN_SEGMENT_POSTS) continue;
+      const values = collectMetricValues(bucket.posts, "engagementRate");
       const med = median(values);
       if (med === null) continue;
 
@@ -108,13 +124,14 @@ export function analyzeContentPatterns(posts: PostSnapshot[]): PatternResult[] {
         dimensionValue,
         metricKey: "engagementRate",
         metricValue: med,
-        sampleSize: bucket.length,
+        sampleSize: bucket.posts.length,
         supportingContentIds: [
           ...new Set(
-            bucket.map((p) => p.contentItemId).filter((id): id is string => Boolean(id)),
+            bucket.posts.map((p) => p.contentItemId).filter((id): id is string => Boolean(id)),
           ),
         ],
         correlationNote: CORRELATION_DISCLAIMER,
+        metadata: bucket.source ? { source: bucket.source } : undefined,
       });
     }
   }

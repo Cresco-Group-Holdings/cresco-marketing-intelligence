@@ -4,40 +4,18 @@ import type {
   RecommendationFeedbackStatus,
 } from "@prisma/client";
 import { Prisma } from "@prisma/client";
-import { brandContextBuilder } from "@/lib/ai/brand-context-builder";
-import type { GrowthInsightExplanation } from "@/lib/ai/growth-output-schemas";
 import { INSUFFICIENT_DATA_MESSAGE } from "@/lib/growth/constants";
+import {
+  assertFeedbackTransition,
+  isDuplicateFeedback,
+  requiresMeasuredOutcome,
+} from "@/lib/growth/recommendation-lifecycle";
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import type { TenantContext } from "@/lib/tenancy/context";
-import { aiRequestService } from "@/server/services/ai-request-service";
-import { brandKnowledgeService } from "@/server/services/brand-knowledge-service";
 import { contentService } from "@/server/services/content-service";
+import { growthExplanationService } from "@/server/services/growth-explanation-service";
 import { brandService } from "@/server/services/workspace-service";
-
-function validateAiExplanation(
-  explanation: GrowthInsightExplanation,
-  allowedEvidenceKeys: Set<string>,
-): void {
-  for (const item of explanation.evidence) {
-    if (!allowedEvidenceKeys.has(item.evidenceKey)) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        `AI cited unsupported evidence key: ${item.evidenceKey}`,
-      );
-    }
-  }
-
-  const statPattern = /\b\d+(\.\d+)?%|\b\d{2,}\b/g;
-  const combined = `${explanation.explanation} ${explanation.finding}`;
-  const matches = combined.match(statPattern);
-  if (matches && matches.length > 3) {
-    throw new AppError(
-      "VALIDATION_ERROR",
-      "AI explanation contains unsupported statistics. Only reference supplied evidence.",
-    );
-  }
-}
 
 export const growthRecommendationService = {
   async list(
@@ -88,28 +66,65 @@ export const growthRecommendationService = {
       reason?: string;
       outcomeNotes?: string;
       measuredOutcome?: Record<string, unknown>;
+      linkedExperimentId?: string;
     },
     context: TenantContext,
   ) {
-    const brand = await brandService.getById(brandId, organisationId, context);
+    await brandService.getById(brandId, organisationId, context);
     const recommendation = await prisma.growthRecommendation.findFirst({
       where: { id: recommendationId, organisationId, brandId },
     });
     if (!recommendation) {
       throw new AppError("NOT_FOUND", "Recommendation not found.");
     }
+    if (recommendation.status !== "ACTIVE") {
+      throw new AppError("VALIDATION_ERROR", "Feedback can only be recorded on active recommendations.");
+    }
 
-    return prisma.recommendationOutcome.create({
-      data: {
-        organisationId,
-        brandId,
-        growthRecommendationId: recommendationId,
-        userProfileId: context.userProfileId,
-        feedbackStatus: input.feedbackStatus,
-        reason: input.reason,
-        outcomeNotes: input.outcomeNotes,
-        measuredOutcome: input.measuredOutcome as Prisma.InputJsonValue,
-      },
+    if (isDuplicateFeedback(recommendation.latestFeedbackStatus, input.feedbackStatus)) {
+      throw new AppError("VALIDATION_ERROR", "Duplicate feedback status is not allowed.");
+    }
+    assertFeedbackTransition(recommendation.latestFeedbackStatus, input.feedbackStatus);
+
+    if (requiresMeasuredOutcome(input.feedbackStatus) && !input.measuredOutcome) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Measured outcome is required for SUCCESSFUL, UNSUCCESSFUL, and INCONCLUSIVE feedback.",
+      );
+    }
+
+    const linkedExperimentId =
+      input.linkedExperimentId ?? recommendation.draftExperimentId ?? undefined;
+
+    return prisma.$transaction(async (tx) => {
+      await tx.recommendationOutcome.updateMany({
+        where: { growthRecommendationId: recommendationId, isEffective: true },
+        data: { isEffective: false },
+      });
+
+      const outcome = await tx.recommendationOutcome.create({
+        data: {
+          organisationId,
+          brandId,
+          growthRecommendationId: recommendationId,
+          userProfileId: context.userProfileId,
+          feedbackStatus: input.feedbackStatus,
+          reason: input.reason,
+          outcomeNotes: input.outcomeNotes,
+          measuredOutcome: input.measuredOutcome as Prisma.InputJsonValue,
+          linkedExperimentId,
+          isEffective: true,
+        },
+      });
+
+      return tx.growthRecommendation.update({
+        where: { id: recommendationId },
+        data: {
+          latestFeedbackStatus: input.feedbackStatus,
+          latestOutcomeId: outcome.id,
+        },
+        include: { outcomes: { orderBy: { createdAt: "desc" } } },
+      });
     });
   },
 
@@ -130,60 +145,92 @@ export const growthRecommendationService = {
     if (!recommendation) {
       throw new AppError("NOT_FOUND", "Recommendation not found.");
     }
-    if (recommendation.growthInsight?.dataStatus === "INSUFFICIENT") {
-      throw new AppError("VALIDATION_ERROR", INSUFFICIENT_DATA_MESSAGE);
-    }
 
-    const snapshot = await brandKnowledgeService.getSnapshot(brandId, organisationId, context);
-    const brandContext = brandContextBuilder.build(snapshot, {});
-
-    const evidencePayload = recommendation.growthInsight?.evidence ?? [];
-    const allowedKeys = new Set(evidencePayload.map((e) => e.evidenceKey));
-
-    const userInput = [
-      "Explain the following deterministic growth insight. Do NOT invent statistics.",
-      "Only reference the supplied metrics and evidence keys.",
-      "",
-      `Finding: ${recommendation.finding ?? recommendation.description}`,
-      `Insight type: ${recommendation.insightType ?? "GENERAL"}`,
-      `Source metrics: ${JSON.stringify(recommendation.growthInsight?.sourceMetrics ?? {})}`,
-      `Evidence: ${JSON.stringify(evidencePayload.map((e) => ({ key: e.evidenceKey, label: e.evidenceLabel, value: e.evidenceValue })))}`,
-      `Recommended action constraint: ${recommendation.recommendedAction ?? "Suggest a practical next step."}`,
-    ].join("\n");
-
-    const aiResult = await aiRequestService.executeStructured(
+    const explanation = await growthExplanationService.explain(
       {
+        brandId,
         organisationId,
         projectId: brand.projectId,
-        brandId,
-        userProfileId: context.userProfileId,
-        purpose: "ANALYTICS_INSIGHT",
-        templateKey: "growth.insight.explain",
-        schemaKey: "growth.insight.explain",
-        provider: "MOCK",
-        userInput,
-        brandContext,
-        requestId,
+        recommendation,
       },
       context,
+      requestId,
     );
-
-    validateAiExplanation(aiResult.output as GrowthInsightExplanation, allowedKeys);
 
     return prisma.growthRecommendation.update({
       where: { id: recommendationId },
       data: {
-        finding: aiResult.output.finding,
-        explanation: aiResult.output.explanation,
-        recommendedAction: aiResult.output.recommendedAction,
-        expectedHypothesis: aiResult.output.expectedHypothesis,
-        measurementPlan: aiResult.output.measurementPlan,
-        evidenceSummary: aiResult.output.evidence as Prisma.InputJsonValue,
-        aiGenerated: true,
-        aiRequestId: aiResult.requestId,
+        finding: explanation.finding,
+        explanation: explanation.explanation,
+        recommendedAction: explanation.recommendedAction,
+        expectedHypothesis: explanation.expectedHypothesis,
+        measurementPlan: explanation.measurementPlan,
+        evidenceSummary: explanation.evidence as Prisma.InputJsonValue,
+        aiGenerated: explanation.aiGenerated,
+        aiRequestId: explanation.aiRequestId,
+        explanationSource: explanation.explanationSource,
       },
       include: { growthInsight: { include: { evidence: true } }, outcomes: true },
     });
+  },
+
+  async explainInsightWithAi(
+    brandId: string,
+    organisationId: string,
+    insightId: string,
+    context: TenantContext,
+    requestId?: string,
+  ) {
+    const brand = await brandService.getById(brandId, organisationId, context);
+    const insight = await prisma.growthInsight.findFirst({
+      where: { id: insightId, organisationId, brandId },
+      include: {
+        evidence: true,
+        recommendations: { where: { status: "ACTIVE" }, take: 1 },
+      },
+    });
+    if (!insight) throw new AppError("NOT_FOUND", "Insight not found.");
+    if (insight.dataStatus === "INSUFFICIENT") {
+      throw new AppError("VALIDATION_ERROR", INSUFFICIENT_DATA_MESSAGE);
+    }
+
+    const activeRecommendation = insight.recommendations[0];
+    if (activeRecommendation) {
+      return this.explainWithAi(
+        brandId,
+        organisationId,
+        activeRecommendation.id,
+        context,
+        requestId,
+      );
+    }
+
+    const synthetic = {
+      id: insight.id,
+      finding: insight.summary,
+      description: insight.summary,
+      recommendedAction: null,
+      measurementPlan: null,
+      expectedHypothesis: null,
+      insightType: insight.insightType,
+      growthInsight: insight,
+    };
+
+    const explanation = await growthExplanationService.explain(
+      {
+        brandId,
+        organisationId,
+        projectId: brand.projectId,
+        recommendation: synthetic,
+      },
+      context,
+      requestId,
+    );
+
+    return {
+      insightId: insight.id,
+      explanation,
+    };
   },
 
   async createDraft(

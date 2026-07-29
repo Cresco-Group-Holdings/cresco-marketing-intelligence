@@ -17,7 +17,7 @@ import {
   MIN_CHANNEL_POSTS,
   MIN_SEGMENT_POSTS,
 } from "@/lib/growth/constants";
-import { clickThroughRate, engagementRate, publishingConsistency } from "@/lib/social/derived-metrics";
+import { clickThroughRate, publishingConsistency } from "@/lib/social/derived-metrics";
 
 export type EvidenceRecord = {
   evidenceKey: string;

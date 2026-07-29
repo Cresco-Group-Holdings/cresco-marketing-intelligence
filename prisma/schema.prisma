@@ -344,6 +344,7 @@ model Organisation {
   insightEvidence          InsightEvidence[]
   recommendationOutcomes   RecommendationOutcome[]
   growthExperiments        GrowthExperiment[]
+  growthAnalysisRuns       GrowthAnalysisRun[]
 
   @@index([status])
   @@index([archivedAt])
@@ -429,6 +430,7 @@ model Project {
   contentPatterns          ContentPattern[]
   performanceBenchmarks    PerformanceBenchmark[]
   growthExperiments        GrowthExperiment[]
+  growthAnalysisRuns       GrowthAnalysisRun[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -506,6 +508,7 @@ model Brand {
   insightEvidence          InsightEvidence[]
   recommendationOutcomes   RecommendationOutcome[]
   growthExperiments        GrowthExperiment[]
+  growthAnalysisRuns       GrowthAnalysisRun[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2561,6 +2564,12 @@ enum GrowthExperimentStatus {
   CANCELLED
 }
 
+enum GrowthAnalysisRunStatus {
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
 enum RecommendationDraftType {
   CONTENT_IDEA
   STUDIO_BRIEF
@@ -2568,11 +2577,40 @@ enum RecommendationDraftType {
   CALENDAR_PLACEHOLDER
 }
 
+model GrowthAnalysisRun {
+  id                  String                  @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  analysisPeriodStart DateTime
+  analysisPeriodEnd   DateTime
+  idempotencyKey      String
+  status              GrowthAnalysisRunStatus @default(RUNNING)
+  startedAt           DateTime                @default(now())
+  completedAt         DateTime?
+  errorMessage        String?
+  postCount           Int                     @default(0)
+  insightCount        Int                     @default(0)
+  recommendationCount Int                     @default(0)
+
+  organisation    Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  insights        GrowthInsight[]
+  recommendations GrowthRecommendation[]
+
+  @@unique([brandId, idempotencyKey])
+  @@index([organisationId, brandId, status])
+  @@index([completedAt])
+}
+
 model GrowthInsight {
   id                     String                @id @default(cuid())
   organisationId         String
   projectId              String
   brandId                String
+  analysisRunId          String?
+  idempotencyKey         String
   insightType            GrowthInsightType
   title                  String
   summary                String
@@ -2594,11 +2632,14 @@ model GrowthInsight {
   organisation      Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project           Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand             Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  analysisRun       GrowthAnalysisRun?      @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
   evidence          InsightEvidence[]
   recommendations   GrowthRecommendation[]
 
   @@index([organisationId, brandId, generatedAt])
   @@index([brandId, insightType])
+  @@index([brandId, idempotencyKey])
+  @@index([analysisRunId])
   @@index([dataStatus])
   @@index([expiresAt])
 }
@@ -2677,40 +2718,50 @@ model ContentPattern {
 }
 
 model GrowthRecommendation {
-  id                 String                     @id @default(cuid())
-  organisationId     String
-  projectId          String
-  brandId            String
-  growthInsightId    String?
-  insightType        GrowthInsightType?
-  title              String
-  description        String
-  priority           Int                        @default(50)
-  status             GrowthRecommendationStatus @default(ACTIVE)
-  finding            String?
-  explanation        String?
-  recommendedAction  String?
-  evidenceSummary    Json                       @default("[]")
-  expectedHypothesis String?
-  measurementPlan    String?
-  aiGenerated        Boolean                    @default(false)
-  aiRequestId        String?
-  draftContentItemId String?
-  draftExperimentId  String?
-  expiresAt          DateTime?
-  createdAt          DateTime                   @default(now())
-  updatedAt          DateTime                   @updatedAt
+  id                     String                      @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  analysisRunId          String?
+  growthInsightId        String?
+  idempotencyKey         String?
+  insightType            GrowthInsightType?
+  analysisPeriodStart    DateTime?
+  analysisPeriodEnd      DateTime?
+  title                  String
+  description            String
+  priority               Int                         @default(50)
+  status                 GrowthRecommendationStatus  @default(ACTIVE)
+  finding                String?
+  explanation            String?
+  explanationSource      String?
+  recommendedAction      String?
+  evidenceSummary        Json                        @default("[]")
+  expectedHypothesis     String?
+  measurementPlan        String?
+  aiGenerated            Boolean                     @default(false)
+  aiRequestId            String?
+  draftContentItemId     String?
+  draftExperimentId      String?
+  latestFeedbackStatus   RecommendationFeedbackStatus?
+  latestOutcomeId        String?
+  expiresAt              DateTime?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
 
   organisation   Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand          Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  analysisRun    GrowthAnalysisRun?      @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
   growthInsight  GrowthInsight?          @relation(fields: [growthInsightId], references: [id], onDelete: SetNull)
   outcomes       RecommendationOutcome[]
   experiments    GrowthExperiment[]
 
   @@index([organisationId, brandId, status])
   @@index([brandId, createdAt])
+  @@index([brandId, idempotencyKey])
   @@index([growthInsightId])
+  @@index([analysisRunId])
 }
 
 model RecommendationOutcome {
@@ -2723,6 +2774,8 @@ model RecommendationOutcome {
   reason                 String?
   outcomeNotes           String?
   measuredOutcome        Json?
+  linkedExperimentId     String?
+  isEffective            Boolean                    @default(true)
   createdAt              DateTime                   @default(now())
 
   organisation         Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -2730,7 +2783,7 @@ model RecommendationOutcome {
   growthRecommendation GrowthRecommendation @relation(fields: [growthRecommendationId], references: [id], onDelete: Cascade)
   user                 UserProfile          @relation("RecommendationOutcomeUser", fields: [userProfileId], references: [id], onDelete: Restrict)
 
-  @@index([growthRecommendationId])
+  @@index([growthRecommendationId, isEffective])
   @@index([organisationId, brandId])
   @@index([feedbackStatus])
 }
