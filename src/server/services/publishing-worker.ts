@@ -3,6 +3,7 @@ import { AppError } from "@/lib/errors";
 import { instagramPublishingService } from "@/server/services/instagram-publishing-service";
 import { tikTokPublishingService } from "@/server/services/tiktok-publishing-service";
 import { linkedInFacebookPublishingService } from "@/server/services/linkedin-facebook-publishing-service";
+import { youtubeXPublishingService } from "@/server/services/youtube-x-publishing-service";
 
 /** Routes a durable publishing job to the adapter that owns its provider. */
 export async function processPublishingJob(jobId: string) {
@@ -21,6 +22,9 @@ export async function processPublishingJob(jobId: string) {
     case "LINKEDIN":
     case "FACEBOOK":
       return linkedInFacebookPublishingService.process(jobId);
+    case "YOUTUBE":
+    case "X":
+      return youtubeXPublishingService.process(jobId);
     default:
       throw new AppError("VALIDATION_ERROR", `Publishing is not implemented for ${provider}.`);
   }

@@ -4,6 +4,7 @@ const prismaMock = vi.hoisted(() => ({ publishingJob: { findUnique: vi.fn() } })
 const instagramMock = vi.hoisted(() => vi.fn());
 const tiktokMock = vi.hoisted(() => vi.fn());
 const linkedInFacebookMock = vi.hoisted(() => vi.fn());
+const youtubeXMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/database/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/server/services/instagram-publishing-service", () => ({
@@ -14,6 +15,9 @@ vi.mock("@/server/services/tiktok-publishing-service", () => ({
 }));
 vi.mock("@/server/services/linkedin-facebook-publishing-service", () => ({
   linkedInFacebookPublishingService: { process: linkedInFacebookMock },
+}));
+vi.mock("@/server/services/youtube-x-publishing-service", () => ({
+  youtubeXPublishingService: { process: youtubeXMock },
 }));
 
 import { processPublishingJob } from "@/server/services/publishing-worker";
@@ -55,9 +59,14 @@ describe("processPublishingJob", () => {
     expect(linkedInFacebookMock).toHaveBeenCalledWith("job-4");
   });
 
-  it("rejects providers without a publishing implementation", async () => {
+  it("routes YouTube and X jobs to their shared service", async () => {
     prismaMock.publishingJob.findUnique.mockResolvedValue(jobForProvider("YOUTUBE"));
-    await expect(processPublishingJob("job-5")).rejects.toThrow(/not implemented for YOUTUBE/);
+    await processPublishingJob("job-5");
+    expect(youtubeXMock).toHaveBeenCalledWith("job-5");
+
+    prismaMock.publishingJob.findUnique.mockResolvedValue(jobForProvider("X"));
+    await processPublishingJob("job-6");
+    expect(youtubeXMock).toHaveBeenCalledWith("job-6");
   });
 
   it("returns null for an unknown job", async () => {
