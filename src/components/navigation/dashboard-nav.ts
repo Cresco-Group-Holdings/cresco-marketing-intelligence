@@ -11,6 +11,7 @@ import {
   Palette,
   Settings,
   Share2,
+  Sprout,
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -76,6 +77,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/analytics",
     icon: BarChart3,
     description: "Performance and intelligence",
+  },
+  {
+    label: "Growth",
+    href: "/growth",
+    icon: Sprout,
+    description: "Evidence-backed content recommendations",
   },
   {
     label: "Connectors",

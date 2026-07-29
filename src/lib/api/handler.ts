@@ -97,12 +97,12 @@ export async function withApiHandler(
         throw new AppError("FORBIDDEN", "You do not have permission for this action.");
       }
 
-      return runWithTenantContext(tenant, () =>
+      return await runWithTenantContext(tenant, () =>
         handler({ request, requestId, user, tenant }),
       );
     }
 
-    return handler({ request, requestId, user, tenant });
+    return await handler({ request, requestId, user, tenant });
   } catch (error) {
     return handleApiError(error, requestId);
   }

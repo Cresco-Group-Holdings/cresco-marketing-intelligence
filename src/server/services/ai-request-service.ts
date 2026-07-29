@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { CONTENT_OUTPUT_SCHEMAS } from "@/lib/ai/content-output-schemas";
+import { GROWTH_OUTPUT_SCHEMAS } from "@/lib/ai/growth-output-schemas";
 import {
   AI_MAX_INPUT_CHARACTERS,
   AI_MAX_OUTPUT_TOKENS_DEFAULT,
@@ -30,6 +31,7 @@ import { promptTemplateService } from "@/server/services/prompt-template-service
 
 const OUTPUT_SCHEMAS = {
   ...CONTENT_OUTPUT_SCHEMAS,
+  ...GROWTH_OUTPUT_SCHEMAS,
   "diagnostics.ping": z.object({
     ok: z.boolean(),
     message: z.string(),
@@ -39,7 +41,6 @@ const OUTPUT_SCHEMAS = {
     provider: z.string(),
     latencyCategory: z.enum(["fast", "normal", "slow"]),
   }),
-  ...CONTENT_OUTPUT_SCHEMAS,
 } as const;
 
 type OutputSchemaKey = keyof typeof OUTPUT_SCHEMAS;
