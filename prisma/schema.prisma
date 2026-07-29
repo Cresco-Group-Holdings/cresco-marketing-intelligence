@@ -1884,10 +1884,20 @@ model PublishingJob {
   status            ContentScheduleStatus @default(QUEUED)
   attemptCount      Int                   @default(0)
   maxAttempts       Int                   @default(3)
-  createdAt         DateTime              @default(now())
-  updatedAt         DateTime              @updatedAt
-  schedule          ContentSchedule       @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
-  attempts          PublishingAttempt[]
+
+  providerContainerId String?
+  providerStatus      String?
+  pollingAttemptCount Int       @default(0)
+  nextPollAt          DateTime?
+  lastProviderError   String?
+  publishedMediaId    String?   @unique
+  permalink           String?
+  refreshAttemptCount Int       @default(0)
+
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  schedule  ContentSchedule     @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
+  attempts  PublishingAttempt[]
 
   @@unique([contentScheduleId, idempotencyKey])
 }
