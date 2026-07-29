@@ -4,6 +4,7 @@ import {
   Bot,
   CalendarDays,
   FolderOpen,
+  Film,
   LayoutDashboard,
   Link2,
   Megaphone,
@@ -57,6 +58,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/visual-studio",
     icon: Palette,
     description: "Create branded images and carousels",
+  },
+  {
+    label: "Video Studio",
+    href: "/video-studio",
+    icon: Film,
+    description: "Produce short-form vertical videos",
   },
   {
     label: "Content Calendar",
