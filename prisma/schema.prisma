@@ -257,6 +257,16 @@ model UserProfile {
   leadAssignmentsMade        LeadAssignment[]          @relation("LeadAssigner")
   leadExportsRequested       LeadExport[]              @relation("LeadExportRequester")
   leadQualificationsReviewed LeadQualification[]       @relation("LeadQualificationReviewer")
+  contentCampaignsOwned      ContentCampaign[]         @relation("ContentCampaignOwner")
+  contentCampaignsCreated    ContentCampaign[]         @relation("ContentCampaignCreator")
+  campaignMemberships        CampaignMember[]
+  contentTasksAssigned       ContentTask[]             @relation("ContentTaskAssignee")
+  contentTasksOwned          ContentTask[]             @relation("ContentTaskOwner")
+  contentTasksCreated        ContentTask[]             @relation("ContentTaskCreator")
+  contentAssignmentsReceived ContentAssignment[]       @relation("ContentAssignmentAssignee")
+  contentAssignmentsMade     ContentAssignment[]       @relation("ContentAssignmentAssigner")
+  contentActivitiesAuthored  ContentActivity[]         @relation("ContentActivityActor")
+  checklistItemsCompleted    ContentChecklistItem[]    @relation("ChecklistItemCompleter")
 
   @@index([email])
 }
@@ -359,6 +369,12 @@ model Organisation {
   leadAssignments          LeadAssignment[]
   leadExports              LeadExport[]
   crmHandoffs              CrmHandoff[]
+  contentCampaigns         ContentCampaign[]
+  contentTasks             ContentTask[]
+  contentAssignments       ContentAssignment[]
+  contentDeadlines         ContentDeadline[]
+  contentChecklists        ContentChecklist[]
+  contentActivities        ContentActivity[]
 
   @@index([status])
   @@index([archivedAt])
@@ -453,6 +469,9 @@ model Project {
   leadAssignments          LeadAssignment[]
   leadExports              LeadExport[]
   crmHandoffs              CrmHandoff[]
+  contentCampaigns         ContentCampaign[]
+  contentTasks             ContentTask[]
+  contentActivities        ContentActivity[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -539,6 +558,12 @@ model Brand {
   leadAssignments          LeadAssignment[]
   leadExports              LeadExport[]
   crmHandoffs              CrmHandoff[]
+  contentCampaigns         ContentCampaign[]
+  contentTasks             ContentTask[]
+  contentAssignments       ContentAssignment[]
+  contentDeadlines         ContentDeadline[]
+  contentChecklists        ContentChecklist[]
+  contentActivities        ContentActivity[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -658,8 +683,9 @@ model MarketingObjective {
 
   organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  contentItems ContentItem[]
+  brand            Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItems     ContentItem[]
+  contentCampaigns ContentCampaign[]
 
   @@unique([brandId, objectiveType])
   @@index([organisationId])
@@ -711,8 +737,9 @@ model BrandAudience {
 
   organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  contentItems ContentItem[]
+  brand            Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItems     ContentItem[]
+  contentCampaigns ContentCampaign[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -770,7 +797,8 @@ model BrandOffer {
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  brand            Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentCampaigns ContentCampaign[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -2262,6 +2290,7 @@ model ContentItem {
   brandId          String
   title            String
   objectiveId      String?
+  contentCampaignId String?
   campaignName     String?
   contentPillar    String?
   contentType      ContentType
@@ -2283,6 +2312,7 @@ model ContentItem {
   project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand            Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
   objective        MarketingObjective?      @relation(fields: [objectiveId], references: [id], onDelete: SetNull)
+  contentCampaign  ContentCampaign?         @relation(fields: [contentCampaignId], references: [id], onDelete: SetNull)
   targetAudience   BrandAudience?           @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
   owner            UserProfile              @relation("ContentItemOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
   createdBy        UserProfile              @relation("ContentItemCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
@@ -2297,10 +2327,16 @@ model ContentItem {
   statusHistory    ContentStatusHistory[]
   schedules        ContentSchedule[]
   marketingLeads   MarketingLead[]
+  contentTasks     ContentTask[]
+  contentAssignments ContentAssignment[]
+  contentDeadlines ContentDeadline[]
+  contentChecklists ContentChecklist[]
+  contentActivities ContentActivity[]
 
   @@index([organisationId])
   @@index([projectId])
   @@index([brandId])
+  @@index([contentCampaignId])
   @@index([status])
   @@index([ownerUserId])
   @@index([createdByUserId])
@@ -2826,6 +2862,7 @@ model GrowthExperiment {
   projectId              String
   brandId                String
   growthRecommendationId String?
+  contentCampaignId      String?
   title                  String
   hypothesis             String
   status                 GrowthExperimentStatus @default(PLANNED)
@@ -2842,10 +2879,12 @@ model GrowthExperiment {
   project              Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand                Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
   growthRecommendation GrowthRecommendation? @relation(fields: [growthRecommendationId], references: [id], onDelete: SetNull)
+  contentCampaign      ContentCampaign?      @relation(fields: [contentCampaignId], references: [id], onDelete: SetNull)
   createdBy            UserProfile           @relation("GrowthExperimentCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   @@index([organisationId, brandId, status])
   @@index([growthRecommendationId])
+  @@index([contentCampaignId])
 }
 
 // --- Task 2.14: Marketing leads ---
@@ -3153,4 +3192,279 @@ model CrmHandoff {
 
   @@unique([marketingLeadId, provider, idempotencyKey])
   @@index([organisationId, brandId, status])
+}
+
+// --- Task 2.18: Team content operations ---
+
+enum ContentTaskStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  IN_REVIEW
+  COMPLETED
+  CANCELLED
+}
+
+enum ContentCampaignStatus {
+  PLANNED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum ContentAssignmentRole {
+  CONTENT_OWNER
+  COPY_REVIEWER
+  VISUAL_DESIGNER
+  COMPLIANCE_REVIEWER
+  PUBLISHER
+  INBOX_OWNER
+}
+
+enum ContentDeadlineType {
+  CONTENT_DUE
+  REVIEW_DEADLINE
+  APPROVAL_DEADLINE
+  PUBLISHING_DEADLINE
+}
+
+enum ContentDeadlineStatus {
+  UPCOMING
+  DUE_SOON
+  OVERDUE
+  COMPLETED
+  CANCELLED
+}
+
+enum ContentActivityType {
+  ASSIGNMENT_CHANGED
+  COMMENT
+  STATUS_TRANSITION
+  APPROVAL
+  SCHEDULING_CHANGE
+  PUBLISHING_RESULT
+  COMPLIANCE_RESOLVED
+  CHECKLIST_UPDATED
+  DEADLINE_SET
+  TASK_UPDATED
+  CAMPAIGN_UPDATED
+}
+
+model ContentCampaign {
+  id                   String                @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  name                 String
+  objective            String?
+  description          String?
+  ownerUserId          String
+  startDate            DateTime
+  endDate              DateTime
+  targetPlatforms      SocialProvider[]      @default([])
+  targetAudienceId     String?
+  offerId              String?
+  landingPageUrl       String?
+  status               ContentCampaignStatus @default(PLANNED)
+  marketingObjectiveId String?
+  createdByUserId      String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  archivedAt           DateTime?
+
+  organisation       Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project            Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand              Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  owner              UserProfile          @relation("ContentCampaignOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy          UserProfile          @relation("ContentCampaignCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  targetAudience     BrandAudience?       @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
+  offer              BrandOffer?          @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  marketingObjective MarketingObjective?  @relation(fields: [marketingObjectiveId], references: [id], onDelete: SetNull)
+  members            CampaignMember[]
+  contentItems       ContentItem[]
+  tasks              ContentTask[]
+  assignments        ContentAssignment[]
+  deadlines          ContentDeadline[]
+  checklists         ContentChecklist[]
+  activities         ContentActivity[]
+  experiments        GrowthExperiment[]
+
+  @@index([organisationId, brandId, status])
+  @@index([ownerUserId])
+  @@index([startDate, endDate])
+}
+
+model CampaignMember {
+  id         String   @id @default(cuid())
+  campaignId String
+  userId     String
+  role       String?
+  addedAt    DateTime @default(now())
+  removedAt  DateTime?
+
+  campaign ContentCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     UserProfile     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@index([userId])
+}
+
+model ContentTask {
+  id             String            @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  campaignId     String?
+  contentItemId  String?
+  title          String
+  description    String?
+  status         ContentTaskStatus @default(TODO)
+  assigneeUserId String?
+  ownerUserId    String
+  dueAt          DateTime?
+  priority       ContentPriority   @default(NORMAL)
+  createdByUserId String
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign     ContentCampaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  contentItem  ContentItem?        @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  assignee     UserProfile?        @relation("ContentTaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  owner        UserProfile         @relation("ContentTaskOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy    UserProfile         @relation("ContentTaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  assignments  ContentAssignment[]
+  deadlines    ContentDeadline[]
+  checklists   ContentChecklist[]
+  activities   ContentActivity[]
+
+  @@index([organisationId, brandId, status])
+  @@index([assigneeUserId, status])
+  @@index([campaignId])
+  @@index([contentItemId])
+  @@index([dueAt])
+}
+
+model ContentAssignment {
+  id              String                @id @default(cuid())
+  organisationId  String
+  brandId         String
+  campaignId      String?
+  contentItemId   String?
+  taskId          String?
+  userId          String
+  role            ContentAssignmentRole
+  assignedByUserId String
+  assignedAt      DateTime              @default(now())
+  removedAt       DateTime?
+
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign     ContentCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem?     @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  task         ContentTask?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user         UserProfile      @relation("ContentAssignmentAssignee", fields: [userId], references: [id], onDelete: Restrict)
+  assignedBy   UserProfile      @relation("ContentAssignmentAssigner", fields: [assignedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, brandId, userId])
+  @@index([contentItemId, role])
+  @@index([campaignId])
+  @@index([taskId])
+}
+
+model ContentDeadline {
+  id             String                @id @default(cuid())
+  organisationId String
+  brandId        String
+  campaignId     String?
+  contentItemId  String?
+  taskId         String?
+  deadlineType   ContentDeadlineType
+  dueAt          DateTime
+  status         ContentDeadlineStatus @default(UPCOMING)
+  reminderSentAt DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign     ContentCampaign? @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem?     @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  task         ContentTask?     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, status])
+  @@index([dueAt])
+  @@index([contentItemId])
+}
+
+model ContentChecklist {
+  id             String   @id @default(cuid())
+  organisationId String
+  brandId        String
+  campaignId     String?
+  contentItemId  String?
+  taskId         String?
+  name           String
+  isTemplate     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign     ContentCampaign?      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem?          @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  task         ContentTask?          @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  items        ContentChecklistItem[]
+
+  @@index([organisationId, brandId])
+  @@index([contentItemId])
+}
+
+model ContentChecklistItem {
+  id                String    @id @default(cuid())
+  checklistId       String
+  itemKey           String
+  label             String
+  isCompleted       Boolean   @default(false)
+  completedByUserId String?
+  completedAt       DateTime?
+  sortOrder         Int       @default(0)
+
+  checklist   ContentChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  completedBy UserProfile?     @relation("ChecklistItemCompleter", fields: [completedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([checklistId, itemKey])
+  @@index([checklistId, sortOrder])
+}
+
+model ContentActivity {
+  id             String              @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  campaignId     String?
+  contentItemId  String?
+  taskId         String?
+  activityType   ContentActivityType
+  actorUserId    String
+  summary        String
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign     ContentCampaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  contentItem  ContentItem?       @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  task         ContentTask?       @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  actor        UserProfile        @relation("ContentActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, brandId, createdAt])
+  @@index([campaignId, createdAt])
+  @@index([contentItemId, createdAt])
+  @@index([taskId, createdAt])
 }

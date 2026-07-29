@@ -86,6 +86,7 @@ function toPublicContentItem(item: Awaited<ReturnType<typeof getContentOrThrow>>
     id: item.id,
     title: item.title,
     campaignName: item.campaignName,
+    contentCampaignId: item.contentCampaignId,
     contentPillar: item.contentPillar,
     contentType: item.contentType,
     primaryMessage: item.primaryMessage,
@@ -351,6 +352,7 @@ export const contentService = {
           brandId: scope.brandId,
           title: input.title,
           objectiveId: input.objectiveId,
+          contentCampaignId: input.contentCampaignId ?? null,
           campaignName: input.campaignName || null,
           contentPillar: input.contentPillar || null,
           contentType: input.contentType,
@@ -441,6 +443,11 @@ export const contentService = {
         : { disconnect: true };
     }
     if (input.campaignName !== undefined) allowedFields.campaignName = input.campaignName || null;
+    if (input.contentCampaignId !== undefined) {
+      allowedFields.contentCampaign = input.contentCampaignId
+        ? { connect: { id: input.contentCampaignId } }
+        : { disconnect: true };
+    }
     if (input.contentPillar !== undefined) allowedFields.contentPillar = input.contentPillar || null;
     if (input.contentType !== undefined) allowedFields.contentType = input.contentType;
     if (input.primaryMessage !== undefined) allowedFields.primaryMessage = input.primaryMessage || null;
