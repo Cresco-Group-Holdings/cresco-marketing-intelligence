@@ -257,6 +257,9 @@ model UserProfile {
   leadAssignmentsMade        LeadAssignment[]          @relation("LeadAssigner")
   leadExportsRequested       LeadExport[]              @relation("LeadExportRequester")
   leadQualificationsReviewed LeadQualification[]       @relation("LeadQualificationReviewer")
+  socialExperimentsCreated   SocialExperiment[]        @relation("SocialExperimentCreator")
+  experimentDecisionsMade    ExperimentDecision[]      @relation("ExperimentDecisionUser")
+  experimentReuseConfirmed   ExperimentReuseRecord[]   @relation("ExperimentReuseConfirmer")
 
   @@index([email])
 }
@@ -359,6 +362,7 @@ model Organisation {
   leadAssignments          LeadAssignment[]
   leadExports              LeadExport[]
   crmHandoffs              CrmHandoff[]
+  socialExperiments        SocialExperiment[]
 
   @@index([status])
   @@index([archivedAt])
@@ -453,6 +457,7 @@ model Project {
   leadAssignments          LeadAssignment[]
   leadExports              LeadExport[]
   crmHandoffs              CrmHandoff[]
+  socialExperiments        SocialExperiment[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -539,6 +544,7 @@ model Brand {
   leadAssignments          LeadAssignment[]
   leadExports              LeadExport[]
   crmHandoffs              CrmHandoff[]
+  socialExperiments        SocialExperiment[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2297,6 +2303,7 @@ model ContentItem {
   statusHistory    ContentStatusHistory[]
   schedules        ContentSchedule[]
   marketingLeads   MarketingLead[]
+  experimentVariants ExperimentVariant[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -2345,6 +2352,7 @@ model ContentVariant {
   visualAssets     ContentVariantAsset[]
   schedules        ContentSchedule[]
   tikTokSetting    TikTokPublishSetting?
+  experimentVariants ExperimentVariant[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -3153,4 +3161,199 @@ model CrmHandoff {
 
   @@unique([marketingLeadId, provider, idempotencyKey])
   @@index([organisationId, brandId, status])
+}
+
+// --- Task 2.16: Social content experiments ---
+
+enum SocialExperimentStatus {
+  DRAFT
+  READY
+  RUNNING
+  COMPLETED
+  CANCELLED
+  INCONCLUSIVE
+}
+
+enum SocialExperimentTestType {
+  HOOK
+  CAPTION
+  CTA
+  VISUAL
+  VIDEO_DURATION
+  COVER
+  CONTENT_FORMAT
+  PUBLISHING_TIME
+  CONTENT_PILLAR
+}
+
+enum SocialExperimentMode {
+  OBSERVATIONAL
+  SCHEDULED
+}
+
+enum ExperimentMetricRole {
+  PRIMARY
+  SECONDARY
+}
+
+enum ExperimentDecisionOutcome {
+  WINNER
+  LOSER
+  INCONCLUSIVE
+  NONE
+}
+
+enum ExperimentReuseType {
+  CONTENT_PATTERN
+  GROWTH_RECOMMENDATION
+  BRAND_MESSAGING_NOTE
+  CONTENT_STUDIO_GUIDANCE
+}
+
+model SocialExperiment {
+  id                     String                   @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  title                  String
+  status                 SocialExperimentStatus   @default(DRAFT)
+  testType               SocialExperimentTestType
+  mode                   SocialExperimentMode     @default(OBSERVATIONAL)
+  targetProvider         SocialProvider
+  startDate              DateTime
+  endDate                DateTime
+  minimumSampleThreshold Int
+  decisionRule           String
+  confoundingFactorNotes String?
+  validityWarnings       Json                     @default("[]")
+  observationalDisclaimer String                  @default("Observational comparison only. This is not a randomised controlled trial and platforms do not deliver content to equivalent audiences.")
+  createdByUserId        String
+  cancelledAt            DateTime?
+  cancelledReason        String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile           @relation("SocialExperimentCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  hypothesis   ExperimentHypothesis?
+  variants     ExperimentVariant[]
+  metrics      ExperimentMetric[]
+  results      ExperimentResult[]
+  decision     ExperimentDecision?
+  reuseRecords ExperimentReuseRecord[]
+
+  @@index([organisationId, brandId, status])
+  @@index([brandId, startDate])
+  @@index([testType])
+}
+
+model ExperimentHypothesis {
+  id                 String   @id @default(cuid())
+  socialExperimentId String   @unique
+  statement          String
+  expectedDirection  String?
+  rationale          String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  socialExperiment SocialExperiment @relation(fields: [socialExperimentId], references: [id], onDelete: Cascade)
+}
+
+model ExperimentVariant {
+  id                 String          @id @default(cuid())
+  socialExperimentId String
+  label              String
+  contentItemId      String?
+  contentVariantId   String?
+  provider           SocialProvider?
+  scheduledFor       DateTime?
+  publishedAt        DateTime?
+  hasPaidPromotion   Boolean         @default(false)
+  contentTopic       String?
+  hookText           String?
+  captionText        String?
+  ctaText            String?
+  contentPillar      String?
+  sortOrder          Int             @default(0)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  socialExperiment SocialExperiment   @relation(fields: [socialExperimentId], references: [id], onDelete: Cascade)
+  contentItem      ContentItem?       @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  contentVariant   ContentVariant?    @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
+  results          ExperimentResult[]
+  winningDecisions ExperimentDecision[] @relation("WinningVariant")
+
+  @@index([socialExperimentId, sortOrder])
+  @@index([contentItemId])
+}
+
+model ExperimentMetric {
+  id                  String               @id @default(cuid())
+  socialExperimentId  String
+  metricKey           String
+  role                ExperimentMetricRole
+  label               String?
+  normalisationMethod String?
+  createdAt           DateTime             @default(now())
+
+  socialExperiment SocialExperiment @relation(fields: [socialExperimentId], references: [id], onDelete: Cascade)
+
+  @@unique([socialExperimentId, metricKey, role])
+  @@index([socialExperimentId, role])
+}
+
+model ExperimentResult {
+  id                  String   @id @default(cuid())
+  socialExperimentId  String
+  experimentVariantId String
+  metricKey           String
+  rawValue            Decimal  @db.Decimal(24, 6)
+  normalisedValue     Decimal? @db.Decimal(24, 6)
+  sampleSize          Int      @default(0)
+  dataSufficient      Boolean  @default(false)
+  computedAt          DateTime @default(now())
+
+  socialExperiment  SocialExperiment  @relation(fields: [socialExperimentId], references: [id], onDelete: Cascade)
+  experimentVariant ExperimentVariant @relation(fields: [experimentVariantId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentVariantId, metricKey])
+  @@index([socialExperimentId])
+}
+
+model ExperimentDecision {
+  id                   String                    @id @default(cuid())
+  socialExperimentId   String                    @unique
+  outcome              ExperimentDecisionOutcome
+  winningVariantId     String?
+  absoluteDifference   Decimal?                  @db.Decimal(24, 6)
+  percentageDifference Decimal?                  @db.Decimal(24, 6)
+  limitations          String
+  confidenceNote       String                    @default("Observational comparison only; not a randomised controlled trial.")
+  decidedByUserId      String
+  decidedAt            DateTime                  @default(now())
+
+  socialExperiment SocialExperiment  @relation(fields: [socialExperimentId], references: [id], onDelete: Cascade)
+  winningVariant   ExperimentVariant? @relation("WinningVariant", fields: [winningVariantId], references: [id], onDelete: SetNull)
+  decidedBy        UserProfile       @relation("ExperimentDecisionUser", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([outcome])
+}
+
+model ExperimentReuseRecord {
+  id                 String              @id @default(cuid())
+  socialExperimentId String
+  reuseType          ExperimentReuseType
+  targetResourceType String
+  targetResourceId   String
+  summary            String?
+  confirmedByUserId  String
+  createdAt          DateTime            @default(now())
+
+  socialExperiment SocialExperiment @relation(fields: [socialExperimentId], references: [id], onDelete: Cascade)
+  confirmedBy      UserProfile      @relation("ExperimentReuseConfirmer", fields: [confirmedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([socialExperimentId, reuseType])
 }
