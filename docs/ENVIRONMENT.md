@@ -44,7 +44,6 @@ deployment can change cadence without a rebuild.
 | `SOCIAL_ANALYTICS_SYNC_ENABLED` | `true` | Set to `false` to stop the scheduler enqueuing new recurring syncs. Manual syncs still work. |
 | `SOCIAL_ANALYTICS_SYNC_INTERVAL_MINUTES` | `360` | Scheduling window. Repeated scheduler runs inside one window collapse onto a single job per account. Clamped to 15–10080. |
 | `SOCIAL_ANALYTICS_SYNC_LEASE_SECONDS` | `300` | Worker lease duration. A `RUNNING` sync whose lease expires is reclaimable by another worker. Clamped to 30–3600. |
-| `SOCIAL_ANALYTICS_SYNC_HEARTBEAT_SECONDS` | `30` | Advisory heartbeat cadence recorded on long-running syncs. Clamped to 5–600. |
 | `SOCIAL_ANALYTICS_SYNC_RETRY_SECONDS` | `60` | Backoff applied after a rate limit or partial failure. Clamped to 5–3600. |
 | `SOCIAL_ANALYTICS_BACKFILL_DAYS` | `90` | Historical window requested from providers that expose post history. Clamped to 1–730. |
 | `SOCIAL_ANALYTICS_BACKFILL_MAX_PAGES` | `20` | Provider history pages walked per worker pass. Remaining pages resume from the persisted cursor. Clamped to 1–200. |

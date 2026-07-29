@@ -214,29 +214,29 @@ export const socialAnalyticsQueryService = {
       }),
     ]);
 
-    const latestByPost = new Map<string, Record<string, number>>();
+    // Post metrics are cumulative, so only the newest observation per post counts. `posts` is
+    // ordered newest first, so the first value seen for a post/metric pair is the current one.
+    const latestByPost = new Map<string, { provider: string; values: Record<string, number> }>();
     for (const metric of posts) {
-      const values = latestByPost.get(metric.providerPostId) ?? {};
-      if (values[metric.metricType] === undefined) {
-        values[metric.metricType] = metric.metricValue;
+      const entry = latestByPost.get(metric.providerPostId) ?? {
+        provider: metric.provider,
+        values: {},
+      };
+      if (entry.values[metric.metricType] === undefined) {
+        entry.values[metric.metricType] = metric.metricValue;
       }
-      latestByPost.set(metric.providerPostId, values);
+      latestByPost.set(metric.providerPostId, entry);
     }
-    const aggregate = [...latestByPost.values()].reduce<Record<string, number>>(
-      (result, values) => {
-        for (const [key, value] of Object.entries(values)) {
-          result[key] = (result[key] ?? 0) + value;
-        }
-        return result;
-      },
-      {},
-    );
-    const byProvider = posts.reduce<Record<string, Record<string, number>>>((result, metric) => {
-      const channel = result[metric.provider] ?? {};
-      channel[metric.metricType] = (channel[metric.metricType] ?? 0) + metric.metricValue;
-      result[metric.provider] = channel;
-      return result;
-    }, {});
+    const aggregate: Record<string, number> = {};
+    const byProvider: Record<string, Record<string, number>> = {};
+    for (const entry of latestByPost.values()) {
+      const channel = byProvider[entry.provider] ?? {};
+      for (const [key, value] of Object.entries(entry.values)) {
+        aggregate[key] = (aggregate[key] ?? 0) + value;
+        channel[key] = (channel[key] ?? 0) + value;
+      }
+      byProvider[entry.provider] = channel;
+    }
 
     const followerSeries = accounts
       .filter((metric) => ["follows", "subscribers"].includes(metric.metricType))
@@ -265,7 +265,7 @@ export const socialAnalyticsQueryService = {
       derived: {
         ...deriveFromAggregate(aggregate),
         averageViewsPerPost: averageViewsPerPost(
-          [...latestByPost.values()].map((values) => values.views ?? values.videoViews),
+          [...latestByPost.values()].map((entry) => entry.values.views ?? entry.values.videoViews),
         ),
         followerGrowth: followerGrowth(
           followerSeries[0]?.metricValue,

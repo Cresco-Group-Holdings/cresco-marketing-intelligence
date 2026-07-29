@@ -135,4 +135,6 @@ Every counter increment also writes a structured log line with the counter name 
 ## Testing
 
 - `npm run test:unit` and `npm run test:integration` run with mocked Prisma and mocked provider transport.
-- `npm run test:database` runs the isolated real-database suite in `tests/database`. It requires `ANALYTICS_TEST_DATABASE_URL` to point at a disposable PostgreSQL database, applies the real migrations, and exercises real services, real route handlers, and real adapters with only the HTTP transport mocked. The suite is skipped when the variable is unset.
+- `npm run test:database` runs the isolated real-database suite in `tests/database`. It requires `ANALYTICS_TEST_DATABASE_URL` to point at a disposable PostgreSQL database, applies the real migrations, and exercises real services, real route handlers, and real adapters with only the HTTP transport mocked. The suite is skipped when the variable is unset. The `database-tests` job in `.github/workflows/pull-request.yml` provisions a PostgreSQL 16 service and runs it on every pull request.
+
+Live provider sandbox execution remains optional post-launch operational validation; it needs real credentials and is not part of the automated suites.

@@ -8,7 +8,6 @@ export type AnalyticsSyncConfig = {
   schedulerEnabled: boolean;
   intervalMinutes: number;
   leaseSeconds: number;
-  heartbeatSeconds: number;
   retryBackoffSeconds: number;
   backfillDays: number;
   maxDiscoveryPagesPerRun: number;
@@ -25,7 +24,6 @@ export function getAnalyticsSyncConfig(): AnalyticsSyncConfig {
     schedulerEnabled: (process.env.SOCIAL_ANALYTICS_SYNC_ENABLED ?? "true").toLowerCase() !== "false",
     intervalMinutes: number(process.env.SOCIAL_ANALYTICS_SYNC_INTERVAL_MINUTES, 360, 15, 10_080),
     leaseSeconds: number(process.env.SOCIAL_ANALYTICS_SYNC_LEASE_SECONDS, 300, 30, 3_600),
-    heartbeatSeconds: number(process.env.SOCIAL_ANALYTICS_SYNC_HEARTBEAT_SECONDS, 30, 5, 600),
     retryBackoffSeconds: number(process.env.SOCIAL_ANALYTICS_SYNC_RETRY_SECONDS, 60, 5, 3_600),
     backfillDays: number(process.env.SOCIAL_ANALYTICS_BACKFILL_DAYS, 90, 1, 730),
     maxDiscoveryPagesPerRun: number(process.env.SOCIAL_ANALYTICS_BACKFILL_MAX_PAGES, 20, 1, 200),

@@ -179,6 +179,24 @@ describe("socialAnalyticsQueryService", () => {
     expect(overview.series).toEqual([{ period: "2026-07-16", impressions: 100 }]);
   });
 
+  it("counts only the newest observation per post so cumulative metrics are not double counted", async () => {
+    prisma.socialPostMetric.findMany.mockResolvedValue([
+      // Two observations of the same cumulative metric for the same post.
+      postMetric({ metricValue: 150, measuredAt: new Date("2026-07-20T12:00:00Z") }),
+      postMetric({ metricValue: 100, measuredAt: new Date("2026-07-15T12:00:00Z") }),
+    ]);
+    prisma.contentItem.findMany.mockResolvedValue([contentItem()]);
+    const overview = await socialAnalyticsQueryService.overview(
+      "brand-1",
+      "org-1",
+      filters,
+      context,
+    );
+    expect(overview.totals.impressions).toBe(150);
+    expect(overview.byProvider.INSTAGRAM?.impressions).toBe(150);
+    expect(overview.postsMeasured).toBe(1);
+  });
+
   it("derives ratios from aggregated totals rather than averaging percentages", async () => {
     prisma.socialPostMetric.findMany.mockResolvedValue([
       postMetric({ providerPostId: "a", metricType: "impressions", metricValue: 100 }),
