@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { apiSuccess } from "@/lib/api/handler";
 import {
-  analyticsFilters,
+  analyticsAttributionFilters,
   requireOrganisationId,
   withAnalyticsRead,
 } from "@/lib/api/analytics-handler";
@@ -10,23 +10,16 @@ type Params = { params: Promise<{ brandId: string }> };
 export async function GET(request: NextRequest, { params }: Params) {
   const { brandId } = await params;
   const organisationId = requireOrganisationId(request);
-  const filters = analyticsFilters(request);
+  const { filters, dimension } = analyticsAttributionFilters(request);
   return withAnalyticsRead(request, organisationId, async ({ requestId, tenant }) =>
     apiSuccess(
-      {
-        ...(await socialAnalyticsQueryService.resolveTimezone(
-          brandId,
-          organisationId,
-          filters,
-          tenant!,
-        )),
-        metrics: await socialAnalyticsQueryService.posts(
-          brandId,
-          organisationId,
-          filters,
-          tenant!,
-        ),
-      },
+      await socialAnalyticsQueryService.attribution(
+        brandId,
+        organisationId,
+        filters,
+        dimension,
+        tenant!,
+      ),
       { requestId },
     ),
   );

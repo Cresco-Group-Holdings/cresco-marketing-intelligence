@@ -19,6 +19,24 @@ const nav = [
   ["Export", "/analytics/social/export"],
 ] as const;
 
+const dimensions = [
+  ["CONTENT_ITEM", "Content item"],
+  ["CAMPAIGN", "Campaign"],
+  ["CONTENT_PILLAR", "Content pillar"],
+  ["CONTENT_TYPE", "Format"],
+  ["OWNER", "Owner"],
+  ["PLATFORM", "Platform"],
+] as const;
+
+type AttributionGroup = {
+  key: string;
+  label: string;
+  providers: string[];
+  postsMeasured: number;
+  totals: Record<string, number>;
+  derived: Record<string, number | null>;
+};
+
 export function SocialAnalyticsView({ mode }: { mode: Mode }) {
   const { preference } = useWorkspace();
   const brandId = preference.currentBrandId;
@@ -29,7 +47,11 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
   const [socialAccountId, setSocialAccountId] = useState("");
   const [campaign, setCampaign] = useState("");
   const [contentType, setContentType] = useState("");
+  const [contentPillar, setContentPillar] = useState("");
   const [ownerUserId, setOwnerUserId] = useState("");
+  const [timezone, setTimezone] = useState("");
+  const [granularity, setGranularity] = useState("DAY");
+  const [dimension, setDimension] = useState<string>("CONTENT_ITEM");
   const [data, setData] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
@@ -41,13 +63,17 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
       organisationId: organisationId ?? "",
       from: from.toISOString(),
       to: to.toISOString(),
+      granularity,
     });
     if (provider) params.set("provider", provider);
     if (projectId) params.set("projectId", projectId);
     if (socialAccountId) params.set("socialAccountId", socialAccountId);
     if (campaign) params.set("campaign", campaign);
     if (contentType) params.set("contentType", contentType);
+    if (contentPillar) params.set("contentPillar", contentPillar);
     if (ownerUserId) params.set("ownerUserId", ownerUserId);
+    if (timezone) params.set("timezone", timezone);
+    if (mode === "content" || mode === "export") params.set("dimension", dimension);
     return params.toString();
   }, [
     organisationId,
@@ -57,14 +83,25 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
     socialAccountId,
     campaign,
     contentType,
+    contentPillar,
     ownerUserId,
+    timezone,
+    granularity,
+    dimension,
+    mode,
   ]);
 
   const load = useCallback(async () => {
     if (!brandId || !organisationId || mode === "export") return;
     try {
       const endpoint =
-        mode === "overview" ? "overview" : mode === "accounts" ? "accounts" : "posts";
+        mode === "overview"
+          ? "overview"
+          : mode === "accounts"
+            ? "accounts"
+            : mode === "content"
+              ? "attribution"
+              : "posts";
       setData(
         await apiFetch(`/api/brands/${brandId}/analytics/social/${endpoint}?${query}`, {
           organisationId,
@@ -84,16 +121,28 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
     data && typeof data === "object" && "metrics" in data
       ? ((data as { metrics: Array<Record<string, unknown>> }).metrics ?? [])
       : [];
+  const attribution =
+    mode === "content" && data && typeof data === "object" && "groups" in data
+      ? (data as { groups: AttributionGroup[]; timezone?: string })
+      : null;
   const overview =
     mode === "overview" && data && typeof data === "object"
       ? (data as {
+          timezone?: string;
           totals?: Record<string, number>;
           byProvider?: Record<string, Record<string, number>>;
           derived?: Record<string, number | null>;
+          series?: Array<Record<string, unknown>>;
           postsMeasured?: number;
           accountsMeasured?: number;
         })
       : null;
+  const reportingTimezone =
+    overview?.timezone ??
+    attribution?.timezone ??
+    (data && typeof data === "object" && "timezone" in data
+      ? String((data as { timezone?: string }).timezone)
+      : null);
 
   async function enqueueSync() {
     if (!brandId || !organisationId || !socialAccountId) return;
@@ -157,9 +206,20 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
           onChange={(event) => setCampaign(event.target.value)}
         />
         <Input
+          label="Content pillar"
+          value={contentPillar}
+          onChange={(event) => setContentPillar(event.target.value)}
+        />
+        <Input
           label="Owner user ID"
           value={ownerUserId}
           onChange={(event) => setOwnerUserId(event.target.value)}
+        />
+        <Input
+          label="Reporting timezone"
+          placeholder="Brand default"
+          value={timezone}
+          onChange={(event) => setTimezone(event.target.value)}
         />
         <select
           className="rounded-md border px-3 py-2 text-sm"
@@ -181,6 +241,28 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
         </select>
         <select
           className="rounded-md border px-3 py-2 text-sm"
+          value={granularity}
+          onChange={(event) => setGranularity(event.target.value)}
+        >
+          <option value="DAY">Daily</option>
+          <option value="WEEK">Weekly</option>
+          <option value="MONTH">Monthly</option>
+        </select>
+        {mode === "content" || mode === "export" ? (
+          <select
+            className="rounded-md border px-3 py-2 text-sm"
+            value={dimension}
+            onChange={(event) => setDimension(event.target.value)}
+          >
+            {dimensions.map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        ) : null}
+        <select
+          className="rounded-md border px-3 py-2 text-sm"
           value={days}
           onChange={(event) => setDays(event.target.value)}
         >
@@ -200,6 +282,11 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
           Sync selected account
         </Button>
       </div>
+      {reportingTimezone ? (
+        <p className="mb-3 text-sm text-slate-600">
+          Reporting timezone: {reportingTimezone}. Provider timestamps are stored in UTC.
+        </p>
+      ) : null}
       {syncMessage ? <p className="mb-3 text-sm text-slate-600">{syncMessage}</p> : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
@@ -248,15 +335,59 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
         </div>
       ) : null}
 
-      {mode !== "overview" && mode !== "export" ? (
+      {attribution ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Content attribution by {dimension.toLowerCase().replace("_", " ")}</CardTitle>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            {attribution.groups.length === 0 ? (
+              <p className="text-sm text-slate-600">
+                No provider observations are available for this range.
+              </p>
+            ) : (
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr>
+                    <th>Group</th>
+                    <th>Channels</th>
+                    <th>Posts</th>
+                    <th>Impressions</th>
+                    <th>Reach</th>
+                    <th>Views</th>
+                    <th>Clicks</th>
+                    <th>Engagement %</th>
+                    <th>CTR %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attribution.groups.map((group) => (
+                    <tr key={group.key} className="border-t">
+                      <td>{group.label}</td>
+                      <td>{group.providers.join(", ")}</td>
+                      <td>{group.postsMeasured}</td>
+                      <td>{group.totals.impressions?.toLocaleString() ?? "—"}</td>
+                      <td>{group.totals.reach?.toLocaleString() ?? "—"}</td>
+                      <td>{group.totals.views?.toLocaleString() ?? "—"}</td>
+                      <td>{group.totals.clicks?.toLocaleString() ?? "—"}</td>
+                      <td>{group.derived.engagementRate?.toFixed(2) ?? "—"}</td>
+                      <td>{group.derived.clickThroughRate?.toFixed(2) ?? "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {mode === "posts" || mode === "accounts" ? (
         <Card>
           <CardHeader>
             <CardTitle>
               {mode === "accounts"
                 ? "Account performance and follower growth"
-                : mode === "content"
-                  ? "Content attribution and format performance"
-                  : "Post performance and video metrics"}
+                : "Post performance and video metrics"}
             </CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto">
@@ -300,7 +431,7 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
             <CardTitle>Tenant-scoped export</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-3">
-            {(["POST", "ACCOUNT"] as const).flatMap((scope) =>
+            {(["POST", "ACCOUNT", "ATTRIBUTION"] as const).flatMap((scope) =>
               (["CSV", "JSON"] as const).map((format) => (
                 <a
                   key={`${scope}-${format}`}

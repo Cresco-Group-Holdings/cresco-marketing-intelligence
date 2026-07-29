@@ -10,14 +10,20 @@ type Params = { params: Promise<{ brandId: string }> };
 export async function GET(request: NextRequest, { params }: Params) {
   const { brandId } = await params;
   const organisationId = requireOrganisationId(request);
-  const query = analyticsFilters(request);
+  const filters = analyticsFilters(request);
   return withAnalyticsRead(request, organisationId, async ({ requestId, tenant }) =>
     apiSuccess(
       {
+        ...(await socialAnalyticsQueryService.resolveTimezone(
+          brandId,
+          organisationId,
+          filters,
+          tenant!,
+        )),
         metrics: await socialAnalyticsQueryService.accounts(
           brandId,
           organisationId,
-          { ...query, from: new Date(query.from), to: new Date(query.to) },
+          filters,
           tenant!,
         ),
       },

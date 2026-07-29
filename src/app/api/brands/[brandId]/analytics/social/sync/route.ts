@@ -17,6 +17,8 @@ export async function POST(request: NextRequest, { params }: Params) {
           {
             ...body,
             scheduledFor: body.scheduledFor ? new Date(body.scheduledFor) : undefined,
+            backfillFrom: body.backfillFrom ? new Date(body.backfillFrom) : undefined,
+            backfillTo: body.backfillTo ? new Date(body.backfillTo) : undefined,
           },
           tenant!,
         ),

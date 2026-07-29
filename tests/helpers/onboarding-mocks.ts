@@ -118,6 +118,7 @@ export function createMockBrand(overrides: Partial<Brand> = {}): Brand {
     primaryColour: null,
     secondaryColour: null,
     accentColour: null,
+    analyticsTimezone: null,
     status: BrandStatus.ACTIVE,
     createdByUserId: onboardingTestIds.userProfileId,
     createdAt: fixedDate,

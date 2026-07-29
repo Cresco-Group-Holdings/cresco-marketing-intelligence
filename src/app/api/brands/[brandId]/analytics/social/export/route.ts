@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { parseBody } from "@/lib/api/handler";
 import {
-  analyticsFilters,
+  analyticsAttributionFilters,
   requireOrganisationId,
   withAnalyticsRead,
 } from "@/lib/api/analytics-handler";
@@ -11,25 +11,28 @@ type Params = { params: Promise<{ brandId: string }> };
 export async function GET(request: NextRequest, { params }: Params) {
   const { brandId } = await params;
   const organisationId = requireOrganisationId(request);
-  const base = analyticsFilters(request);
-  const query = parseBody(socialAnalyticsExportSchema, {
-    ...base,
-    scope: request.nextUrl.searchParams.get("scope"),
-    format: request.nextUrl.searchParams.get("format"),
-  });
+  const { filters, dimension } = analyticsAttributionFilters(request);
+  const { scope, format } = parseBody(
+    socialAnalyticsExportSchema.pick({ scope: true, format: true }),
+    {
+      scope: request.nextUrl.searchParams.get("scope"),
+      format: request.nextUrl.searchParams.get("format"),
+    },
+  );
   return withAnalyticsRead(request, organisationId, async ({ tenant }) => {
     const exported = await socialAnalyticsQueryService.export(
       brandId,
       organisationId,
-      { ...query, from: new Date(query.from), to: new Date(query.to) },
-      query.scope,
-      query.format,
+      filters,
+      scope,
+      format,
       tenant!,
+      dimension,
     );
     return new NextResponse(exported.body, {
       headers: {
         "content-type": exported.contentType,
-        "content-disposition": `attachment; filename="social-${query.scope.toLowerCase()}.${query.format.toLowerCase()}"`,
+        "content-disposition": `attachment; filename="social-${scope.toLowerCase()}.${format.toLowerCase()}"`,
       },
     });
   });

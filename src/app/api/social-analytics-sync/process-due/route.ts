@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiSuccess } from "@/lib/api/handler";
 import { isAuthorisedWorkerRequest } from "@/lib/api/worker-auth";
+import { getAnalyticsSyncConfig } from "@/lib/analytics/config";
 import { socialAnalyticsSyncService } from "@/server/services/social-analytics-sync-service";
 
 export async function POST(request: NextRequest) {
@@ -18,10 +19,13 @@ export async function POST(request: NextRequest) {
       { status: 403 },
     );
   }
-  const limit = Number(request.nextUrl.searchParams.get("limit") ?? 10);
+  const config = getAnalyticsSyncConfig();
+  const requested = Number(request.nextUrl.searchParams.get("limit"));
+  const limit =
+    Number.isFinite(requested) && requested > 0 ? requested : config.maxSyncsPerWorkerRun;
   return apiSuccess(
     {
-      results: await socialAnalyticsSyncService.processDue(limit),
+      results: await socialAnalyticsSyncService.processDue(limit, `worker-${requestId}`),
     },
     { requestId },
   );

@@ -2,8 +2,12 @@ import { NextRequest } from "next/server";
 import { withApiHandler } from "@/lib/api/handler";
 import { AppError } from "@/lib/errors";
 import { PERMISSIONS } from "@/lib/tenancy/permissions";
-import { socialAnalyticsQuerySchema } from "@/lib/validation/social-analytics";
+import {
+  socialAnalyticsAttributionSchema,
+  socialAnalyticsQuerySchema,
+} from "@/lib/validation/social-analytics";
 import { parseBody } from "@/lib/api/handler";
+import type { Filters } from "@/server/services/social-analytics-query-service";
 
 export function requireOrganisationId(request: NextRequest) {
   const id =
@@ -32,16 +36,38 @@ export const withAnalyticsSync = (
     permission: PERMISSIONS["analytics.sync"],
   });
 
-export function analyticsFilters(request: NextRequest) {
-  return parseBody(socialAnalyticsQuerySchema, {
+function rawFilters(request: NextRequest) {
+  const read = (key: string) => request.nextUrl.searchParams.get(key) ?? undefined;
+  return {
     from: request.nextUrl.searchParams.get("from"),
     to: request.nextUrl.searchParams.get("to"),
-    provider: request.nextUrl.searchParams.get("provider") ?? undefined,
-    socialAccountId: request.nextUrl.searchParams.get("socialAccountId") ?? undefined,
-    projectId: request.nextUrl.searchParams.get("projectId") ?? undefined,
-    campaign: request.nextUrl.searchParams.get("campaign") ?? undefined,
-    contentType: request.nextUrl.searchParams.get("contentType") ?? undefined,
-    contentItemId: request.nextUrl.searchParams.get("contentItemId") ?? undefined,
-    ownerUserId: request.nextUrl.searchParams.get("ownerUserId") ?? undefined,
+    timezone: read("timezone"),
+    granularity: read("granularity"),
+    provider: read("provider"),
+    socialAccountId: read("socialAccountId"),
+    projectId: read("projectId"),
+    campaign: read("campaign"),
+    contentType: read("contentType"),
+    contentPillar: read("contentPillar"),
+    contentItemId: read("contentItemId"),
+    ownerUserId: read("ownerUserId"),
+  };
+}
+
+/** Parses shared analytics query parameters into service filters with real `Date` boundaries. */
+export function analyticsFilters(request: NextRequest): Filters {
+  const parsed = parseBody(socialAnalyticsQuerySchema, rawFilters(request));
+  return { ...parsed, from: new Date(parsed.from), to: new Date(parsed.to) };
+}
+
+export function analyticsAttributionFilters(request: NextRequest) {
+  const parsed = parseBody(socialAnalyticsAttributionSchema, {
+    ...rawFilters(request),
+    dimension: request.nextUrl.searchParams.get("dimension") ?? undefined,
   });
+  const { dimension, ...filters } = parsed;
+  return {
+    dimension,
+    filters: { ...filters, from: new Date(filters.from), to: new Date(filters.to) } as Filters,
+  };
 }

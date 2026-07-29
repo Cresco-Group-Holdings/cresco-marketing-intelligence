@@ -13,5 +13,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     );
   }
   const { syncId } = await params;
-  return apiSuccess({ result: await socialAnalyticsSyncService.process(syncId) }, { requestId });
+  return apiSuccess(
+    { result: await socialAnalyticsSyncService.process(syncId, `worker-${requestId}`) },
+    { requestId },
+  );
 }

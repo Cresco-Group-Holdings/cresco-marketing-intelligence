@@ -31,6 +31,27 @@ These may be omitted during local development. The environment module reports wh
 | `TIKTOK_CLIENT_SECRET` | Server only | TikTok OAuth |
 | `LINKEDIN_CLIENT_ID` | Server only | LinkedIn OAuth |
 | `LINKEDIN_CLIENT_SECRET` | Server only | LinkedIn OAuth |
+| `X_CLIENT_ID` | Server only | X OAuth |
+| `X_CLIENT_SECRET` | Server only | X OAuth |
+
+## Social analytics synchronisation variables
+
+All values are optional and fall back to production-safe defaults. They are read on each call, so a
+deployment can change cadence without a rebuild.
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `SOCIAL_ANALYTICS_SYNC_ENABLED` | `true` | Set to `false` to stop the scheduler enqueuing new recurring syncs. Manual syncs still work. |
+| `SOCIAL_ANALYTICS_SYNC_INTERVAL_MINUTES` | `360` | Scheduling window. Repeated scheduler runs inside one window collapse onto a single job per account. Clamped to 15–10080. |
+| `SOCIAL_ANALYTICS_SYNC_LEASE_SECONDS` | `300` | Worker lease duration. A `RUNNING` sync whose lease expires is reclaimable by another worker. Clamped to 30–3600. |
+| `SOCIAL_ANALYTICS_SYNC_HEARTBEAT_SECONDS` | `30` | Advisory heartbeat cadence recorded on long-running syncs. Clamped to 5–600. |
+| `SOCIAL_ANALYTICS_SYNC_RETRY_SECONDS` | `60` | Backoff applied after a rate limit or partial failure. Clamped to 5–3600. |
+| `SOCIAL_ANALYTICS_BACKFILL_DAYS` | `90` | Historical window requested from providers that expose post history. Clamped to 1–730. |
+| `SOCIAL_ANALYTICS_BACKFILL_MAX_PAGES` | `20` | Provider history pages walked per worker pass. Remaining pages resume from the persisted cursor. Clamped to 1–200. |
+| `SOCIAL_ANALYTICS_SCHEDULER_BATCH` | `100` | Maximum accounts considered per scheduler run. Clamped to 1–1000. |
+| `SOCIAL_ANALYTICS_WORKER_BATCH` | `10` | Maximum syncs drained per worker invocation. Clamped to 1–50. |
+
+The analytics worker and scheduler endpoints authenticate with `PUBLISHING_WORKER_TOKEN`.
 
 ## Test authentication variables
 
@@ -41,6 +62,7 @@ These are used only in automated tests and local test flows. They are not requir
 | `ALLOW_TEST_AUTH` | Server only | Bypass Supabase auth in middleware and API handlers |
 | `TEST_AUTH_USER_ID` | Server only | Auth user ID used for test bypass |
 | `TEST_AUTH_EMAIL` | Server only | Email used when provisioning the test profile |
+| `ANALYTICS_TEST_DATABASE_URL` | Server only | Connection string for the isolated PostgreSQL database used by `npm run test:database`. The suite is skipped when unset. |
 
 Only `NEXT_PUBLIC_*` variables may be exposed to the browser.
 
