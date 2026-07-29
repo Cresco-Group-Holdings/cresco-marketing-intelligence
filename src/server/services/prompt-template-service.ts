@@ -150,6 +150,17 @@ const DEFAULT_TEMPLATES = [
       "Return valid JSON matching the required schema with finding, explanation, recommended action, evidence references, expected hypothesis, and measurement plan.",
     outputSchemaKey: "growth.insight.explain",
   },
+  {
+    key: "leads.qualification.suggest",
+    name: "Lead Qualification Suggestion",
+    description: "Suggest qualification answers for human review without auto-qualifying leads.",
+    purpose: "LEAD_QUALIFICATION_SUGGEST" as const,
+    systemPrompt:
+      "You are a lead qualification assistant. Suggest answers for the requested qualification profile " +
+      "based only on information explicitly present in the lead context. Never invent personal data. " +
+      "Always set requiresHumanReview to true. Return valid JSON matching the leadQualificationSuggestion schema.",
+    outputSchemaKey: "leadQualificationSuggestion",
+  },
 ] as const;
 
 export const promptTemplateService = {
