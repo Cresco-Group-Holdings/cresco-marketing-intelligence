@@ -260,6 +260,9 @@ model UserProfile {
   socialExperimentsCreated   SocialExperiment[]        @relation("SocialExperimentCreator")
   experimentDecisionsMade    ExperimentDecision[]      @relation("ExperimentDecisionUser")
   experimentReuseConfirmed   ExperimentReuseRecord[]   @relation("ExperimentReuseConfirmer")
+  socialReportsCreated       SocialReport[]            @relation("SocialReportCreator")
+  socialReportSchedulesCreated SocialReportSchedule[]  @relation("SocialReportScheduleCreator")
+  socialReportRecipients     SocialReportRecipient[]   @relation("SocialReportRecipientUser")
 
   @@index([email])
 }
@@ -363,6 +366,8 @@ model Organisation {
   leadExports              LeadExport[]
   crmHandoffs              CrmHandoff[]
   socialExperiments        SocialExperiment[]
+  socialReports            SocialReport[]
+  socialReportSchedules    SocialReportSchedule[]
 
   @@index([status])
   @@index([archivedAt])
@@ -458,6 +463,8 @@ model Project {
   leadExports              LeadExport[]
   crmHandoffs              CrmHandoff[]
   socialExperiments        SocialExperiment[]
+  socialReports            SocialReport[]
+  socialReportSchedules    SocialReportSchedule[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -545,6 +552,8 @@ model Brand {
   leadExports              LeadExport[]
   crmHandoffs              CrmHandoff[]
   socialExperiments        SocialExperiment[]
+  socialReports            SocialReport[]
+  socialReportSchedules    SocialReportSchedule[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -3356,4 +3365,200 @@ model ExperimentReuseRecord {
   confirmedBy      UserProfile      @relation("ExperimentReuseConfirmer", fields: [confirmedByUserId], references: [id], onDelete: Restrict)
 
   @@index([socialExperimentId, reuseType])
+}
+
+// --- Task 2.19: Social media reporting ---
+
+enum SocialReportType {
+  WEEKLY_PERFORMANCE
+  MONTHLY_PERFORMANCE
+  CAMPAIGN_REPORT
+  CHANNEL_REPORT
+  CONTENT_REPORT
+  EXECUTIVE_SUMMARY
+  CLIENT_REPORT
+}
+
+enum SocialReportStatus {
+  DRAFT
+  GENERATING
+  READY
+  FAILED
+  ARCHIVED
+}
+
+enum SocialReportSectionType {
+  OVERVIEW
+  PUBLISHING
+  REACH_IMPRESSIONS
+  ENGAGEMENT
+  VIDEO_PERFORMANCE
+  FOLLOWER_GROWTH
+  TOP_CONTENT
+  WEAK_CONTENT
+  LEADS
+  CAMPAIGN_OUTCOMES
+  RECOMMENDATIONS
+  DATA_LIMITATIONS
+  CUSTOM_NOTES
+  AI_NARRATIVE
+}
+
+enum SocialReportExportFormat {
+  PDF
+  CSV
+  JSON
+}
+
+enum SocialReportExportStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum SocialReportScheduleCadence {
+  WEEKLY
+  MONTHLY
+  CAMPAIGN_END
+}
+
+enum SocialReportShareStatus {
+  DISABLED
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+model SocialReport {
+  id                     String                 @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  reportType             SocialReportType
+  title                  String
+  status                 SocialReportStatus     @default(DRAFT)
+  periodStart            DateTime
+  periodEnd              DateTime
+  timezone               String
+  accountIds             String[]               @default([])
+  enabledSections        SocialReportSectionType[] @default([])
+  selectedMetrics        String[]               @default([])
+  customNotes            String?
+  includeRecommendations Boolean                @default(true)
+  includeCrescoBranding  Boolean                @default(true)
+  narrative              Json?
+  narrativeSource        String?
+  aiRequestId            String?
+  dataLimitations        String[]               @default([])
+  shareToken             String?                @unique
+  shareStatus            SocialReportShareStatus @default(DISABLED)
+  shareExpiresAt         DateTime?
+  createdByUserId        String
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  archivedAt             DateTime?
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile            @relation("SocialReportCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  sections     SocialReportSection[]
+  snapshots    SocialReportSnapshot[]
+  exports      SocialReportExport[]
+  recipients   SocialReportRecipient[]
+
+  @@index([organisationId, brandId, status])
+  @@index([createdByUserId])
+  @@index([periodStart, periodEnd])
+  @@index([shareToken])
+}
+
+model SocialReportSection {
+  id             String                  @id @default(cuid())
+  socialReportId String
+  sectionType    SocialReportSectionType
+  title          String
+  sortOrder      Int                     @default(0)
+  content        Json
+  notes          String?
+
+  socialReport SocialReport @relation(fields: [socialReportId], references: [id], onDelete: Cascade)
+
+  @@unique([socialReportId, sectionType])
+  @@index([socialReportId, sortOrder])
+}
+
+model SocialReportSnapshot {
+  id             String   @id @default(cuid())
+  socialReportId String
+  snapshotData   Json
+  generatedAt    DateTime @default(now())
+
+  socialReport SocialReport @relation(fields: [socialReportId], references: [id], onDelete: Cascade)
+
+  @@index([socialReportId, generatedAt])
+}
+
+model SocialReportSchedule {
+  id              String                      @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  reportType      SocialReportType
+  cadence         SocialReportScheduleCadence
+  timezone        String
+  accountIds      String[]                    @default([])
+  enabledSections SocialReportSectionType[]   @default([])
+  includeRecommendations Boolean              @default(true)
+  includeCrescoBranding  Boolean             @default(true)
+  isActive        Boolean                     @default(true)
+  nextRunAt       DateTime?
+  lastRunAt       DateTime?
+  createdByUserId String
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+
+  organisation Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile             @relation("SocialReportScheduleCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  recipients   SocialReportRecipient[]
+
+  @@index([organisationId, brandId, isActive])
+  @@index([nextRunAt])
+}
+
+model SocialReportRecipient {
+  id         String   @id @default(cuid())
+  scheduleId String?
+  reportId   String?
+  userId     String?
+  email      String
+  addedAt    DateTime @default(now())
+  removedAt  DateTime?
+
+  schedule SocialReportSchedule? @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  report   SocialReport?         @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  user     UserProfile?          @relation("SocialReportRecipientUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([scheduleId])
+  @@index([reportId])
+  @@index([email])
+}
+
+model SocialReportExport {
+  id             String                   @id @default(cuid())
+  socialReportId String
+  format         SocialReportExportFormat
+  status         SocialReportExportStatus @default(PENDING)
+  fileName       String?
+  mimeType       String?
+  rowCount       Int?
+  metadata       Json?
+  createdAt      DateTime                 @default(now())
+  completedAt    DateTime?
+
+  socialReport SocialReport @relation(fields: [socialReportId], references: [id], onDelete: Cascade)
+
+  @@index([socialReportId, createdAt])
 }
