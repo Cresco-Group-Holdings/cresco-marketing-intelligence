@@ -8,7 +8,9 @@ const prisma = vi.hoisted(() => ({
   contentVariant: { findFirst: vi.fn() },
   socialAccount: { findFirst: vi.fn() },
 }));
-const credentials = vi.hoisted(() => ({ readTokens: vi.fn() }));
+const credentials = vi.hoisted(() => ({ readTokens: vi.fn(), upsertTokens: vi.fn() }));
+const linkedInRefresh = vi.hoisted(() => vi.fn());
+const metaRefresh = vi.hoisted(() => vi.fn());
 const storage = vi.hoisted(() => ({
   createSignedUrl: vi
     .fn()
@@ -18,6 +20,12 @@ const storage = vi.hoisted(() => ({
 vi.mock("@/lib/database/prisma", () => ({ prisma }));
 vi.mock("@/server/services/social-credential-service", () => ({
   socialCredentialService: credentials,
+}));
+vi.mock("@/lib/social/linkedin-credential-adapter", () => ({
+  linkedInCredentialAdapter: { refreshAccessToken: linkedInRefresh },
+}));
+vi.mock("@/lib/social/meta-credential-adapter", () => ({
+  metaCredentialAdapter: { refreshAccessToken: metaRefresh },
 }));
 vi.mock("@/lib/storage/supabase-storage-provider", () => ({
   createObjectStorageProvider: () => storage,
@@ -56,6 +64,10 @@ function job(provider: "LINKEDIN" | "FACEBOOK", overrides: Record<string, unknow
     attemptCount: 0,
     maxAttempts: 3,
     publishedMediaId: null,
+    providerContainerId: null,
+    providerUploadState: null,
+    pollingAttemptCount: 0,
+    refreshAttemptCount: 0,
     providerSettings: settings,
     schedule: {
       id: "schedule-1",
@@ -166,6 +178,268 @@ describe("LinkedIn/Facebook durable publishing", () => {
     await expect(linkedInFacebookPublishingService.process("job-1")).rejects.toThrow(
       "another tenant",
     );
+  });
+
+  it("polls a persisted LinkedIn document without uploading it again", async () => {
+    const data = job("LINKEDIN", {
+      providerUploadState: [
+        {
+          assetId: "asset-1",
+          kind: "DOCUMENT",
+          assetUrn: "urn:li:document:1",
+          status: "PROCESSING",
+        },
+      ],
+    });
+    data.schedule.contentVariant.visualAssets = [
+      { marketingAsset: { ...asset, assetType: "DOCUMENT", mimeType: "application/pdf" } },
+    ];
+    prisma.publishingJob.findFirst.mockResolvedValue(data);
+    const fetch = vi.fn().mockResolvedValue(new Response(JSON.stringify({ status: "PROCESSING" })));
+    vi.stubGlobal("fetch", fetch);
+
+    expect(await linkedInFacebookPublishingService.process("job-1")).toMatchObject({
+      state: "PROCESSING",
+    });
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(storage.createSignedUrl).not.toHaveBeenCalled();
+  });
+
+  it("publishes after a persisted LinkedIn video becomes AVAILABLE", async () => {
+    const data = job("LINKEDIN", {
+      providerUploadState: [
+        {
+          assetId: "asset-1",
+          kind: "VIDEO",
+          assetUrn: "urn:li:video:1",
+          status: "PROCESSING",
+        },
+      ],
+    });
+    data.schedule.contentVariant.visualAssets = [
+      { marketingAsset: { ...asset, assetType: "VIDEO", mimeType: "video/mp4" } },
+    ];
+    prisma.publishingJob.findFirst.mockResolvedValue(data);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(new Response(JSON.stringify({ status: "AVAILABLE" })))
+        .mockResolvedValueOnce(
+          new Response(null, {
+            status: 201,
+            headers: { "x-restli-id": "urn:li:share:video" },
+          }),
+        ),
+    );
+
+    expect(await linkedInFacebookPublishingService.process("job-1")).toMatchObject({
+      state: "PUBLISHED",
+      postId: "urn:li:share:video",
+    });
+  });
+
+  it("creates one ordered multi-image LinkedIn post from persisted uploads", async () => {
+    const data = job("LINKEDIN", {
+      providerUploadState: [
+        { assetId: "a1", kind: "IMAGE", assetUrn: "urn:li:image:1", status: "AVAILABLE" },
+        { assetId: "a2", kind: "IMAGE", assetUrn: "urn:li:image:2", status: "AVAILABLE" },
+      ],
+    });
+    data.schedule.contentVariant.visualAssets = [
+      { altText: "First", marketingAsset: { ...asset, id: "a1" } },
+      { altText: "Second", marketingAsset: { ...asset, id: "a2" } },
+    ] as never;
+    prisma.publishingJob.findFirst.mockResolvedValue(data);
+    const fetch = vi.fn().mockResolvedValue(
+      new Response(null, {
+        status: 201,
+        headers: { "x-restli-id": "urn:li:share:multi" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetch);
+
+    await linkedInFacebookPublishingService.process("job-1");
+    expect(fetch).toHaveBeenCalledTimes(1);
+    const body = JSON.parse(String((fetch.mock.calls[0]![1] as RequestInit).body));
+    expect(body.content.multiImage.images).toEqual([
+      { id: "urn:li:image:1", altText: "First" },
+      { id: "urn:li:image:2", altText: "Second" },
+    ]);
+  });
+
+  it("resumes a partial multi-image upload without duplicating the completed image", async () => {
+    const data = job("LINKEDIN", {
+      providerUploadState: [
+        { assetId: "a1", kind: "IMAGE", assetUrn: "urn:li:image:1", status: "AVAILABLE" },
+      ],
+    });
+    data.schedule.contentVariant.visualAssets = [
+      { marketingAsset: { ...asset, id: "a1" } },
+      { marketingAsset: { ...asset, id: "a2", storageKey: "a2.jpg" } },
+    ];
+    prisma.publishingJob.findFirst.mockResolvedValue(data);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            value: { uploadUrl: "https://upload/a2", image: "urn:li:image:2" },
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(new Response("source", { headers: { "content-type": "image/jpeg" } }))
+      .mockResolvedValueOnce(new Response(null, { status: 201 }))
+      .mockResolvedValueOnce(
+        new Response(null, {
+          status: 201,
+          headers: { "x-restli-id": "urn:li:share:multi" },
+        }),
+      );
+    vi.stubGlobal("fetch", fetch);
+
+    await linkedInFacebookPublishingService.process("job-1");
+    expect(fetch).toHaveBeenCalledTimes(4);
+    expect(
+      prisma.publishingJob.update.mock.calls.some((call) =>
+        JSON.stringify(call[0]).includes("urn:li:image:2"),
+      ),
+    ).toBe(true);
+  });
+
+  it("fails a partial multi-image upload safely and preserves completed upload state", async () => {
+    const data = job("LINKEDIN", {
+      providerUploadState: [
+        { assetId: "a1", kind: "IMAGE", assetUrn: "urn:li:image:1", status: "AVAILABLE" },
+      ],
+    });
+    data.schedule.contentVariant.visualAssets = [
+      { marketingAsset: { ...asset, id: "a1" } },
+      { marketingAsset: { ...asset, id: "a2", storageKey: "a2.jpg" } },
+    ];
+    prisma.publishingJob.findFirst.mockResolvedValue(data);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              value: { uploadUrl: "https://upload/a2", image: "urn:li:image:2" },
+            }),
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response("source", { headers: { "content-type": "image/jpeg" } }),
+        )
+        .mockResolvedValueOnce(new Response("failed", { status: 500 })),
+    );
+
+    expect(await linkedInFacebookPublishingService.process("job-1")).toEqual({
+      state: "RETRYING",
+    });
+    expect(prisma.contentItem.update).not.toHaveBeenCalled();
+  });
+
+  it("reconciles a persisted Facebook video without uploading it twice", async () => {
+    const data = job("FACEBOOK", { providerContainerId: "video-1" });
+    data.schedule.contentVariant.visualAssets = [
+      { marketingAsset: { ...asset, assetType: "VIDEO", mimeType: "video/mp4" } },
+    ];
+    prisma.publishingJob.findFirst.mockResolvedValue(data);
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            status: { video_status: "ready" },
+            post_id: "fb-post-video",
+          }),
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({ permalink_url: "https://facebook/video" })),
+      );
+    vi.stubGlobal("fetch", fetch);
+
+    expect(await linkedInFacebookPublishingService.process("job-1")).toMatchObject({
+      state: "PUBLISHED",
+      postId: "fb-post-video",
+    });
+    expect(storage.createSignedUrl).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it("requeues a Facebook Reel while provider processing is in progress", async () => {
+    const data = job("FACEBOOK", {
+      providerContainerId: "reel-1",
+      providerSettings: { provider: "FACEBOOK", pageId: "page-1", publishAsReel: true },
+    });
+    data.schedule.contentVariant.visualAssets = [
+      { marketingAsset: { ...asset, assetType: "VIDEO", mimeType: "video/mp4" } },
+    ];
+    prisma.publishingJob.findFirst.mockResolvedValue(data);
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ status: { video_status: "processing" } })),
+        ),
+    );
+    expect(await linkedInFacebookPublishingService.process("job-1")).toMatchObject({
+      state: "PROCESSING",
+      uploadId: "reel-1",
+    });
+  });
+
+  it("refreshes an expired LinkedIn token and requeues exactly once", async () => {
+    const data = job("LINKEDIN");
+    prisma.publishingJob.findFirst.mockResolvedValue(data);
+    credentials.readTokens.mockResolvedValue({
+      accessToken: "expired",
+      refreshToken: "refresh",
+    });
+    linkedInRefresh.mockResolvedValue({
+      accessToken: "fresh",
+      refreshToken: "new-refresh",
+      scopes: [],
+    });
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("{}", { status: 401 })));
+
+    expect(await linkedInFacebookPublishingService.process("job-1")).toEqual({
+      state: "REQUEUED_AFTER_REFRESH",
+    });
+    expect(credentials.upsertTokens).toHaveBeenCalledWith(
+      "connection-1",
+      expect.objectContaining({ accessToken: "fresh" }),
+    );
+  });
+
+  it("refreshes an expired Facebook token and prevents an infinite refresh loop", async () => {
+    prisma.publishingJob.findFirst.mockResolvedValue(job("FACEBOOK"));
+    metaRefresh.mockResolvedValue({ accessToken: "fresh", scopes: [] });
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockImplementation(() =>
+          Promise.resolve(
+            new Response(JSON.stringify({ error: { code: 190, message: "expired" } }), {
+              status: 400,
+            }),
+          ),
+        ),
+    );
+    expect(await linkedInFacebookPublishingService.process("job-1")).toEqual({
+      state: "REQUEUED_AFTER_REFRESH",
+    });
+
+    prisma.publishingJob.findFirst.mockResolvedValue(job("FACEBOOK", { refreshAttemptCount: 1 }));
+    expect(await linkedInFacebookPublishingService.process("job-1")).toEqual({
+      state: "FAILED",
+    });
+    expect(metaRefresh).toHaveBeenCalledTimes(1);
   });
 
   it("returns an existing job for an idempotent enqueue", async () => {

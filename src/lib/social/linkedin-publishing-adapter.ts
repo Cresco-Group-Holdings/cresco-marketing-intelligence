@@ -121,23 +121,51 @@ export class LinkedInPublishingAdapter {
       throw new LinkedInProviderError("UPLOAD_FAILED", "LinkedIn media upload failed.", true);
   }
 
+  async getAssetStatus(
+    kind: LinkedInMediaKind,
+    assetUrn: string,
+    accessToken: string,
+  ): Promise<"AVAILABLE" | "PROCESSING" | "FAILED" | "EXPIRED"> {
+    if (kind === "IMAGE") return "AVAILABLE";
+    const edge = kind === "VIDEO" ? "videos" : "documents";
+    const response = await this.request(`/${edge}/${encodeURIComponent(assetUrn)}`, accessToken, {
+      method: "GET",
+    });
+    const data = (await response.json()) as { status?: string; processingStatus?: string };
+    const value = String(data.status ?? data.processingStatus ?? "PROCESSING").toUpperCase();
+    if (["AVAILABLE", "READY"].includes(value)) return "AVAILABLE";
+    if (["FAILED", "PROCESSING_FAILED"].includes(value)) return "FAILED";
+    if (value === "EXPIRED") return "EXPIRED";
+    return "PROCESSING";
+  }
+
   async createPost(input: {
     authorUrn: string;
     commentary: string;
     accessToken: string;
     media?: { kind: LinkedInMediaKind; assetUrn: string; title?: string };
+    images?: Array<{ assetUrn: string; altText?: string }>;
     article?: { source: string; title?: string; description?: string };
   }) {
-    const content = input.media
+    const content = input.images?.length
       ? {
-          media: {
-            id: input.media.assetUrn,
-            ...(input.media.title ? { title: input.media.title } : {}),
+          multiImage: {
+            images: input.images.map((image) => ({
+              id: image.assetUrn,
+              ...(image.altText ? { altText: image.altText } : {}),
+            })),
           },
         }
-      : input.article
-        ? { article: input.article }
-        : undefined;
+      : input.media
+        ? {
+            media: {
+              id: input.media.assetUrn,
+              ...(input.media.title ? { title: input.media.title } : {}),
+            },
+          }
+        : input.article
+          ? { article: input.article }
+          : undefined;
     const response = await this.request("/posts", input.accessToken, {
       method: "POST",
       body: JSON.stringify({
