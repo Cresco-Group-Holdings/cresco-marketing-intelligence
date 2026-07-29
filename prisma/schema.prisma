@@ -1718,6 +1718,7 @@ model SocialAccount {
   socialConnection SocialConnection          @relation(fields: [socialConnectionId], references: [id], onDelete: Cascade)
   capabilities     SocialAccountCapability[]
   contentVariants  ContentVariant[]
+  schedules        ContentSchedule[]
 
   @@unique([socialConnectionId, providerAccountId])
   @@index([organisationId])
@@ -1816,6 +1817,117 @@ enum ContentStatus {
   FAILED
   CANCELLED
   ARCHIVED
+}
+
+enum ContentScheduleStatus {
+  DRAFT
+  READY
+  QUEUED
+  PROCESSING
+  COMPLETED
+  PARTIALLY_COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model ContentSchedule {
+  id               String                @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  contentItemId    String
+  contentVariantId String
+  socialAccountId  String
+  scheduledFor     DateTime
+  timezone         String
+  status           ContentScheduleStatus @default(DRAFT)
+  recurrence       Json?
+  occurrenceIndex  Int                   @default(1)
+  createdByUserId  String
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  cancelledAt      DateTime?
+
+  contentItem    ContentItem          @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  contentVariant ContentVariant       @relation(fields: [contentVariantId], references: [id], onDelete: Cascade)
+  socialAccount  SocialAccount        @relation(fields: [socialAccountId], references: [id], onDelete: Restrict)
+  jobs           PublishingJob[]
+  conflicts      SchedulingConflict[]
+
+  @@unique([contentVariantId, scheduledFor])
+  @@index([organisationId])
+  @@index([brandId])
+  @@index([scheduledFor])
+}
+
+model PublishingWindow {
+  id             String         @id @default(cuid())
+  organisationId String
+  brandId        String
+  provider       SocialProvider
+  timezone       String
+  weekdays       Int[]          @default([])
+  startMinute    Int
+  endMinute      Int
+  createdAt      DateTime       @default(now())
+
+  @@index([organisationId])
+}
+
+model PublishingJob {
+  id                String                @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  contentScheduleId String
+  idempotencyKey    String
+  status            ContentScheduleStatus @default(QUEUED)
+  attemptCount      Int                   @default(0)
+  maxAttempts       Int                   @default(3)
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  schedule          ContentSchedule       @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
+  attempts          PublishingAttempt[]
+
+  @@unique([contentScheduleId, idempotencyKey])
+}
+
+model PublishingAttempt {
+  id               String        @id @default(cuid())
+  publishingJobId  String
+  attemptNumber    Int
+  status           String
+  providerResponse Json?
+  errorMessage     String?
+  createdAt        DateTime      @default(now())
+  job              PublishingJob @relation(fields: [publishingJobId], references: [id], onDelete: Cascade)
+
+  @@unique([publishingJobId, attemptNumber])
+}
+
+model SchedulingConflict {
+  id                String          @id @default(cuid())
+  contentScheduleId String
+  conflictType      String
+  message           String
+  createdAt         DateTime        @default(now())
+  schedule          ContentSchedule @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
+}
+
+model CalendarNote {
+  id              String   @id @default(cuid())
+  organisationId  String
+  projectId       String?
+  brandId         String?
+  noteDate        DateTime
+  timezone        String
+  body            String
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organisationId])
+  @@index([noteDate])
 }
 
 enum ContentPriority {
@@ -1922,6 +2034,7 @@ model ContentItem {
   provenance       ContentProvenance?
   complianceChecks ContentComplianceCheck[]
   statusHistory    ContentStatusHistory[]
+  schedules        ContentSchedule[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -1968,6 +2081,7 @@ model ContentVariant {
   comments         ContentComment[]
   complianceChecks ContentComplianceCheck[]
   visualAssets     ContentVariantAsset[]
+  schedules        ContentSchedule[]
 
   @@index([organisationId])
   @@index([projectId])
