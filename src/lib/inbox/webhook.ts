@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 
 export function digestPayload(payload: string): string {
   return createHash("sha256").update(payload).digest("hex");
@@ -42,7 +42,7 @@ export function validateHmacSha256Signature(input: {
   if (!input.signatureHeader?.startsWith("sha256=")) {
     return false;
   }
-  const expected = createHash("sha256").update(input.payload).update(input.secret).digest("hex");
+  const expected = createHmac("sha256", input.secret).update(input.payload).digest("hex");
   const provided = input.signatureHeader.slice("sha256=".length);
   try {
     const expectedBuffer = Buffer.from(expected, "hex");

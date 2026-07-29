@@ -25,6 +25,7 @@ export type IngestConversation = {
 
 export type IngestMessage = {
   providerMessageId: string;
+  providerConversationId?: string;
   providerParticipantId?: string;
   direction: SocialMessageDirection;
   body: string;
