@@ -79,6 +79,7 @@ describe("marketingAssetService", () => {
       primaryColour: null,
       secondaryColour: null,
       accentColour: null,
+      analyticsTimezone: null,
       status: "ACTIVE",
       createdByUserId: testIds.userProfileId,
       createdAt: new Date(),

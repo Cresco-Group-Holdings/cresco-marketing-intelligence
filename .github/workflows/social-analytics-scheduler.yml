@@ -1,0 +1,31 @@
+name: Social Analytics Scheduler
+
+on:
+  schedule:
+    # Every six hours, matching the SOCIAL_ANALYTICS_SYNC_INTERVAL_MINUTES default of 360.
+    - cron: "15 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Maximum analytics syncs to drain in this run
+        required: false
+        default: "10"
+
+concurrency:
+  group: social-analytics-scheduler
+  cancel-in-progress: false
+
+jobs:
+  scheduler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Enqueue and drain social analytics syncs
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          PUBLISHING_WORKER_TOKEN: ${{ secrets.PUBLISHING_WORKER_TOKEN }}
+          SOCIAL_ANALYTICS_WORKER_BATCH: ${{ github.event.inputs.limit || '10' }}
+        run: node scripts/run-social-analytics-scheduler.mjs

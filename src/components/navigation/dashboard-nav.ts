@@ -76,7 +76,6 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/analytics",
     icon: BarChart3,
     description: "Performance and intelligence",
-    comingSoon: true,
   },
   {
     label: "Connectors",

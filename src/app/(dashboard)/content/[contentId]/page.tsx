@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api/client";
 import { TikTokPublishPanel } from "@/components/publishing/tiktok-publish-panel";
 import { LinkedInFacebookPublishPanel } from "@/components/publishing/linkedin-facebook-publish-panel";
+import { YouTubeXPublishPanel } from "@/components/publishing/youtube-x-publish-panel";
 
 type ContentDetail = {
   id: string;
@@ -205,6 +206,31 @@ export default function ContentDetailPage() {
                     variant={{
                       ...variant,
                       provider: variant.provider as "LINKEDIN" | "FACEBOOK",
+                      socialAccountId: variant.socialAccountId!,
+                      socialAccount: variant.socialAccount!,
+                    }}
+                  />
+                </div>
+              ))
+          : null}
+
+        {item.status === "APPROVED" && organisationId && brandId
+          ? item.variants
+              .filter(
+                (variant) =>
+                  (variant.provider === "YOUTUBE" || variant.provider === "X") &&
+                  variant.socialAccountId &&
+                  variant.socialAccount,
+              )
+              .map((variant) => (
+                <div key={`publish-${variant.id}`} className="lg:col-span-2">
+                  <YouTubeXPublishPanel
+                    brandId={brandId}
+                    organisationId={organisationId}
+                    contentId={contentId}
+                    variant={{
+                      ...variant,
+                      provider: variant.provider as "YOUTUBE" | "X",
                       socialAccountId: variant.socialAccountId!,
                       socialAccount: variant.socialAccount!,
                     }}

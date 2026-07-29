@@ -93,6 +93,7 @@ describe("brandKnowledgeService", () => {
       primaryColour: null,
       secondaryColour: null,
       accentColour: null,
+      analyticsTimezone: null,
       status: "ACTIVE",
       createdByUserId: brandKnowledgeTestIds.userProfileId,
       createdAt: new Date(),

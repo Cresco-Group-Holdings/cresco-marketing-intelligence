@@ -58,12 +58,13 @@ const BASE_CAPABILITIES: Record<SocialAccountType, SocialCapability[]> = {
 };
 
 const SCOPE_CAPABILITY_MAP: Record<string, SocialCapability[]> = {
-  "pages_manage_posts": ["PUBLISH_TEXT", "PUBLISH_IMAGE", "PUBLISH_CAROUSEL"],
-  "pages_read_engagement": ["READ_INSIGHTS", "READ_COMMENTS"],
-  "instagram_basic": ["READ_INSIGHTS"],
-  "instagram_content_publish": ["PUBLISH_IMAGE", "PUBLISH_CAROUSEL", "PUBLISH_VIDEO"],
-  "w_member_social": ["PUBLISH_TEXT", "PUBLISH_IMAGE"],
-  "r_organization_social": ["READ_INSIGHTS", "READ_COMMENTS"],
+  pages_manage_posts: ["PUBLISH_TEXT", "PUBLISH_IMAGE", "PUBLISH_CAROUSEL"],
+  pages_read_engagement: ["READ_INSIGHTS", "READ_COMMENTS"],
+  instagram_basic: ["READ_INSIGHTS"],
+  instagram_manage_insights: ["READ_INSIGHTS"],
+  instagram_content_publish: ["PUBLISH_IMAGE", "PUBLISH_CAROUSEL", "PUBLISH_VIDEO"],
+  w_member_social: ["PUBLISH_TEXT", "PUBLISH_IMAGE"],
+  r_organization_social: ["READ_INSIGHTS", "READ_COMMENTS"],
   "video.upload": ["PUBLISH_VIDEO", "PUBLISH_SHORT_VIDEO"],
   "tweet.read": ["READ_INSIGHTS", "READ_COMMENTS"],
   "tweet.write": ["PUBLISH_TEXT", "PUBLISH_IMAGE"],
@@ -94,10 +95,7 @@ export function detectCapabilities(
   return Array.from(granted);
 }
 
-export function getMissingScopes(
-  requiredScopes: string[],
-  grantedScopes: string[],
-): string[] {
+export function getMissingScopes(requiredScopes: string[], grantedScopes: string[]): string[] {
   const grantedSet = new Set(grantedScopes);
   return requiredScopes.filter((scope) => !grantedSet.has(scope));
 }

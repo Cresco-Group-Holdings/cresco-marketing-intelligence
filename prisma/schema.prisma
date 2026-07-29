@@ -423,19 +423,20 @@ model Project {
 }
 
 model Brand {
-  id              String      @id @default(cuid())
-  organisationId  String
-  projectId       String
-  name            String
-  slug            String
-  description     String?
-  website         String?
-  primaryDomain   String?
-  logoUrl         String?
-  faviconUrl      String?
-  primaryColour   String?
-  secondaryColour String?
-  accentColour    String?
+  id                 String      @id @default(cuid())
+  organisationId     String
+  projectId          String
+  name               String
+  slug               String
+  description        String?
+  website            String?
+  primaryDomain      String?
+  logoUrl            String?
+  faviconUrl         String?
+  primaryColour      String?
+  secondaryColour    String?
+  accentColour       String?
+  analyticsTimezone  String?
   status          BrandStatus @default(DRAFT)
   createdByUserId String
   createdAt       DateTime    @default(now())
@@ -1161,6 +1162,160 @@ model ContentVariantAsset {
   @@unique([contentVariantId, marketingAssetId])
   @@index([organisationId])
   @@index([brandId])
+}
+
+enum SocialAnalyticsSyncStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+model SocialPostMetric {
+  id                  String         @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  socialAccountId     String
+  contentItemId       String?
+  contentVariantId    String?
+  provider            SocialProvider
+  providerPostId      String
+  providerPublishedAt DateTime?
+  discoverySource     String         @default("PLATFORM_PUBLISHING")
+  metricType          String
+  metricValue         Decimal        @db.Decimal(24, 6)
+  measuredAt          DateTime
+  metricPeriod        String
+  providerMetadata    Json?
+  createdAt           DateTime       @default(now())
+
+  @@unique([socialAccountId, providerPostId, metricType, measuredAt, metricPeriod])
+  @@index([organisationId, brandId, measuredAt])
+  @@index([contentItemId])
+  @@index([contentVariantId])
+  @@index([provider, metricType])
+}
+
+model SocialAccountMetric {
+  id               String         @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  socialAccountId  String
+  provider         SocialProvider
+  metricType       String
+  metricValue      Decimal        @db.Decimal(24, 6)
+  measuredAt       DateTime
+  metricPeriod     String
+  providerMetadata Json?
+  createdAt        DateTime       @default(now())
+
+  @@unique([socialAccountId, metricType, measuredAt, metricPeriod])
+  @@index([organisationId, brandId, measuredAt])
+  @@index([provider, metricType])
+}
+
+model SocialMetricSnapshot {
+  id               String         @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  socialAccountId  String
+  provider         SocialProvider
+  providerEntityId String
+  metricScope      String
+  measuredAt       DateTime
+  idempotencyKey   String         @unique
+  providerMetadata Json?
+  createdAt        DateTime       @default(now())
+
+  @@index([organisationId, brandId, measuredAt])
+  @@index([socialAccountId, providerEntityId])
+}
+
+model SocialAnalyticsSync {
+  id                  String                    @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  socialAccountId     String
+  provider            SocialProvider
+  status              SocialAnalyticsSyncStatus @default(QUEUED)
+  syncType            String
+  idempotencyKey      String                    @unique
+  cursor              Json?
+  attemptCount        Int                       @default(0)
+  maxAttempts         Int                       @default(3)
+  refreshAttemptCount Int                       @default(0)
+  recoveryCount       Int                       @default(0)
+  maxRecoveries       Int                       @default(3)
+  scheduledFor        DateTime?
+  nextRetryAt         DateTime?
+  startedAt           DateTime?
+  heartbeatAt         DateTime?
+  leaseExpiresAt      DateTime?
+  workerId            String?
+  completedAt         DateTime?
+  backfillFrom        DateTime?
+  backfillTo          DateTime?
+  backfillCompleted   Boolean                   @default(false)
+  postsProcessed      Int                       @default(0)
+  metricsStored       Int                       @default(0)
+  unavailableMetrics  String[]                  @default([])
+  lastError           String?
+  createdByUserId     String?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  @@index([organisationId, brandId])
+  @@index([socialAccountId, status])
+  @@index([scheduledFor])
+  @@index([status, leaseExpiresAt])
+  @@index([status, nextRetryAt])
+}
+
+model SocialMetricDefinition {
+  id                  String         @id @default(cuid())
+  canonicalName       String
+  provider            SocialProvider
+  providerSourceField String
+  unit                String
+  aggregationRule     String
+  cumulative          Boolean
+  metricScope         String
+  limitations         String?
+  active              Boolean        @default(true)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@unique([provider, providerSourceField, metricScope])
+  @@index([canonicalName])
+}
+
+model SocialAnalyticsError {
+  id                    String          @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  socialAccountId       String
+  provider              SocialProvider?
+  socialAnalyticsSyncId String
+  providerPostId        String?
+  syncPhase             String   @default("POST_METRICS")
+  category              String
+  providerCode          String?
+  message               String
+  retryable             Boolean  @default(false)
+  terminal              Boolean  @default(false)
+  providerMetadata      Json?
+  createdAt             DateTime @default(now())
+
+  @@index([socialAnalyticsSyncId])
+  @@index([organisationId, brandId])
+  @@index([provider, category])
 }
 
 model AIRequest {
