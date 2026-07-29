@@ -47,6 +47,12 @@ export const withContentSchedule = (
   handler: Parameters<typeof withApiHandler>[1],
 ) => withContentPermission(request, organisationId, PERMISSIONS["content.schedule"], handler);
 
+export const withContentPublish = (
+  request: NextRequest,
+  organisationId: string,
+  handler: Parameters<typeof withApiHandler>[1],
+) => withContentPermission(request, organisationId, PERMISSIONS["content.publish"], handler);
+
 export const withContentGenerate = (
   request: NextRequest,
   organisationId: string,
