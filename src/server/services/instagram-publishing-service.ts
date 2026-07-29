@@ -3,6 +3,7 @@ import { AppError } from "@/lib/errors";
 import { InstagramPublishingAdapter } from "@/lib/social/instagram-publishing-adapter";
 import { createObjectStorageProvider } from "@/lib/storage/supabase-storage-provider";
 import { socialCredentialService } from "@/server/services/social-credential-service";
+import { socialAdapterFactory } from "@/lib/social/adapters/mock-social-adapter";
 
 export const instagramPublishingService = {
   async process(jobId: string) {
@@ -24,6 +25,19 @@ export const instagramPublishingService = {
       await prisma.contentSchedule.update({ where: { id: schedule.id }, data: { status: "COMPLETED" } });
       return result;
     } catch (error) {
+      if (
+        error instanceof AppError &&
+        /token expired|token.*invalid/i.test(error.message) &&
+        tokens.refreshToken
+      ) {
+        const adapter = socialAdapterFactory.getAdapter("INSTAGRAM");
+        if (adapter) {
+          const refreshed = await adapter.refreshAccessToken({ refreshToken: tokens.refreshToken });
+          await socialCredentialService.upsertTokens(schedule.socialAccount.socialConnectionId, refreshed);
+          await prisma.publishingJob.update({ where: { id: job.id }, data: { status: "QUEUED" } });
+          return { retried: true, reason: "credentials_refreshed" };
+        }
+      }
       await prisma.publishingAttempt.create({ data: { publishingJobId: job.id, attemptNumber: job.attemptCount + 1, status: "FAILED", errorMessage: error instanceof Error ? error.message : "Publish failed" } });
       await prisma.publishingJob.update({ where: { id: job.id }, data: { status: "FAILED" } });
       throw error;
