@@ -12,6 +12,7 @@ import {
   Settings,
   Share2,
   Sprout,
+  UserPlus,
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -83,6 +84,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/growth",
     icon: Sprout,
     description: "Evidence-backed content recommendations",
+  },
+  {
+    label: "Leads",
+    href: "/leads",
+    icon: UserPlus,
+    description: "Social engagement to qualified leads",
   },
   {
     label: "Connectors",

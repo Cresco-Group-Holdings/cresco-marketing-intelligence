@@ -172,6 +172,7 @@ enum AIPurpose {
   SEO_ANALYSIS
   ANALYTICS_INSIGHT
   SALES_ASSIST
+  LEAD_QUALIFICATION_SUGGEST
 }
 
 enum AIRequestStatus {
@@ -251,6 +252,11 @@ model UserProfile {
   contentStatusChanges       ContentStatusHistory[]    @relation("ContentStatusChanger")
   growthExperimentsCreated   GrowthExperiment[]        @relation("GrowthExperimentCreator")
   recommendationOutcomes     RecommendationOutcome[]   @relation("RecommendationOutcomeUser")
+  marketingLeadsCreated      MarketingLead[]           @relation("MarketingLeadCreator")
+  leadAssignmentsReceived    LeadAssignment[]          @relation("LeadAssignee")
+  leadAssignmentsMade        LeadAssignment[]          @relation("LeadAssigner")
+  leadExportsRequested       LeadExport[]              @relation("LeadExportRequester")
+  leadQualificationsReviewed LeadQualification[]       @relation("LeadQualificationReviewer")
 
   @@index([email])
 }
@@ -345,6 +351,14 @@ model Organisation {
   recommendationOutcomes   RecommendationOutcome[]
   growthExperiments        GrowthExperiment[]
   growthAnalysisRuns       GrowthAnalysisRun[]
+  marketingLeads           MarketingLead[]
+  leadSources              LeadSource[]
+  leadActivities           LeadActivity[]
+  leadQualifications       LeadQualification[]
+  leadConsents             LeadConsent[]
+  leadAssignments          LeadAssignment[]
+  leadExports              LeadExport[]
+  crmHandoffs              CrmHandoff[]
 
   @@index([status])
   @@index([archivedAt])
@@ -431,6 +445,14 @@ model Project {
   performanceBenchmarks    PerformanceBenchmark[]
   growthExperiments        GrowthExperiment[]
   growthAnalysisRuns       GrowthAnalysisRun[]
+  marketingLeads           MarketingLead[]
+  leadSources              LeadSource[]
+  leadActivities           LeadActivity[]
+  leadQualifications       LeadQualification[]
+  leadConsents             LeadConsent[]
+  leadAssignments          LeadAssignment[]
+  leadExports              LeadExport[]
+  crmHandoffs              CrmHandoff[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -439,25 +461,25 @@ model Project {
 }
 
 model Brand {
-  id                 String      @id @default(cuid())
-  organisationId     String
-  projectId          String
-  name               String
-  slug               String
-  description        String?
-  website            String?
-  primaryDomain      String?
-  logoUrl            String?
-  faviconUrl         String?
-  primaryColour      String?
-  secondaryColour    String?
-  accentColour       String?
-  analyticsTimezone  String?
-  status          BrandStatus @default(DRAFT)
-  createdByUserId String
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  archivedAt      DateTime?
+  id                String      @id @default(cuid())
+  organisationId    String
+  projectId         String
+  name              String
+  slug              String
+  description       String?
+  website           String?
+  primaryDomain     String?
+  logoUrl           String?
+  faviconUrl        String?
+  primaryColour     String?
+  secondaryColour   String?
+  accentColour      String?
+  analyticsTimezone String?
+  status            BrandStatus @default(DRAFT)
+  createdByUserId   String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  archivedAt        DateTime?
 
   organisation             Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project                  Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -509,6 +531,14 @@ model Brand {
   recommendationOutcomes   RecommendationOutcome[]
   growthExperiments        GrowthExperiment[]
   growthAnalysisRuns       GrowthAnalysisRun[]
+  marketingLeads           MarketingLead[]
+  leadSources              LeadSource[]
+  leadActivities           LeadActivity[]
+  leadQualifications       LeadQualification[]
+  leadConsents             LeadConsent[]
+  leadAssignments          LeadAssignment[]
+  leadExports              LeadExport[]
+  crmHandoffs              CrmHandoff[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -1328,14 +1358,14 @@ model SocialAnalyticsError {
   provider              SocialProvider?
   socialAnalyticsSyncId String
   providerPostId        String?
-  syncPhase             String   @default("POST_METRICS")
+  syncPhase             String          @default("POST_METRICS")
   category              String
   providerCode          String?
   message               String
-  retryable             Boolean  @default(false)
-  terminal              Boolean  @default(false)
+  retryable             Boolean         @default(false)
+  terminal              Boolean         @default(false)
   providerMetadata      Json?
-  createdAt             DateTime @default(now())
+  createdAt             DateTime        @default(now())
 
   @@index([socialAnalyticsSyncId])
   @@index([organisationId, brandId])
@@ -1898,6 +1928,7 @@ model SocialAccount {
   capabilities     SocialAccountCapability[]
   contentVariants  ContentVariant[]
   schedules        ContentSchedule[]
+  marketingLeads   MarketingLead[]
 
   @@unique([socialConnectionId, providerAccountId])
   @@index([organisationId])
@@ -2265,6 +2296,7 @@ model ContentItem {
   complianceChecks ContentComplianceCheck[]
   statusHistory    ContentStatusHistory[]
   schedules        ContentSchedule[]
+  marketingLeads   MarketingLead[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -2605,36 +2637,36 @@ model GrowthAnalysisRun {
 }
 
 model GrowthInsight {
-  id                     String                @id @default(cuid())
-  organisationId         String
-  projectId              String
-  brandId                String
-  analysisRunId          String?
-  idempotencyKey         String
-  insightType            GrowthInsightType
-  title                  String
-  summary                String
-  dataStatus             GrowthDataStatus      @default(INSUFFICIENT)
-  confidenceLevel        GrowthConfidenceLevel @default(LOW)
-  comparedPeriodStart    DateTime?
-  comparedPeriodEnd      DateTime?
-  analysisPeriodStart    DateTime
-  analysisPeriodEnd      DateTime
-  minimumDataThreshold   Json
-  sourceMetrics          Json                  @default("{}")
-  supportingContentIds   String[]              @default([])
-  correlationDisclaimer  String                @default("Patterns reflect correlation with performance, not proven causation.")
-  generatedAt            DateTime              @default(now())
-  expiresAt              DateTime
-  supersededAt           DateTime?
-  metadata               Json?
+  id                    String                @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  analysisRunId         String?
+  idempotencyKey        String
+  insightType           GrowthInsightType
+  title                 String
+  summary               String
+  dataStatus            GrowthDataStatus      @default(INSUFFICIENT)
+  confidenceLevel       GrowthConfidenceLevel @default(LOW)
+  comparedPeriodStart   DateTime?
+  comparedPeriodEnd     DateTime?
+  analysisPeriodStart   DateTime
+  analysisPeriodEnd     DateTime
+  minimumDataThreshold  Json
+  sourceMetrics         Json                  @default("{}")
+  supportingContentIds  String[]              @default([])
+  correlationDisclaimer String                @default("Patterns reflect correlation with performance, not proven causation.")
+  generatedAt           DateTime              @default(now())
+  expiresAt             DateTime
+  supersededAt          DateTime?
+  metadata              Json?
 
-  organisation      Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project           Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand             Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  analysisRun       GrowthAnalysisRun?      @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
-  evidence          InsightEvidence[]
-  recommendations   GrowthRecommendation[]
+  organisation    Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  analysisRun     GrowthAnalysisRun?     @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
+  evidence        InsightEvidence[]
+  recommendations GrowthRecommendation[]
 
   @@index([organisationId, brandId, generatedAt])
   @@index([brandId, insightType])
@@ -2693,21 +2725,21 @@ model PerformanceBenchmark {
 }
 
 model ContentPattern {
-  id                    String   @id @default(cuid())
-  organisationId        String
-  projectId             String
-  brandId               String
-  dimension             String
-  dimensionValue        String
-  metricKey             String
-  metricValue           Decimal  @db.Decimal(24, 6)
-  sampleSize            Int
-  correlationNote       String   @default("Correlation with performance; not proven causation.")
-  periodStart           DateTime
-  periodEnd             DateTime
-  supportingContentIds  String[] @default([])
-  computedAt            DateTime @default(now())
-  metadata              Json?
+  id                   String   @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  dimension            String
+  dimensionValue       String
+  metricKey            String
+  metricValue          Decimal  @db.Decimal(24, 6)
+  sampleSize           Int
+  correlationNote      String   @default("Correlation with performance; not proven causation.")
+  periodStart          DateTime
+  periodEnd            DateTime
+  supportingContentIds String[] @default([])
+  computedAt           DateTime @default(now())
+  metadata             Json?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -2718,44 +2750,44 @@ model ContentPattern {
 }
 
 model GrowthRecommendation {
-  id                     String                      @id @default(cuid())
-  organisationId         String
-  projectId              String
-  brandId                String
-  analysisRunId          String?
-  growthInsightId        String?
-  idempotencyKey         String?
-  insightType            GrowthInsightType?
-  analysisPeriodStart    DateTime?
-  analysisPeriodEnd      DateTime?
-  title                  String
-  description            String
-  priority               Int                         @default(50)
-  status                 GrowthRecommendationStatus  @default(ACTIVE)
-  finding                String?
-  explanation            String?
-  explanationSource      String?
-  recommendedAction      String?
-  evidenceSummary        Json                        @default("[]")
-  expectedHypothesis     String?
-  measurementPlan        String?
-  aiGenerated            Boolean                     @default(false)
-  aiRequestId            String?
-  draftContentItemId     String?
-  draftExperimentId      String?
-  latestFeedbackStatus   RecommendationFeedbackStatus?
-  latestOutcomeId        String?
-  expiresAt              DateTime?
-  createdAt              DateTime                    @default(now())
-  updatedAt              DateTime                    @updatedAt
+  id                   String                        @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  analysisRunId        String?
+  growthInsightId      String?
+  idempotencyKey       String?
+  insightType          GrowthInsightType?
+  analysisPeriodStart  DateTime?
+  analysisPeriodEnd    DateTime?
+  title                String
+  description          String
+  priority             Int                           @default(50)
+  status               GrowthRecommendationStatus    @default(ACTIVE)
+  finding              String?
+  explanation          String?
+  explanationSource    String?
+  recommendedAction    String?
+  evidenceSummary      Json                          @default("[]")
+  expectedHypothesis   String?
+  measurementPlan      String?
+  aiGenerated          Boolean                       @default(false)
+  aiRequestId          String?
+  draftContentItemId   String?
+  draftExperimentId    String?
+  latestFeedbackStatus RecommendationFeedbackStatus?
+  latestOutcomeId      String?
+  expiresAt            DateTime?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
 
-  organisation   Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand          Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  analysisRun    GrowthAnalysisRun?      @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
-  growthInsight  GrowthInsight?          @relation(fields: [growthInsightId], references: [id], onDelete: SetNull)
-  outcomes       RecommendationOutcome[]
-  experiments    GrowthExperiment[]
+  organisation  Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  analysisRun   GrowthAnalysisRun?      @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
+  growthInsight GrowthInsight?          @relation(fields: [growthInsightId], references: [id], onDelete: SetNull)
+  outcomes      RecommendationOutcome[]
+  experiments   GrowthExperiment[]
 
   @@index([organisationId, brandId, status])
   @@index([brandId, createdAt])
@@ -2765,7 +2797,7 @@ model GrowthRecommendation {
 }
 
 model RecommendationOutcome {
-  id                     String                     @id @default(cuid())
+  id                     String                       @id @default(cuid())
   organisationId         String
   brandId                String
   growthRecommendationId String
@@ -2775,8 +2807,8 @@ model RecommendationOutcome {
   outcomeNotes           String?
   measuredOutcome        Json?
   linkedExperimentId     String?
-  isEffective            Boolean                    @default(true)
-  createdAt              DateTime                   @default(now())
+  isEffective            Boolean                      @default(true)
+  createdAt              DateTime                     @default(now())
 
   organisation         Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   brand                Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
@@ -2814,4 +2846,311 @@ model GrowthExperiment {
 
   @@index([organisationId, brandId, status])
   @@index([growthRecommendationId])
+}
+
+// --- Task 2.14: Marketing leads ---
+
+enum MarketingLeadStatus {
+  NEW
+  REVIEWING
+  QUALIFIED
+  UNQUALIFIED
+  CONTACTED
+  CONVERTED
+  CLOSED
+  DELETED
+}
+
+enum LeadCreationSource {
+  SOCIAL_COMMENT
+  SOCIAL_MESSAGE
+  SOCIAL_MENTION
+  LEAD_FORM
+  LANDING_PAGE_FORM
+  MANUAL
+}
+
+enum LeadQualificationProfile {
+  CRESCO_GRANTS_INTELLIGENCE
+  CAPITAL_CRESCO_TERMINAL
+}
+
+enum LeadConsentState {
+  UNKNOWN
+  GRANTED
+  DENIED
+  WITHDRAWN
+}
+
+enum LeadRetentionStatus {
+  ACTIVE
+  SCHEDULED_FOR_DELETION
+  DELETED
+  SUPPRESSED
+}
+
+enum CrmProvider {
+  HUBSPOT
+  SALESFORCE
+  PIPEDRIVE
+  CRESCO_INTERNAL
+  WEBHOOK
+  CSV
+  FAKE
+}
+
+enum CrmHandoffStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+enum LeadActivityType {
+  CREATED
+  STATUS_CHANGED
+  ASSIGNED
+  QUALIFICATION_UPDATED
+  CONSENT_UPDATED
+  NOTE_ADDED
+  CRM_HANDOFF
+  EXPORTED
+  DELETED
+  SUPPRESSED
+}
+
+model MarketingLead {
+  id                     String              @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  status                 MarketingLeadStatus @default(NEW)
+  displayName            String?
+  providerUsername       String?
+  providerProfileUrl     String?
+  email                  String?
+  phone                  String?
+  company                String?
+  jobRole                String?
+  country                String?
+  expressedInterest      String?
+  sourcePlatform         SocialProvider?
+  sourcePostId           String?
+  sourceCampaign         String?
+  originalInteraction    String?
+  socialConversationId   String?
+  socialAccountId        String?
+  contentItemId          String?
+  primaryCta             String?
+  destinationUrl         String?
+  conversionEventId      String?
+  firstInteractionAt     DateTime?
+  latestInteractionAt    DateTime?
+  assignedToUserId       String?
+  duplicateOfLeadId      String?
+  isDuplicateWarning     Boolean             @default(false)
+  retentionStatus        LeadRetentionStatus @default(ACTIVE)
+  lawfulBasisPlaceholder String?
+  createdByUserId        String
+  deletedAt              DateTime?
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+
+  organisation   Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  socialAccount  SocialAccount?      @relation(fields: [socialAccountId], references: [id], onDelete: SetNull)
+  contentItem    ContentItem?        @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  createdBy      UserProfile         @relation("MarketingLeadCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  duplicateOf    MarketingLead?      @relation("LeadDuplicate", fields: [duplicateOfLeadId], references: [id], onDelete: SetNull)
+  duplicates     MarketingLead[]     @relation("LeadDuplicate")
+  source         LeadSource?
+  activities     LeadActivity[]
+  qualifications LeadQualification[]
+  consents       LeadConsent[]
+  assignments    LeadAssignment[]
+  crmHandoffs    CrmHandoff[]
+
+  @@index([organisationId, brandId, status])
+  @@index([brandId, createdAt])
+  @@index([email])
+  @@index([phone])
+  @@index([providerUsername, sourcePlatform])
+  @@index([socialConversationId])
+  @@index([assignedToUserId])
+  @@index([retentionStatus])
+}
+
+model LeadSource {
+  id                   String             @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  marketingLeadId      String             @unique
+  creationSource       LeadCreationSource
+  provider             SocialProvider?
+  socialAccountId      String?
+  providerPostId       String?
+  contentItemId        String?
+  campaignName         String?
+  cta                  String?
+  destinationUrl       String?
+  interactionReference String?
+  metadata             Json?
+  capturedAt           DateTime           @default(now())
+  createdAt            DateTime           @default(now())
+
+  organisation  Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingLead MarketingLead @relation(fields: [marketingLeadId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId])
+  @@index([creationSource])
+}
+
+model LeadActivity {
+  id              String           @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  marketingLeadId String
+  activityType    LeadActivityType
+  summary         String
+  metadata        Json?
+  actorUserId     String?
+  createdAt       DateTime         @default(now())
+
+  organisation  Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingLead MarketingLead @relation(fields: [marketingLeadId], references: [id], onDelete: Cascade)
+
+  @@index([marketingLeadId, createdAt])
+  @@index([organisationId, brandId])
+}
+
+model LeadQualification {
+  id               String                   @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  marketingLeadId  String
+  profile          LeadQualificationProfile
+  answers          Json                     @default("{}")
+  score            Int?
+  qualified        Boolean?
+  aiSuggested      Boolean                  @default(false)
+  aiRequestId      String?
+  requiresReview   Boolean                  @default(true)
+  reviewedByUserId String?
+  reviewedAt       DateTime?
+  reviewNotes      String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  organisation  Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingLead MarketingLead @relation(fields: [marketingLeadId], references: [id], onDelete: Cascade)
+  reviewedBy    UserProfile?  @relation("LeadQualificationReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([marketingLeadId, profile])
+  @@index([marketingLeadId, profile])
+  @@index([organisationId, brandId])
+}
+
+model LeadConsent {
+  id               String           @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  marketingLeadId  String
+  consentState     LeadConsentState @default(UNKNOWN)
+  lawfulBasis      String?
+  marketingOptIn   Boolean          @default(false)
+  suppressed       Boolean          @default(false)
+  notes            String?
+  recordedByUserId String?
+  recordedAt       DateTime         @default(now())
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  organisation  Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingLead MarketingLead @relation(fields: [marketingLeadId], references: [id], onDelete: Cascade)
+
+  @@index([marketingLeadId])
+  @@index([organisationId, brandId])
+}
+
+model LeadAssignment {
+  id              String   @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  marketingLeadId String
+  assignedToId    String
+  assignedById    String
+  note            String?
+  createdAt       DateTime @default(now())
+
+  organisation  Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingLead MarketingLead @relation(fields: [marketingLeadId], references: [id], onDelete: Cascade)
+  assignedTo    UserProfile   @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: Restrict)
+  assignedBy    UserProfile   @relation("LeadAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@index([marketingLeadId, createdAt])
+  @@index([assignedToId])
+}
+
+model LeadExport {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  format         String
+  rowCount       Int
+  filters        Json?
+  requestedById  String
+  fileName       String?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  requestedBy  UserProfile  @relation("LeadExportRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, brandId, createdAt])
+}
+
+model CrmHandoff {
+  id              String           @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  marketingLeadId String
+  provider        CrmProvider
+  idempotencyKey  String
+  status          CrmHandoffStatus @default(PENDING)
+  externalId      String?
+  errorMessage    String?
+  payload         Json?
+  response        Json?
+  attemptedAt     DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  organisation  Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingLead MarketingLead @relation(fields: [marketingLeadId], references: [id], onDelete: Cascade)
+
+  @@unique([marketingLeadId, provider, idempotencyKey])
+  @@index([organisationId, brandId, status])
 }
