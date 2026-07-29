@@ -124,6 +124,28 @@ export class FacebookPublishingAdapter {
     });
   }
 
+  async getVideoStatus(
+    videoId: string,
+    accessToken: string,
+  ): Promise<{ status: "PUBLISHED" | "PROCESSING" | "FAILED" | "EXPIRED"; postId: string | null }> {
+    const response = await fetch(
+      `${this.baseUrl}/${videoId}?fields=status,post_id&access_token=${encodeURIComponent(accessToken)}`,
+    );
+    const data = (await response.json()) as {
+      status?: { video_status?: string };
+      post_id?: string;
+      error?: { code?: number; message?: string };
+    };
+    if (!response.ok) throw normaliseFacebookError(response.status, data.error);
+    const value = String(data.status?.video_status ?? "processing").toLowerCase();
+    if (["ready", "published", "complete"].includes(value)) {
+      return { status: "PUBLISHED", postId: data.post_id ?? videoId };
+    }
+    if (["error", "failed"].includes(value)) return { status: "FAILED", postId: null };
+    if (value === "expired") return { status: "EXPIRED", postId: null };
+    return { status: "PROCESSING", postId: null };
+  }
+
   async getPermalink(postId: string, accessToken: string) {
     const response = await fetch(
       `${this.baseUrl}/${postId}?fields=permalink_url&access_token=${encodeURIComponent(accessToken)}`,

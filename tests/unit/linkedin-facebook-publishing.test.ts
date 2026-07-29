@@ -7,6 +7,8 @@ import {
   FacebookPublishingAdapter,
   normaliseFacebookError,
 } from "@/lib/social/facebook-publishing-adapter";
+import { LinkedInCredentialAdapter } from "@/lib/social/linkedin-credential-adapter";
+import { resetEnvCacheForTests } from "@/lib/environment";
 
 const response = (body: unknown, status = 200, headers?: HeadersInit) =>
   new Response(JSON.stringify(body), { status, headers });
@@ -78,6 +80,19 @@ describe("LinkedInPublishingAdapter", () => {
     expect(normaliseLinkedInError(500).retryable).toBe(true);
     expect(normaliseLinkedInError(400, "invalid organization author").code).toBe("INVALID_AUTHOR");
   });
+
+  it("reports document and video processing states", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(response({ status: "PROCESSING" }))
+      .mockResolvedValueOnce(response({ status: "AVAILABLE" }));
+    vi.stubGlobal("fetch", fetch);
+    const adapter = new LinkedInPublishingAdapter("https://li.test");
+    expect(await adapter.getAssetStatus("DOCUMENT", "urn:li:document:1", "token")).toBe(
+      "PROCESSING",
+    );
+    expect(await adapter.getAssetStatus("VIDEO", "urn:li:video:1", "token")).toBe("AVAILABLE");
+  });
 });
 
 describe("FacebookPublishingAdapter", () => {
@@ -132,5 +147,49 @@ describe("FacebookPublishingAdapter", () => {
     expect(normaliseFacebookError(400, { code: 368 }).code).toBe("POLICY_REJECTED");
     expect(normaliseFacebookError(429).retryable).toBe(true);
     expect(normaliseFacebookError(500).retryable).toBe(true);
+  });
+
+  it("reconciles Page video processing states", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(response({ status: { video_status: "ready" }, post_id: "page-post-1" })),
+    );
+    expect(
+      await new FacebookPublishingAdapter("https://fb.test").getVideoStatus("video-1", "token"),
+    ).toEqual({ status: "PUBLISHED", postId: "page-post-1" });
+  });
+});
+
+describe("LinkedInCredentialAdapter", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    resetEnvCacheForTests();
+  });
+
+  it("refreshes and returns securely persistable credentials", async () => {
+    process.env.LINKEDIN_CLIENT_ID = "client";
+    process.env.LINKEDIN_CLIENT_SECRET = "secret";
+    resetEnvCacheForTests();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        response({
+          access_token: "new-access",
+          refresh_token: "new-refresh",
+          expires_in: 3600,
+          scope: "w_member_social",
+        }),
+      ),
+    );
+    const tokens = await new LinkedInCredentialAdapter("https://li.test/token").refreshAccessToken(
+      "refresh",
+    );
+    expect(tokens).toMatchObject({
+      accessToken: "new-access",
+      refreshToken: "new-refresh",
+      scopes: ["w_member_social"],
+    });
   });
 });

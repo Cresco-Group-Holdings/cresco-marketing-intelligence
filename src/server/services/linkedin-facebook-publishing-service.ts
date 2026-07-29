@@ -11,6 +11,8 @@ import {
   type LinkedInMediaKind,
 } from "@/lib/social/linkedin-publishing-adapter";
 import { createObjectStorageProvider } from "@/lib/storage/supabase-storage-provider";
+import { linkedInCredentialAdapter } from "@/lib/social/linkedin-credential-adapter";
+import { metaCredentialAdapter } from "@/lib/social/meta-credential-adapter";
 import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { socialCredentialService } from "@/server/services/social-credential-service";
@@ -19,6 +21,16 @@ import { brandService } from "@/server/services/workspace-service";
 type ProviderSettings =
   | { provider: "LINKEDIN"; authorType: "MEMBER" | "ORGANISATION"; authorId: string }
   | { provider: "FACEBOOK"; pageId: string; publishAsReel: boolean };
+
+type UploadState = {
+  assetId: string;
+  kind: LinkedInMediaKind;
+  assetUrn: string;
+  status: "UPLOADED" | "PROCESSING" | "AVAILABLE" | "FAILED" | "EXPIRED";
+};
+
+const MAX_PROVIDER_POLLS = 12;
+const nextPollAt = (attempt: number) => new Date(Date.now() + 5_000 * 2 ** Math.min(attempt, 5));
 
 function requiredScope(settings: ProviderSettings) {
   if (settings.provider === "FACEBOOK") return "pages_manage_posts";
@@ -252,13 +264,57 @@ export const linkedInFacebookPublishingService = {
             link: schedule.contentVariant.destinationUrl ?? undefined,
           });
         } else if (assets.some((asset) => asset.assetType === "VIDEO")) {
-          postId = await adapter.publishVideo({
-            pageId: settings.pageId,
-            accessToken: tokens.accessToken,
-            description: message,
-            fileUrl: urls[0]!,
-            reel: settings.publishAsReel,
-          });
+          let videoId = job.providerContainerId;
+          if (!videoId) {
+            videoId = await adapter.publishVideo({
+              pageId: settings.pageId,
+              accessToken: tokens.accessToken,
+              description: message,
+              fileUrl: urls[0]!,
+              reel: settings.publishAsReel,
+            });
+            await prisma.publishingJob.update({
+              where: { id: job.id },
+              data: {
+                providerContainerId: videoId,
+                providerStatus: "PROCESSING",
+                providerUploadState: {
+                  kind: settings.publishAsReel ? "REEL" : "VIDEO",
+                  uploadId: videoId,
+                },
+              },
+            });
+          }
+          const state = await adapter.getVideoStatus(videoId, tokens.accessToken);
+          const pollingAttemptCount = job.pollingAttemptCount + 1;
+          if (state.status === "FAILED" || state.status === "EXPIRED") {
+            throw new FacebookProviderError(
+              "UPLOAD_FAILED",
+              `Facebook ${settings.publishAsReel ? "Reel" : "video"} processing ${state.status.toLowerCase()}.`,
+              false,
+            );
+          }
+          if (state.status === "PROCESSING") {
+            if (pollingAttemptCount >= MAX_PROVIDER_POLLS) {
+              throw new FacebookProviderError(
+                "UPLOAD_FAILED",
+                "Facebook video processing timed out.",
+                false,
+              );
+            }
+            const pollAt = nextPollAt(pollingAttemptCount);
+            await prisma.publishingJob.update({
+              where: { id: job.id },
+              data: {
+                status: "QUEUED",
+                providerStatus: "PROCESSING",
+                pollingAttemptCount,
+                nextPollAt: pollAt,
+              },
+            });
+            return { state: "PROCESSING", uploadId: videoId, nextPollAt: pollAt };
+          }
+          postId = state.postId ?? videoId;
         } else if (urls.length > 1) {
           postId = await adapter.publishMultiplePhotos({
             pageId: settings.pageId,
@@ -281,36 +337,111 @@ export const linkedInFacebookPublishingService = {
           settings.authorType === "MEMBER"
             ? `urn:li:person:${settings.authorId}`
             : `urn:li:organization:${settings.authorId}`;
-        let media: { kind: LinkedInMediaKind; assetUrn: string; title?: string } | undefined;
-        if (assets[0]) {
-          const asset = assets[0];
+        const uploads = [...((job.providerUploadState as UploadState[] | null | undefined) ?? [])];
+        for (const asset of assets) {
           const kind: LinkedInMediaKind =
             asset.assetType === "VIDEO"
               ? "VIDEO"
               : asset.assetType === "DOCUMENT"
                 ? "DOCUMENT"
                 : "IMAGE";
-          const upload = await adapter.initialiseUpload(kind, authorUrn, tokens.accessToken);
-          if (!upload.uploadUrl || !upload.assetUrn) {
+          let state = uploads.find((entry) => entry.assetId === asset.id);
+          if (!state) {
+            const upload = await adapter.initialiseUpload(kind, authorUrn, tokens.accessToken);
+            if (!upload.uploadUrl || !upload.assetUrn) {
+              throw new LinkedInProviderError(
+                "UPLOAD_FAILED",
+                "LinkedIn did not return an upload target.",
+                true,
+              );
+            }
+            const signed = await storage.createSignedUrl(asset.storageKey, 3600);
+            await adapter.uploadAsset(upload.uploadUrl, signed.url, tokens.accessToken);
+            state = {
+              assetId: asset.id,
+              kind,
+              assetUrn: upload.assetUrn,
+              status: kind === "IMAGE" ? "AVAILABLE" : "UPLOADED",
+            };
+            uploads.push(state);
+            // Persist after every asset so partial multi-image retries resume in order.
+            await prisma.publishingJob.update({
+              where: { id: job.id },
+              data: {
+                providerContainerId: upload.assetUrn,
+                providerStatus: state.status,
+                providerUploadState: uploads as unknown as Prisma.InputJsonValue,
+              },
+            });
+          }
+        }
+
+        let processing = false;
+        for (const upload of uploads.filter((entry) => entry.kind !== "IMAGE")) {
+          if (upload.status === "AVAILABLE") continue;
+          const status = await adapter.getAssetStatus(
+            upload.kind,
+            upload.assetUrn,
+            tokens.accessToken,
+          );
+          upload.status = status;
+          if (status === "FAILED" || status === "EXPIRED") {
             throw new LinkedInProviderError(
-              "UPLOAD_FAILED",
-              "LinkedIn did not return an upload target.",
-              true,
+              "PROCESSING_FAILED",
+              `LinkedIn ${upload.kind.toLowerCase()} processing ${status.toLowerCase()}.`,
+              false,
             );
           }
+          if (status === "PROCESSING") processing = true;
+        }
+        if (processing) {
+          const pollingAttemptCount = job.pollingAttemptCount + 1;
+          if (pollingAttemptCount >= MAX_PROVIDER_POLLS) {
+            throw new LinkedInProviderError(
+              "PROCESSING_FAILED",
+              "LinkedIn media processing timed out.",
+              false,
+            );
+          }
+          const pollAt = nextPollAt(pollingAttemptCount);
           await prisma.publishingJob.update({
             where: { id: job.id },
-            data: { providerContainerId: upload.assetUrn, providerStatus: "UPLOADING" },
+            data: {
+              status: "QUEUED",
+              providerStatus: "PROCESSING",
+              providerUploadState: uploads as unknown as Prisma.InputJsonValue,
+              pollingAttemptCount,
+              nextPollAt: pollAt,
+            },
           });
-          const signed = await storage.createSignedUrl(asset.storageKey, 3600);
-          await adapter.uploadAsset(upload.uploadUrl, signed.url, tokens.accessToken);
-          media = { kind, assetUrn: upload.assetUrn, title: asset.title };
+          return { state: "PROCESSING", nextPollAt: pollAt };
         }
+
+        const images =
+          uploads.length > 1 && uploads.every((entry) => entry.kind === "IMAGE")
+            ? uploads.map((entry, index) => ({
+                assetUrn: entry.assetUrn,
+                altText:
+                  schedule.contentVariant.visualAssets[index]?.altText ??
+                  schedule.contentVariant.altText ??
+                  undefined,
+              }))
+            : undefined;
+        const first = uploads[0];
+        const media =
+          first && !images
+            ? {
+                kind: first.kind,
+                assetUrn: first.assetUrn,
+                title: assets[0]?.title,
+              }
+            : undefined;
         postId = await adapter.createPost({
           authorUrn,
           commentary: schedule.contentVariant.caption ?? "",
           accessToken: tokens.accessToken,
           media,
+          images,
           ...(!media && schedule.contentVariant.destinationUrl
             ? {
                 article: {
@@ -345,6 +476,59 @@ export const linkedInFacebookPublishingService = {
       });
       return { state: "PUBLISHED", postId, permalink };
     } catch (error) {
+      const tokenExpired =
+        (error instanceof LinkedInProviderError || error instanceof FacebookProviderError) &&
+        error.code === "TOKEN_EXPIRED";
+      if (tokenExpired) {
+        if (job.refreshAttemptCount >= 1) {
+          await recordAttempt(
+            job.id,
+            "FAILED",
+            undefined,
+            "Provider credentials remain invalid after refresh. Reconnect the account.",
+          );
+          await prisma.publishingJob.update({
+            where: { id: job.id },
+            data: {
+              status: "FAILED",
+              lastProviderError:
+                "Provider credentials remain invalid after refresh. Reconnect the account.",
+            },
+          });
+          return { state: "FAILED" };
+        }
+        try {
+          const refreshed =
+            settings.provider === "LINKEDIN"
+              ? await linkedInCredentialAdapter.refreshAccessToken(tokens.refreshToken ?? "")
+              : await metaCredentialAdapter.refreshAccessToken({ accessToken: tokens.accessToken });
+          await socialCredentialService.upsertTokens(
+            schedule.socialAccount.socialConnectionId,
+            settings.provider === "FACEBOOK"
+              ? { ...refreshed, refreshToken: tokens.refreshToken }
+              : refreshed,
+          );
+          await recordAttempt(job.id, "RETRY_AFTER_REFRESH", undefined, error.message);
+          await prisma.publishingJob.update({
+            where: { id: job.id },
+            data: {
+              status: "QUEUED",
+              refreshAttemptCount: { increment: 1 },
+              lastProviderError: error.message,
+            },
+          });
+          return { state: "REQUEUED_AFTER_REFRESH" };
+        } catch (refreshError) {
+          const message =
+            refreshError instanceof Error ? refreshError.message : "Credential refresh failed.";
+          await recordAttempt(job.id, "FAILED", undefined, message);
+          await prisma.publishingJob.update({
+            where: { id: job.id },
+            data: { status: "FAILED", lastProviderError: message },
+          });
+          return { state: "FAILED", reason: message };
+        }
+      }
       const retryable =
         (error instanceof LinkedInProviderError || error instanceof FacebookProviderError) &&
         error.retryable;

@@ -1928,6 +1928,7 @@ model PublishingJob {
   permalink           String?
   refreshAttemptCount Int       @default(0)
   providerSettings    Json?
+  providerUploadState Json?
 
   directPublishAvailable  Boolean   @default(true)
   manualPublicUrl         String?
