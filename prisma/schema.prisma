@@ -251,6 +251,11 @@ model UserProfile {
   contentStatusChanges       ContentStatusHistory[]    @relation("ContentStatusChanger")
   growthExperimentsCreated   GrowthExperiment[]        @relation("GrowthExperimentCreator")
   recommendationOutcomes     RecommendationOutcome[]   @relation("RecommendationOutcomeUser")
+  notifications              Notification[]
+  notificationPreferences    NotificationPreference[]
+  notificationDigests        NotificationDigest[]
+  operationalAlertsResolved  OperationalAlert[]        @relation("OperationalAlertResolver")
+  recoveryActions            RecoveryAction[]
 
   @@index([email])
 }
@@ -345,6 +350,11 @@ model Organisation {
   recommendationOutcomes   RecommendationOutcome[]
   growthExperiments        GrowthExperiment[]
   growthAnalysisRuns       GrowthAnalysisRun[]
+  notifications            Notification[]
+  notificationPreferences  NotificationPreference[]
+  notificationDigests      NotificationDigest[]
+  operationalAlerts        OperationalAlert[]
+  recoveryActions          RecoveryAction[]
 
   @@index([status])
   @@index([archivedAt])
@@ -431,6 +441,8 @@ model Project {
   performanceBenchmarks    PerformanceBenchmark[]
   growthExperiments        GrowthExperiment[]
   growthAnalysisRuns       GrowthAnalysisRun[]
+  notifications            Notification[]
+  operationalAlerts        OperationalAlert[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -439,25 +451,25 @@ model Project {
 }
 
 model Brand {
-  id                 String      @id @default(cuid())
-  organisationId     String
-  projectId          String
-  name               String
-  slug               String
-  description        String?
-  website            String?
-  primaryDomain      String?
-  logoUrl            String?
-  faviconUrl         String?
-  primaryColour      String?
-  secondaryColour    String?
-  accentColour       String?
-  analyticsTimezone  String?
-  status          BrandStatus @default(DRAFT)
-  createdByUserId String
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  archivedAt      DateTime?
+  id                String      @id @default(cuid())
+  organisationId    String
+  projectId         String
+  name              String
+  slug              String
+  description       String?
+  website           String?
+  primaryDomain     String?
+  logoUrl           String?
+  faviconUrl        String?
+  primaryColour     String?
+  secondaryColour   String?
+  accentColour      String?
+  analyticsTimezone String?
+  status            BrandStatus @default(DRAFT)
+  createdByUserId   String
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  archivedAt        DateTime?
 
   organisation             Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project                  Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -509,6 +521,9 @@ model Brand {
   recommendationOutcomes   RecommendationOutcome[]
   growthExperiments        GrowthExperiment[]
   growthAnalysisRuns       GrowthAnalysisRun[]
+  notifications            Notification[]
+  notificationPreferences  NotificationPreference[]
+  operationalAlerts        OperationalAlert[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -1328,14 +1343,14 @@ model SocialAnalyticsError {
   provider              SocialProvider?
   socialAnalyticsSyncId String
   providerPostId        String?
-  syncPhase             String   @default("POST_METRICS")
+  syncPhase             String          @default("POST_METRICS")
   category              String
   providerCode          String?
   message               String
-  retryable             Boolean  @default(false)
-  terminal              Boolean  @default(false)
+  retryable             Boolean         @default(false)
+  terminal              Boolean         @default(false)
   providerMetadata      Json?
-  createdAt             DateTime @default(now())
+  createdAt             DateTime        @default(now())
 
   @@index([socialAnalyticsSyncId])
   @@index([organisationId, brandId])
@@ -2097,6 +2112,8 @@ model PublishingJob {
   status            ContentScheduleStatus @default(QUEUED)
   attemptCount      Int                   @default(0)
   maxAttempts       Int                   @default(3)
+  nextRetryAt       DateTime?
+  deadLetterAt      DateTime?
 
   providerContainerId String?
   providerStatus      String?
@@ -2605,36 +2622,36 @@ model GrowthAnalysisRun {
 }
 
 model GrowthInsight {
-  id                     String                @id @default(cuid())
-  organisationId         String
-  projectId              String
-  brandId                String
-  analysisRunId          String?
-  idempotencyKey         String
-  insightType            GrowthInsightType
-  title                  String
-  summary                String
-  dataStatus             GrowthDataStatus      @default(INSUFFICIENT)
-  confidenceLevel        GrowthConfidenceLevel @default(LOW)
-  comparedPeriodStart    DateTime?
-  comparedPeriodEnd      DateTime?
-  analysisPeriodStart    DateTime
-  analysisPeriodEnd      DateTime
-  minimumDataThreshold   Json
-  sourceMetrics          Json                  @default("{}")
-  supportingContentIds   String[]              @default([])
-  correlationDisclaimer  String                @default("Patterns reflect correlation with performance, not proven causation.")
-  generatedAt            DateTime              @default(now())
-  expiresAt              DateTime
-  supersededAt           DateTime?
-  metadata               Json?
+  id                    String                @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  analysisRunId         String?
+  idempotencyKey        String
+  insightType           GrowthInsightType
+  title                 String
+  summary               String
+  dataStatus            GrowthDataStatus      @default(INSUFFICIENT)
+  confidenceLevel       GrowthConfidenceLevel @default(LOW)
+  comparedPeriodStart   DateTime?
+  comparedPeriodEnd     DateTime?
+  analysisPeriodStart   DateTime
+  analysisPeriodEnd     DateTime
+  minimumDataThreshold  Json
+  sourceMetrics         Json                  @default("{}")
+  supportingContentIds  String[]              @default([])
+  correlationDisclaimer String                @default("Patterns reflect correlation with performance, not proven causation.")
+  generatedAt           DateTime              @default(now())
+  expiresAt             DateTime
+  supersededAt          DateTime?
+  metadata              Json?
 
-  organisation      Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project           Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand             Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  analysisRun       GrowthAnalysisRun?      @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
-  evidence          InsightEvidence[]
-  recommendations   GrowthRecommendation[]
+  organisation    Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  analysisRun     GrowthAnalysisRun?     @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
+  evidence        InsightEvidence[]
+  recommendations GrowthRecommendation[]
 
   @@index([organisationId, brandId, generatedAt])
   @@index([brandId, insightType])
@@ -2693,21 +2710,21 @@ model PerformanceBenchmark {
 }
 
 model ContentPattern {
-  id                    String   @id @default(cuid())
-  organisationId        String
-  projectId             String
-  brandId               String
-  dimension             String
-  dimensionValue        String
-  metricKey             String
-  metricValue           Decimal  @db.Decimal(24, 6)
-  sampleSize            Int
-  correlationNote       String   @default("Correlation with performance; not proven causation.")
-  periodStart           DateTime
-  periodEnd             DateTime
-  supportingContentIds  String[] @default([])
-  computedAt            DateTime @default(now())
-  metadata              Json?
+  id                   String   @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  dimension            String
+  dimensionValue       String
+  metricKey            String
+  metricValue          Decimal  @db.Decimal(24, 6)
+  sampleSize           Int
+  correlationNote      String   @default("Correlation with performance; not proven causation.")
+  periodStart          DateTime
+  periodEnd            DateTime
+  supportingContentIds String[] @default([])
+  computedAt           DateTime @default(now())
+  metadata             Json?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -2718,44 +2735,44 @@ model ContentPattern {
 }
 
 model GrowthRecommendation {
-  id                     String                      @id @default(cuid())
-  organisationId         String
-  projectId              String
-  brandId                String
-  analysisRunId          String?
-  growthInsightId        String?
-  idempotencyKey         String?
-  insightType            GrowthInsightType?
-  analysisPeriodStart    DateTime?
-  analysisPeriodEnd      DateTime?
-  title                  String
-  description            String
-  priority               Int                         @default(50)
-  status                 GrowthRecommendationStatus  @default(ACTIVE)
-  finding                String?
-  explanation            String?
-  explanationSource      String?
-  recommendedAction      String?
-  evidenceSummary        Json                        @default("[]")
-  expectedHypothesis     String?
-  measurementPlan        String?
-  aiGenerated            Boolean                     @default(false)
-  aiRequestId            String?
-  draftContentItemId     String?
-  draftExperimentId      String?
-  latestFeedbackStatus   RecommendationFeedbackStatus?
-  latestOutcomeId        String?
-  expiresAt              DateTime?
-  createdAt              DateTime                    @default(now())
-  updatedAt              DateTime                    @updatedAt
+  id                   String                        @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  analysisRunId        String?
+  growthInsightId      String?
+  idempotencyKey       String?
+  insightType          GrowthInsightType?
+  analysisPeriodStart  DateTime?
+  analysisPeriodEnd    DateTime?
+  title                String
+  description          String
+  priority             Int                           @default(50)
+  status               GrowthRecommendationStatus    @default(ACTIVE)
+  finding              String?
+  explanation          String?
+  explanationSource    String?
+  recommendedAction    String?
+  evidenceSummary      Json                          @default("[]")
+  expectedHypothesis   String?
+  measurementPlan      String?
+  aiGenerated          Boolean                       @default(false)
+  aiRequestId          String?
+  draftContentItemId   String?
+  draftExperimentId    String?
+  latestFeedbackStatus RecommendationFeedbackStatus?
+  latestOutcomeId      String?
+  expiresAt            DateTime?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
 
-  organisation   Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand          Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  analysisRun    GrowthAnalysisRun?      @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
-  growthInsight  GrowthInsight?          @relation(fields: [growthInsightId], references: [id], onDelete: SetNull)
-  outcomes       RecommendationOutcome[]
-  experiments    GrowthExperiment[]
+  organisation  Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  analysisRun   GrowthAnalysisRun?      @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
+  growthInsight GrowthInsight?          @relation(fields: [growthInsightId], references: [id], onDelete: SetNull)
+  outcomes      RecommendationOutcome[]
+  experiments   GrowthExperiment[]
 
   @@index([organisationId, brandId, status])
   @@index([brandId, createdAt])
@@ -2765,7 +2782,7 @@ model GrowthRecommendation {
 }
 
 model RecommendationOutcome {
-  id                     String                     @id @default(cuid())
+  id                     String                       @id @default(cuid())
   organisationId         String
   brandId                String
   growthRecommendationId String
@@ -2775,8 +2792,8 @@ model RecommendationOutcome {
   outcomeNotes           String?
   measuredOutcome        Json?
   linkedExperimentId     String?
-  isEffective            Boolean                    @default(true)
-  createdAt              DateTime                   @default(now())
+  isEffective            Boolean                      @default(true)
+  createdAt              DateTime                     @default(now())
 
   organisation         Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   brand                Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
@@ -2814,4 +2831,241 @@ model GrowthExperiment {
 
   @@index([organisationId, brandId, status])
   @@index([growthRecommendationId])
+}
+
+// --- Task 2.15: Notifications and operational failure recovery ---
+
+enum NotificationCategory {
+  CONTENT
+  APPROVAL
+  SCHEDULING
+  PUBLISHING
+  CONNECTION
+  ANALYTICS
+  INBOX
+  LEAD
+  SECURITY
+  SYSTEM
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SLACK
+  TEAMS
+  PUSH
+  DIGEST_DAILY
+  DIGEST_WEEKLY
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+  SUPPRESSED
+}
+
+enum NotificationDeliveryMode {
+  IMMEDIATE
+  DIGEST_DAILY
+  DIGEST_WEEKLY
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum OperationalAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RETRYING
+  RESOLVED
+  DEAD_LETTER
+  CANCELLED
+}
+
+enum OperationalAlertType {
+  PUBLISHING_FAILURE
+  PUBLISHING_PARTIAL
+  CONNECTOR_SYNC_FAILURE
+  ANALYTICS_SYNC_FAILURE
+  TOKEN_REAUTH_REQUIRED
+  RENDER_FAILURE
+  INBOX_ATTENTION
+  LEAD_ARRIVED
+  ASSET_LICENCE_EXPIRY
+  SYSTEM
+}
+
+enum RecoveryActionType {
+  RETRY
+  RECONNECT
+  CANCEL
+  RESOLVE
+  MANUAL_CONFIRM
+}
+
+enum RecoveryActionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+model Notification {
+  id             String               @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  userId         String
+  category       NotificationCategory
+  eventType      String
+  title          String
+  body           String
+  safeBody       String
+  resourceType   String?
+  resourceId     String?
+  actionUrl      String?
+  priority       NotificationPriority @default(NORMAL)
+  idempotencyKey String
+  readAt         DateTime?
+  dismissedAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?               @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  user         UserProfile            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries   NotificationDelivery[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([organisationId, userId, createdAt])
+  @@index([userId, readAt])
+  @@index([category])
+}
+
+model NotificationPreference {
+  id               String                   @id @default(cuid())
+  organisationId   String
+  userId           String
+  brandId          String?
+  category         NotificationCategory
+  channel          NotificationChannel
+  enabled          Boolean                  @default(true)
+  deliveryMode     NotificationDeliveryMode @default(IMMEDIATE)
+  quietHoursStart  String?
+  quietHoursEnd    String?
+  timezone         String?                  @default("UTC")
+  isCriticalLocked Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organisationId, brandId, category, channel])
+  @@index([organisationId, userId])
+}
+
+model NotificationDelivery {
+  id             String                     @id @default(cuid())
+  notificationId String
+  channel        NotificationChannel
+  status         NotificationDeliveryStatus @default(PENDING)
+  digestId       String?
+  externalId     String?
+  errorMessage   String?
+  sentAt         DateTime?
+  createdAt      DateTime                   @default(now())
+
+  notification Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  digest       NotificationDigest? @relation(fields: [digestId], references: [id], onDelete: SetNull)
+
+  @@index([notificationId])
+  @@index([status])
+}
+
+model NotificationDigest {
+  id             String              @id @default(cuid())
+  organisationId String
+  userId         String
+  channel        NotificationChannel
+  periodStart    DateTime
+  periodEnd      DateTime
+  itemCount      Int                 @default(0)
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         UserProfile            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries   NotificationDelivery[]
+
+  @@index([organisationId, userId, createdAt])
+}
+
+model OperationalAlert {
+  id                String                 @id @default(cuid())
+  organisationId    String
+  projectId         String?
+  brandId           String?
+  alertType         OperationalAlertType
+  category          NotificationCategory
+  status            OperationalAlertStatus @default(OPEN)
+  resourceType      String
+  resourceId        String
+  provider          String?
+  title             String
+  safeErrorMessage  String
+  recommendedAction String?
+  attemptCount      Int                    @default(0)
+  maxAttempts       Int                    @default(3)
+  lastAttemptAt     DateTime?
+  nextRetryAt       DateTime?
+  idempotencyKey    String
+  resolvedAt        DateTime?
+  resolvedByUserId  String?
+  metadata          Json?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  organisation    Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand           Brand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  resolvedBy      UserProfile?     @relation("OperationalAlertResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  recoveryActions RecoveryAction[]
+
+  @@unique([organisationId, idempotencyKey])
+  @@index([organisationId, brandId, status])
+  @@index([alertType, status])
+  @@index([resourceType, resourceId])
+}
+
+model RecoveryAction {
+  id                 String               @id @default(cuid())
+  organisationId     String
+  operationalAlertId String?
+  actorUserId        String
+  actionType         RecoveryActionType
+  status             RecoveryActionStatus @default(PENDING)
+  idempotencyKey     String
+  resourceType       String?
+  resourceId         String?
+  result             Json?
+  errorMessage       String?
+  createdAt          DateTime             @default(now())
+  completedAt        DateTime?
+
+  organisation     Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  operationalAlert OperationalAlert? @relation(fields: [operationalAlertId], references: [id], onDelete: SetNull)
+  actor            UserProfile       @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@unique([organisationId, idempotencyKey])
+  @@index([operationalAlertId])
+  @@index([organisationId, status])
 }

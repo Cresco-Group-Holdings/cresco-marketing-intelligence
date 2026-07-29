@@ -49,6 +49,10 @@ export const PERMISSIONS = {
   "content.schedule": "content.schedule",
   "content.publish": "content.publish",
   "content.archive": "content.archive",
+  "notifications.read": "notifications.read",
+  "notifications.write": "notifications.write",
+  "operations.read": "operations.read",
+  "operations.recover": "operations.recover",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -103,6 +107,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["content.schedule"],
     PERMISSIONS["content.publish"],
     PERMISSIONS["content.archive"],
+    PERMISSIONS["notifications.read"],
+    PERMISSIONS["notifications.write"],
+    PERMISSIONS["operations.read"],
+    PERMISSIONS["operations.recover"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -139,6 +147,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["content.ideas"],
     PERMISSIONS["content.submitForReview"],
     PERMISSIONS["content.archive"],
+    PERMISSIONS["notifications.read"],
+    PERMISSIONS["notifications.write"],
+    PERMISSIONS["operations.read"],
+    PERMISSIONS["operations.recover"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -155,6 +167,8 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["connectors.read"],
     PERMISSIONS["socialConnections.read"],
     PERMISSIONS["content.read"],
+    PERMISSIONS["notifications.read"],
+    PERMISSIONS["operations.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -169,6 +183,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["connectors.read"],
     PERMISSIONS["socialConnections.read"],
     PERMISSIONS["content.read"],
+    PERMISSIONS["notifications.read"],
   ],
 };
 

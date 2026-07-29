@@ -12,6 +12,7 @@ import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { socialCredentialService } from "@/server/services/social-credential-service";
 import { brandService } from "@/server/services/workspace-service";
+import { notifyPublishingFailed, notifyPublishingSucceeded } from "@/lib/notifications/publishing-hooks";
 
 /** Meta containers expire after 24h; bounded polling keeps a stuck job from running forever. */
 export const MAX_POLL_ATTEMPTS = 12;
@@ -59,6 +60,7 @@ async function failJob(job: PublishingJob, reason: string): Promise<PublishOutco
     where: { id: job.contentScheduleId },
     data: { status: "FAILED" },
   });
+  await notifyPublishingFailed(job, "INSTAGRAM", reason).catch(() => undefined);
   return { state: "FAILED", reason };
 }
 
@@ -324,6 +326,7 @@ export const instagramPublishingService = {
         resourceId: job.id,
         metadata: { provider: "INSTAGRAM", postId, permalink },
       });
+      await notifyPublishingSucceeded(job).catch(() => undefined);
 
       return { state: "PUBLISHED", postId, permalink, containerId };
     } catch (error) {

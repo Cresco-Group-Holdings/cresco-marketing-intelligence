@@ -1,0 +1,69 @@
+import type {
+  NotificationCategory,
+  NotificationChannel,
+  NotificationPriority,
+  OperationalAlertType,
+} from "@prisma/client";
+
+export const NOTIFICATION_DEFAULT_LIST_LIMIT = 25;
+export const NOTIFICATION_MAX_LIST_LIMIT = 100;
+
+/** Categories that cannot be fully disabled (security-critical). */
+export const CRITICAL_NOTIFICATION_CATEGORIES: NotificationCategory[] = ["SECURITY"];
+
+export const NOTIFICATION_EVENT_TYPES = {
+  CONTENT_SUBMITTED_FOR_REVIEW: "content.submittedForReview",
+  CONTENT_CHANGES_REQUESTED: "content.changesRequested",
+  CONTENT_APPROVED: "content.approved",
+  CONTENT_SCHEDULED: "content.scheduled",
+  PUBLISHING_SUCCEEDED: "publishing.succeeded",
+  PUBLISHING_FAILED: "publishing.failed",
+  PUBLISHING_PARTIAL: "publishing.partial",
+  TOKEN_REAUTH_REQUIRED: "connection.reauthRequired",
+  CONNECTOR_SYNC_FAILED: "connector.syncFailed",
+  COMMENT_REQUIRES_RESPONSE: "inbox.commentRequiresResponse",
+  NEW_QUALIFIED_LEAD: "lead.qualified",
+  ASSET_LICENCE_EXPIRING: "asset.licenceExpiring",
+  VIDEO_RENDER_FAILED: "render.failed",
+} as const;
+
+export type NotificationEventType =
+  (typeof NOTIFICATION_EVENT_TYPES)[keyof typeof NOTIFICATION_EVENT_TYPES];
+
+export const EVENT_CATEGORY_MAP: Record<NotificationEventType, NotificationCategory> = {
+  [NOTIFICATION_EVENT_TYPES.CONTENT_SUBMITTED_FOR_REVIEW]: "APPROVAL",
+  [NOTIFICATION_EVENT_TYPES.CONTENT_CHANGES_REQUESTED]: "APPROVAL",
+  [NOTIFICATION_EVENT_TYPES.CONTENT_APPROVED]: "APPROVAL",
+  [NOTIFICATION_EVENT_TYPES.CONTENT_SCHEDULED]: "SCHEDULING",
+  [NOTIFICATION_EVENT_TYPES.PUBLISHING_SUCCEEDED]: "PUBLISHING",
+  [NOTIFICATION_EVENT_TYPES.PUBLISHING_FAILED]: "PUBLISHING",
+  [NOTIFICATION_EVENT_TYPES.PUBLISHING_PARTIAL]: "PUBLISHING",
+  [NOTIFICATION_EVENT_TYPES.TOKEN_REAUTH_REQUIRED]: "CONNECTION",
+  [NOTIFICATION_EVENT_TYPES.CONNECTOR_SYNC_FAILED]: "ANALYTICS",
+  [NOTIFICATION_EVENT_TYPES.COMMENT_REQUIRES_RESPONSE]: "INBOX",
+  [NOTIFICATION_EVENT_TYPES.NEW_QUALIFIED_LEAD]: "LEAD",
+  [NOTIFICATION_EVENT_TYPES.ASSET_LICENCE_EXPIRING]: "CONTENT",
+  [NOTIFICATION_EVENT_TYPES.VIDEO_RENDER_FAILED]: "PUBLISHING",
+};
+
+export const EVENT_PRIORITY_MAP: Partial<Record<NotificationEventType, NotificationPriority>> = {
+  [NOTIFICATION_EVENT_TYPES.TOKEN_REAUTH_REQUIRED]: "HIGH",
+  [NOTIFICATION_EVENT_TYPES.PUBLISHING_FAILED]: "HIGH",
+  [NOTIFICATION_EVENT_TYPES.VIDEO_RENDER_FAILED]: "HIGH",
+  [NOTIFICATION_EVENT_TYPES.NEW_QUALIFIED_LEAD]: "NORMAL",
+};
+
+export const ALERT_TYPE_LABELS: Record<OperationalAlertType, string> = {
+  PUBLISHING_FAILURE: "Publishing failure",
+  PUBLISHING_PARTIAL: "Partial publish",
+  CONNECTOR_SYNC_FAILURE: "Connector sync failure",
+  ANALYTICS_SYNC_FAILURE: "Analytics sync failure",
+  TOKEN_REAUTH_REQUIRED: "Reauthorisation required",
+  RENDER_FAILURE: "Render failure",
+  INBOX_ATTENTION: "Inbox attention",
+  LEAD_ARRIVED: "New lead",
+  ASSET_LICENCE_EXPIRY: "Asset licence expiring",
+  SYSTEM: "System alert",
+};
+
+export const EXTENSION_CHANNELS: NotificationChannel[] = ["SLACK", "TEAMS", "PUSH"];

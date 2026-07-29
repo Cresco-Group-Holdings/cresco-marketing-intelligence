@@ -12,6 +12,7 @@ import {
   Settings,
   Share2,
   Sprout,
+  Wrench,
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -89,6 +90,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/connectors",
     icon: Link2,
     description: "Platform integrations",
+  },
+  {
+    label: "Operations",
+    href: "/operations",
+    icon: Wrench,
+    description: "Failure recovery and operational alerts",
   },
   {
     label: "AI Agents",

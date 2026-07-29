@@ -28,6 +28,8 @@ import type {
   ContentVariantInput,
 } from "@/lib/validation/content";
 import { recordAuditEvent } from "@/server/services/audit-service";
+import { getOrganisationApproverUserIds } from "@/lib/notifications/recipients";
+import { notificationEventService } from "@/server/services/notification-event-service";
 import { brandService } from "@/server/services/workspace-service";
 
 type BrandScope = {
@@ -561,6 +563,17 @@ export const contentService = {
           requestedByUserId: context.userProfileId,
         },
       });
+      const approverIds = await getOrganisationApproverUserIds(scope.organisationId);
+      await notificationEventService
+        .contentSubmittedForReview({
+          organisationId: scope.organisationId,
+          projectId: scope.projectId,
+          brandId: scope.brandId,
+          contentId,
+          recipientUserIds: approverIds.filter((id) => id !== context.userProfileId),
+          idempotencyKey: `content-review:${contentId}`,
+        })
+        .catch(() => undefined);
     }
 
     await recordAuditEvent({
@@ -638,6 +651,22 @@ export const contentService = {
       requestId,
     });
 
+    const notifyIds = [item.createdByUserId, item.ownerUserId].filter(
+      (id): id is string => Boolean(id) && id !== context.userProfileId,
+    );
+    if (notifyIds.length > 0) {
+      await notificationEventService
+        .contentApproved({
+          organisationId: scope.organisationId,
+          projectId: scope.projectId,
+          brandId: scope.brandId,
+          contentId,
+          recipientUserIds: [...new Set(notifyIds)],
+          idempotencyKey: `content-approved:${contentId}`,
+        })
+        .catch(() => undefined);
+    }
+
     return this.getById(brandId, organisationId, contentId, context);
   },
 
@@ -685,6 +714,23 @@ export const contentService = {
       requestId,
       metadata: { decisionNote },
     });
+
+    const notifyIds = [item.createdByUserId, item.ownerUserId].filter(
+      (id): id is string => Boolean(id) && id !== context.userProfileId,
+    );
+    if (notifyIds.length > 0) {
+      await notificationEventService
+        .contentChangesRequested({
+          organisationId: scope.organisationId,
+          projectId: scope.projectId,
+          brandId: scope.brandId,
+          contentId,
+          recipientUserIds: [...new Set(notifyIds)],
+          idempotencyKey: `content-changes:${contentId}:${Date.now()}`,
+          note: decisionNote,
+        })
+        .catch(() => undefined);
+    }
 
     return this.getById(brandId, organisationId, contentId, context);
   },
