@@ -16,7 +16,7 @@ type ContentDetail = {
   status: string;
   contentType: string;
   primaryMessage: string | null;
-  variants: Array<{ id: string; provider: string; format: string; caption: string | null }>;
+  variants: Array<{ id: string; provider: string; socialAccountId: string | null; format: string; caption: string | null }>;
   complianceChecks: Array<{
     checkType: string;
     result: string;
@@ -69,6 +69,18 @@ export default function ContentDetailPage() {
     );
     await loadItem();
   }
+  async function publishInstagram() {
+    const variant = item?.variants.find((entry) => entry.provider === "INSTAGRAM" && entry.socialAccountId);
+    if (!organisationId || !brandId || !variant) return;
+    const confirmed = window.confirm(`Publish this approved content to the selected Instagram account now?\n\nCaption: ${variant.caption ?? ""}`);
+    if (!confirmed) return;
+    await apiFetch(`/api/brands/${brandId}/content/${contentId}/instagram-publish?organisationId=${organisationId}`, {
+      method: "POST",
+      organisationId,
+      body: JSON.stringify({ contentVariantId: variant.id, socialAccountId: variant.socialAccountId, confirmed: true, idempotencyKey: crypto.randomUUID() }),
+    });
+    await loadItem();
+  }
 
   if (!item) {
     return <p className="text-sm text-slate-600">{error ?? "Loading content..."}</p>;
@@ -96,6 +108,9 @@ export default function ContentDetailPage() {
           <Button size="sm" onClick={() => void submitForReview()}>
             Submit for review
           </Button>
+        ) : null}
+        {item.status === "APPROVED" && item.variants.some((variant) => variant.provider === "INSTAGRAM" && variant.socialAccountId) ? (
+          <Button size="sm" onClick={() => void publishInstagram()}>Confirm & publish to Instagram</Button>
         ) : null}
       </div>
 
