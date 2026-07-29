@@ -48,6 +48,12 @@ export const PERMISSIONS = {
   "content.publish": "content.publish",
   "content.archive": "content.archive",
   "auditLogs.read": "auditLogs.read",
+  "socialInbox.read": "socialInbox.read",
+  "socialInbox.assign": "socialInbox.assign",
+  "socialInbox.reply": "socialInbox.reply",
+  "socialInbox.moderate": "socialInbox.moderate",
+  "socialInbox.resolve": "socialInbox.resolve",
+  "socialInbox.export": "socialInbox.export",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -100,6 +106,12 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["content.publish"],
     PERMISSIONS["content.archive"],
     PERMISSIONS["auditLogs.read"],
+    PERMISSIONS["socialInbox.read"],
+    PERMISSIONS["socialInbox.assign"],
+    PERMISSIONS["socialInbox.reply"],
+    PERMISSIONS["socialInbox.moderate"],
+    PERMISSIONS["socialInbox.resolve"],
+    PERMISSIONS["socialInbox.export"],
   ],
   MARKETER: [
     PERMISSIONS["organisation.read"],
@@ -133,6 +145,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["content.ideas"],
     PERMISSIONS["content.submitForReview"],
     PERMISSIONS["content.archive"],
+    PERMISSIONS["socialInbox.read"],
+    PERMISSIONS["socialInbox.assign"],
+    PERMISSIONS["socialInbox.reply"],
+    PERMISSIONS["socialInbox.resolve"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -149,6 +165,8 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["socialConnections.read"],
     PERMISSIONS["content.read"],
     PERMISSIONS["auditLogs.read"],
+    PERMISSIONS["socialInbox.read"],
+    PERMISSIONS["socialInbox.export"],
   ],
   VIEWER: [
     PERMISSIONS["organisation.read"],
