@@ -6,6 +6,7 @@ import {
   FolderOpen,
   LayoutDashboard,
   Link2,
+  Mail,
   Megaphone,
   PenSquare,
   Palette,
@@ -70,6 +71,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/social",
     icon: Share2,
     description: "Social distribution workflows",
+  },
+  {
+    label: "Inbox",
+    href: "/inbox",
+    icon: Mail,
+    description: "Unified social comments, mentions, and messages",
   },
   {
     label: "Analytics",

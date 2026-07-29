@@ -4,6 +4,7 @@ import type {
   SocialConversationType,
   SocialInboxPriority,
   SocialProvider,
+  SocialSafetyFlag,
 } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
@@ -20,6 +21,10 @@ export type ConversationFilters = {
   assigneeUserId?: string;
   tags?: string[];
   priority?: SocialInboxPriority;
+  requiresHumanReview?: boolean;
+  safetyFlag?: SocialSafetyFlag;
+  from?: Date;
+  to?: Date;
   limit?: number;
   cursor?: string;
 };
@@ -46,6 +51,18 @@ function buildWhere(
     ...(filters.unread ? { unreadCount: { gt: 0 } } : {}),
     ...(filters.assigneeUserId ? { assignedToUserId: filters.assigneeUserId } : {}),
     ...(filters.priority ? { priority: filters.priority } : {}),
+    ...(filters.requiresHumanReview !== undefined
+      ? { requiresHumanReview: filters.requiresHumanReview }
+      : {}),
+    ...(filters.safetyFlag ? { safetyFlags: { has: filters.safetyFlag } } : {}),
+    ...(filters.from || filters.to
+      ? {
+          lastMessageAt: {
+            ...(filters.from ? { gte: filters.from } : {}),
+            ...(filters.to ? { lte: filters.to } : {}),
+          },
+        }
+      : {}),
     ...(filters.tags?.length
       ? { tags: { some: { tag: { in: filters.tags } } } }
       : {}),

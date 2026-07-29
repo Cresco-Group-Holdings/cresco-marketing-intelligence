@@ -77,3 +77,32 @@ export type InboxTagInput = z.infer<typeof inboxTagSchema>;
 export type InboxStatusUpdateInput = z.infer<typeof inboxStatusUpdateSchema>;
 export type InboxDraftInput = z.infer<typeof inboxDraftSchema>;
 export type InboxAiSuggestInput = z.infer<typeof inboxAiSuggestSchema>;
+
+export const inboxSocialAccountSchema = z.object({
+  socialAccountId: z.string().min(1),
+});
+
+export const inboxSyncSchema = z.object({
+  socialAccountId: z.string(),
+  syncType: z.enum(["INITIAL", "INCREMENTAL", "SCHEDULED"]).default("INCREMENTAL"),
+  idempotencyKey: z.string().min(12).max(160),
+  scheduledFor: z.string().datetime().optional(),
+});
+
+export const inboxHideSchema = z.object({
+  providerCommentId: z.string().min(1),
+});
+
+export const inboxCopySchema = z.object({
+  body: z.string().trim().min(1).max(INBOX_MAX_REPLY_LENGTH).optional(),
+  draftId: z.string().optional(),
+});
+
+export const inboxResolveSchema = z.object({
+  reason: optionalTrimmed(1000),
+});
+
+export type InboxSyncInput = z.infer<typeof inboxSyncSchema>;
+export type InboxHideInput = z.infer<typeof inboxHideSchema>;
+export type InboxCopyInput = z.infer<typeof inboxCopySchema>;
+export type InboxResolveInput = z.infer<typeof inboxResolveSchema>;

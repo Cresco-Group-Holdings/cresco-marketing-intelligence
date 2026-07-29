@@ -54,12 +54,6 @@ export const PERMISSIONS = {
   "socialInbox.resolve": "socialInbox.resolve",
   "socialInbox.export": "socialInbox.export",
   "auditLogs.read": "auditLogs.read",
-  "socialInbox.read": "socialInbox.read",
-  "socialInbox.assign": "socialInbox.assign",
-  "socialInbox.reply": "socialInbox.reply",
-  "socialInbox.moderate": "socialInbox.moderate",
-  "socialInbox.resolve": "socialInbox.resolve",
-  "socialInbox.export": "socialInbox.export",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
