@@ -5,6 +5,7 @@ export class YouTubeProviderError extends Error {
       | "QUOTA_EXHAUSTED"
       | "PERMISSION_MISSING"
       | "UPLOAD_FAILED"
+      | "UPLOAD_SESSION_EXPIRED"
       | "PROCESSING_FAILED"
       | "TRANSIENT"
       | "PROVIDER_ERROR",
@@ -14,6 +15,20 @@ export class YouTubeProviderError extends Error {
     super(message);
     this.name = "YouTubeProviderError";
   }
+}
+
+export type YouTubeSessionProbe =
+  | { state: "ACTIVE"; confirmedOffset: number }
+  | { state: "COMPLETED"; videoId: string }
+  | { state: "EXPIRED" };
+
+export type YouTubeChunkResult =
+  | { state: "ACTIVE"; confirmedOffset: number; providerRange: string | null }
+  | { state: "COMPLETED"; videoId: string; providerRange: string | null };
+
+function parseConfirmedOffset(range: string | null): number {
+  const match = range?.match(/bytes=0-(\d+)/i);
+  return match ? Number(match[1]) + 1 : 0;
 }
 
 export function normaliseYouTubeError(status: number, reason?: string) {
@@ -93,21 +108,73 @@ export class YouTubePublishingAdapter {
     return uploadUrl;
   }
 
-  async uploadVideo(uploadUrl: string, sourceUrl: string, mimeType: string) {
-    const source = await fetch(sourceUrl);
-    if (!source.ok)
-      throw new YouTubeProviderError("UPLOAD_FAILED", "Could not read the signed video.", true);
+  async probeUploadSession(uploadUrl: string, totalBytes: number): Promise<YouTubeSessionProbe> {
     const response = await fetch(uploadUrl, {
       method: "PUT",
-      headers: { "content-type": mimeType },
-      body: source.body,
-      duplex: "half",
-    } as RequestInit & { duplex: "half" });
-    if (!response.ok) throw await this.error(response);
-    const data = (await response.json()) as { id?: string };
-    if (!data.id)
-      throw new YouTubeProviderError("UPLOAD_FAILED", "YouTube did not return a video ID.", true);
-    return data.id;
+      headers: { "content-length": "0", "content-range": `bytes */${totalBytes}` },
+    });
+    if (response.status === 308) {
+      return {
+        state: "ACTIVE",
+        confirmedOffset: parseConfirmedOffset(response.headers.get("range")),
+      };
+    }
+    if (response.status === 404 || response.status === 410) return { state: "EXPIRED" };
+    if (response.ok) {
+      const data = (await response.json()) as { id?: string };
+      if (data.id) return { state: "COMPLETED", videoId: data.id };
+    }
+    throw await this.error(response);
+  }
+
+  async uploadChunk(input: {
+    uploadUrl: string;
+    sourceUrl: string;
+    mimeType: string;
+    start: number;
+    end: number;
+    totalBytes: number;
+  }): Promise<YouTubeChunkResult> {
+    const source = await fetch(input.sourceUrl, {
+      headers: { range: `bytes=${input.start}-${input.end}` },
+    });
+    if (!source.ok && source.status !== 206) {
+      throw new YouTubeProviderError(
+        "UPLOAD_FAILED",
+        "Could not read the signed video chunk.",
+        true,
+      );
+    }
+    const bytes = await source.arrayBuffer();
+    const response = await fetch(input.uploadUrl, {
+      method: "PUT",
+      headers: {
+        "content-type": input.mimeType,
+        "content-length": String(bytes.byteLength),
+        "content-range": `bytes ${input.start}-${input.end}/${input.totalBytes}`,
+      },
+      body: bytes,
+    });
+    const providerRange = response.headers.get("range");
+    if (response.status === 404 || response.status === 410) {
+      throw new YouTubeProviderError(
+        "UPLOAD_SESSION_EXPIRED",
+        "The YouTube resumable upload session expired.",
+        true,
+      );
+    }
+    if (response.status === 308) {
+      return {
+        state: "ACTIVE",
+        confirmedOffset: parseConfirmedOffset(providerRange),
+        providerRange,
+      };
+    }
+    if (response.ok) {
+      const data = (await response.json()) as { id?: string };
+      if (data.id) return { state: "COMPLETED", videoId: data.id, providerRange };
+    }
+    throw await this.error(response);
   }
 
   async getProcessingStatus(videoId: string, accessToken: string) {

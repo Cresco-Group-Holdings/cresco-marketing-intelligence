@@ -50,6 +50,60 @@ describe("YouTubePublishingAdapter", () => {
     expect(String(fetch.mock.calls[2]![0])).toContain("thumbnails/set");
   });
 
+  it("probes an active session and parses the confirmed provider offset", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          new Response(null, { status: 308, headers: { range: "bytes=0-1048575" } }),
+        ),
+    );
+    expect(
+      await new YouTubePublishingAdapter().probeUploadSession("https://upload/session", 2_000_000),
+    ).toEqual({ state: "ACTIVE", confirmedOffset: 1_048_576 });
+  });
+
+  it("recognises completed and expired resumable sessions", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(json({ id: "video-completed" }))
+      .mockResolvedValueOnce(new Response(null, { status: 410 }));
+    vi.stubGlobal("fetch", fetch);
+    const adapter = new YouTubePublishingAdapter();
+    expect(await adapter.probeUploadSession("session", 100)).toEqual({
+      state: "COMPLETED",
+      videoId: "video-completed",
+    });
+    expect(await adapter.probeUploadSession("expired", 100)).toEqual({
+      state: "EXPIRED",
+    });
+  });
+
+  it("uses exact source and provider Content-Range headers for each chunk", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(new Response(new Uint8Array(100), { status: 206 }))
+      .mockResolvedValueOnce(new Response(null, { status: 308, headers: { range: "bytes=0-99" } }));
+    vi.stubGlobal("fetch", fetch);
+    const result = await new YouTubePublishingAdapter().uploadChunk({
+      uploadUrl: "session",
+      sourceUrl: "source",
+      mimeType: "video/mp4",
+      start: 0,
+      end: 99,
+      totalBytes: 200,
+    });
+    expect(result).toMatchObject({ state: "ACTIVE", confirmedOffset: 100 });
+    expect((fetch.mock.calls[0]![1] as RequestInit).headers).toEqual({
+      range: "bytes=0-99",
+    });
+    expect((fetch.mock.calls[1]![1] as RequestInit).headers).toMatchObject({
+      "content-range": "bytes 0-99/200",
+      "content-length": "100",
+    });
+  });
+
   it("treats quota exhaustion as terminal", () => {
     const error = normaliseYouTubeError(403, "quotaExceeded");
     expect(error.code).toBe("QUOTA_EXHAUSTED");
@@ -103,6 +157,28 @@ describe("XPublishingAdapter", () => {
     );
     expect(result.mediaId).toBe("media-1");
     expect(fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it("exposes resumable X INIT, APPEND, and FINALIZE stages", async () => {
+    const fetch = vi
+      .fn()
+      .mockResolvedValueOnce(json({ media_id_string: "media-2" }))
+      .mockResolvedValueOnce(json({}))
+      .mockResolvedValueOnce(json({ processing_info: { state: "pending" } }));
+    vi.stubGlobal("fetch", fetch);
+    const adapter = new XPublishingAdapter("https://x.test", "https://media.test");
+    const mediaId = await adapter.initMedia({
+      accessToken: "token",
+      mimeType: "video/mp4",
+      sizeBytes: 20,
+      category: "tweet_video",
+    });
+    await adapter.appendSegment(mediaId, 1, new Uint8Array([1, 2]).buffer, "video/mp4", "token");
+    const processing = await adapter.finalizeMedia(mediaId, "token");
+    expect(mediaId).toBe("media-2");
+    expect(processing?.state).toBe("pending");
+    const appendBody = (fetch.mock.calls[1]![1] as RequestInit).body as FormData;
+    expect(appendBody.get("segment_index")).toBe("1");
   });
 
   it("does not retry exhausted entitlement or request quota", () => {

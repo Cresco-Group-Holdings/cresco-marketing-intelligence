@@ -5,6 +5,7 @@ export class XProviderError extends Error {
       | "ENTITLEMENT_MISSING"
       | "RATE_LIMITED"
       | "MEDIA_FAILED"
+      | "MEDIA_EXPIRED"
       | "POLICY_REJECTED"
       | "TRANSIENT"
       | "PROVIDER_ERROR",
@@ -26,6 +27,8 @@ export function normaliseXError(status: number, detail?: string) {
     );
   if (status === 429)
     return new XProviderError("RATE_LIMITED", "X request or media quota is exhausted.", false);
+  if (status === 404 || /media.*(not found|expired|invalid)/i.test(detail ?? ""))
+    return new XProviderError("MEDIA_EXPIRED", "The X media upload expired.", false);
   if (status >= 500) return new XProviderError("TRANSIENT", "X is temporarily unavailable.", true);
   return new XProviderError("PROVIDER_ERROR", detail ?? "X publishing failed.", false);
 }
@@ -65,36 +68,63 @@ export class XPublishingAdapter {
     sizeBytes: number;
     category: "tweet_image" | "tweet_video";
   }) {
+    const mediaId = await this.initMedia(input);
+    const source = await fetch(input.sourceUrl);
+    if (!source.ok)
+      throw new XProviderError("MEDIA_FAILED", "Could not read the signed media asset.", true);
+    await this.appendSegment(
+      mediaId,
+      0,
+      await source.arrayBuffer(),
+      input.mimeType,
+      input.accessToken,
+    );
+    const processingInfo = await this.finalizeMedia(mediaId, input.accessToken);
+    return { mediaId, processingInfo };
+  }
+
+  async initMedia(input: {
+    accessToken: string;
+    mimeType: string;
+    sizeBytes: number;
+    category: "tweet_image" | "tweet_video";
+  }) {
     const init = await this.mediaCommand(input.accessToken, {
       command: "INIT",
       total_bytes: String(input.sizeBytes),
       media_type: input.mimeType,
       media_category: input.category,
     });
-    const mediaId = String(init.media_id_string ?? init.media_id);
-    const source = await fetch(input.sourceUrl);
-    if (!source.ok)
-      throw new XProviderError("MEDIA_FAILED", "Could not read the signed media asset.", true);
+    return String(init.media_id_string ?? init.media_id);
+  }
+
+  async appendSegment(
+    mediaId: string,
+    segmentIndex: number,
+    bytes: ArrayBuffer,
+    mimeType: string,
+    accessToken: string,
+  ) {
     const form = new FormData();
     form.set("command", "APPEND");
     form.set("media_id", mediaId);
-    form.set("segment_index", "0");
-    form.set("media", new Blob([await source.arrayBuffer()], { type: input.mimeType }));
+    form.set("segment_index", String(segmentIndex));
+    form.set("media", new Blob([bytes], { type: mimeType }));
     const append = await fetch(this.mediaBase, {
       method: "POST",
-      headers: { authorization: `Bearer ${input.accessToken}` },
+      headers: { authorization: `Bearer ${accessToken}` },
       body: form,
     });
     if (!append.ok) throw normaliseXError(append.status, await append.text());
-    const finalized = await this.mediaCommand(input.accessToken, {
+  }
+
+  async finalizeMedia(mediaId: string, accessToken: string) {
+    const finalized = await this.mediaCommand(accessToken, {
       command: "FINALIZE",
       media_id: mediaId,
     });
-    return {
-      mediaId,
-      processingInfo: finalized.processing_info as
-        { state?: string; check_after_secs?: number; error?: { message?: string } } | undefined,
-    };
+    return finalized.processing_info as
+      { state?: string; check_after_secs?: number; error?: { message?: string } } | undefined;
   }
 
   async getMediaStatus(mediaId: string, accessToken: string) {

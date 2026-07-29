@@ -13,4 +13,4 @@ Validated on 2026-07-29 using mocked official-provider responses and the product
 9. Successful jobs store provider post IDs and public URLs. Manual publication requires explicit URL confirmation.
 10. Job idempotency keys, persisted upload/container state, partial-thread state, and unique provider post IDs prevent duplicate publishing.
 
-Automated coverage spans adapter payloads, uploads, processing reconciliation, threads, partial failure recovery, tenant isolation, quota fallback, token refresh, and idempotency. Real provider sandbox checks remain environment-dependent and require approved provider apps and credentials.
+Automated coverage spans adapter payloads, uploads, processing reconciliation, threads, partial failure recovery, tenant isolation, quota fallback, token refresh, and idempotency. Post-launch validation should also run the optional real-provider sandbox suite in environments that hold approved provider apps and credentials; this is an operational validation activity, not an implementation dependency.
