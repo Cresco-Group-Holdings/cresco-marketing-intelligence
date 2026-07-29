@@ -37,7 +37,7 @@ type BrandScope = {
 };
 
 const CONTENT_ITEM_INCLUDE = {
-  variants: true,
+  variants: { include: { socialAccount: true } },
   assets: { include: { marketingAsset: true } },
   provenance: true,
   approvals: { orderBy: { createdAt: "desc" as const }, take: 5 },
@@ -105,6 +105,15 @@ function toPublicContentItem(item: Awaited<ReturnType<typeof getContentOrThrow>>
       id: variant.id,
       provider: variant.provider,
       socialAccountId: variant.socialAccountId,
+      socialAccount: variant.socialAccount
+        ? {
+            id: variant.socialAccount.id,
+            providerAccountId: variant.socialAccount.providerAccountId,
+            accountType: variant.socialAccount.accountType,
+            displayName: variant.socialAccount.displayName,
+            username: variant.socialAccount.username,
+          }
+        : null,
       format: variant.format,
       caption: variant.caption,
       headline: variant.headline,
@@ -314,7 +323,7 @@ export const contentService = {
           ? { variants: { some: { provider: filters.provider } } }
           : {}),
       },
-      include: { variants: true },
+      include: { variants: { include: { socialAccount: true } } },
       orderBy: { updatedAt: "desc" },
     });
     return items.map((item) => toPublicContentItem({ ...item, assets: [], provenance: null, comments: [], complianceChecks: [], approvals: [] }));
