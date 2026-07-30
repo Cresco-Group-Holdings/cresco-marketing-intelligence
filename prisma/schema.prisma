@@ -250,6 +250,8 @@ model UserProfile {
   longFormExportsCreated        LongFormExport[]            @relation("LongFormExportCreator")
   onPageSeoAuditsCreated        OnPageSeoAudit[]            @relation("OnPageSeoAuditCreator")
   onPageSeoOverridesCreated     OnPageSeoOverride[]         @relation("OnPageSeoOverrideCreator")
+  internalLinkProposalsAssigned InternalLinkChangeProposal[] @relation("InternalLinkProposalAssignee")
+  internalLinkProposalsCreated  InternalLinkChangeProposal[] @relation("InternalLinkProposalCreator")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -542,6 +544,14 @@ model Organisation {
   onPageSeoTargets               OnPageSeoTarget[]
   onPageSeoComparisons           OnPageSeoComparison[]
   onPageSeoOverrides             OnPageSeoOverride[]
+  internalLinkGraphs             InternalLinkGraph[]
+  internalLinkNodes              InternalLinkNode[]
+  internalLinkEdges              InternalLinkEdge[]
+  internalLinkSnapshots          InternalLinkSnapshot[]
+  internalLinkRecommendations    InternalLinkRecommendation[]
+  internalLinkAnchors            InternalLinkAnchor[]
+  internalLinkIssues             InternalLinkIssue[]
+  internalLinkChangeProposals    InternalLinkChangeProposal[]
 
   @@index([status])
   @@index([archivedAt])
@@ -736,6 +746,7 @@ model Project {
   seoContentBriefs               SeoContentBrief[]
   longFormContentDocuments       LongFormContentDocument[]
   onPageSeoAudits                OnPageSeoAudit[]
+  internalLinkGraphs             InternalLinkGraph[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -923,6 +934,7 @@ model Brand {
   seoContentBriefs               SeoContentBrief[]
   longFormContentDocuments       LongFormContentDocument[]
   onPageSeoAudits                OnPageSeoAudit[]
+  internalLinkGraphs             InternalLinkGraph[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -6828,6 +6840,7 @@ model SeoSite {
   robotsSnapshots    SeoRobotsSnapshot[]
   sitemaps           SeoSitemap[]
   keywords           SeoKeyword[]
+  internalLinkGraphs InternalLinkGraph[]
 
   @@unique([brandId, primaryDomain])
   @@index([organisationId, brandId])
@@ -6931,6 +6944,7 @@ model SeoCrawlRun {
   links        SeoCrawlLink[]
   resources    SeoCrawlResource[]
   issues       SeoCrawlIssue[]
+  internalLinkGraphs InternalLinkGraph[]
 
   @@index([organisationId, brandId, createdAt])
   @@index([seoSiteId, status])
@@ -6989,6 +7003,7 @@ model SeoCrawlPage {
   briefInternalLinkSources SeoBriefInternalLink[] @relation("BriefLinkSource")
   briefInternalLinkDestinations SeoBriefInternalLink[] @relation("BriefLinkDestination")
   onPageSeoAudits               OnPageSeoAudit[]
+  internalLinkNodes             InternalLinkNode[]
 
   @@unique([seoSiteId, normalisedUrl])
   @@index([organisationId, brandId])
@@ -8025,6 +8040,7 @@ model SeoTopicCluster {
   contentBriefs   SeoContentBrief[]
   onPageSeoAudits OnPageSeoAudit[]
   onPageSeoTargets OnPageSeoTarget[]
+  internalLinkNodes InternalLinkNode[]
 
   @@unique([brandId, slug])
   @@index([organisationId, brandId, status])
@@ -9045,6 +9061,268 @@ model OnPageSeoOverride {
   overriddenBy   UserProfile            @relation("OnPageSeoOverrideCreator", fields: [overriddenByUserId], references: [id], onDelete: Restrict)
 
   @@index([auditId])
+}
+
+// ---------------------------------------------------------------------------
+// Internal linking intelligence (Task 4.8)
+// ---------------------------------------------------------------------------
+
+enum InternalLinkGraphStatus {
+  BUILDING
+  READY
+  STALE
+  ARCHIVED
+}
+
+enum InternalLinkAnchorType {
+  BRANDED
+  PARTIAL_MATCH
+  GENERIC
+  NAVIGATIONAL
+  DESCRIPTIVE
+  IMAGE
+  EMPTY
+}
+
+enum InternalLinkIssueType {
+  ORPHAN_PAGE
+  NEAR_ORPHAN_PAGE
+  BROKEN_INTERNAL_LINK
+  LINK_TO_REDIRECT
+  LINK_TO_NOINDEX
+  EXCESSIVE_CRAWL_DEPTH
+  ANCHOR_REPETITION
+  DISCONNECTED_CLUSTER
+  LOW_INTERNAL_SUPPORT
+  OBSOLETE_LINK
+  CANONICAL_CONFLICT
+}
+
+enum InternalLinkIssueStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum InternalLinkRecommendationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  IMPLEMENTED
+  VERIFIED
+  DISMISSED
+}
+
+enum InternalLinkChangeProposalStatus {
+  DRAFT
+  APPROVED
+  REJECTED
+  EXPORTED
+  IMPLEMENTED
+  VERIFIED
+}
+
+model InternalLinkGraph {
+  id             String                  @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  seoSiteId      String
+  crawlRunId     String?
+  status         InternalLinkGraphStatus @default(BUILDING)
+  nodeCount      Int                     @default(0)
+  edgeCount      Int                     @default(0)
+  metrics        Json?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organisation    Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  seoSite         SeoSite                    @relation(fields: [seoSiteId], references: [id], onDelete: Cascade)
+  crawlRun        SeoCrawlRun?               @relation(fields: [crawlRunId], references: [id], onDelete: SetNull)
+  nodes           InternalLinkNode[]
+  edges           InternalLinkEdge[]
+  snapshots       InternalLinkSnapshot[]
+  recommendations InternalLinkRecommendation[]
+  anchors         InternalLinkAnchor[]
+  issues          InternalLinkIssue[]
+  changeProposals InternalLinkChangeProposal[]
+
+  @@index([organisationId, brandId, status])
+  @@index([seoSiteId])
+}
+
+model InternalLinkNode {
+  id              String   @id @default(cuid())
+  organisationId  String
+  graphId         String
+  crawlPageId     String?
+  url             String
+  title           String?
+  pageType        String?
+  isIndexable     Boolean  @default(true)
+  crawlDepth      Int?
+  incomingCount   Int      @default(0)
+  outgoingCount   Int      @default(0)
+  isOrphan        Boolean  @default(false)
+  isNearOrphan    Boolean  @default(false)
+  clusterId       String?
+  topicalConnections Int   @default(0)
+  metrics         Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  graph        InternalLinkGraph @relation(fields: [graphId], references: [id], onDelete: Cascade)
+  crawlPage    SeoCrawlPage?   @relation(fields: [crawlPageId], references: [id], onDelete: SetNull)
+  cluster      SeoTopicCluster? @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  outgoingEdges InternalLinkEdge[] @relation("EdgeSource")
+  incomingEdges InternalLinkEdge[] @relation("EdgeTarget")
+  anchors      InternalLinkAnchor[]
+  sourceRecommendations InternalLinkRecommendation[] @relation("RecSource")
+  targetRecommendations InternalLinkRecommendation[] @relation("RecTarget")
+  issues       InternalLinkIssue[]
+
+  @@unique([graphId, url])
+  @@index([graphId, isOrphan])
+  @@index([graphId, crawlDepth])
+}
+
+model InternalLinkEdge {
+  id              String               @id @default(cuid())
+  organisationId  String
+  graphId         String
+  sourceNodeId    String
+  targetNodeId    String?
+  targetUrl       String
+  anchorText      String?
+  anchorType      InternalLinkAnchorType?
+  isFollowed      Boolean              @default(true)
+  statusCode      Int?
+  isBroken        Boolean              @default(false)
+  isRedirect      Boolean              @default(false)
+  isNoindexTarget Boolean              @default(false)
+  isObsolete      Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  graph        InternalLinkGraph @relation(fields: [graphId], references: [id], onDelete: Cascade)
+  sourceNode   InternalLinkNode  @relation("EdgeSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode   InternalLinkNode? @relation("EdgeTarget", fields: [targetNodeId], references: [id], onDelete: SetNull)
+  issues       InternalLinkIssue[]
+
+  @@index([graphId, sourceNodeId])
+  @@index([graphId, targetNodeId])
+}
+
+model InternalLinkSnapshot {
+  id             String   @id @default(cuid())
+  organisationId String
+  graphId        String
+  versionNumber  Int
+  nodeCount      Int
+  edgeCount      Int
+  metrics        Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  graph        InternalLinkGraph @relation(fields: [graphId], references: [id], onDelete: Cascade)
+
+  @@unique([graphId, versionNumber])
+  @@index([graphId, createdAt])
+}
+
+model InternalLinkRecommendation {
+  id                String                           @id @default(cuid())
+  organisationId    String
+  graphId           String
+  sourceNodeId      String
+  targetNodeId      String
+  suggestedAnchorConcept String
+  contextualReason  String
+  confidence        Float
+  evidence          Json
+  potentialConflict String?
+  status            InternalLinkRecommendationStatus @default(PENDING)
+  createdAt         DateTime                         @default(now())
+  updatedAt         DateTime                         @updatedAt
+
+  organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  graph        InternalLinkGraph @relation(fields: [graphId], references: [id], onDelete: Cascade)
+  sourceNode   InternalLinkNode  @relation("RecSource", fields: [sourceNodeId], references: [id], onDelete: Cascade)
+  targetNode   InternalLinkNode  @relation("RecTarget", fields: [targetNodeId], references: [id], onDelete: Cascade)
+  changeProposals InternalLinkChangeProposal[]
+
+  @@index([graphId, status])
+  @@index([graphId, confidence])
+}
+
+model InternalLinkAnchor {
+  id              String               @id @default(cuid())
+  organisationId  String
+  graphId         String
+  nodeId          String?
+  anchorText      String
+  classification  InternalLinkAnchorType
+  occurrenceCount Int                  @default(1)
+  isRepetitive    Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  graph        InternalLinkGraph @relation(fields: [graphId], references: [id], onDelete: Cascade)
+  node         InternalLinkNode? @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+
+  @@index([graphId, classification])
+  @@index([graphId, isRepetitive])
+}
+
+model InternalLinkIssue {
+  id             String                  @id @default(cuid())
+  organisationId String
+  graphId        String
+  issueType      InternalLinkIssueType
+  severity       String                  @default("MEDIUM")
+  title          String
+  description    String
+  evidence       Json
+  status         InternalLinkIssueStatus @default(OPEN)
+  sourceNodeId   String?
+  targetNodeId   String?
+  edgeId         String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  graph        InternalLinkGraph @relation(fields: [graphId], references: [id], onDelete: Cascade)
+  sourceNode   InternalLinkNode? @relation(fields: [sourceNodeId], references: [id], onDelete: SetNull)
+  edge         InternalLinkEdge? @relation(fields: [edgeId], references: [id], onDelete: SetNull)
+
+  @@index([graphId, issueType, status])
+}
+
+model InternalLinkChangeProposal {
+  id                String                         @id @default(cuid())
+  organisationId    String
+  graphId           String
+  recommendationId  String?
+  status            InternalLinkChangeProposalStatus @default(DRAFT)
+  editedAnchorConcept String?
+  assignedToUserId  String?
+  exportPayload     Json?
+  implementedAt     DateTime?
+  verifiedAt        DateTime?
+  createdByUserId   String
+  createdAt         DateTime                       @default(now())
+  updatedAt         DateTime                       @updatedAt
+
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  graph          InternalLinkGraph         @relation(fields: [graphId], references: [id], onDelete: Cascade)
+  recommendation InternalLinkRecommendation? @relation(fields: [recommendationId], references: [id], onDelete: SetNull)
+  assignedTo     UserProfile?              @relation("InternalLinkProposalAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  createdBy      UserProfile               @relation("InternalLinkProposalCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([graphId, status])
 }
 
 // ---------------------------------------------------------------------------
