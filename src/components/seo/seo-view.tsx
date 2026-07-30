@@ -233,6 +233,9 @@ export function SeoView({
           <Link href="/seo/keywords">
             <Button variant="outline" size="sm">Keywords</Button>
           </Link>
+          <Link href="/seo/competitors">
+            <Button variant="outline" size="sm">Competitors</Button>
+          </Link>
         </nav>
       )}
 

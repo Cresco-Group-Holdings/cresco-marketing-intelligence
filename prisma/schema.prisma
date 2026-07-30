@@ -484,6 +484,16 @@ model Organisation {
   seoKeywordEntities             SeoKeywordEntity[]
   seoKeywordPageMappings         SeoKeywordPageMapping[]
   seoKeywordStatusHistories      SeoKeywordStatusHistory[]
+  seoCompetitors                 SeoCompetitor[]
+  seoCompetitorComparisons       SeoCompetitorComparison[]
+  seoContentGaps                 SeoContentGap[]
+  seoCompetitorDomains           SeoCompetitorDomain[]
+  seoCompetitorSnapshots         SeoCompetitorSnapshot[]
+  seoCompetitorPages             SeoCompetitorPage[]
+  seoCompetitorKeywords          SeoCompetitorKeyword[]
+  seoKeywordOverlaps             SeoKeywordOverlap[]
+  seoCompetitorTopics            SeoCompetitorTopic[]
+  seoCompetitorEvidence          SeoCompetitorEvidence[]
 
   @@index([status])
   @@index([archivedAt])
@@ -666,6 +676,9 @@ model Project {
   seoKeywordGroups               SeoKeywordGroup[]
   seoKeywordImports              SeoKeywordImport[]
   seoKeywordOpportunities        SeoKeywordOpportunity[]
+  seoCompetitors                 SeoCompetitor[]
+  seoCompetitorComparisons       SeoCompetitorComparison[]
+  seoContentGaps                 SeoContentGap[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -840,6 +853,10 @@ model Brand {
   seoKeywordGroups               SeoKeywordGroup[]
   seoKeywordImports              SeoKeywordImport[]
   seoKeywordOpportunities        SeoKeywordOpportunity[]
+  seoCompetitors                 SeoCompetitor[]
+  seoCompetitorComparisons       SeoCompetitorComparison[]
+  seoContentGaps                 SeoContentGap[]
+  seoKeywordOverlaps             SeoKeywordOverlap[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -6893,6 +6910,7 @@ model SeoCrawlPage {
   structuredData SeoStructuredDataItem[]
   issues       SeoCrawlIssue[]
   keywordPageMappings SeoKeywordPageMapping[]
+  competitorComparisons SeoCompetitorComparison[] @relation("BrandPageComparison")
 
   @@unique([seoSiteId, normalisedUrl])
   @@index([organisationId, brandId])
@@ -7257,6 +7275,7 @@ model SeoKeyword {
   groupMembers   SeoKeywordGroupMember[]
   opportunities  SeoKeywordOpportunity[]
   statusHistory  SeoKeywordStatusHistory[]
+  keywordOverlaps SeoKeywordOverlap[]
 
   @@unique([brandId, normalisedKeyword, language, country])
   @@index([organisationId, brandId, status])
@@ -7511,6 +7530,291 @@ model SeoKeywordStatusHistory {
   changedBy    UserProfile? @relation("SeoKeywordStatusChanger", fields: [changedByUserId], references: [id], onDelete: SetNull)
 
   @@index([keywordId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Competitor search intelligence (Task 4.3)
+// ---------------------------------------------------------------------------
+
+enum SeoCompetitorType {
+  DIRECT
+  INDIRECT
+  SEARCH_COMPETITOR
+  CONTENT_COMPETITOR
+  ASPIRATIONAL
+  OTHER
+}
+
+enum SeoCompetitorStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum SeoCompetitorSnapshotStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  BLOCKED
+  CANCELLED
+}
+
+enum SeoContentGapType {
+  TOPIC_COVERAGE
+  MISSING_PAGE
+  WEAK_PAGE
+  MISSING_FORMAT
+  MISSING_FUNNEL_STAGE
+  MISSING_FAQ_GLOSSARY
+}
+
+enum SeoContentGapStatus {
+  OPEN
+  ACKNOWLEDGED
+  PLANNED
+  DISMISSED
+}
+
+enum SeoKeywordOverlapType {
+  SHARED
+  BRAND_UNIQUE
+  COMPETITOR_UNIQUE
+}
+
+model SeoCompetitor {
+  id             String            @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  name           String
+  competitorType SeoCompetitorType @default(DIRECT)
+  status         SeoCompetitorStatus @default(ACTIVE)
+  notes          String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  archivedAt     DateTime?
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  domains      SeoCompetitorDomain[]
+  snapshots    SeoCompetitorSnapshot[]
+  pages        SeoCompetitorPage[]
+  keywords     SeoCompetitorKeyword[]
+  topics       SeoCompetitorTopic[]
+  comparisons  SeoCompetitorComparison[]
+  keywordOverlaps SeoKeywordOverlap[]
+  contentGaps  SeoContentGap[]
+
+  @@unique([brandId, name])
+  @@index([organisationId, brandId, status])
+}
+
+model SeoCompetitorDomain {
+  id             String   @id @default(cuid())
+  organisationId String
+  competitorId   String
+  hostname       String
+  isPrimary      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  competitor   SeoCompetitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@unique([competitorId, hostname])
+  @@index([hostname])
+}
+
+model SeoCompetitorSnapshot {
+  id             String                    @id @default(cuid())
+  organisationId String
+  competitorId   String
+  status         SeoCompetitorSnapshotStatus @default(QUEUED)
+  pagesDiscovered Int                      @default(0)
+  pagesCrawled   Int                       @default(0)
+  pagesBlocked   Int                       @default(0)
+  idempotencyKey String                    @unique
+  startedAt      DateTime?
+  completedAt    DateTime?
+  lastError      String?
+  createdAt      DateTime                  @default(now())
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  competitor   SeoCompetitor       @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  pages        SeoCompetitorPage[]
+  evidence     SeoCompetitorEvidence[]
+
+  @@index([competitorId, createdAt])
+  @@index([status])
+}
+
+model SeoCompetitorPage {
+  id             String   @id @default(cuid())
+  organisationId String
+  competitorId   String
+  snapshotId     String?
+  url            String
+  normalisedUrl  String
+  statusCode     Int?
+  title          String?
+  description    String?
+  canonicalUrl   String?
+  headings       Json?
+  wordCount      Int?
+  structuredData Json?
+  internalLinkCount Int?
+  detectedTopics String[] @default([])
+  contentType    String?
+  contentHash    String?
+  ctaType        String?
+  observedAt     DateTime @default(now())
+  previousHash   String?
+  changedAt      DateTime?
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  competitor   SeoCompetitor         @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  snapshot     SeoCompetitorSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  evidence     SeoCompetitorEvidence[]
+  comparisons  SeoCompetitorComparison[] @relation("CompetitorPageComparison")
+
+  @@unique([competitorId, normalisedUrl])
+  @@index([competitorId, observedAt])
+}
+
+model SeoCompetitorKeyword {
+  id             String   @id @default(cuid())
+  organisationId String
+  competitorId   String
+  keyword        String
+  normalisedKeyword String
+  source         String
+  observedAt     DateTime
+  position       Float?
+  rankingUrl     String?
+  provider       String?
+  isManual       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  competitor   SeoCompetitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  overlaps     SeoKeywordOverlap[]
+
+  @@unique([competitorId, normalisedKeyword, source, observedAt])
+  @@index([competitorId])
+}
+
+model SeoKeywordOverlap {
+  id                String              @id @default(cuid())
+  organisationId    String
+  brandId           String
+  competitorId      String
+  brandKeywordId    String?
+  competitorKeywordId String?
+  keyword           String
+  overlapType       SeoKeywordOverlapType
+  brandPosition     Float?
+  competitorPosition Float?
+  brandUrl          String?
+  competitorUrl     String?
+  sourceCoverage    Json?
+  evidence          Json?
+  calculatedAt      DateTime            @default(now())
+
+  organisation      Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand             Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  competitor        SeoCompetitor       @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  brandKeyword      SeoKeyword?         @relation(fields: [brandKeywordId], references: [id], onDelete: SetNull)
+  competitorKeyword SeoCompetitorKeyword? @relation(fields: [competitorKeywordId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, competitorId])
+  @@index([overlapType])
+}
+
+model SeoContentGap {
+  id             String            @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  competitorId   String
+  gapType        SeoContentGapType
+  status         SeoContentGapStatus @default(OPEN)
+  topic          String?
+  keyword        String?
+  title          String
+  explanation    String
+  evidence       Json
+  recommendedAction String?
+  originalityGuidance String?
+  detectedAt     DateTime          @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  competitor   SeoCompetitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, status])
+  @@index([competitorId, gapType])
+}
+
+model SeoCompetitorTopic {
+  id             String   @id @default(cuid())
+  organisationId String
+  competitorId   String
+  topic          String
+  pageCount      Int      @default(0)
+  evidence       Json?
+  detectedAt     DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  competitor   SeoCompetitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@unique([competitorId, topic])
+  @@index([competitorId])
+}
+
+model SeoCompetitorComparison {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  competitorId   String
+  brandPageId    String?
+  competitorPageId String?
+  brandUrl       String?
+  competitorUrl  String?
+  comparison     Json
+  aiSummary      Json?
+  limitations    String?
+  createdAt      DateTime @default(now())
+
+  organisation   Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  competitor     SeoCompetitor     @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  brandPage      SeoCrawlPage?     @relation("BrandPageComparison", fields: [brandPageId], references: [id], onDelete: SetNull)
+  competitorPage SeoCompetitorPage? @relation("CompetitorPageComparison", fields: [competitorPageId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, competitorId])
+}
+
+model SeoCompetitorEvidence {
+  id             String   @id @default(cuid())
+  organisationId String
+  snapshotId     String?
+  pageId         String?
+  evidenceType   String
+  url            String?
+  excerpt        String?
+  metadata       Json?
+  collectedAt    DateTime @default(now())
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  snapshot     SeoCompetitorSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  page         SeoCompetitorPage?    @relation(fields: [pageId], references: [id], onDelete: SetNull)
+
+  @@index([snapshotId])
+  @@index([pageId])
 }
 
 // ---------------------------------------------------------------------------
