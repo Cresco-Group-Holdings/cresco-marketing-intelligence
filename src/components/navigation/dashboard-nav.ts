@@ -6,6 +6,7 @@ import {
   Database,
   FlaskConical,
   FolderOpen,
+  Globe,
   LayoutDashboard,
   LineChart,
   Link2,
@@ -117,6 +118,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/analyst",
     icon: LineChart,
     description: "Evidence-grounded AI marketing analysis",
+  },
+  {
+    label: "Technical SEO",
+    href: "/seo",
+    icon: Globe,
+    description: "Site crawler, issues, and technical audits",
   },
   {
     label: "AI Agents",
