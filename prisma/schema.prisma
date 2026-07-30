@@ -357,6 +357,9 @@ model UserProfile {
   crmIdentityLinksConfirmed    CrmIdentityLink[]         @relation("CrmIdentityLinkConfirmer")
   crmDuplicatesReviewed        CrmDuplicateCandidate[]   @relation("CrmDuplicateReviewer")
   crmTimelineItemsActed        CrmActivityTimelineItem[] @relation("CrmTimelineActor")
+  leadCaptureFormsCreated      LeadCaptureForm[]         @relation("LeadCaptureFormCreator")
+  leadCaptureFormVersionsApproved LeadCaptureFormVersion[] @relation("LeadCaptureFormVersionApprover")
+  leadCaptureSubmissionsReviewed LeadCaptureSubmission[]  @relation("LeadCaptureSubmissionReviewer")
 
   @@index([email])
 }
@@ -708,6 +711,8 @@ model Organisation {
   crmImportJobs                        CrmImportJob[]
   crmExportJobs                        CrmExportJob[]
   crmSavedViews                        CrmSavedView[]
+  leadCaptureForms                     LeadCaptureForm[]
+  leadCaptureSubmissions               LeadCaptureSubmission[]
 
   @@index([status])
   @@index([archivedAt])
@@ -940,6 +945,8 @@ model Project {
   crmImportJobs               CrmImportJob[]
   crmExportJobs               CrmExportJob[]
   crmSavedViews               CrmSavedView[]
+  leadCaptureForms            LeadCaptureForm[]
+  leadCaptureSubmissions      LeadCaptureSubmission[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1170,6 +1177,8 @@ model Brand {
   crmImportJobs                  CrmImportJob[]
   crmExportJobs                  CrmExportJob[]
   crmSavedViews                  CrmSavedView[]
+  leadCaptureForms               LeadCaptureForm[]
+  leadCaptureSubmissions         LeadCaptureSubmission[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -13616,6 +13625,387 @@ model CrmExportJob {
   createdBy    UserProfile  @relation("CrmExportCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   @@index([organisationId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.2 — Lead Capture and Form Platform
+// ---------------------------------------------------------------------------
+
+enum LeadCaptureFormStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum LeadCaptureFormType {
+  CONTACT
+  DEMO_REQUEST
+  WAITLIST
+  NEWSLETTER
+  DOWNLOAD
+  EVENT_REGISTRATION
+  GRANT_INTEREST
+  CAPITAL_ANALYSIS_REQUEST
+  PARTNERSHIP
+  SUPPORT
+  CUSTOM
+}
+
+enum LeadCaptureFieldType {
+  TEXT
+  EMAIL
+  PHONE
+  TEXTAREA
+  NUMBER
+  DATE
+  SINGLE_SELECT
+  MULTI_SELECT
+  CHECKBOX
+  RADIO
+  COUNTRY
+  LANGUAGE
+  COMPANY
+  JOB_TITLE
+  URL
+  HIDDEN
+  CONSENT
+  FILE_UPLOAD
+}
+
+enum LeadCaptureSubmissionStatus {
+  RECEIVED
+  PROCESSING
+  ACCEPTED
+  QUARANTINED
+  REJECTED
+  DUPLICATE
+}
+
+enum LeadCaptureConsentPurpose {
+  SERVICE_REQUEST
+  MARKETING_EMAIL
+  MARKETING_PHONE
+  PERSONALISED_MARKETING
+  ADVERTISING_AUDIENCE
+  PARTNER_COMMUNICATIONS
+}
+
+enum LeadCaptureConsentState {
+  GRANTED
+  DENIED
+  WITHDRAWN
+}
+
+enum LeadCaptureThankYouActionType {
+  INLINE_CONFIRMATION
+  REDIRECT
+  CALENDAR_BOOKING
+  RESOURCE_DOWNLOAD
+  ACCOUNT_REGISTRATION
+  CUSTOM
+}
+
+enum LeadCaptureRuleActionType {
+  ASSIGN_OWNER
+  APPLY_TAG
+  SET_PRODUCT_INTEREST
+  CREATE_TASK
+  ADD_NURTURE
+  NOTIFY_TEAM
+  CREATE_OPPORTUNITY_PROPOSAL
+}
+
+enum LeadCaptureEmbedType {
+  JAVASCRIPT
+  IFRAME
+  HOSTED_PAGE
+  REACT_COMPONENT
+  API
+}
+
+enum LeadCaptureSpamVerdict {
+  CLEAN
+  SUSPICIOUS
+  QUARANTINED
+}
+
+model LeadCaptureForm {
+  id               String               @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  publicFormId     String               @unique @default(cuid())
+  name             String
+  slug             String
+  formType         LeadCaptureFormType  @default(CONTACT)
+  status           LeadCaptureFormStatus @default(DRAFT)
+  description      String?
+  currentVersionId String?
+  allowedOrigins   String[]             @default([])
+  brandStyling     Json?
+  createdByUserId  String
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  archivedAt       DateTime?
+
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy      UserProfile               @relation("LeadCaptureFormCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions       LeadCaptureFormVersion[]
+  destinations   LeadCaptureDestination[]
+  rules          LeadCaptureRule[]
+  submissions    LeadCaptureSubmission[]
+  installations  LeadCaptureEmbedInstallation[]
+  thankYouActions LeadCaptureThankYouAction[]
+
+  @@unique([brandId, slug])
+  @@index([organisationId, brandId, status])
+  @@index([publicFormId])
+}
+
+model LeadCaptureFormVersion {
+  id              String   @id @default(cuid())
+  formId          String
+  versionNumber   Int
+  label           String?
+  isActive        Boolean  @default(false)
+  successMessage  String?
+  errorMessage    String?
+  multiStep       Boolean  @default(false)
+  approvedByUserId String?
+  approvedAt      DateTime?
+  publishedAt     DateTime?
+  createdAt       DateTime @default(now())
+
+  form           LeadCaptureForm            @relation(fields: [formId], references: [id], onDelete: Cascade)
+  approvedBy     UserProfile?               @relation("LeadCaptureFormVersionApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  fields         LeadCaptureField[]
+  steps          LeadCaptureFormStep[]
+  consentBlocks  LeadCaptureConsentBlock[]
+  submissions    LeadCaptureSubmission[]
+
+  @@unique([formId, versionNumber])
+  @@index([formId, isActive])
+}
+
+model LeadCaptureFormStep {
+  id          String @id @default(cuid())
+  versionId   String
+  stepNumber  Int
+  title       String
+  description String?
+  sortOrder   Int    @default(0)
+
+  version LeadCaptureFormVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  fields  LeadCaptureField[]
+
+  @@unique([versionId, stepNumber])
+}
+
+model LeadCaptureField {
+  id                 String               @id @default(cuid())
+  versionId          String
+  stepId             String?
+  fieldKey           String
+  fieldType          LeadCaptureFieldType
+  label              String
+  helpText           String?
+  placeholder        String?
+  isRequired         Boolean              @default(false)
+  validationRules    Json?
+  conditionalVisibility Json?
+  sortOrder          Int                  @default(0)
+  isHoneypot         Boolean              @default(false)
+  consentPurpose     LeadCaptureConsentPurpose?
+
+  version LeadCaptureFormVersion   @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  step    LeadCaptureFormStep?     @relation(fields: [stepId], references: [id], onDelete: SetNull)
+  options LeadCaptureFieldOption[]
+  values  LeadCaptureSubmissionValue[]
+
+  @@unique([versionId, fieldKey])
+  @@index([versionId, sortOrder])
+}
+
+model LeadCaptureFieldOption {
+  id        String @id @default(cuid())
+  fieldId   String
+  value     String
+  label     String
+  sortOrder Int    @default(0)
+
+  field LeadCaptureField @relation(fields: [fieldId], references: [id], onDelete: Cascade)
+
+  @@index([fieldId, sortOrder])
+}
+
+model LeadCaptureConsentBlock {
+  id              String                    @id @default(cuid())
+  versionId       String
+  purpose         LeadCaptureConsentPurpose
+  wordingVersion  String
+  label           String
+  helpText        String?
+  isRequired      Boolean                   @default(false)
+  sortOrder       Int                       @default(0)
+
+  version LeadCaptureFormVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+}
+
+model LeadCaptureSubmission {
+  id                  String                      @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  formId              String
+  formVersionId       String
+  status              LeadCaptureSubmissionStatus @default(RECEIVED)
+  idempotencyKey      String?
+  receiptAt           DateTime                    @default(now())
+  pageUrl             String?
+  referrer            String?
+  utmSource           String?
+  utmMedium           String?
+  utmCampaign         String?
+  utmTerm             String?
+  utmContent          String?
+  campaignId          String?
+  adClickId           String?
+  socialContentId     String?
+  anonymousId         String?
+  sessionId           String?
+  trackingPropertyId  String?
+  origin              String?
+  clientIpHash        String?
+  userAgent           String?
+  crmLeadId           String?
+  attributionJourneyId String?
+  reviewedByUserId    String?
+  reviewedAt          DateTime?
+  createdAt           DateTime                    @default(now())
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  form         LeadCaptureForm        @relation(fields: [formId], references: [id], onDelete: Cascade)
+  formVersion  LeadCaptureFormVersion @relation(fields: [formVersionId], references: [id], onDelete: Restrict)
+  reviewedBy   UserProfile?           @relation("LeadCaptureSubmissionReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  values       LeadCaptureSubmissionValue[]
+  spamAssessment LeadCaptureSpamAssessment?
+  consentRecords LeadCaptureSubmissionConsent[]
+
+  @@unique([formId, idempotencyKey])
+  @@index([organisationId, brandId, status])
+  @@index([formId, createdAt])
+  @@index([crmLeadId])
+}
+
+model LeadCaptureSubmissionConsent {
+  id             String                    @id @default(cuid())
+  submissionId   String
+  purpose        LeadCaptureConsentPurpose
+  state          LeadCaptureConsentState
+  wordingVersion String
+  source         String                    @default("FORM")
+  formVersionId  String
+  withdrawnAt    DateTime?
+  createdAt      DateTime                  @default(now())
+
+  submission LeadCaptureSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+}
+
+model LeadCaptureSubmissionValue {
+  id           String  @id @default(cuid())
+  submissionId String
+  fieldId      String
+  fieldKey     String
+  valueText    String?
+  valueJson    Json?
+
+  submission LeadCaptureSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  field      LeadCaptureField      @relation(fields: [fieldId], references: [id], onDelete: Restrict)
+
+  @@unique([submissionId, fieldId])
+  @@index([submissionId])
+}
+
+model LeadCaptureDestination {
+  id        String   @id @default(cuid())
+  formId    String
+  name      String
+  config    Json
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  form LeadCaptureForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+}
+
+model LeadCaptureRule {
+  id          String                    @id @default(cuid())
+  formId      String
+  name        String
+  priority    Int                       @default(0)
+  conditions  Json
+  actionType  LeadCaptureRuleActionType
+  actionConfig Json
+  isActive    Boolean                   @default(true)
+  createdAt   DateTime                  @default(now())
+
+  form LeadCaptureForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId, priority])
+}
+
+model LeadCaptureSpamAssessment {
+  id           String                 @id @default(cuid())
+  submissionId String                 @unique
+  verdict      LeadCaptureSpamVerdict @default(CLEAN)
+  signals      Json?
+  score        Decimal?               @db.Decimal(5, 2)
+  reviewedAt   DateTime?
+  createdAt    DateTime               @default(now())
+
+  submission LeadCaptureSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+model LeadCaptureEmbedInstallation {
+  id           String               @id @default(cuid())
+  formId       String
+  embedType    LeadCaptureEmbedType
+  domain       String?
+  config       Json?
+  installedAt  DateTime             @default(now())
+  lastSeenAt   DateTime?
+
+  form LeadCaptureForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
+}
+
+model LeadCaptureThankYouAction {
+  id              String                        @id @default(cuid())
+  formId          String
+  versionId       String?
+  actionType      LeadCaptureThankYouActionType @default(INLINE_CONFIRMATION)
+  config          Json?
+  redirectUrl     String?
+  isRedirectValidated Boolean                   @default(false)
+  sortOrder       Int                           @default(0)
+  createdAt       DateTime                      @default(now())
+
+  form LeadCaptureForm @relation(fields: [formId], references: [id], onDelete: Cascade)
+
+  @@index([formId])
 }
 
 // ---------------------------------------------------------------------------
