@@ -140,6 +140,12 @@ export const PERMISSIONS = {
   "advertisingGoogleAds.validate": "advertisingGoogleAds.validate",
   "advertisingGoogleAds.launch": "advertisingGoogleAds.launch",
   "advertisingGoogleAds.manage": "advertisingGoogleAds.manage",
+  "advertisingMetaAds.read": "advertisingMetaAds.read",
+  "advertisingMetaAds.connect": "advertisingMetaAds.connect",
+  "advertisingMetaAds.draft": "advertisingMetaAds.draft",
+  "advertisingMetaAds.validate": "advertisingMetaAds.validate",
+  "advertisingMetaAds.launch": "advertisingMetaAds.launch",
+  "advertisingMetaAds.manage": "advertisingMetaAds.manage",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -285,6 +291,12 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingGoogleAds.validate"],
     PERMISSIONS["advertisingGoogleAds.launch"],
     PERMISSIONS["advertisingGoogleAds.manage"],
+    PERMISSIONS["advertisingMetaAds.read"],
+    PERMISSIONS["advertisingMetaAds.connect"],
+    PERMISSIONS["advertisingMetaAds.draft"],
+    PERMISSIONS["advertisingMetaAds.validate"],
+    PERMISSIONS["advertisingMetaAds.launch"],
+    PERMISSIONS["advertisingMetaAds.manage"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -383,6 +395,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingGoogleAds.connect"],
     PERMISSIONS["advertisingGoogleAds.draft"],
     PERMISSIONS["advertisingGoogleAds.validate"],
+    PERMISSIONS["advertisingMetaAds.read"],
+    PERMISSIONS["advertisingMetaAds.connect"],
+    PERMISSIONS["advertisingMetaAds.draft"],
+    PERMISSIONS["advertisingMetaAds.validate"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -425,6 +441,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingCreatives.read"],
     PERMISSIONS["advertisingAudiences.read"],
     PERMISSIONS["advertisingGoogleAds.read"],
+    PERMISSIONS["advertisingMetaAds.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -457,6 +474,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingCreatives.read"],
     PERMISSIONS["advertisingAudiences.read"],
     PERMISSIONS["advertisingGoogleAds.read"],
+    PERMISSIONS["advertisingMetaAds.read"],
     PERMISSIONS["experiments.read"],
   ],
 };

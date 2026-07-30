@@ -275,6 +275,12 @@ model UserProfile {
   advertisingGoogleAdsLaunchApprovalsDecided AdvertisingGoogleAdsLaunchApproval[] @relation("AdvertisingGoogleAdsLaunchApprover")
   advertisingGoogleAdsLaunchesExecuted AdvertisingGoogleAdsLaunch[] @relation("AdvertisingGoogleAdsLaunchExecutor")
   advertisingGoogleAdsOperationsRequested AdvertisingGoogleAdsOperation[] @relation("AdvertisingGoogleAdsOperationRequester")
+  advertisingMetaAdsAccountsAssigned AdvertisingMetaAdsAccount[] @relation("AdvertisingMetaAdsAccountAssigner")
+  advertisingMetaAdsDraftsCreated    AdvertisingMetaAdsDraft[] @relation("AdvertisingMetaAdsDraftCreator")
+  advertisingMetaAdsMutationPlansCreated AdvertisingMetaAdsMutationPlan[] @relation("AdvertisingMetaAdsMutationPlanCreator")
+  advertisingMetaAdsLaunchApprovalsDecided AdvertisingMetaAdsLaunchApproval[] @relation("AdvertisingMetaAdsLaunchApprover")
+  advertisingMetaAdsLaunchesExecuted AdvertisingMetaAdsLaunch[] @relation("AdvertisingMetaAdsLaunchExecutor")
+  advertisingMetaAdsOperationsRequested AdvertisingMetaAdsOperation[] @relation("AdvertisingMetaAdsOperationRequester")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -624,6 +630,14 @@ model Organisation {
   advertisingGoogleAdsLaunches         AdvertisingGoogleAdsLaunch[]
   advertisingGoogleAdsProviderResources AdvertisingGoogleAdsProviderResource[]
   advertisingGoogleAdsOperations       AdvertisingGoogleAdsOperation[]
+  advertisingMetaAdsAccounts           AdvertisingMetaAdsAccount[]
+  advertisingMetaAdsDrafts             AdvertisingMetaAdsDraft[]
+  advertisingMetaAdsMutationPlans    AdvertisingMetaAdsMutationPlan[]
+  advertisingMetaAdsLaunchApprovals    AdvertisingMetaAdsLaunchApproval[]
+  advertisingMetaAdsLaunches           AdvertisingMetaAdsLaunch[]
+  advertisingMetaAdsProviderResources  AdvertisingMetaAdsProviderResource[]
+  advertisingMetaAdsOperations         AdvertisingMetaAdsOperation[]
+  advertisingMetaAdsCapiEvents         AdvertisingMetaAdsCapiEvent[]
 
   @@index([status])
   @@index([archivedAt])
@@ -828,6 +842,9 @@ model Project {
   advertisingGoogleAdsAccounts AdvertisingGoogleAdsAccount[]
   advertisingGoogleAdsDrafts   AdvertisingGoogleAdsDraft[]
   advertisingGoogleAdsLaunches AdvertisingGoogleAdsLaunch[]
+  advertisingMetaAdsAccounts AdvertisingMetaAdsAccount[]
+  advertisingMetaAdsDrafts   AdvertisingMetaAdsDraft[]
+  advertisingMetaAdsLaunches AdvertisingMetaAdsLaunch[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1026,6 +1043,11 @@ model Brand {
   advertisingGoogleAdsDrafts   AdvertisingGoogleAdsDraft[]
   advertisingGoogleAdsLaunches AdvertisingGoogleAdsLaunch[]
   advertisingGoogleAdsOperations AdvertisingGoogleAdsOperation[]
+  advertisingMetaAdsAccounts AdvertisingMetaAdsAccount[]
+  advertisingMetaAdsDrafts   AdvertisingMetaAdsDraft[]
+  advertisingMetaAdsLaunches AdvertisingMetaAdsLaunch[]
+  advertisingMetaAdsOperations AdvertisingMetaAdsOperation[]
+  advertisingMetaAdsCapiEvents AdvertisingMetaAdsCapiEvent[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2142,6 +2164,7 @@ model ConnectorAccount {
   webhookEndpoints              WebhookEndpoint[]
   marketingDataSourceAccounts   MarketingDataSourceAccount[]
   advertisingGoogleAdsAccount   AdvertisingGoogleAdsAccount?
+  advertisingMetaAdsAccount     AdvertisingMetaAdsAccount?
 
   @@unique([brandId, connectorType])
   @@index([organisationId])
@@ -4669,6 +4692,7 @@ model MarketingCampaign {
   metricObservations         MarketingMetricObservation[]
   costRecords                MarketingCostRecord[]
   googleAdsLaunches          AdvertisingGoogleAdsLaunch[]
+  metaAdsLaunches            AdvertisingMetaAdsLaunch[]
 
   @@unique([brandId, provider, providerCampaignId])
   @@index([organisationId, brandId])
@@ -9954,6 +9978,8 @@ model AdvertisingCampaignPlan {
   advertisingAudiences AdvertisingAudience[]
   googleAdsDrafts        AdvertisingGoogleAdsDraft[]
   googleAdsLaunches      AdvertisingGoogleAdsLaunch[]
+  metaAdsDrafts          AdvertisingMetaAdsDraft[]
+  metaAdsLaunches        AdvertisingMetaAdsLaunch[]
 
   @@unique([brandId, internalCampaignId])
   @@index([organisationId, brandId, status])
@@ -11113,6 +11139,297 @@ model AdvertisingGoogleAdsOperation {
   requestedBy      UserProfile                 @relation("AdvertisingGoogleAdsOperationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
 
   @@index([brandId, operationType])
+}
+
+// ---------------------------------------------------------------------------
+// Task 5.5 — Controlled Meta Ads Campaign Management
+// ---------------------------------------------------------------------------
+
+enum AdvertisingMetaAdsAccountStatus {
+  PENDING
+  CONNECTED
+  DISCONNECTED
+  PERMISSION_LOST
+  ASSET_MISMATCH
+}
+
+enum AdvertisingMetaAdsDraftStatus {
+  DRAFT
+  VALIDATED
+  STALE
+  ARCHIVED
+}
+
+enum AdvertisingMetaAdsLaunchStatus {
+  PENDING_APPROVAL
+  APPROVED
+  LAUNCHING
+  LAUNCHED
+  PARTIAL_SUCCESS
+  FAILED
+  STALE_APPROVAL
+  POLICY_REJECTED
+  ARCHIVED
+}
+
+enum AdvertisingMetaAdsOperationType {
+  PAUSE_CAMPAIGN
+  RESUME_CAMPAIGN
+  PAUSE_AD_SET
+  RESUME_AD_SET
+  ADJUST_BUDGET
+  UPDATE_SCHEDULE
+  REPLACE_CREATIVE
+  ARCHIVE_MAPPING
+}
+
+enum AdvertisingMetaAdsOperationStatus {
+  PENDING
+  PREVIEWED
+  CONFIRMED
+  EXECUTING
+  SUCCEEDED
+  FAILED
+}
+
+enum AdvertisingMetaAdsCapiEventStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED_NO_CONSENT
+}
+
+model AdvertisingMetaAdsAccount {
+  id                  String                        @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String                        @unique
+  connectorAccountId  String                        @unique
+  businessId          String?
+  businessName        String?
+  adAccountId         String
+  adAccountName       String?
+  facebookPageId      String?
+  facebookPageName    String?
+  instagramAccountId  String?
+  instagramUsername   String?
+  pixelId             String?
+  datasetId           String?
+  currency            String?
+  timezone            String?
+  isTestAccount       Boolean                       @default(false)
+  status              AdvertisingMetaAdsAccountStatus @default(PENDING)
+  assignedAt          DateTime?
+  assignedByUserId    String?
+  disconnectedAt      DateTime?
+  metadata            Json?
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+
+  organisation     Organisation                 @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connectorAccount ConnectorAccount             @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  assignedBy       UserProfile?                 @relation("AdvertisingMetaAdsAccountAssigner", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+  drafts           AdvertisingMetaAdsDraft[]
+  launches         AdvertisingMetaAdsLaunch[]
+  operations       AdvertisingMetaAdsOperation[]
+  capiEvents       AdvertisingMetaAdsCapiEvent[]
+
+  @@index([organisationId, brandId])
+  @@index([adAccountId])
+}
+
+model AdvertisingMetaAdsDraft {
+  id                String                        @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  planId            String
+  metaAdsAccountId  String
+  providerDraftId   String?
+  channelTypes      String[]                      @default([])
+  objective         String?
+  draftPayload      Json
+  featureFlags      Json?
+  status            AdvertisingMetaAdsDraftStatus @default(DRAFT)
+  validationResult  Json?
+  validationStatus  String                        @default("PENDING")
+  reviewStatus      String                        @default("PENDING")
+  reviewNotes       String?
+  createdByUserId   String
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+
+  organisation     Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  plan             AdvertisingCampaignPlan          @relation(fields: [planId], references: [id], onDelete: Cascade)
+  metaAdsAccount   AdvertisingMetaAdsAccount        @relation(fields: [metaAdsAccountId], references: [id], onDelete: Cascade)
+  createdBy        UserProfile                      @relation("AdvertisingMetaAdsDraftCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  mutationPlans    AdvertisingMetaAdsMutationPlan[]
+  launches         AdvertisingMetaAdsLaunch[]
+
+  @@index([planId])
+  @@index([brandId, status])
+}
+
+model AdvertisingMetaAdsMutationPlan {
+  id                 String   @id @default(cuid())
+  organisationId     String
+  draftId            String
+  planHash           String
+  operations         Json
+  resourcesCreated   Json?
+  resourcesChanged   Json?
+  budgetSummary      Json?
+  accountSnapshot    Json?
+  targetingSummary   Json?
+  creativeSummary    Json?
+  trackingSummary    Json?
+  risks              String[] @default([])
+  validationResult   Json?
+  validationStatus   String   @default("PENDING")
+  isStale            Boolean  @default(false)
+  createdByUserId    String
+  createdAt          DateTime @default(now())
+
+  organisation    Organisation                      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  draft           AdvertisingMetaAdsDraft             @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  createdBy       UserProfile                       @relation("AdvertisingMetaAdsMutationPlanCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  launchApprovals AdvertisingMetaAdsLaunchApproval[]
+  launches        AdvertisingMetaAdsLaunch[]
+
+  @@unique([draftId, planHash])
+  @@index([draftId])
+}
+
+model AdvertisingMetaAdsLaunchApproval {
+  id             String    @id @default(cuid())
+  organisationId String
+  mutationPlanId String
+  approvalType   String
+  planHash       String
+  decision       String    @default("PENDING")
+  approverUserId String?
+  notes          String?
+  approvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  mutationPlan AdvertisingMetaAdsMutationPlan @relation(fields: [mutationPlanId], references: [id], onDelete: Cascade)
+  approver     UserProfile?                   @relation("AdvertisingMetaAdsLaunchApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([mutationPlanId, approvalType])
+}
+
+model AdvertisingMetaAdsLaunch {
+  id                  String                         @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  planId              String
+  draftId             String
+  mutationPlanId      String
+  metaAdsAccountId    String
+  planHash            String
+  launchVersion       Int                            @default(1)
+  status              AdvertisingMetaAdsLaunchStatus @default(PENDING_APPROVAL)
+  policyStatus        String?
+  policyRejectionReason String?
+  launchedByUserId    String?
+  launchedAt          DateTime?
+  providerResponse    Json?
+  errorDetails        Json?
+  idempotencyKey      String                         @unique
+  marketingCampaignId String?
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+
+  organisation      Organisation                        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand                               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  plan              AdvertisingCampaignPlan             @relation(fields: [planId], references: [id], onDelete: Cascade)
+  draft             AdvertisingMetaAdsDraft             @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  mutationPlan      AdvertisingMetaAdsMutationPlan        @relation(fields: [mutationPlanId], references: [id], onDelete: Restrict)
+  metaAdsAccount    AdvertisingMetaAdsAccount             @relation(fields: [metaAdsAccountId], references: [id], onDelete: Restrict)
+  launchedBy        UserProfile?                        @relation("AdvertisingMetaAdsLaunchExecutor", fields: [launchedByUserId], references: [id], onDelete: SetNull)
+  marketingCampaign MarketingCampaign?                  @relation(fields: [marketingCampaignId], references: [id], onDelete: SetNull)
+  providerResources AdvertisingMetaAdsProviderResource[]
+
+  @@index([brandId, status])
+  @@index([planId])
+}
+
+model AdvertisingMetaAdsProviderResource {
+  id                   String   @id @default(cuid())
+  organisationId       String
+  launchId             String
+  resourceType         String
+  internalRef          String
+  providerResourceId   String?
+  providerResourceName String?
+  status               String   @default("PENDING")
+  providerResponse     Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  launch       AdvertisingMetaAdsLaunch @relation(fields: [launchId], references: [id], onDelete: Cascade)
+
+  @@unique([launchId, internalRef])
+  @@index([launchId, resourceType])
+}
+
+model AdvertisingMetaAdsOperation {
+  id               String                            @id @default(cuid())
+  organisationId   String
+  brandId          String
+  metaAdsAccountId String
+  launchId         String?
+  providerCampaignId String?
+  providerAdSetId  String?
+  operationType    AdvertisingMetaAdsOperationType
+  status           AdvertisingMetaAdsOperationStatus @default(PENDING)
+  reason           String
+  preview          Json?
+  confirmation     Json?
+  providerResult   Json?
+  requestedByUserId String
+  executedAt       DateTime?
+  createdAt        DateTime                          @default(now())
+  updatedAt        DateTime                          @updatedAt
+
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  metaAdsAccount AdvertisingMetaAdsAccount @relation(fields: [metaAdsAccountId], references: [id], onDelete: Cascade)
+  requestedBy    UserProfile               @relation("AdvertisingMetaAdsOperationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([brandId, operationType])
+}
+
+model AdvertisingMetaAdsCapiEvent {
+  id               String                          @id @default(cuid())
+  organisationId   String
+  brandId          String
+  metaAdsAccountId String
+  eventName        String
+  eventId          String
+  eventTime        DateTime
+  consentState     String
+  hashedUserData   Json?
+  browserEventId   String?
+  status           AdvertisingMetaAdsCapiEventStatus @default(PENDING)
+  providerResponse Json?
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  metaAdsAccount AdvertisingMetaAdsAccount @relation(fields: [metaAdsAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([metaAdsAccountId, eventId])
+  @@index([brandId, status])
 }
 
 // ---------------------------------------------------------------------------

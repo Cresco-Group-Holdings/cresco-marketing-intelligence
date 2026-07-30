@@ -47,6 +47,12 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Controlled Google Ads campaign management",
   },
   {
+    label: "Meta Ads",
+    href: "/advertising/meta",
+    icon: Megaphone,
+    description: "Controlled Meta Facebook and Instagram campaigns",
+  },
+  {
     label: "Brands",
     href: "/brands",
     icon: Megaphone,
