@@ -92,12 +92,20 @@ export default function ContentPage() {
         breadcrumbs={[{ label: "Overview", href: "/dashboard" }, { label: "Content Studio" }]}
         actions={
           brandId ? (
-            <Link
-              href="/content/new"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
-            >
-              New content
-            </Link>
+            <div className="flex gap-2">
+              <Link
+                href="/content/long-form"
+                className="inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-slate-50"
+              >
+                Long-form SEO
+              </Link>
+              <Link
+                href="/content/new"
+                className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+              >
+                New content
+              </Link>
+            </div>
           ) : undefined
         }
       />
