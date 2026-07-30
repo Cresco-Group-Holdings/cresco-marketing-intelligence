@@ -55,15 +55,21 @@ const RULES: Rule[] = [
     channel: "ORGANIC_SOCIAL",
     confidence: 0.85,
     match: (input) =>
-      ["INSTAGRAM", "LINKEDIN", "TIKTOK", "YOUTUBE", "X", "SOCIAL_BRIDGE"].includes(
+      ["INSTAGRAM", "YOUTUBE", "X", "SOCIAL_BRIDGE"].includes(
         String(input.provider ?? ""),
       ),
   },
   {
-    id: "provider-paid-ads",
+    id: "provider-google-ads",
+    channel: "PAID_SEARCH",
+    confidence: 0.95,
+    match: (input) => input.provider === "GOOGLE_ADS",
+  },
+  {
+    id: "provider-paid-social",
     channel: "PAID_SOCIAL",
     confidence: 0.9,
-    match: (input) => ["META", "GOOGLE_ADS"].includes(String(input.provider ?? "")),
+    match: (input) => ["META", "LINKEDIN", "TIKTOK"].includes(String(input.provider ?? "")),
   },
   {
     id: "provider-search-console",

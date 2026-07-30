@@ -88,6 +88,10 @@ describe("connectorService", () => {
     resetConnectorAdaptersForTests();
     registerFakeConnectorAdapter("GOOGLE_ANALYTICS_4");
     registerFakeConnectorAdapter("GOOGLE_SEARCH_CONSOLE");
+    registerFakeConnectorAdapter("GOOGLE_ADS");
+    registerFakeConnectorAdapter("META");
+    registerFakeConnectorAdapter("LINKEDIN");
+    registerFakeConnectorAdapter("TIKTOK");
     prismaMock.connectorAccount.findMany.mockResolvedValue([]);
   });
 
@@ -98,14 +102,12 @@ describe("connectorService", () => {
       connectorTenantContext,
     );
     expect(catalogue.length).toBeGreaterThan(10);
-    const ga4 = catalogue.find((item) => item.key === "GOOGLE_ANALYTICS_4");
-    const gsc = catalogue.find((item) => item.key === "GOOGLE_SEARCH_CONSOLE");
-    expect(ga4?.canConnect).toBe(true);
-    expect(gsc?.canConnect).toBe(true);
+    const available = ["GOOGLE_ANALYTICS_4", "GOOGLE_SEARCH_CONSOLE", "GOOGLE_ADS", "META", "LINKEDIN", "TIKTOK"];
+    for (const key of available) {
+      expect(catalogue.find((item) => item.key === key)?.canConnect).toBe(true);
+    }
     expect(
-      catalogue
-        .filter((item) => item.key !== "GOOGLE_ANALYTICS_4" && item.key !== "GOOGLE_SEARCH_CONSOLE")
-        .every((item) => !item.canConnect),
+      catalogue.filter((item) => !available.includes(item.key)).every((item) => !item.canConnect),
     ).toBe(true);
   });
 
@@ -115,7 +117,7 @@ describe("connectorService", () => {
       connectorService.beginConnect(
         connectorTestIds.brandId,
         connectorTestIds.organisationId,
-        "META",
+        "INSTAGRAM",
         connectorTenantContext,
       ),
     ).rejects.toThrow(/not yet available/i);

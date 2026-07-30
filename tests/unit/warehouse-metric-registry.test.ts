@@ -5,8 +5,8 @@ import {
 } from "@/lib/warehouse/metric-registry";
 
 describe("warehouse metric registry", () => {
-  it("defines exactly 11 default canonical metrics", () => {
-    expect(DEFAULT_METRIC_DEFINITIONS).toHaveLength(11);
+  it("defines exactly 20 default canonical metrics", () => {
+    expect(DEFAULT_METRIC_DEFINITIONS).toHaveLength(20);
   });
 
   it("defines canonical metric keys with aggregation metadata", () => {

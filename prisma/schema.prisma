@@ -383,6 +383,8 @@ model Organisation {
   marketingCampaigns             MarketingCampaign[]
   marketingAdGroups              MarketingAdGroup[]
   marketingAds                   MarketingAd[]
+  marketingCreatives             MarketingCreative[]
+  paidAdsCreativeMappings        PaidAdsCreativeMapping[]
   marketingContentItems          MarketingContentItem[]
   marketingAudiences             MarketingAudience[]
   marketingChannelRules          MarketingChannelRule[]
@@ -423,6 +425,14 @@ model Organisation {
   marketingDevices               MarketingDevice[]
   searchConsoleUrlInspections    SearchConsoleUrlInspection[]
   searchConsoleSitemaps          SearchConsoleSitemap[]
+  attributionModels              AttributionModel[]
+  attributionModelVersions       AttributionModelVersion[]
+  attributionJourneys            AttributionJourney[]
+  attributionTouchpoints         AttributionTouchpoint[]
+  attributionResults             AttributionResult[]
+  attributionCredits             AttributionCredit[]
+  attributionRuns                AttributionRun[]
+  attributionExclusionRules      AttributionExclusionRule[]
 
   @@index([status])
   @@index([archivedAt])
@@ -530,6 +540,8 @@ model Project {
   marketingCampaigns             MarketingCampaign[]
   marketingAdGroups              MarketingAdGroup[]
   marketingAds                   MarketingAd[]
+  marketingCreatives             MarketingCreative[]
+  paidAdsCreativeMappings        PaidAdsCreativeMapping[]
   marketingContentItems          MarketingContentItem[]
   marketingAudiences             MarketingAudience[]
   marketingChannelRules          MarketingChannelRule[]
@@ -568,6 +580,14 @@ model Project {
   marketingDevices               MarketingDevice[]
   searchConsoleUrlInspections    SearchConsoleUrlInspection[]
   searchConsoleSitemaps          SearchConsoleSitemap[]
+  attributionModels              AttributionModel[]
+  attributionModelVersions       AttributionModelVersion[]
+  attributionJourneys            AttributionJourney[]
+  attributionTouchpoints         AttributionTouchpoint[]
+  attributionResults             AttributionResult[]
+  attributionCredits             AttributionCredit[]
+  attributionRuns                AttributionRun[]
+  attributionExclusionRules      AttributionExclusionRule[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -667,6 +687,8 @@ model Brand {
   marketingCampaigns             MarketingCampaign[]
   marketingAdGroups              MarketingAdGroup[]
   marketingAds                   MarketingAd[]
+  marketingCreatives             MarketingCreative[]
+  paidAdsCreativeMappings        PaidAdsCreativeMapping[]
   marketingContentItems          MarketingContentItem[]
   marketingAudiences             MarketingAudience[]
   marketingChannelRules          MarketingChannelRule[]
@@ -705,6 +727,14 @@ model Brand {
   marketingDevices               MarketingDevice[]
   searchConsoleUrlInspections    SearchConsoleUrlInspection[]
   searchConsoleSitemaps          SearchConsoleSitemap[]
+  attributionModels              AttributionModel[]
+  attributionModelVersions       AttributionModelVersion[]
+  attributionJourneys            AttributionJourney[]
+  attributionTouchpoints         AttributionTouchpoint[]
+  attributionResults             AttributionResult[]
+  attributionCredits             AttributionCredit[]
+  attributionRuns                AttributionRun[]
+  attributionExclusionRules      AttributionExclusionRule[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -1135,6 +1165,8 @@ model MarketingAsset {
   contentVariantAssets    ContentVariantAsset[]
   visualExports           VisualExport[]
   visualGenerationSources VisualGeneration[]    @relation("VisualGenerationSourceAsset")
+  marketingAds            MarketingAd[]
+  paidAdsCreativeMappings PaidAdsCreativeMapping[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -2465,6 +2497,8 @@ model ContentItem {
   schedules        ContentSchedule[]
   marketingLeads   MarketingLead[]
   experimentVariants ExperimentVariant[]
+  marketingAds         MarketingAd[]
+  paidAdsCreativeMappings PaidAdsCreativeMapping[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -2514,6 +2548,8 @@ model ContentVariant {
   schedules        ContentSchedule[]
   tikTokSetting    TikTokPublishSetting?
   experimentVariants ExperimentVariant[]
+  marketingAds         MarketingAd[]
+  paidAdsCreativeMappings PaidAdsCreativeMapping[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -3801,6 +3837,11 @@ enum MarketingDimensionStatus {
   REMOVED
 }
 
+enum PaidAdsCreativeMappingSource {
+  EXPLICIT_USER_MAPPING
+  DETERMINISTIC_PROVIDER_ID
+}
+
 enum MarketingMetricSource {
   CONNECTOR
   SOCIAL
@@ -4009,6 +4050,7 @@ model MarketingDataSourceAccount {
   campaigns            MarketingCampaign[]
   adGroups             MarketingAdGroup[]
   ads                  MarketingAd[]
+  creatives            MarketingCreative[]
   contentItems         MarketingContentItem[]
   audiences            MarketingAudience[]
   metricObservations   MarketingMetricObservation[]
@@ -4369,6 +4411,9 @@ model MarketingAd {
   brandId                      String
   marketingDataSourceAccountId String?
   marketingAdGroupId           String?
+  contentItemId                String?
+  contentVariantId             String?
+  marketingAssetId             String?
   provider                     MarketingDataProvider
   providerAdId                 String
   name                         String?
@@ -4385,13 +4430,82 @@ model MarketingAd {
   brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
   marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
   marketingAdGroup           MarketingAdGroup?          @relation(fields: [marketingAdGroupId], references: [id], onDelete: SetNull)
+  contentItem                ContentItem?               @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  contentVariant             ContentVariant?            @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
+  marketingAsset             MarketingAsset?            @relation(fields: [marketingAssetId], references: [id], onDelete: SetNull)
   metricObservations         MarketingMetricObservation[]
   costRecords                MarketingCostRecord[]
+  creatives                  MarketingCreative[]
 
   @@unique([brandId, provider, providerAdId])
   @@index([organisationId, brandId])
   @@index([marketingAdGroupId])
+  @@index([contentItemId])
   @@index([status])
+}
+
+model MarketingCreative {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingAdId                String?
+  provider                     MarketingDataProvider
+  providerCreativeId           String
+  name                         String?
+  creativeType                 String?
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingAd                MarketingAd?               @relation(fields: [marketingAdId], references: [id], onDelete: SetNull)
+  metricObservations         MarketingMetricObservation[]
+  creativeMappings           PaidAdsCreativeMapping[]
+
+  @@unique([brandId, provider, providerCreativeId])
+  @@index([organisationId, brandId])
+  @@index([marketingAdId])
+  @@index([status])
+}
+
+model PaidAdsCreativeMapping {
+  id                 String                    @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  provider           MarketingDataProvider
+  providerCreativeId String
+  providerAdId       String?
+  marketingCreativeId String?
+  contentItemId      String?
+  contentVariantId   String?
+  marketingAssetId   String?
+  mappingSource      PaidAdsCreativeMappingSource
+  mappingKey         String?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  organisation      Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingCreative MarketingCreative? @relation(fields: [marketingCreativeId], references: [id], onDelete: SetNull)
+  contentItem       ContentItem?       @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  contentVariant    ContentVariant?    @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
+  marketingAsset    MarketingAsset?    @relation(fields: [marketingAssetId], references: [id], onDelete: SetNull)
+
+  @@unique([brandId, provider, providerCreativeId])
+  @@index([organisationId, brandId])
+  @@index([contentItemId])
+  @@index([contentVariantId])
+  @@index([marketingAssetId])
 }
 
 model MarketingContentItem {
@@ -4587,6 +4701,7 @@ model MarketingMetricObservation {
   marketingAdGroupId           String?
   marketingAdId                String?
   marketingContentItemId       String?
+  marketingCreativeId          String?
   marketingSearchQueryId       String?
   marketingLandingPageId       String?
   marketingGeographyId         String?
@@ -4605,6 +4720,7 @@ model MarketingMetricObservation {
   marketingAdGroup           MarketingAdGroup?           @relation(fields: [marketingAdGroupId], references: [id], onDelete: SetNull)
   marketingAd                MarketingAd?                @relation(fields: [marketingAdId], references: [id], onDelete: SetNull)
   marketingContentItem       MarketingContentItem?       @relation(fields: [marketingContentItemId], references: [id], onDelete: SetNull)
+  marketingCreative          MarketingCreative?          @relation(fields: [marketingCreativeId], references: [id], onDelete: SetNull)
   marketingSearchQuery         MarketingSearchQuery?       @relation(fields: [marketingSearchQueryId], references: [id], onDelete: SetNull)
   marketingLandingPage         MarketingLandingPage?       @relation(fields: [marketingLandingPageId], references: [id], onDelete: SetNull)
   marketingGeography           MarketingGeography?         @relation(fields: [marketingGeographyId], references: [id], onDelete: SetNull)
@@ -4768,6 +4884,8 @@ model MarketingIdentity {
   events       MarketingEvent[]
   linksFrom    MarketingIdentityLink[] @relation("IdentityLinkFrom")
   linksTo      MarketingIdentityLink[] @relation("IdentityLinkTo")
+  attributionJourneys    AttributionJourney[]
+  attributionTouchpoints AttributionTouchpoint[]
 
   @@unique([brandId, identityType, identityValue])
   @@index([organisationId, brandId])
@@ -5415,6 +5533,320 @@ model SearchConsoleSitemap {
 
   @@unique([connectorAccountId, sitemapPath])
   @@index([organisationId, brandId])
+}
+
+// ---------------------------------------------------------------------------
+// Marketing attribution engine (Task 3.6)
+// ---------------------------------------------------------------------------
+
+enum AttributionModelType {
+  FIRST_TOUCH
+  LAST_TOUCH
+  LINEAR
+  POSITION_BASED
+  TIME_DECAY
+}
+
+enum DirectTrafficPolicy {
+  RETAIN
+  IGNORE_WHEN_PRIOR_KNOWN
+  SHOW_BOTH
+}
+
+enum AttributionTouchpointSource {
+  WEBSITE_SESSION
+  SOCIAL_POST_CLICK
+  PAID_AD_CLICK
+  ORGANIC_SEARCH
+  EMAIL_CLICK
+  REFERRAL
+  DEMO_BOOKING
+  CRM_ACTIVITY
+  DIRECT_VISIT
+}
+
+enum AttributionRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum AttributionJourneyStatus {
+  OPEN
+  CONVERTED
+  REFUNDED
+  UNATTRIBUTED
+}
+
+enum AttributionExclusionRuleType {
+  CHANNEL
+  SOURCE
+  CAMPAIGN
+  TOUCHPOINT_SOURCE
+  CONSENT_MISSING
+  CUSTOM
+}
+
+enum AttributionRunTrigger {
+  MODEL_CHANGE
+  LATE_EVENT
+  IDENTITY_CONFIRMED
+  REFUND
+  CAMPAIGN_MAPPING_CHANGE
+  EXCLUSION_RULE_CHANGE
+  MANUAL
+  SCHEDULED
+}
+
+model AttributionModel {
+  id                   String               @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  name                 String
+  modelType            AttributionModelType
+  directTrafficPolicy  DirectTrafficPolicy  @default(RETAIN)
+  lookbackWindowDays   Int                  @default(90)
+  isDefault            Boolean              @default(false)
+  isActive             Boolean              @default(true)
+  currentVersionId     String?
+  config               Json?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  versions        AttributionModelVersion[]
+  results         AttributionResult[]
+  runs            AttributionRun[]
+
+  @@unique([brandId, name])
+  @@index([organisationId, brandId])
+  @@index([isDefault])
+}
+
+model AttributionModelVersion {
+  id                  String               @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  attributionModelId  String
+  versionNumber       Int
+  modelType           AttributionModelType
+  directTrafficPolicy DirectTrafficPolicy
+  lookbackWindowDays  Int
+  config              Json?
+  changelog           String?
+  createdByUserId     String?
+  createdAt           DateTime             @default(now())
+
+  organisation     Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  attributionModel AttributionModel   @relation(fields: [attributionModelId], references: [id], onDelete: Cascade)
+  results          AttributionResult[]
+  runs             AttributionRun[]
+
+  @@unique([attributionModelId, versionNumber])
+  @@index([organisationId, brandId])
+}
+
+model AttributionJourney {
+  id                         String                   @id @default(cuid())
+  organisationId             String
+  projectId                  String
+  brandId                    String
+  identityId                 String?
+  conversionEventId          String?
+  conversionDefinitionId     String?
+  revenueRecordId            String?
+  conversionType             String
+  conversionKey                String?
+  journeyStart               DateTime
+  journeyEnd                 DateTime?
+  status                     AttributionJourneyStatus @default(OPEN)
+  revenueValue               Decimal?                 @db.Decimal(24, 6)
+  revenueCurrency            String?
+  lookbackWindowDays         Int
+  directTrafficPolicy        DirectTrafficPolicy
+  limitations                Json?
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  identity     MarketingIdentity?    @relation(fields: [identityId], references: [id], onDelete: SetNull)
+  touchpoints  AttributionTouchpoint[]
+  results      AttributionResult[]
+
+  @@index([organisationId, brandId, journeyEnd])
+  @@index([identityId])
+  @@index([status])
+}
+
+model AttributionTouchpoint {
+  id                       String                      @id @default(cuid())
+  organisationId           String
+  projectId                String
+  brandId                  String
+  attributionJourneyId     String?
+  touchpointSource         AttributionTouchpointSource
+  identityId               String?
+  marketingSessionId       String?
+  marketingEventId         String?
+  marketingCampaignId      String?
+  marketingChannelId       String?
+  marketingContentItemId   String?
+  marketingLandingPageId   String?
+  provider                 MarketingDataProvider?
+  channel                  String?
+  campaign                 String?
+  contentKey               String?
+  occurredAt               DateTime
+  sessionKey               String?
+  landingPage              String?
+  utmSource                String?
+  utmMedium                String?
+  utmCampaign              String?
+  utmTerm                  String?
+  utmContent               String?
+  clickId                  String?
+  clickIdProvider          String?
+  consentState             Json?
+  evidenceStrength         Decimal?                    @db.Decimal(5, 4)
+  isExcluded               Boolean                     @default(false)
+  exclusionReason          String?
+  position                 Int?
+  providerMetadata         Json?
+  createdAt                DateTime                    @default(now())
+
+  organisation       Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand              Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  attributionJourney AttributionJourney? @relation(fields: [attributionJourneyId], references: [id], onDelete: SetNull)
+  identity           MarketingIdentity?  @relation(fields: [identityId], references: [id], onDelete: SetNull)
+  credits              AttributionCredit[]
+
+  @@index([organisationId, brandId, occurredAt])
+  @@index([attributionJourneyId])
+  @@index([identityId])
+  @@index([touchpointSource])
+}
+
+model AttributionResult {
+  id                        String   @id @default(cuid())
+  organisationId            String
+  projectId                 String
+  brandId                   String
+  attributionJourneyId      String
+  attributionModelId        String
+  attributionModelVersionId String
+  attributionRunId          String?
+  conversionEventId         String?
+  revenueValue              Decimal  @db.Decimal(24, 6)
+  revenueCurrency           String?
+  totalCreditPercent        Decimal  @db.Decimal(8, 4)
+  calculatedAt              DateTime
+  limitations               Json?
+  metadata                  Json?
+  createdAt                 DateTime @default(now())
+
+  organisation            Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                 Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                   Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  attributionJourney      AttributionJourney      @relation(fields: [attributionJourneyId], references: [id], onDelete: Cascade)
+  attributionModel        AttributionModel        @relation(fields: [attributionModelId], references: [id], onDelete: Cascade)
+  attributionModelVersion AttributionModelVersion @relation(fields: [attributionModelVersionId], references: [id], onDelete: Cascade)
+  attributionRun          AttributionRun?         @relation(fields: [attributionRunId], references: [id], onDelete: SetNull)
+  credits                 AttributionCredit[]
+
+  @@index([organisationId, brandId, calculatedAt])
+  @@index([attributionJourneyId])
+  @@index([attributionModelId])
+}
+
+model AttributionCredit {
+  id                      String   @id @default(cuid())
+  organisationId          String
+  projectId               String
+  brandId                 String
+  attributionResultId     String
+  attributionTouchpointId String
+  creditPercent           Decimal  @db.Decimal(8, 4)
+  creditValue             Decimal? @db.Decimal(24, 6)
+  channel                 String?
+  campaign                String?
+  contentKey              String?
+  position                Int?
+  wasExcluded             Boolean  @default(false)
+  metadata                Json?
+  createdAt               DateTime @default(now())
+
+  organisation          Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project               Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                 Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  attributionResult     AttributionResult     @relation(fields: [attributionResultId], references: [id], onDelete: Cascade)
+  attributionTouchpoint AttributionTouchpoint @relation(fields: [attributionTouchpointId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId])
+  @@index([attributionResultId])
+  @@index([channel])
+}
+
+model AttributionRun {
+  id                        String                @id @default(cuid())
+  organisationId            String
+  projectId                 String
+  brandId                   String
+  attributionModelId        String
+  attributionModelVersionId   String
+  status                    AttributionRunStatus  @default(PENDING)
+  triggerReason             AttributionRunTrigger
+  journeysProcessed         Int                   @default(0)
+  resultsCreated            Int                   @default(0)
+  startedAt                 DateTime?
+  completedAt               DateTime?
+  errorMessage              String?
+  idempotencyKey            String                @unique
+  metadata                  Json?
+  createdAt                 DateTime              @default(now())
+
+  organisation            Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                 Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                   Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  attributionModel        AttributionModel        @relation(fields: [attributionModelId], references: [id], onDelete: Cascade)
+  attributionModelVersion AttributionModelVersion @relation(fields: [attributionModelVersionId], references: [id], onDelete: Cascade)
+  results                 AttributionResult[]
+
+  @@index([organisationId, brandId, createdAt])
+  @@index([status])
+}
+
+model AttributionExclusionRule {
+  id             String                       @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  name           String
+  ruleType       AttributionExclusionRuleType
+  matchField     String
+  matchValue     String
+  isActive       Boolean                      @default(true)
+  reason         String?
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, name])
+  @@index([organisationId, brandId])
+  @@index([isActive])
 }
 
 // ---------------------------------------------------------------------------

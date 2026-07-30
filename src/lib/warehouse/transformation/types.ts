@@ -30,6 +30,9 @@ export type NormalisedDimension = {
     | "channel"
     | "account"
     | "campaign"
+    | "ad_group"
+    | "ad"
+    | "creative"
     | "content"
     | "search_query"
     | "landing_page"
@@ -37,6 +40,22 @@ export type NormalisedDimension = {
     | "device";
   providerId: string;
   name: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type NormalisedCostRecord = {
+  providerCostId: string;
+  amount: number;
+  currency: string;
+  periodStart: Date;
+  periodEnd: Date;
+  dimensionProviderIds?: {
+    account?: string;
+    campaign?: string;
+    adGroup?: string;
+    ad?: string;
+    creative?: string;
+  };
   metadata?: Record<string, unknown>;
 };
 
@@ -51,6 +70,11 @@ export type NormalisedMetric = {
     landingPage?: string;
     geography?: string;
     device?: string;
+    account?: string;
+    campaign?: string;
+    adGroup?: string;
+    ad?: string;
+    creative?: string;
   };
 };
 
@@ -66,6 +90,7 @@ export type NormalisationResult = {
   metrics: NormalisedMetric[];
   events: NormalisedEvent[];
   dimensions: NormalisedDimension[];
+  costRecords?: NormalisedCostRecord[];
   errors?: string[];
 };
 
