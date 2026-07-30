@@ -375,6 +375,9 @@ model UserProfile {
   crmNotesAuthored             CrmNote[]                 @relation("CrmNoteAuthor")
   crmCallLogsLogged            CrmCallLog[]              @relation("CrmCallLogger")
   crmMeetingRecordsLogged      CrmMeetingRecord[]        @relation("CrmMeetingLogger")
+  emailTemplateVersionsApproved EmailTemplateVersion[]   @relation("EmailTemplateApprover")
+  emailTemplateVersionsCreated  EmailTemplateVersion[]   @relation("EmailTemplateCreator")
+  emailMessagesCreated          EmailMessage[]            @relation("EmailMessageCreator")
 
   @@index([email])
 }
@@ -736,6 +739,18 @@ model Organisation {
   crmFollowUpRules                     CrmFollowUpRule[]
   crmFollowUpSuggestions               CrmFollowUpSuggestion[]
   crmTaskTypes                         CrmTaskType[]
+  emailProviderConnections             EmailProviderConnection[]
+  emailSendingDomains                  EmailSendingDomain[]
+  emailSenderIdentities                EmailSenderIdentity[]
+  emailTemplates                       EmailTemplate[]
+  emailMessages                        EmailMessage[]
+  emailSuppressions                    EmailSuppression[]
+  emailBounces                         EmailBounce[]
+  emailComplaints                      EmailComplaint[]
+  emailUnsubscribes                    EmailUnsubscribe[]
+  emailTrackingPolicies                EmailTrackingPolicy[]
+  emailProviderWebhooks                EmailProviderWebhook[]
+  emailDeliverabilitySnapshots         EmailDeliverabilitySnapshot[]
 
   @@index([status])
   @@index([archivedAt])
@@ -974,6 +989,7 @@ model Project {
   crmOpportunities            CrmOpportunity[]
   crmTasks                    CrmTask[]
   crmActivities               CrmActivity[]
+  emailMessages               EmailMessage[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1214,6 +1230,15 @@ model Brand {
   crmFollowUpRules               CrmFollowUpRule[]
   crmFollowUpSuggestions         CrmFollowUpSuggestion[]
   crmTaskTypes                   CrmTaskType[]
+  emailProviderConnections       EmailProviderConnection[]
+  emailSendingDomains            EmailSendingDomain[]
+  emailSenderIdentities          EmailSenderIdentity[]
+  emailTemplates                 EmailTemplate[]
+  emailMessages                  EmailMessage[]
+  emailSuppressions              EmailSuppression[]
+  emailUnsubscribes              EmailUnsubscribe[]
+  emailTrackingPolicies          EmailTrackingPolicy[]
+  emailDeliverabilitySnapshots   EmailDeliverabilitySnapshot[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -14706,6 +14731,470 @@ model CrmFollowUpSuggestion {
   task         CrmTask?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@index([organisationId, brandId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.5 — Email Marketing Infrastructure and Deliverability Controls
+// ---------------------------------------------------------------------------
+
+enum EmailProviderType {
+  AMAZON_SES
+  SENDGRID
+  MAILGUN
+  POSTMARK
+  RESEND
+  CUSTOM_SMTP
+}
+
+enum EmailMessageCategory {
+  ESSENTIAL_TRANSACTIONAL
+  ACCOUNT
+  SERVICE_OPERATIONAL
+  SALES_ONE_TO_ONE
+  MARKETING
+  NURTURE
+  NEWSLETTER
+  EVENT
+  CUSTOMER_SUCCESS
+  OTHER
+}
+
+enum EmailDomainSendingStatus {
+  PENDING
+  VERIFYING
+  READY
+  SUSPENDED
+  FAILED
+}
+
+enum EmailDnsRecordStatus {
+  UNKNOWN
+  PENDING
+  PASS
+  FAIL
+}
+
+enum EmailSenderVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+  REVOKED
+}
+
+enum EmailTemplateVersionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  ARCHIVED
+}
+
+enum EmailMessageStatus {
+  QUEUED
+  SCHEDULED
+  SENDING
+  SENT
+  DELIVERED
+  FAILED
+  CANCELLED
+  SUPPRESSED
+}
+
+enum EmailRecipientStatus {
+  PENDING
+  SENT
+  DELIVERED
+  BOUNCED
+  COMPLAINED
+  SUPPRESSED
+  FAILED
+}
+
+enum EmailDeliveryEventType {
+  ACCEPTED
+  QUEUED
+  SENT
+  DELIVERED
+  DEFERRED
+  BOUNCED
+  COMPLAINED
+  OPENED
+  CLICKED
+  UNSUBSCRIBED
+  REJECTED
+  FAILED
+}
+
+enum EmailSuppressionReason {
+  UNSUBSCRIBE
+  HARD_BOUNCE
+  COMPLAINT
+  MANUAL
+  LEGAL_DELETION
+  INVALID_ADDRESS
+  PROVIDER_SUPPRESSION
+  TENANT_BLOCK
+}
+
+enum EmailBounceType {
+  HARD
+  SOFT
+}
+
+model EmailProviderConnection {
+  id                 String            @id @default(cuid())
+  organisationId     String
+  brandId            String?
+  providerType       EmailProviderType
+  name               String
+  credentialsRef     String?
+  config             Json?
+  isActive           Boolean           @default(true)
+  isDefault          Boolean           @default(false)
+  rateLimitPerMinute Int?
+  dailyQuota         Int?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  domains      EmailSendingDomain[]
+  messages     EmailMessage[]
+  webhooks     EmailProviderWebhook[]
+
+  @@index([organisationId, providerType])
+  @@index([brandId])
+}
+
+model EmailSendingDomain {
+  id                   String                   @id @default(cuid())
+  organisationId       String
+  brandId              String?
+  providerConnectionId String
+  domain               String
+  sendingStatus        EmailDomainSendingStatus @default(PENDING)
+  spfStatus            EmailDnsRecordStatus     @default(UNKNOWN)
+  dkimStatus           EmailDnsRecordStatus     @default(UNKNOWN)
+  dmarcStatus          EmailDnsRecordStatus     @default(UNKNOWN)
+  customReturnPath     String?
+  providerVerified     Boolean                  @default(false)
+  lastCheckedAt        DateTime?
+  configInstructions   Json?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  organisation         Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand                Brand?                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  providerConnection   EmailProviderConnection     @relation(fields: [providerConnectionId], references: [id], onDelete: Restrict)
+  verifications        EmailDomainVerification[]
+  senderIdentities     EmailSenderIdentity[]
+  deliverabilitySnapshots EmailDeliverabilitySnapshot[]
+
+  @@unique([organisationId, domain])
+  @@index([brandId])
+  @@index([sendingStatus])
+}
+
+model EmailDomainVerification {
+  id                String               @id @default(cuid())
+  domainId          String
+  verificationType  String
+  status            EmailDnsRecordStatus @default(PENDING)
+  recordName        String?
+  recordValue       String?
+  checkedAt         DateTime?
+  providerReference String?
+
+  domain EmailSendingDomain @relation(fields: [domainId], references: [id], onDelete: Cascade)
+
+  @@index([domainId])
+}
+
+model EmailSenderIdentity {
+  id                 String                        @id @default(cuid())
+  organisationId     String
+  brandId            String?
+  domainId           String
+  displayName          String
+  emailAddress         String
+  replyTo              String?
+  purpose              String?
+  verificationStatus   EmailSenderVerificationStatus @default(PENDING)
+  isDefault            Boolean                       @default(false)
+  allowedCategories    EmailMessageCategory[]
+  verifiedAt           DateTime?
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  domain       EmailSendingDomain @relation(fields: [domainId], references: [id], onDelete: Restrict)
+  messages     EmailMessage[]
+
+  @@unique([organisationId, emailAddress])
+  @@index([brandId])
+  @@index([verificationStatus])
+}
+
+model EmailTemplate {
+  id               String               @id @default(cuid())
+  organisationId   String
+  brandId          String?
+  name             String
+  slug             String
+  category         EmailMessageCategory
+  currentVersionId String?
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  versions     EmailTemplateVersion[]
+  messages     EmailMessage[]
+
+  @@unique([organisationId, slug])
+  @@index([brandId])
+}
+
+model EmailTemplateVersion {
+  id                  String                     @id @default(cuid())
+  templateId          String
+  versionNumber       Int
+  status              EmailTemplateVersionStatus @default(DRAFT)
+  subject             String
+  preheader           String?
+  htmlBody            String
+  plainTextBody       String?
+  variables           Json?
+  language            String                     @default("en")
+  requiresUnsubscribe Boolean                    @default(false)
+  complianceFooter    String?
+  approvedByUserId    String?
+  approvedAt          DateTime?
+  createdByUserId     String
+  createdAt           DateTime                   @default(now())
+
+  template   EmailTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  approvedBy UserProfile?  @relation("EmailTemplateApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  createdBy  UserProfile   @relation("EmailTemplateCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  messages   EmailMessage[]
+
+  @@unique([templateId, versionNumber])
+  @@index([templateId, status])
+}
+
+model EmailMessage {
+  id                   String               @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  providerConnectionId String?
+  senderIdentityId     String
+  templateId           String?
+  templateVersionId    String?
+  category             EmailMessageCategory
+  status               EmailMessageStatus   @default(QUEUED)
+  subject              String
+  preheader            String?
+  htmlBody             String?
+  plainTextBody        String?
+  idempotencyKey       String?
+  scheduledAt          DateTime?
+  sentAt               DateTime?
+  cancelledAt          DateTime?
+  providerMessageId    String?
+  failureReason        String?
+  retryCount           Int                  @default(0)
+  createdByUserId      String
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  organisation       Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project            Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand              Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  providerConnection EmailProviderConnection? @relation(fields: [providerConnectionId], references: [id], onDelete: SetNull)
+  senderIdentity     EmailSenderIdentity     @relation(fields: [senderIdentityId], references: [id], onDelete: Restrict)
+  template           EmailTemplate?          @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  templateVersion    EmailTemplateVersion?   @relation(fields: [templateVersionId], references: [id], onDelete: SetNull)
+  createdBy          UserProfile             @relation("EmailMessageCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  recipients         EmailMessageRecipient[]
+  deliveryEvents     EmailDeliveryEvent[]
+  bounces            EmailBounce[]
+  complaints         EmailComplaint[]
+
+  @@unique([organisationId, idempotencyKey])
+  @@index([organisationId, brandId, status])
+  @@index([scheduledAt])
+  @@index([senderIdentityId])
+}
+
+model EmailMessageRecipient {
+  id                  String               @id @default(cuid())
+  messageId           String
+  emailAddress        String
+  displayName         String?
+  status              EmailRecipientStatus @default(PENDING)
+  leadId              String?
+  contactId           String?
+  variables           Json?
+  providerRecipientId String?
+
+  message        EmailMessage         @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  deliveryEvents EmailDeliveryEvent[]
+  bounces        EmailBounce[]
+  complaints     EmailComplaint[]
+
+  @@index([messageId])
+  @@index([emailAddress])
+}
+
+model EmailDeliveryEvent {
+  id              String                 @id @default(cuid())
+  messageId       String
+  recipientId     String?
+  eventType       EmailDeliveryEventType
+  providerEventId String?
+  occurredAt      DateTime
+  receivedAt      DateTime               @default(now())
+  metadata        Json?
+  idempotencyKey  String?
+
+  message   EmailMessage           @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  recipient EmailMessageRecipient? @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+
+  @@unique([providerEventId, eventType])
+  @@index([messageId, occurredAt])
+}
+
+model EmailSuppression {
+  id             String                 @id @default(cuid())
+  organisationId String
+  brandId        String?
+  emailAddress   String
+  reason         EmailSuppressionReason
+  source         String?
+  suppressedAt   DateTime               @default(now())
+  expiresAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, emailAddress])
+  @@index([brandId])
+}
+
+model EmailBounce {
+  id                String          @id @default(cuid())
+  organisationId    String
+  messageId         String?
+  recipientId       String?
+  emailAddress      String
+  bounceType        EmailBounceType
+  reason            String?
+  providerReference String?
+  occurredAt        DateTime        @default(now())
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  message      EmailMessage?          @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  recipient    EmailMessageRecipient? @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, emailAddress])
+  @@index([messageId])
+}
+
+model EmailComplaint {
+  id                String   @id @default(cuid())
+  organisationId    String
+  messageId         String?
+  recipientId       String?
+  emailAddress      String
+  reason            String?
+  providerReference String?
+  occurredAt        DateTime @default(now())
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  message      EmailMessage?          @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  recipient    EmailMessageRecipient? @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, emailAddress])
+  @@index([messageId])
+}
+
+model EmailUnsubscribe {
+  id             String                @id @default(cuid())
+  organisationId String
+  brandId        String?
+  emailAddress   String
+  category       EmailMessageCategory?
+  source         String?
+  unsubscribedAt DateTime              @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, emailAddress, category])
+  @@index([brandId])
+}
+
+model EmailTrackingPolicy {
+  id                        String   @id @default(cuid())
+  organisationId            String
+  brandId                   String?
+  openTrackingEnabled       Boolean  @default(false)
+  clickTrackingEnabled      Boolean  @default(false)
+  utmParameters             Json?
+  firstPartyRedirectEnabled Boolean  @default(true)
+  requireConsent            Boolean  @default(true)
+  restrictedRegions         String[] @default([])
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId])
+}
+
+model EmailProviderWebhook {
+  id                   String   @id @default(cuid())
+  organisationId       String
+  providerConnectionId String
+  endpointSecretRef    String?
+  isActive             Boolean  @default(true)
+  lastReceivedAt       DateTime?
+  createdAt            DateTime @default(now())
+
+  organisation       Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  providerConnection EmailProviderConnection @relation(fields: [providerConnectionId], references: [id], onDelete: Cascade)
+
+  @@index([providerConnectionId])
+}
+
+model EmailDeliverabilitySnapshot {
+  id               String    @id @default(cuid())
+  organisationId   String
+  brandId          String?
+  domainId         String?
+  periodStart      DateTime
+  periodEnd        DateTime
+  sentCount        Int       @default(0)
+  deliveredCount   Int       @default(0)
+  bounceCount      Int       @default(0)
+  hardBounceCount  Int       @default(0)
+  complaintCount   Int       @default(0)
+  unsubscribeCount Int       @default(0)
+  rejectionCount   Int       @default(0)
+  deliveryRate     Decimal?
+  bounceRate       Decimal?
+  complaintRate    Decimal?
+  warnings         Json?
+  computedAt       DateTime  @default(now())
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  domain       EmailSendingDomain? @relation(fields: [domainId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, computedAt])
 }
 
 // ---------------------------------------------------------------------------
