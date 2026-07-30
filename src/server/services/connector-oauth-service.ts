@@ -12,6 +12,10 @@ import {
 import { connectorAdapterFactory } from "@/lib/connectors/adapters/fake-connector-adapter";
 import "@/lib/connectors/adapters/register-adapters";
 import { buildGoogleOAuthAuthorisationUrl } from "@/lib/connectors/oauth/google";
+import { buildMetaOAuthAuthorisationUrl } from "@/lib/connectors/oauth/meta";
+import { buildLinkedInOAuthAuthorisationUrl } from "@/lib/connectors/oauth/linkedin";
+import { buildTikTokOAuthAuthorisationUrl } from "@/lib/connectors/oauth/tiktok";
+import { isPaidAdsConnector } from "@/lib/paid-ads/constants";
 import { connectorCredentialService } from "@/server/services/connector-credential-service";
 import { getServerEnv } from "@/lib/environment";
 
@@ -60,16 +64,34 @@ export const connectorOAuthService = {
       redirectUri,
       scopes: definition.requiredScopes,
       codeChallenge: codeVerifier ? generatePkceChallenge(codeVerifier) : undefined,
-      authorisationUrl:
-        input.connectorType === "GOOGLE_ANALYTICS_4" ||
-        input.connectorType === "GOOGLE_SEARCH_CONSOLE"
-          ? buildGoogleOAuthAuthorisationUrl({
-              state,
-              redirectUri,
-              scopes: definition.requiredScopes,
-              codeChallenge: codeVerifier ? generatePkceChallenge(codeVerifier) : undefined,
-            })
-          : `${redirectUri}?state=${state}&connectorType=${input.connectorType}`,
+      authorisationUrl: (() => {
+        const pkce = codeVerifier ? generatePkceChallenge(codeVerifier) : undefined;
+        if (
+          input.connectorType === "GOOGLE_ANALYTICS_4" ||
+          input.connectorType === "GOOGLE_SEARCH_CONSOLE" ||
+          input.connectorType === "GOOGLE_ADS"
+        ) {
+          return buildGoogleOAuthAuthorisationUrl({
+            state,
+            redirectUri,
+            scopes: definition.requiredScopes,
+            codeChallenge: pkce,
+          });
+        }
+        if (input.connectorType === "META") {
+          return buildMetaOAuthAuthorisationUrl({ state, redirectUri, scopes: definition.requiredScopes });
+        }
+        if (input.connectorType === "LINKEDIN") {
+          return buildLinkedInOAuthAuthorisationUrl({ state, redirectUri, scopes: definition.requiredScopes });
+        }
+        if (input.connectorType === "TIKTOK") {
+          return buildTikTokOAuthAuthorisationUrl({ state, redirectUri, scopes: definition.requiredScopes });
+        }
+        if (isPaidAdsConnector(input.connectorType)) {
+          return `${redirectUri}?state=${state}&connectorType=${input.connectorType}`;
+        }
+        return `${redirectUri}?state=${state}&connectorType=${input.connectorType}`;
+      })(),
     };
   },
 

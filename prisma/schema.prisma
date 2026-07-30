@@ -383,6 +383,8 @@ model Organisation {
   marketingCampaigns             MarketingCampaign[]
   marketingAdGroups              MarketingAdGroup[]
   marketingAds                   MarketingAd[]
+  marketingCreatives             MarketingCreative[]
+  paidAdsCreativeMappings        PaidAdsCreativeMapping[]
   marketingContentItems          MarketingContentItem[]
   marketingAudiences             MarketingAudience[]
   marketingChannelRules          MarketingChannelRule[]
@@ -530,6 +532,8 @@ model Project {
   marketingCampaigns             MarketingCampaign[]
   marketingAdGroups              MarketingAdGroup[]
   marketingAds                   MarketingAd[]
+  marketingCreatives             MarketingCreative[]
+  paidAdsCreativeMappings        PaidAdsCreativeMapping[]
   marketingContentItems          MarketingContentItem[]
   marketingAudiences             MarketingAudience[]
   marketingChannelRules          MarketingChannelRule[]
@@ -667,6 +671,8 @@ model Brand {
   marketingCampaigns             MarketingCampaign[]
   marketingAdGroups              MarketingAdGroup[]
   marketingAds                   MarketingAd[]
+  marketingCreatives             MarketingCreative[]
+  paidAdsCreativeMappings        PaidAdsCreativeMapping[]
   marketingContentItems          MarketingContentItem[]
   marketingAudiences             MarketingAudience[]
   marketingChannelRules          MarketingChannelRule[]
@@ -1135,6 +1141,8 @@ model MarketingAsset {
   contentVariantAssets    ContentVariantAsset[]
   visualExports           VisualExport[]
   visualGenerationSources VisualGeneration[]    @relation("VisualGenerationSourceAsset")
+  marketingAds            MarketingAd[]
+  paidAdsCreativeMappings PaidAdsCreativeMapping[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -2465,6 +2473,8 @@ model ContentItem {
   schedules        ContentSchedule[]
   marketingLeads   MarketingLead[]
   experimentVariants ExperimentVariant[]
+  marketingAds         MarketingAd[]
+  paidAdsCreativeMappings PaidAdsCreativeMapping[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -2514,6 +2524,8 @@ model ContentVariant {
   schedules        ContentSchedule[]
   tikTokSetting    TikTokPublishSetting?
   experimentVariants ExperimentVariant[]
+  marketingAds         MarketingAd[]
+  paidAdsCreativeMappings PaidAdsCreativeMapping[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -3801,6 +3813,11 @@ enum MarketingDimensionStatus {
   REMOVED
 }
 
+enum PaidAdsCreativeMappingSource {
+  EXPLICIT_USER_MAPPING
+  DETERMINISTIC_PROVIDER_ID
+}
+
 enum MarketingMetricSource {
   CONNECTOR
   SOCIAL
@@ -4009,6 +4026,7 @@ model MarketingDataSourceAccount {
   campaigns            MarketingCampaign[]
   adGroups             MarketingAdGroup[]
   ads                  MarketingAd[]
+  creatives            MarketingCreative[]
   contentItems         MarketingContentItem[]
   audiences            MarketingAudience[]
   metricObservations   MarketingMetricObservation[]
@@ -4369,6 +4387,9 @@ model MarketingAd {
   brandId                      String
   marketingDataSourceAccountId String?
   marketingAdGroupId           String?
+  contentItemId                String?
+  contentVariantId             String?
+  marketingAssetId             String?
   provider                     MarketingDataProvider
   providerAdId                 String
   name                         String?
@@ -4385,13 +4406,82 @@ model MarketingAd {
   brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
   marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
   marketingAdGroup           MarketingAdGroup?          @relation(fields: [marketingAdGroupId], references: [id], onDelete: SetNull)
+  contentItem                ContentItem?               @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  contentVariant             ContentVariant?            @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
+  marketingAsset             MarketingAsset?            @relation(fields: [marketingAssetId], references: [id], onDelete: SetNull)
   metricObservations         MarketingMetricObservation[]
   costRecords                MarketingCostRecord[]
+  creatives                  MarketingCreative[]
 
   @@unique([brandId, provider, providerAdId])
   @@index([organisationId, brandId])
   @@index([marketingAdGroupId])
+  @@index([contentItemId])
   @@index([status])
+}
+
+model MarketingCreative {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingAdId                String?
+  provider                     MarketingDataProvider
+  providerCreativeId           String
+  name                         String?
+  creativeType                 String?
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingAd                MarketingAd?               @relation(fields: [marketingAdId], references: [id], onDelete: SetNull)
+  metricObservations         MarketingMetricObservation[]
+  creativeMappings           PaidAdsCreativeMapping[]
+
+  @@unique([brandId, provider, providerCreativeId])
+  @@index([organisationId, brandId])
+  @@index([marketingAdId])
+  @@index([status])
+}
+
+model PaidAdsCreativeMapping {
+  id                 String                    @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  provider           MarketingDataProvider
+  providerCreativeId String
+  providerAdId       String?
+  marketingCreativeId String?
+  contentItemId      String?
+  contentVariantId   String?
+  marketingAssetId   String?
+  mappingSource      PaidAdsCreativeMappingSource
+  mappingKey         String?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  organisation      Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingCreative MarketingCreative? @relation(fields: [marketingCreativeId], references: [id], onDelete: SetNull)
+  contentItem       ContentItem?       @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  contentVariant    ContentVariant?    @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
+  marketingAsset    MarketingAsset?    @relation(fields: [marketingAssetId], references: [id], onDelete: SetNull)
+
+  @@unique([brandId, provider, providerCreativeId])
+  @@index([organisationId, brandId])
+  @@index([contentItemId])
+  @@index([contentVariantId])
+  @@index([marketingAssetId])
 }
 
 model MarketingContentItem {
@@ -4587,6 +4677,7 @@ model MarketingMetricObservation {
   marketingAdGroupId           String?
   marketingAdId                String?
   marketingContentItemId       String?
+  marketingCreativeId          String?
   marketingSearchQueryId       String?
   marketingLandingPageId       String?
   marketingGeographyId         String?
@@ -4605,6 +4696,7 @@ model MarketingMetricObservation {
   marketingAdGroup           MarketingAdGroup?           @relation(fields: [marketingAdGroupId], references: [id], onDelete: SetNull)
   marketingAd                MarketingAd?                @relation(fields: [marketingAdId], references: [id], onDelete: SetNull)
   marketingContentItem       MarketingContentItem?       @relation(fields: [marketingContentItemId], references: [id], onDelete: SetNull)
+  marketingCreative          MarketingCreative?          @relation(fields: [marketingCreativeId], references: [id], onDelete: SetNull)
   marketingSearchQuery         MarketingSearchQuery?       @relation(fields: [marketingSearchQueryId], references: [id], onDelete: SetNull)
   marketingLandingPage         MarketingLandingPage?       @relation(fields: [marketingLandingPageId], references: [id], onDelete: SetNull)
   marketingGeography           MarketingGeography?         @relation(fields: [marketingGeographyId], references: [id], onDelete: SetNull)

@@ -16,6 +16,7 @@ const serverEnvSchema = z.object({
   GOOGLE_AI_API_KEY: optionalNonEmptyString,
   GOOGLE_CLIENT_ID: optionalNonEmptyString,
   GOOGLE_CLIENT_SECRET: optionalNonEmptyString,
+  GOOGLE_ADS_DEVELOPER_TOKEN: optionalNonEmptyString,
   META_APP_ID: optionalNonEmptyString,
   META_APP_SECRET: optionalNonEmptyString,
   TIKTOK_CLIENT_KEY: optionalNonEmptyString,

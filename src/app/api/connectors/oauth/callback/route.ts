@@ -5,6 +5,10 @@ import { getServerEnv } from "@/lib/environment";
 function connectorRedirectPath(connectorType: string): string {
   if (connectorType === "GOOGLE_SEARCH_CONSOLE") return "/connectors/google-search-console";
   if (connectorType === "GOOGLE_ANALYTICS_4") return "/connectors/google-analytics";
+  if (connectorType === "GOOGLE_ADS") return "/connectors/google-ads";
+  if (connectorType === "META") return "/connectors/meta-ads";
+  if (connectorType === "LINKEDIN") return "/connectors/linkedin-ads";
+  if (connectorType === "TIKTOK") return "/connectors/tiktok-ads";
   return "/connectors";
 }
 

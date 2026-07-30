@@ -195,6 +195,11 @@ export const marketingWarehouseNormalisationService = {
             geography?: string;
             device?: string;
             channel?: string;
+            account?: string;
+            campaign?: string;
+            adGroup?: string;
+            ad?: string;
+            creative?: string;
           } = {};
 
           for (const dimension of result.dimensions) {
@@ -343,6 +348,146 @@ export const marketingWarehouseNormalisationService = {
               });
               dimensionIds.device = device.id;
             }
+
+            if (dimension.entityType === "account") {
+              const account = await tx.marketingAccount.upsert({
+                where: {
+                  brandId_provider_providerAccountId: {
+                    brandId: batch.brandId,
+                    provider: batch.provider,
+                    providerAccountId: dimension.providerId,
+                  },
+                },
+                create: {
+                  organisationId: batch.organisationId,
+                  projectId: batch.projectId,
+                  brandId: batch.brandId,
+                  marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                  provider: batch.provider,
+                  providerAccountId: dimension.providerId,
+                  name: dimension.name,
+                  currency: typeof dimension.metadata?.currency === "string" ? dimension.metadata.currency : undefined,
+                  timezone: typeof dimension.metadata?.timezone === "string" ? dimension.metadata.timezone : undefined,
+                  providerMetadata: dimension.metadata as Prisma.InputJsonValue,
+                  firstSeenAt: new Date(),
+                  lastSeenAt: new Date(),
+                },
+                update: { name: dimension.name, lastSeenAt: new Date() },
+              });
+              dimensionIds.account = account.id;
+            }
+
+            if (dimension.entityType === "campaign") {
+              const campaign = await tx.marketingCampaign.upsert({
+                where: {
+                  brandId_provider_providerCampaignId: {
+                    brandId: batch.brandId,
+                    provider: batch.provider,
+                    providerCampaignId: dimension.providerId,
+                  },
+                },
+                create: {
+                  organisationId: batch.organisationId,
+                  projectId: batch.projectId,
+                  brandId: batch.brandId,
+                  marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                  marketingAccountId: dimensionIds.account,
+                  marketingChannelId: dimensionIds.channel,
+                  provider: batch.provider,
+                  providerCampaignId: dimension.providerId,
+                  name: dimension.name,
+                  campaignType: typeof dimension.metadata?.campaignType === "string" ? dimension.metadata.campaignType : undefined,
+                  providerMetadata: dimension.metadata as Prisma.InputJsonValue,
+                  firstSeenAt: new Date(),
+                  lastSeenAt: new Date(),
+                },
+                update: { name: dimension.name, lastSeenAt: new Date() },
+              });
+              dimensionIds.campaign = campaign.id;
+            }
+
+            if (dimension.entityType === "ad_group") {
+              const adGroup = await tx.marketingAdGroup.upsert({
+                where: {
+                  brandId_provider_providerAdGroupId: {
+                    brandId: batch.brandId,
+                    provider: batch.provider,
+                    providerAdGroupId: dimension.providerId,
+                  },
+                },
+                create: {
+                  organisationId: batch.organisationId,
+                  projectId: batch.projectId,
+                  brandId: batch.brandId,
+                  marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                  marketingCampaignId: dimensionIds.campaign,
+                  provider: batch.provider,
+                  providerAdGroupId: dimension.providerId,
+                  name: dimension.name,
+                  providerMetadata: dimension.metadata as Prisma.InputJsonValue,
+                  firstSeenAt: new Date(),
+                  lastSeenAt: new Date(),
+                },
+                update: { name: dimension.name, lastSeenAt: new Date() },
+              });
+              dimensionIds.adGroup = adGroup.id;
+            }
+
+            if (dimension.entityType === "ad") {
+              const ad = await tx.marketingAd.upsert({
+                where: {
+                  brandId_provider_providerAdId: {
+                    brandId: batch.brandId,
+                    provider: batch.provider,
+                    providerAdId: dimension.providerId,
+                  },
+                },
+                create: {
+                  organisationId: batch.organisationId,
+                  projectId: batch.projectId,
+                  brandId: batch.brandId,
+                  marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                  marketingAdGroupId: dimensionIds.adGroup,
+                  provider: batch.provider,
+                  providerAdId: dimension.providerId,
+                  name: dimension.name,
+                  adType: typeof dimension.metadata?.adType === "string" ? dimension.metadata.adType : undefined,
+                  providerMetadata: dimension.metadata as Prisma.InputJsonValue,
+                  firstSeenAt: new Date(),
+                  lastSeenAt: new Date(),
+                },
+                update: { name: dimension.name, lastSeenAt: new Date() },
+              });
+              dimensionIds.ad = ad.id;
+            }
+
+            if (dimension.entityType === "creative") {
+              const creative = await tx.marketingCreative.upsert({
+                where: {
+                  brandId_provider_providerCreativeId: {
+                    brandId: batch.brandId,
+                    provider: batch.provider,
+                    providerCreativeId: dimension.providerId,
+                  },
+                },
+                create: {
+                  organisationId: batch.organisationId,
+                  projectId: batch.projectId,
+                  brandId: batch.brandId,
+                  marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                  marketingAdId: dimensionIds.ad,
+                  provider: batch.provider,
+                  providerCreativeId: dimension.providerId,
+                  name: dimension.name,
+                  creativeType: typeof dimension.metadata?.creativeType === "string" ? dimension.metadata.creativeType : undefined,
+                  providerMetadata: dimension.metadata as Prisma.InputJsonValue,
+                  firstSeenAt: new Date(),
+                  lastSeenAt: new Date(),
+                },
+                update: { name: dimension.name, lastSeenAt: new Date() },
+              });
+              dimensionIds.creative = creative.id;
+            }
           }
 
           const metricSource = metricSourceForProvider(batch.provider);
@@ -422,6 +567,11 @@ export const marketingWarehouseNormalisationService = {
                       )?.id
                     : undefined),
                 marketingChannelId: dimensionIds.channel,
+                marketingAccountId: dimensionIds.account,
+                marketingCampaignId: dimensionIds.campaign,
+                marketingAdGroupId: dimensionIds.adGroup,
+                marketingAdId: dimensionIds.ad,
+                marketingCreativeId: dimensionIds.creative,
                 idempotencyKey,
               },
               update: {
@@ -438,6 +588,37 @@ export const marketingWarehouseNormalisationService = {
               entityId: observation.id,
               rawMarketingRecordId: current.id,
               transformationVersionId: transformationVersion.id,
+            });
+          }
+
+          for (const cost of result.costRecords ?? []) {
+            const costIdempotencyKey = `cost:${current.id}:${cost.providerCostId}`;
+            await tx.marketingCostRecord.upsert({
+              where: { idempotencyKey: costIdempotencyKey },
+              create: {
+                organisationId: batch.organisationId,
+                projectId: batch.projectId,
+                brandId: batch.brandId,
+                marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                marketingAccountId: dimensionIds.account,
+                marketingCampaignId: dimensionIds.campaign,
+                marketingAdGroupId: dimensionIds.adGroup,
+                marketingAdId: dimensionIds.ad,
+                marketingChannelId: dimensionIds.channel,
+                provider: batch.provider,
+                providerCostId: cost.providerCostId,
+                amount: cost.amount,
+                currency: cost.currency,
+                periodStart: cost.periodStart,
+                periodEnd: cost.periodEnd,
+                idempotencyKey: costIdempotencyKey,
+                providerMetadata: cost.metadata as Prisma.InputJsonValue,
+              },
+              update: {
+                amount: cost.amount,
+                currency: cost.currency,
+                providerMetadata: cost.metadata as Prisma.InputJsonValue,
+              },
             });
           }
 
