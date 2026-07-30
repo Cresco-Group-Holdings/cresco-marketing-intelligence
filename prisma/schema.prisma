@@ -433,6 +433,13 @@ model Organisation {
   attributionCredits             AttributionCredit[]
   attributionRuns                AttributionRun[]
   attributionExclusionRules      AttributionExclusionRule[]
+  marketingFunnels               MarketingFunnel[]
+  marketingFunnelVersions        MarketingFunnelVersion[]
+  marketingFunnelSteps           MarketingFunnelStep[]
+  funnelAnalysisRuns             FunnelAnalysisRun[]
+  funnelStepResults              FunnelStepResult[]
+  funnelSegments                 FunnelSegment[]
+  funnelDropOffInsights          FunnelDropOffInsight[]
 
   @@index([status])
   @@index([archivedAt])
@@ -588,6 +595,13 @@ model Project {
   attributionCredits             AttributionCredit[]
   attributionRuns                AttributionRun[]
   attributionExclusionRules      AttributionExclusionRule[]
+  marketingFunnels               MarketingFunnel[]
+  marketingFunnelVersions        MarketingFunnelVersion[]
+  marketingFunnelSteps           MarketingFunnelStep[]
+  funnelAnalysisRuns             FunnelAnalysisRun[]
+  funnelStepResults              FunnelStepResult[]
+  funnelSegments                 FunnelSegment[]
+  funnelDropOffInsights          FunnelDropOffInsight[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -735,6 +749,13 @@ model Brand {
   attributionCredits             AttributionCredit[]
   attributionRuns                AttributionRun[]
   attributionExclusionRules      AttributionExclusionRule[]
+  marketingFunnels               MarketingFunnel[]
+  marketingFunnelVersions        MarketingFunnelVersion[]
+  marketingFunnelSteps           MarketingFunnelStep[]
+  funnelAnalysisRuns             FunnelAnalysisRun[]
+  funnelStepResults              FunnelStepResult[]
+  funnelSegments                 FunnelSegment[]
+  funnelDropOffInsights          FunnelDropOffInsight[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -5847,6 +5868,258 @@ model AttributionExclusionRule {
   @@unique([brandId, name])
   @@index([organisationId, brandId])
   @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Funnel and conversion intelligence (Task 3.7)
+// ---------------------------------------------------------------------------
+
+enum FunnelCountingMethod {
+  USER
+  SESSION
+  EVENT
+}
+
+enum FunnelStepType {
+  EVENT
+  CONVERSION
+  PAGE
+  CAMPAIGN
+  LEAD_STATUS
+  CRM_STAGE
+  SUBSCRIPTION_STATUS
+  PAYMENT_STATUS
+}
+
+enum FunnelStepRequirement {
+  REQUIRED
+  OPTIONAL
+}
+
+enum FunnelTemplateType {
+  CRESCO_GRANTS
+  CAPITAL_CRESCO_TERMINAL
+}
+
+enum FunnelAnalysisRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum FunnelSegmentDimension {
+  CHANNEL
+  CAMPAIGN
+  PROVIDER
+  LANDING_PAGE
+  DEVICE
+  COUNTRY
+  NEW_VS_RETURNING
+  BRAND
+  AUDIENCE
+  CONTENT
+  DATE_COHORT
+}
+
+enum FunnelDropOffInsightType {
+  LARGEST_DROP_OFF
+  SLOW_TRANSITION
+  WORSENING_CONVERSION
+  STRONG_TRAFFIC_WEAK_ACTIVATION
+  HIGH_SIGNUP_LOW_COMPLETION
+  LOW_QUALITY_CONVERSIONS
+}
+
+model MarketingFunnel {
+  id               String               @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  name             String
+  description      String?
+  countingMethod   FunnelCountingMethod @default(USER)
+  templateType     FunnelTemplateType?
+  isTemplate       Boolean              @default(false)
+  isActive         Boolean              @default(true)
+  currentVersionId String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  organisation Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  versions     MarketingFunnelVersion[]
+  runs         FunnelAnalysisRun[]
+
+  @@unique([brandId, name])
+  @@index([organisationId, brandId])
+  @@index([isActive])
+}
+
+model MarketingFunnelVersion {
+  id             String               @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  funnelId       String
+  versionNumber  Int
+  countingMethod FunnelCountingMethod
+  config         Json?
+  changelog      String?
+  createdByUserId String?
+  createdAt      DateTime             @default(now())
+
+  organisation Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  funnel       MarketingFunnel      @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  steps        MarketingFunnelStep[]
+  runs         FunnelAnalysisRun[]
+
+  @@unique([funnelId, versionNumber])
+  @@index([organisationId, brandId])
+}
+
+model MarketingFunnelStep {
+  id                  String                @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  funnelVersionId     String
+  stepOrder           Int
+  name                String
+  stepType            FunnelStepType
+  matchingRules       Json
+  maxTimeToNextStepMs Int?
+  requirement         FunnelStepRequirement @default(REQUIRED)
+  createdAt           DateTime              @default(now())
+
+  organisation  Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  funnelVersion MarketingFunnelVersion @relation(fields: [funnelVersionId], references: [id], onDelete: Cascade)
+  stepResults   FunnelStepResult[]
+
+  @@unique([funnelVersionId, stepOrder])
+  @@index([organisationId, brandId])
+}
+
+model FunnelAnalysisRun {
+  id                String                  @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  funnelId          String
+  funnelVersionId   String
+  status            FunnelAnalysisRunStatus @default(PENDING)
+  countingMethod    FunnelCountingMethod
+  cohortDate        DateTime?
+  dateFrom          DateTime
+  dateTo            DateTime
+  segmentDimension  FunnelSegmentDimension?
+  segmentValue      String?
+  entrants          Int                     @default(0)
+  totalConversions  Int                     @default(0)
+  startedAt         DateTime?
+  completedAt       DateTime?
+  errorMessage      String?
+  idempotencyKey    String                  @unique
+  journeySamples    Json?
+  dataQualityWarnings Json?
+  metadata          Json?
+  createdAt         DateTime                @default(now())
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  funnel       MarketingFunnel       @relation(fields: [funnelId], references: [id], onDelete: Cascade)
+  funnelVersion MarketingFunnelVersion @relation(fields: [funnelVersionId], references: [id], onDelete: Cascade)
+  stepResults  FunnelStepResult[]
+  segments     FunnelSegment[]
+  insights     FunnelDropOffInsight[]
+
+  @@index([organisationId, brandId, createdAt])
+  @@index([funnelId])
+  @@index([status])
+}
+
+model FunnelStepResult {
+  id                   String   @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  funnelAnalysisRunId  String
+  funnelStepId         String
+  stepOrder            Int
+  stepName             String
+  entrants             Int
+  completions          Int
+  stepConversion       Decimal  @db.Decimal(8, 4)
+  cumulativeConversion Decimal  @db.Decimal(8, 4)
+  dropOffCount         Int
+  dropOffRate          Decimal  @db.Decimal(8, 4)
+  medianTimeToNextMs   Int?
+  metadata             Json?
+  createdAt            DateTime @default(now())
+
+  organisation      Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  funnelAnalysisRun FunnelAnalysisRun   @relation(fields: [funnelAnalysisRunId], references: [id], onDelete: Cascade)
+  funnelStep        MarketingFunnelStep @relation(fields: [funnelStepId], references: [id], onDelete: Cascade)
+
+  @@index([funnelAnalysisRunId])
+  @@index([stepOrder])
+}
+
+model FunnelSegment {
+  id                  String                 @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  funnelAnalysisRunId String
+  dimension           FunnelSegmentDimension
+  segmentValue        String
+  entrants            Int                    @default(0)
+  completions         Int                    @default(0)
+  conversionRate      Decimal?               @db.Decimal(8, 4)
+  metadata            Json?
+  createdAt           DateTime               @default(now())
+
+  organisation      Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  funnelAnalysisRun FunnelAnalysisRun @relation(fields: [funnelAnalysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([funnelAnalysisRunId])
+  @@index([dimension])
+}
+
+model FunnelDropOffInsight {
+  id                  String                   @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  funnelAnalysisRunId String
+  insightType         FunnelDropOffInsightType
+  stepOrder           Int?
+  stepName            String?
+  segmentDimension    String?
+  segmentValue        String?
+  metricValue         Decimal?                 @db.Decimal(12, 4)
+  evidence            Json?
+  message             String
+  severity            String                   @default("info")
+  createdAt           DateTime                 @default(now())
+
+  organisation      Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  funnelAnalysisRun FunnelAnalysisRun @relation(fields: [funnelAnalysisRunId], references: [id], onDelete: Cascade)
+
+  @@index([funnelAnalysisRunId])
+  @@index([insightType])
 }
 
 // ---------------------------------------------------------------------------
