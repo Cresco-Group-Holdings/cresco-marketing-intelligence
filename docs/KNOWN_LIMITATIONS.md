@@ -1,12 +1,6 @@
 # Known Limitations
 
-<<<<<<< HEAD
-Documented intentional scope boundaries. These are not bugs.
-
-## Stage 1
-=======
 Documented limitations across Stage 1 and Stage 2. See `docs/STAGE_2_KNOWN_LIMITATIONS.md` for Stage 2-specific gaps.
->>>>>>> 95eb5ce (feat(stage-2): Task 2.20 production readiness hardening and docs)
 
 ## Stage 2 status (Task 2.20)
 
@@ -71,7 +65,6 @@ Publishing scheduler, capability enforcement, provider kill switches, and operat
 
 ## Billing
 
-<<<<<<< HEAD
 - No usage-based billing or subscription management in Stage 1
 
 ## Marketing data warehouse (Task 3.1)
@@ -119,6 +112,3 @@ Documented limitations at the end of Task 3.1 warehouse foundation.
 - Operations dashboard, health API, quality framework (schema + services)
 
 See `docs/MARKETING_DATA_WAREHOUSE.md` and `docs/TASK_3_1_PREFLIGHT.md` for architecture decisions and deferred debt.
-=======
-- No usage-based billing or subscription management
->>>>>>> 95eb5ce (feat(stage-2): Task 2.20 production readiness hardening and docs)
