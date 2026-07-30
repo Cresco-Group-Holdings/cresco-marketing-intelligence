@@ -61,7 +61,8 @@ export const connectorOAuthService = {
       scopes: definition.requiredScopes,
       codeChallenge: codeVerifier ? generatePkceChallenge(codeVerifier) : undefined,
       authorisationUrl:
-        input.connectorType === "GOOGLE_ANALYTICS_4"
+        input.connectorType === "GOOGLE_ANALYTICS_4" ||
+        input.connectorType === "GOOGLE_SEARCH_CONSOLE"
           ? buildGoogleOAuthAuthorisationUrl({
               state,
               redirectUri,

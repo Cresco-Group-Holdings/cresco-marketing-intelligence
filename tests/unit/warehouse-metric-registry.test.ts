@@ -5,8 +5,8 @@ import {
 } from "@/lib/warehouse/metric-registry";
 
 describe("warehouse metric registry", () => {
-  it("defines exactly 10 default canonical metrics", () => {
-    expect(DEFAULT_METRIC_DEFINITIONS).toHaveLength(10);
+  it("defines exactly 11 default canonical metrics", () => {
+    expect(DEFAULT_METRIC_DEFINITIONS).toHaveLength(11);
   });
 
   it("defines canonical metric keys with aggregation metadata", () => {
@@ -14,6 +14,7 @@ describe("warehouse metric registry", () => {
     expect(keys).toContain("sessions");
     expect(keys).toContain("revenue");
     expect(keys).toContain("ctr");
+    expect(keys).toContain("avg_position");
     expect(new Set(keys).size).toBe(keys.length);
   });
 
