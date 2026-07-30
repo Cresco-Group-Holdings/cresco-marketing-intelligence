@@ -365,6 +365,16 @@ model UserProfile {
   crmOpportunitiesCreated      CrmOpportunity[]          @relation("CrmOpportunityCreator")
   crmOpportunityApprovalsActed CrmOpportunityApproval[]  @relation("CrmOpportunityApprovalActor")
   crmOpportunityStageHistoryActed CrmOpportunityStageHistory[] @relation("CrmOpportunityStageActor")
+  crmTasksOwned                CrmTask[]                 @relation("CrmTaskOwner")
+  crmTasksCreated              CrmTask[]                 @relation("CrmTaskCreator")
+  crmTaskAssignmentsReceived   CrmTaskAssignment[]       @relation("CrmTaskAssignee")
+  crmTaskAssignmentsMade       CrmTaskAssignment[]       @relation("CrmTaskAssigner")
+  crmTaskCompletionsRecorded   CrmTaskCompletion[]       @relation("CrmTaskCompleter")
+  crmActivitiesLogged          CrmActivity[]             @relation("CrmActivityLogger")
+  crmActivityParticipants      CrmActivityParticipant[]
+  crmNotesAuthored             CrmNote[]                 @relation("CrmNoteAuthor")
+  crmCallLogsLogged            CrmCallLog[]              @relation("CrmCallLogger")
+  crmMeetingRecordsLogged      CrmMeetingRecord[]        @relation("CrmMeetingLogger")
 
   @@index([email])
 }
@@ -721,6 +731,11 @@ model Organisation {
   crmPipelines                         CrmPipeline[]
   crmOpportunities                     CrmOpportunity[]
   crmOpportunityLossReasons            CrmOpportunityLossReason[]
+  crmTasks                             CrmTask[]
+  crmActivities                        CrmActivity[]
+  crmFollowUpRules                     CrmFollowUpRule[]
+  crmFollowUpSuggestions               CrmFollowUpSuggestion[]
+  crmTaskTypes                         CrmTaskType[]
 
   @@index([status])
   @@index([archivedAt])
@@ -957,6 +972,8 @@ model Project {
   leadCaptureSubmissions      LeadCaptureSubmission[]
   crmPipelines                CrmPipeline[]
   crmOpportunities            CrmOpportunity[]
+  crmTasks                    CrmTask[]
+  crmActivities               CrmActivity[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1192,6 +1209,11 @@ model Brand {
   crmPipelines                   CrmPipeline[]
   crmOpportunities               CrmOpportunity[]
   crmOpportunityLossReasons      CrmOpportunityLossReason[]
+  crmTasks                       CrmTask[]
+  crmActivities                  CrmActivity[]
+  crmFollowUpRules               CrmFollowUpRule[]
+  crmFollowUpSuggestions         CrmFollowUpSuggestion[]
+  crmTaskTypes                   CrmTaskType[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -13148,6 +13170,7 @@ model CrmPerson {
   addresses    CrmAddress[]
   identityLinks CrmIdentityLink[]
   opportunityContactRoles CrmOpportunityContactRole[]
+  activityParticipants    CrmActivityParticipant[]
 
   @@index([organisationId, brandId])
   @@index([authUserId])
@@ -13170,6 +13193,7 @@ model CrmContact {
   project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
   person       CrmPerson    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  tasks        CrmTask[]
 
   @@index([organisationId, brandId])
 }
@@ -13209,6 +13233,8 @@ model CrmCompany {
   leads         CrmLead[]
   opportunities CrmOpportunity[]
   addresses     CrmAddress[]
+  tasks         CrmTask[]
+  activities    CrmActivity[]
 
   @@index([organisationId, brandId])
   @@index([tradingName])
@@ -13269,6 +13295,8 @@ model CrmLead {
   customFieldValues CrmCustomFieldValue[]
   externalReferences CrmExternalReference[]
   opportunities      CrmOpportunity[]
+  tasks              CrmTask[]
+  activities         CrmActivity[]
 
   @@index([organisationId, brandId, status])
   @@index([ownerUserId])
@@ -13915,6 +13943,7 @@ model LeadCaptureSubmission {
   values       LeadCaptureSubmissionValue[]
   spamAssessment LeadCaptureSpamAssessment?
   consentRecords LeadCaptureSubmissionConsent[]
+  tasks          CrmTask[]
 
   @@unique([formId, idempotencyKey])
   @@index([organisationId, brandId, status])
@@ -14197,6 +14226,8 @@ model CrmOpportunity {
   stageHistory      CrmOpportunityStageHistory[]
   competitors       CrmOpportunityCompetitor[]
   approvals         CrmOpportunityApproval[]
+  tasks             CrmTask[]
+  activities        CrmActivity[]
 
   @@index([organisationId, brandId, status])
   @@index([pipelineId, currentStageId])
@@ -14328,6 +14359,353 @@ model CrmOpportunityApproval {
   actor       UserProfile?   @relation("CrmOpportunityApprovalActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([opportunityId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.4 — CRM Tasks, Activities and Follow-Up Management
+// ---------------------------------------------------------------------------
+
+enum CrmTaskStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DEFERRED
+  OVERDUE
+}
+
+enum CrmTaskTypeCode {
+  CALL
+  EMAIL
+  MEETING
+  REVIEW
+  RESEARCH
+  FOLLOW_UP
+  PROPOSAL
+  DEMO
+  ONBOARDING
+  RENEWAL
+  DATA_FIX
+  OTHER
+}
+
+enum CrmActivityType {
+  CALL
+  EMAIL
+  MEETING
+  NOTE
+  TASK
+  FORM_SUBMISSION
+  STATUS_CHANGE
+  OTHER
+}
+
+enum CrmActivityVisibility {
+  STANDARD
+  RESTRICTED
+  PRIVATE
+}
+
+enum CrmFollowUpRuleTrigger {
+  NEW_LEAD_NO_OWNER
+  QUALIFIED_LEAD_NO_TASK
+  DEMO_REQUEST_NOT_CONTACTED
+  MEETING_NO_NEXT_STEP
+  PROPOSAL_NO_FOLLOW_UP
+  TRIAL_ENDING
+  OPPORTUNITY_INACTIVE
+  RENEWAL_APPROACHING
+  PAYMENT_FAILED
+  LEAD_REPLIED_NO_TASK
+}
+
+enum CrmFollowUpSuggestionStatus {
+  PENDING
+  ACCEPTED
+  DISMISSED
+  EXPIRED
+}
+
+enum CrmCalendarProvider {
+  GOOGLE
+  MICROSOFT
+  SCHEDULING_PROVIDER
+}
+
+model CrmTaskType {
+  id             String         @id @default(cuid())
+  organisationId String
+  brandId        String?
+  code           CrmTaskTypeCode
+  label          String
+  description    String?
+  isActive       Boolean        @default(true)
+  sortOrder      Int            @default(0)
+  createdAt      DateTime       @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  tasks        CrmTask[]
+
+  @@unique([organisationId, code])
+  @@index([brandId])
+}
+
+model CrmTask {
+  id                String        @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  taskTypeId        String?
+  taskTypeCode      CrmTaskTypeCode @default(OTHER)
+  status            CrmTaskStatus @default(OPEN)
+  title             String
+  description       String?
+  ownerUserId       String?
+  createdByUserId   String
+  dueDate           DateTime?
+  dueTime           String?
+  timezone          String?
+  priority          Int           @default(0)
+  leadId            String?
+  contactId         String?
+  companyId         String?
+  opportunityId     String?
+  formSubmissionId  String?
+  campaignId        String?
+  relatedEntityType String?
+  relatedEntityId   String?
+  deferredUntil     DateTime?
+  completedAt       DateTime?
+  cancelledAt       DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  archivedAt        DateTime?
+
+  organisation   Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  taskType       CrmTaskType?            @relation(fields: [taskTypeId], references: [id], onDelete: SetNull)
+  owner          UserProfile?            @relation("CrmTaskOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy      UserProfile             @relation("CrmTaskCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  lead           CrmLead?                @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  contact        CrmContact?             @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  company        CrmCompany?             @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  opportunity    CrmOpportunity?         @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  formSubmission LeadCaptureSubmission?  @relation(fields: [formSubmissionId], references: [id], onDelete: SetNull)
+  assignments    CrmTaskAssignment[]
+  reminders      CrmTaskReminder[]
+  dependencies   CrmTaskDependency[]     @relation("CrmTaskDependent")
+  dependents     CrmTaskDependency[]     @relation("CrmTaskPrerequisite")
+  completion     CrmTaskCompletion?
+  activities     CrmActivity[]
+  suggestions    CrmFollowUpSuggestion[]
+
+  @@index([organisationId, brandId, status])
+  @@index([ownerUserId, status])
+  @@index([dueDate])
+  @@index([opportunityId])
+  @@index([leadId])
+}
+
+model CrmTaskAssignment {
+  id           String   @id @default(cuid())
+  taskId       String
+  assigneeId   String
+  assignedById String
+  reason       String?
+  assignedAt   DateTime @default(now())
+
+  task       CrmTask     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  assignee   UserProfile @relation("CrmTaskAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  assignedBy UserProfile @relation("CrmTaskAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@index([taskId])
+}
+
+model CrmTaskReminder {
+  id              String    @id @default(cuid())
+  taskId          String
+  remindAt        DateTime
+  reminderType    String    @default("BEFORE_DUE")
+  minutesBefore   Int?
+  timezone        String?
+  notifiedAt      DateTime?
+  escalatedAt     DateTime?
+  createdAt       DateTime  @default(now())
+
+  task CrmTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId, remindAt])
+}
+
+model CrmTaskDependency {
+  id              String @id @default(cuid())
+  taskId          String
+  dependsOnTaskId String
+
+  task          CrmTask @relation("CrmTaskDependent", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnTask CrmTask @relation("CrmTaskPrerequisite", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependsOnTaskId])
+}
+
+model CrmTaskCompletion {
+  id              String   @id @default(cuid())
+  taskId          String   @unique
+  completedById   String
+  outcome         String?
+  notes           String?
+  nextAction      String?
+  completedAt     DateTime @default(now())
+
+  task        CrmTask     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  completedBy UserProfile @relation("CrmTaskCompleter", fields: [completedById], references: [id], onDelete: Restrict)
+}
+
+model CrmActivity {
+  id              String              @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  activityType    CrmActivityType
+  title           String
+  summary         String?
+  outcome         String?
+  nextAction      String?
+  durationMinutes Int?
+  visibility      CrmActivityVisibility @default(STANDARD)
+  loggedByUserId  String
+  leadId          String?
+  companyId       String?
+  opportunityId   String?
+  taskId          String?
+  formSubmissionId String?
+  campaignId      String?
+  occurredAt      DateTime            @default(now())
+  createdAt       DateTime            @default(now())
+
+  organisation   Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  loggedBy       UserProfile            @relation("CrmActivityLogger", fields: [loggedByUserId], references: [id], onDelete: Restrict)
+  lead           CrmLead?               @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  company        CrmCompany?            @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  opportunity    CrmOpportunity?        @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  task           CrmTask?               @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  participants   CrmActivityParticipant[]
+  note           CrmNote?
+  callLog        CrmCallLog?
+  meetingRecord  CrmMeetingRecord?
+
+  @@index([organisationId, brandId, occurredAt])
+  @@index([leadId])
+  @@index([opportunityId])
+}
+
+model CrmActivityParticipant {
+  id         String  @id @default(cuid())
+  activityId String
+  personId   String?
+  userId     String?
+  name       String?
+  role       String?
+
+  activity CrmActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  person   CrmPerson?  @relation(fields: [personId], references: [id], onDelete: SetNull)
+  user     UserProfile? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([activityId])
+}
+
+model CrmNote {
+  id         String   @id @default(cuid())
+  activityId String   @unique
+  content    String
+  authorId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  activity CrmActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  author   UserProfile @relation("CrmNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+}
+
+model CrmCallLog {
+  id           String   @id @default(cuid())
+  activityId   String   @unique
+  direction    String   @default("OUTBOUND")
+  phoneNumber  String?
+  durationMinutes Int?
+  disposition  String?
+  loggedById   String
+  createdAt    DateTime @default(now())
+
+  activity CrmActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  loggedBy UserProfile @relation("CrmCallLogger", fields: [loggedById], references: [id], onDelete: Restrict)
+}
+
+model CrmMeetingRecord {
+  id                String              @id @default(cuid())
+  activityId        String              @unique
+  scheduledAt       DateTime?
+  durationMinutes   Int?
+  location          String?
+  calendarProvider  CrmCalendarProvider?
+  externalEventId   String?
+  outcome           String?
+  followUpTaskId    String?
+  loggedById        String
+  createdAt         DateTime            @default(now())
+
+  activity CrmActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  loggedBy UserProfile @relation("CrmMeetingLogger", fields: [loggedById], references: [id], onDelete: Restrict)
+
+  @@index([externalEventId])
+}
+
+model CrmFollowUpRule {
+  id             String                 @id @default(cuid())
+  organisationId String
+  brandId        String?
+  name           String
+  trigger        CrmFollowUpRuleTrigger
+  conditions     Json?
+  taskTypeCode   CrmTaskTypeCode        @default(FOLLOW_UP)
+  dueOffsetHours Int                    @default(24)
+  isActive       Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, trigger])
+}
+
+model CrmFollowUpSuggestion {
+  id             String                      @id @default(cuid())
+  organisationId String
+  brandId        String
+  ruleId         String?
+  taskId         String?
+  leadId         String?
+  opportunityId  String?
+  status         CrmFollowUpSuggestionStatus @default(PENDING)
+  suggestionType String
+  title          String
+  description    String?
+  recommendedTaskType CrmTaskTypeCode?
+  recommendedDueAt DateTime?
+  aiEvidence     Json?
+  aiGrounded     Boolean                     @default(true)
+  autoSendBlocked Boolean                    @default(true)
+  createdAt      DateTime                    @default(now())
+  resolvedAt     DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  task         CrmTask?     @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, status])
 }
 
 // ---------------------------------------------------------------------------

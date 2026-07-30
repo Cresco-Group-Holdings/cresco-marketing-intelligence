@@ -35,6 +35,9 @@ function CrmNav({ active }: { active: CrmViewMode }) {
     { mode: "overview", label: "Pipelines", href: "/crm/pipelines" },
     { mode: "overview", label: "Opportunities", href: "/crm/opportunities" },
     { mode: "overview", label: "Forecast", href: "/crm/forecast" },
+    { mode: "overview", label: "Tasks", href: "/crm/tasks" },
+    { mode: "overview", label: "Activities", href: "/crm/activities" },
+    { mode: "overview", label: "Follow-ups", href: "/crm/follow-ups" },
   ];
   return (
     <nav className="flex flex-wrap gap-2 border-b pb-3 mb-6">
@@ -73,6 +76,8 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
   const [company, setCompany] = useState<Record<string, unknown> | null>(null);
   const [duplicates, setDuplicates] = useState<Array<Record<string, unknown>>>([]);
   const [fields, setFields] = useState<Array<Record<string, unknown>>>([]);
+  const [leadTasks, setLeadTasks] = useState<Array<Record<string, unknown>>>([]);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -106,10 +111,16 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
         );
         setLeads(res.leads);
       } else if (mode === "leadDetail" && leadId) {
-        const res = await apiFetch<{ lead: Record<string, unknown> }>(
-          `${base}?organisationId=${organisationId}&leadId=${leadId}`,
-        );
-        setLead(res.lead);
+        const [leadRes, tasksRes] = await Promise.all([
+          apiFetch<{ lead: Record<string, unknown> }>(
+            `${base}?organisationId=${organisationId}&leadId=${leadId}`,
+          ),
+          apiFetch<{ tasks: Array<Record<string, unknown>> }>(
+            `/api/brands/${brandId}/crm/tasks?organisationId=${organisationId}&leadId=${leadId}`,
+          ),
+        ]);
+        setLead(leadRes.lead);
+        setLeadTasks(tasksRes.tasks);
       } else if (mode === "contacts") {
         const res = await apiFetch<{ contacts: Array<Record<string, unknown>> }>(
           `${base}?organisationId=${organisationId}&view=contacts`,
@@ -271,11 +282,28 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
                   <p key={String(item.id)} className="text-sm text-muted-foreground">{String(item.title)} — {new Date(String(item.occurredAt ?? item.createdAt)).toLocaleString()}</p>
                 ))}
               </div>
+              <div>
+                <h3 className="text-sm font-medium mb-2">Tasks</h3>
+                {leadTasks.map((t) => (
+                  <p key={String(t.id)} className="text-sm">{String(t.title)} — {String(t.displayStatus ?? t.status)}</p>
+                ))}
+                {leadTasks.length === 0 ? <p className="text-sm text-muted-foreground">No open tasks.</p> : null}
+              </div>
             </CardContent>
           </Card>
           <Card>
             <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
             <CardContent className="space-y-2">
+              <Input label="New task" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="Follow up call" />
+              <Button variant="outline" className="w-full" onClick={async () => {
+                if (!brandId || !organisationId || !newTaskTitle) return;
+                await apiFetch(`/api/brands/${brandId}/crm/tasks?organisationId=${organisationId}`, {
+                  method: "POST",
+                  body: JSON.stringify({ action: "createTask", title: newTaskTitle, taskTypeCode: "FOLLOW_UP", leadId }),
+                });
+                setNewTaskTitle("");
+                await loadData();
+              }}>Create follow-up task</Button>
               <Button variant="outline" className="w-full" onClick={() => postAction({ action: "updateStatus", leadId, status: "CONTACTED", reason: "Manual update" })}>Mark contacted</Button>
               <Button variant="outline" className="w-full" onClick={() => postAction({ action: "updateStatus", leadId, status: "QUALIFIED", reason: "Manual qualification" })}>Mark qualified</Button>
             </CardContent>
