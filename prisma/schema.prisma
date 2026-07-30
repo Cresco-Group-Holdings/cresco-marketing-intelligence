@@ -238,6 +238,7 @@ model UserProfile {
   seoKeywordEntitiesConfirmed   SeoKeywordEntity[]        @relation("SeoKeywordEntityConfirmer")
   seoKeywordImportsCreated      SeoKeywordImport[]        @relation("SeoKeywordImportCreator")
   seoKeywordStatusChanges       SeoKeywordStatusHistory[] @relation("SeoKeywordStatusChanger")
+  seoContentStrategyVersions    SeoContentStrategyVersion[] @relation("SeoContentStrategyVersionCreator")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -494,6 +495,16 @@ model Organisation {
   seoKeywordOverlaps             SeoKeywordOverlap[]
   seoCompetitorTopics            SeoCompetitorTopic[]
   seoCompetitorEvidence          SeoCompetitorEvidence[]
+  seoTopics                      SeoTopic[]
+  seoTopicClusters               SeoTopicCluster[]
+  seoTopicClusterMembers         SeoTopicClusterMember[]
+  seoTopicEntities               SeoTopicEntity[]
+  seoPillarPages                 SeoPillarPage[]
+  seoSupportingPages             SeoSupportingPage[]
+  seoContentGapPlans             SeoContentGapPlan[]
+  seoContentStrategies           SeoContentStrategy[]
+  seoContentStrategyVersions     SeoContentStrategyVersion[]
+  seoContentPriorityScores       SeoContentPriorityScore[]
 
   @@index([status])
   @@index([archivedAt])
@@ -679,6 +690,12 @@ model Project {
   seoCompetitors                 SeoCompetitor[]
   seoCompetitorComparisons       SeoCompetitorComparison[]
   seoContentGaps                 SeoContentGap[]
+  seoTopics                      SeoTopic[]
+  seoTopicClusters               SeoTopicCluster[]
+  seoPillarPages                 SeoPillarPage[]
+  seoSupportingPages             SeoSupportingPage[]
+  seoContentGapPlans             SeoContentGapPlan[]
+  seoContentStrategies           SeoContentStrategy[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -857,6 +874,12 @@ model Brand {
   seoCompetitorComparisons       SeoCompetitorComparison[]
   seoContentGaps                 SeoContentGap[]
   seoKeywordOverlaps             SeoKeywordOverlap[]
+  seoTopics                      SeoTopic[]
+  seoTopicClusters               SeoTopicCluster[]
+  seoPillarPages                 SeoPillarPage[]
+  seoSupportingPages             SeoSupportingPage[]
+  seoContentGapPlans             SeoContentGapPlan[]
+  seoContentStrategies           SeoContentStrategy[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2621,6 +2644,9 @@ model ContentItem {
   experimentVariants ExperimentVariant[]
   marketingAds         MarketingAd[]
   paidAdsCreativeMappings PaidAdsCreativeMapping[]
+  seoPillarPages          SeoPillarPage[]
+  seoSupportingPages      SeoSupportingPage[]
+  seoContentGapPlans      SeoContentGapPlan[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -6911,6 +6937,9 @@ model SeoCrawlPage {
   issues       SeoCrawlIssue[]
   keywordPageMappings SeoKeywordPageMapping[]
   competitorComparisons SeoCompetitorComparison[] @relation("BrandPageComparison")
+  pillarPages           SeoPillarPage[]
+  supportingPages       SeoSupportingPage[]
+  topicClusterMembers   SeoTopicClusterMember[]
 
   @@unique([seoSiteId, normalisedUrl])
   @@index([organisationId, brandId])
@@ -7276,6 +7305,7 @@ model SeoKeyword {
   opportunities  SeoKeywordOpportunity[]
   statusHistory  SeoKeywordStatusHistory[]
   keywordOverlaps SeoKeywordOverlap[]
+  topicClusterMembers SeoTopicClusterMember[]
 
   @@unique([brandId, normalisedKeyword, language, country])
   @@index([organisationId, brandId, status])
@@ -7752,6 +7782,8 @@ model SeoContentGap {
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
   competitor   SeoCompetitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  gapPlans     SeoContentGapPlan[]
+  clusterMembers SeoTopicClusterMember[]
 
   @@index([organisationId, brandId, status])
   @@index([competitorId, gapType])
@@ -7815,6 +7847,330 @@ model SeoCompetitorEvidence {
 
   @@index([snapshotId])
   @@index([pageId])
+}
+
+// ---------------------------------------------------------------------------
+// Topic clusters and SEO content strategy (Task 4.4)
+// ---------------------------------------------------------------------------
+
+enum SeoTopicStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum SeoTopicClusterStatus {
+  DRAFT
+  PROPOSED
+  CONFIRMED
+  ARCHIVED
+}
+
+enum SeoTopicClusterMemberType {
+  KEYWORD
+  PAGE
+  ENTITY
+  COMPETITOR_GAP
+}
+
+enum SeoContentFormatType {
+  PILLAR
+  SUPPORTING_ARTICLE
+  LANDING_PAGE
+  COMPARISON
+  GUIDE
+  FAQ
+  GLOSSARY
+  CASE_STUDY
+  DOCUMENTATION
+  TOOL
+  OTHER
+}
+
+enum SeoFunnelStage {
+  AWARENESS
+  CONSIDERATION
+  DECISION
+  ACTIVATION
+  RETENTION
+  SUPPORT
+  UNSPECIFIED
+}
+
+enum SeoRoadmapStatus {
+  IDEA
+  RESEARCH
+  BRIEF_REQUIRED
+  BRIEF_READY
+  DRAFTING
+  REVIEW
+  PUBLISH_READY
+  PUBLISHED
+  REFRESH_REQUIRED
+  ARCHIVED
+}
+
+enum SeoContentStrategyStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model SeoTopic {
+  id             String         @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  name           String
+  slug           String
+  description    String?
+  funnelStage    SeoFunnelStage @default(UNSPECIFIED)
+  status         SeoTopicStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  organisation Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  clusters     SeoTopicCluster[]
+
+  @@unique([brandId, slug])
+  @@index([organisationId, brandId, status])
+}
+
+model SeoTopicCluster {
+  id             String                @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  topicId        String?
+  name           String
+  slug           String
+  description    String?
+  status         SeoTopicClusterStatus @default(DRAFT)
+  confidence     Float?
+  evidence       Json?
+  namingSource   String                @default("deterministic")
+  isAiSuggested  Boolean               @default(false)
+  isConfirmed    Boolean               @default(false)
+  confirmedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  topic           SeoTopic?                 @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  members         SeoTopicClusterMember[]
+  entities        SeoTopicEntity[]
+  pillarPages     SeoPillarPage[]
+  supportingPages SeoSupportingPage[]
+  gapPlans        SeoContentGapPlan[]
+  priorityScores  SeoContentPriorityScore[]
+
+  @@unique([brandId, slug])
+  @@index([organisationId, brandId, status])
+}
+
+model SeoTopicClusterMember {
+  id                  String                    @id @default(cuid())
+  organisationId      String
+  clusterId           String
+  memberType          SeoTopicClusterMemberType
+  keywordId           String?
+  pageId              String?
+  entityId            String?
+  contentGapId        String?
+  isManuallyConfirmed Boolean                   @default(false)
+  isLocked            Boolean                   @default(false)
+  confidence          Float?
+  evidence            Json?
+  addedAt             DateTime                  @default(now())
+
+  organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  cluster      SeoTopicCluster   @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  keyword      SeoKeyword?       @relation(fields: [keywordId], references: [id], onDelete: SetNull)
+  page         SeoCrawlPage?     @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  entity       SeoTopicEntity?   @relation(fields: [entityId], references: [id], onDelete: SetNull)
+  contentGap   SeoContentGap?    @relation(fields: [contentGapId], references: [id], onDelete: SetNull)
+
+  @@index([clusterId, memberType])
+  @@index([keywordId])
+  @@index([pageId])
+}
+
+model SeoTopicEntity {
+  id             String               @id @default(cuid())
+  organisationId String
+  brandId        String
+  clusterId      String?
+  entityType     SeoKeywordEntityType
+  canonicalValue String
+  source         String               @default("clustering")
+  confidence     Float?
+  isConfirmed    Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+
+  organisation Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  cluster      SeoTopicCluster?        @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  members      SeoTopicClusterMember[]
+
+  @@index([clusterId])
+  @@index([organisationId, brandId])
+}
+
+model SeoPillarPage {
+  id               String              @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  clusterId        String
+  formatType       SeoContentFormatType @default(PILLAR)
+  title            String
+  targetUrl        String?
+  existingPageId   String?
+  funnelStage      SeoFunnelStage       @default(UNSPECIFIED)
+  isManualOverride Boolean              @default(false)
+  roadmapStatus    SeoRoadmapStatus     @default(IDEA)
+  contentItemId    String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  organisation    Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  cluster         SeoTopicCluster      @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  existingPage    SeoCrawlPage?        @relation(fields: [existingPageId], references: [id], onDelete: SetNull)
+  contentItem     ContentItem?         @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  supportingPages SeoSupportingPage[]
+  priorityScores  SeoContentPriorityScore[]
+
+  @@index([clusterId])
+  @@index([organisationId, brandId, roadmapStatus])
+}
+
+model SeoSupportingPage {
+  id               String              @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  clusterId        String
+  pillarPageId     String?
+  formatType       SeoContentFormatType @default(SUPPORTING_ARTICLE)
+  title            String
+  targetUrl        String?
+  existingPageId   String?
+  funnelStage      SeoFunnelStage       @default(UNSPECIFIED)
+  sequenceOrder    Int                  @default(0)
+  isManualOverride Boolean              @default(false)
+  roadmapStatus    SeoRoadmapStatus     @default(IDEA)
+  contentItemId    String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  cluster      SeoTopicCluster @relation(fields: [clusterId], references: [id], onDelete: Cascade)
+  pillarPage   SeoPillarPage?  @relation(fields: [pillarPageId], references: [id], onDelete: SetNull)
+  existingPage SeoCrawlPage?   @relation(fields: [existingPageId], references: [id], onDelete: SetNull)
+  contentItem  ContentItem?    @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  priorityScores SeoContentPriorityScore[]
+
+  @@index([clusterId, pillarPageId])
+  @@index([organisationId, brandId, roadmapStatus])
+}
+
+model SeoContentGapPlan {
+  id             String              @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  clusterId      String?
+  contentGapId   String?
+  title          String
+  explanation    String?
+  formatType     SeoContentFormatType @default(GUIDE)
+  funnelStage    SeoFunnelStage       @default(UNSPECIFIED)
+  roadmapStatus  SeoRoadmapStatus     @default(IDEA)
+  contentItemId  String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organisation Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  cluster      SeoTopicCluster?     @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  contentGap   SeoContentGap?       @relation(fields: [contentGapId], references: [id], onDelete: SetNull)
+  contentItem  ContentItem?         @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  priorityScores SeoContentPriorityScore[]
+
+  @@index([organisationId, brandId, roadmapStatus])
+  @@index([clusterId])
+}
+
+model SeoContentStrategy {
+  id               String                   @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  name             String
+  status           SeoContentStrategyStatus @default(DRAFT)
+  currentVersionId String?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  versions       SeoContentStrategyVersion[]
+
+  @@unique([brandId, name])
+  @@index([organisationId, brandId, status])
+}
+
+model SeoContentStrategyVersion {
+  id              String   @id @default(cuid())
+  organisationId  String
+  strategyId      String
+  versionNumber   Int
+  summary         Json
+  clusterSnapshot Json?
+  aiProposals     Json?
+  isApproved      Boolean  @default(false)
+  approvedAt      DateTime?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  strategy     SeoContentStrategy @relation(fields: [strategyId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile        @relation("SeoContentStrategyVersionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([strategyId, versionNumber])
+  @@index([strategyId, createdAt])
+}
+
+model SeoContentPriorityScore {
+  id               String   @id @default(cuid())
+  organisationId   String
+  brandId          String
+  clusterId        String?
+  gapPlanId        String?
+  pillarPageId     String?
+  supportingPageId String?
+  scoreVersion     String   @default("1.0")
+  totalScore       Float?
+  factors          Json
+  missingFactors   String[] @default([])
+  calculatedAt     DateTime @default(now())
+
+  organisation   Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  cluster        SeoTopicCluster?   @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  gapPlan        SeoContentGapPlan? @relation(fields: [gapPlanId], references: [id], onDelete: SetNull)
+  pillarPage     SeoPillarPage?     @relation(fields: [pillarPageId], references: [id], onDelete: SetNull)
+  supportingPage SeoSupportingPage? @relation(fields: [supportingPageId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, calculatedAt])
+  @@index([clusterId])
 }
 
 // ---------------------------------------------------------------------------
