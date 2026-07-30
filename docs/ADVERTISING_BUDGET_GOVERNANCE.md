@@ -1,30 +1,68 @@
 # Advertising Budget Governance
 
-## Budget types
+Task 5.8 introduces deterministic budget monitoring, pacing, approval workflows, and safety controls across advertising providers.
 
-`AdvertisingCampaignBudget` supports:
+## Principles
 
-- `DAILY`, `LIFETIME`, `MONTHLY`, `FLIGHT`, `MANUAL_ALLOCATION`
+1. **No autonomous spend increases** — all budget increases require explicit human approval through change requests.
+2. **Deterministic pacing** — pacing calculations use documented linear time-weighted formulas (see [ADVERTISING_PACING.md](./ADVERTISING_PACING.md)).
+3. **Account currency preservation** — provider observations retain native currency; cross-provider totals require explicit FX conversion.
+4. **Human-in-the-loop** — AI may recommend actions but never applies budget mutations.
 
-## Stored fields
+## Models
 
-- Original currency and amount (no conversion without stored rate)
-- Minimum, maximum, channel allocation, reserve amount
-- Pacing method (`EVEN`, `ACCELERATED`, `STANDARD`)
-- Planned start/end aligned with campaign schedule
-- Approval threshold and budget owner
+| Model | Purpose |
+|-------|---------|
+| `AdvertisingBudgetPolicy` | Approval thresholds, hard limits, daily change limits |
+| `AdvertisingBudgetLimit` | Spend caps at organisation/project/brand/provider/account/campaign/experiment/day/week/month/billing-cycle levels |
+| `AdvertisingBudgetAllocation` | Allocated vs spent amounts per scope and period |
+| `AdvertisingSpendObservation` | Provider-reported spend snapshots |
+| `AdvertisingPacingSnapshot` | Computed pacing metrics at a point in time |
+| `AdvertisingBudgetAlert` | Triggered governance alerts |
+| `AdvertisingBudgetChangeRequest` | Human-submitted budget change proposals |
+| `AdvertisingBudgetApproval` | Approval/rejection audit trail |
+| `AdvertisingSpendIncident` | Emergency controls and freeze events |
 
-## Rules (Task 5.1)
+## Budget Levels
 
-1. Budget currency must match plan `reportingCurrency`.
-2. Planned end must be after planned start.
-3. Budgets above `BUDGET_APPROVAL_THRESHOLD_DEFAULT` (10,000) require elevated budget approval.
-4. **No provider budgets are modified** in this task.
+Limits can be scoped at:
 
-## Channel allocation
+- Organisation, project, brand
+- Provider, account, campaign, experiment
+- Day, week, month, billing cycle
 
-Budgets may be plan-level (`channelId` null) or channel-specific. Channel allocation percentages are stored on the budget record for planning purposes only.
+## Change Request Workflow
 
-## Approval
+1. Marketer submits request with reason, evidence, current/proposed budget, projected impact, and risk.
+2. Policy engine evaluates required approver (admin, owner, or client for managed accounts).
+3. Changes above hard limit are auto-rejected.
+4. Approved requests are recorded; increases are never applied without approval.
 
-Budget changes require `advertisingPlans.approveBudget` permission. Large budgets trigger threshold-based review before launch approval.
+## API
+
+- `GET /api/brands/[brandId]/advertising/budgets` — dashboard
+- `POST` actions: `createPolicy`, `computePacing`, `createChangeRequest`, `recordObservation`, `aggregateSpend`, `aiRecommendation`
+- `POST /api/brands/[brandId]/advertising/budgets/[resourceId]` — `approveChangeRequest`, `rejectChangeRequest`, `acknowledgeAlert`, `triggerEmergency`, `resolveIncident`
+
+## Permissions
+
+- `advertisingBudgets.read` — view dashboards, pacing, alerts
+- `advertisingBudgets.manage` — create policies, record observations
+- `advertisingBudgets.request` — submit change requests
+- `advertisingBudgets.approve` — approve/reject requests
+- `advertisingBudgets.emergency` — trigger/resolve emergency controls
+
+## UI Routes
+
+- `/advertising/budgets` — overview
+- `/advertising/budgets/pacing` — pacing computation
+- `/advertising/budgets/alerts` — alert management
+- `/advertising/budgets/requests` — change requests
+- `/advertising/budgets/policies` — policy configuration
+- `/advertising/budgets/incidents` — emergency controls
+
+## Related Documentation
+
+- [ADVERTISING_PACING.md](./ADVERTISING_PACING.md)
+- [ADVERTISING_SPEND_ALERTS.md](./ADVERTISING_SPEND_ALERTS.md)
+- [ADVERTISING_EMERGENCY_CONTROLS.md](./ADVERTISING_EMERGENCY_CONTROLS.md)

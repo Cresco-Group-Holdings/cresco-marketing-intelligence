@@ -163,6 +163,11 @@ export const PERMISSIONS = {
   "advertisingExperiments.edit": "advertisingExperiments.edit",
   "advertisingExperiments.analyze": "advertisingExperiments.analyze",
   "advertisingExperiments.decide": "advertisingExperiments.decide",
+  "advertisingBudgets.read": "advertisingBudgets.read",
+  "advertisingBudgets.manage": "advertisingBudgets.manage",
+  "advertisingBudgets.request": "advertisingBudgets.request",
+  "advertisingBudgets.approve": "advertisingBudgets.approve",
+  "advertisingBudgets.emergency": "advertisingBudgets.emergency",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -331,6 +336,11 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingExperiments.edit"],
     PERMISSIONS["advertisingExperiments.analyze"],
     PERMISSIONS["advertisingExperiments.decide"],
+    PERMISSIONS["advertisingBudgets.read"],
+    PERMISSIONS["advertisingBudgets.manage"],
+    PERMISSIONS["advertisingBudgets.request"],
+    PERMISSIONS["advertisingBudgets.approve"],
+    PERMISSIONS["advertisingBudgets.emergency"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -445,6 +455,9 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingExperiments.create"],
     PERMISSIONS["advertisingExperiments.edit"],
     PERMISSIONS["advertisingExperiments.analyze"],
+    PERMISSIONS["advertisingBudgets.read"],
+    PERMISSIONS["advertisingBudgets.manage"],
+    PERMISSIONS["advertisingBudgets.request"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -491,6 +504,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingLinkedInAds.read"],
     PERMISSIONS["advertisingTikTokAds.read"],
     PERMISSIONS["advertisingExperiments.read"],
+    PERMISSIONS["advertisingBudgets.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -527,6 +541,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingLinkedInAds.read"],
     PERMISSIONS["advertisingTikTokAds.read"],
     PERMISSIONS["advertisingExperiments.read"],
+    PERMISSIONS["advertisingBudgets.read"],
     PERMISSIONS["experiments.read"],
   ],
 };

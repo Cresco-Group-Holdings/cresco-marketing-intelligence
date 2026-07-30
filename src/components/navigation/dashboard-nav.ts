@@ -17,6 +17,7 @@ import {
   Share2,
   Sprout,
   UserPlus,
+  Wallet,
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -69,6 +70,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/advertising/experiments",
     icon: FlaskConical,
     description: "Advertising A/B tests and experiment analysis",
+  },
+  {
+    label: "Ad Budgets",
+    href: "/advertising/budgets",
+    icon: Wallet,
+    description: "Budget pacing, alerts, and spend governance",
   },
   {
     label: "Brands",

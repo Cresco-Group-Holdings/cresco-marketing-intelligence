@@ -297,6 +297,10 @@ model UserProfile {
   advertisingExperimentVersionsCreated AdvertisingExperimentVersion[] @relation("AdvertisingExperimentVersionCreator")
   advertisingExperimentDecisionsMade AdvertisingExperimentDecision[] @relation("AdvertisingExperimentDecisionMaker")
   advertisingExperimentDecisionsApproved AdvertisingExperimentDecision[] @relation("AdvertisingExperimentDecisionApprover")
+  advertisingBudgetChangeRequestsCreated AdvertisingBudgetChangeRequest[] @relation("AdvertisingBudgetChangeRequester")
+  advertisingBudgetApprovalsDecided AdvertisingBudgetApproval[] @relation("AdvertisingBudgetApprover")
+  advertisingSpendIncidentsResolved AdvertisingSpendIncident[] @relation("AdvertisingSpendIncidentResolver")
+  advertisingBudgetPoliciesCreated AdvertisingBudgetPolicy[] @relation("AdvertisingBudgetPolicyCreator")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -669,6 +673,14 @@ model Organisation {
   advertisingTikTokAdsProviderResources AdvertisingTikTokAdsProviderResource[]
   advertisingTikTokAdsOperations       AdvertisingTikTokAdsOperation[]
   advertisingExperiments               AdvertisingExperiment[]
+  advertisingBudgetPolicies            AdvertisingBudgetPolicy[]
+  advertisingBudgetLimits            AdvertisingBudgetLimit[]
+  advertisingBudgetAllocations         AdvertisingBudgetAllocation[]
+  advertisingSpendObservations         AdvertisingSpendObservation[]
+  advertisingPacingSnapshots           AdvertisingPacingSnapshot[]
+  advertisingBudgetAlerts              AdvertisingBudgetAlert[]
+  advertisingBudgetChangeRequests      AdvertisingBudgetChangeRequest[]
+  advertisingSpendIncidents            AdvertisingSpendIncident[]
 
   @@index([status])
   @@index([archivedAt])
@@ -883,6 +895,14 @@ model Project {
   advertisingTikTokAdsDrafts   AdvertisingTikTokAdsDraft[]
   advertisingTikTokAdsLaunches AdvertisingTikTokAdsLaunch[]
   advertisingExperiments       AdvertisingExperiment[]
+  advertisingBudgetPolicies    AdvertisingBudgetPolicy[]
+  advertisingBudgetLimits      AdvertisingBudgetLimit[]
+  advertisingBudgetAllocations AdvertisingBudgetAllocation[]
+  advertisingSpendObservations AdvertisingSpendObservation[]
+  advertisingPacingSnapshots AdvertisingPacingSnapshot[]
+  advertisingBudgetAlerts    AdvertisingBudgetAlert[]
+  advertisingBudgetChangeRequests AdvertisingBudgetChangeRequest[]
+  advertisingSpendIncidents  AdvertisingSpendIncident[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1095,6 +1115,14 @@ model Brand {
   advertisingTikTokAdsLaunches AdvertisingTikTokAdsLaunch[]
   advertisingTikTokAdsOperations AdvertisingTikTokAdsOperation[]
   advertisingExperiments         AdvertisingExperiment[]
+  advertisingBudgetPolicies      AdvertisingBudgetPolicy[]
+  advertisingBudgetLimits        AdvertisingBudgetLimit[]
+  advertisingBudgetAllocations   AdvertisingBudgetAllocation[]
+  advertisingSpendObservations   AdvertisingSpendObservation[]
+  advertisingPacingSnapshots     AdvertisingPacingSnapshot[]
+  advertisingBudgetAlerts        AdvertisingBudgetAlert[]
+  advertisingBudgetChangeRequests AdvertisingBudgetChangeRequest[]
+  advertisingSpendIncidents      AdvertisingSpendIncident[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -12261,6 +12289,329 @@ model AdvertisingExperimentDecision {
   approvedBy     UserProfile?                  @relation("AdvertisingExperimentDecisionApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
 
   @@index([outcome])
+}
+
+// ---------------------------------------------------------------------------
+// Task 5.8 — Budget Pacing and Advertising Spend Governance
+// ---------------------------------------------------------------------------
+
+enum AdvertisingBudgetLimitLevel {
+  ORGANISATION
+  PROJECT
+  BRAND
+  PROVIDER
+  ACCOUNT
+  CAMPAIGN
+  EXPERIMENT
+  DAY
+  WEEK
+  MONTH
+  BILLING_CYCLE
+}
+
+enum AdvertisingBudgetPeriodType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  BILLING_CYCLE
+  LIFETIME
+}
+
+enum AdvertisingBudgetAlertType {
+  SPEND_SPIKE
+  OVERSPEND_RISK
+  BUDGET_EXHAUSTED
+  SPEND_AFTER_END_DATE
+  SPEND_WITHOUT_TRACKING
+  SPEND_WITHOUT_CONVERSIONS
+  CURRENCY_MISMATCH
+  PROVIDER_DATA_STALE
+  DAILY_CHANGE_ABOVE_POLICY
+  UNEXPECTED_PROVIDER_BUDGET_CHANGE
+}
+
+enum AdvertisingBudgetAlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AdvertisingBudgetChangeRequestType {
+  INCREASE_BUDGET
+  DECREASE_BUDGET
+  MOVE_BUDGET
+  EXTEND_SCHEDULE
+  PAUSE_CAMPAIGN
+  RESUME_CAMPAIGN
+}
+
+enum AdvertisingBudgetChangeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  AUTO_REJECTED
+}
+
+enum AdvertisingSpendIncidentType {
+  EMERGENCY_PAUSE
+  PROVIDER_MUTATION_SHUTDOWN
+  ORGANISATION_FREEZE
+  ACCOUNT_FREEZE
+  OVERSPEND
+  POLICY_VIOLATION
+}
+
+enum AdvertisingSpendIncidentStatus {
+  ACTIVE
+  RESOLVED
+  ESCALATED
+}
+
+model AdvertisingBudgetPolicy {
+  id                        String   @id @default(cuid())
+  organisationId            String
+  projectId                 String?
+  brandId                   String?
+  name                      String
+  isDefault                 Boolean  @default(false)
+  marketerCanRequest        Boolean  @default(true)
+  adminApprovalThresholdPct Decimal  @default(10) @db.Decimal(8, 2)
+  ownerApprovalThresholdPct Decimal  @default(25) @db.Decimal(8, 2)
+  hardLimitPct              Decimal  @default(50) @db.Decimal(8, 2)
+  clientApprovalRequired    Boolean  @default(false)
+  dailyChangeLimitPct       Decimal  @default(20) @db.Decimal(8, 2)
+  emergencyPauseEnabled     Boolean  @default(true)
+  aiRecommendationsEnabled  Boolean  @default(true)
+  metadata                  Json?
+  createdByUserId           String
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile  @relation("AdvertisingBudgetPolicyCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  limits       AdvertisingBudgetLimit[]
+
+  @@index([organisationId, brandId])
+}
+
+model AdvertisingBudgetLimit {
+  id             String                      @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  policyId       String?
+  limitLevel     AdvertisingBudgetLimitLevel
+  scopeId        String?
+  provider       String?
+  periodType     AdvertisingBudgetPeriodType
+  currency       String
+  limitAmount    Decimal                     @db.Decimal(24, 6)
+  hardCap        Boolean                     @default(false)
+  effectiveFrom  DateTime?
+  effectiveTo    DateTime?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  organisation Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  policy       AdvertisingBudgetPolicy? @relation(fields: [policyId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, limitLevel, scopeId])
+  @@index([provider])
+}
+
+model AdvertisingBudgetAllocation {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  provider       String?
+  scopeType      String
+  scopeId        String?
+  currency       String
+  allocatedAmount Decimal @db.Decimal(24, 6)
+  spentAmount    Decimal  @default(0) @db.Decimal(24, 6)
+  periodStart    DateTime
+  periodEnd      DateTime
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, provider])
+  @@index([periodStart, periodEnd])
+}
+
+model AdvertisingSpendObservation {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  provider       String
+  accountId      String?
+  campaignId     String?
+  experimentId   String?
+  currency       String
+  spendAmount    Decimal  @db.Decimal(24, 6)
+  impressions    Int?
+  clicks         Int?
+  conversions    Int?
+  observedAt     DateTime
+  dataSource     String   @default("provider_reporting")
+  isStale        Boolean  @default(false)
+  hasTracking    Boolean  @default(true)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, provider, observedAt])
+  @@index([campaignId])
+}
+
+model AdvertisingPacingSnapshot {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  projectId           String?
+  brandId             String?
+  provider            String?
+  scopeType           String
+  scopeId             String?
+  currency            String
+  reportingCurrency   String?
+  fxRate              Decimal? @db.Decimal(18, 8)
+  fxRateDate          DateTime?
+  fxRateSource        String?
+  fxRateMissing       Boolean  @default(false)
+  periodStart         DateTime
+  periodEnd           DateTime
+  elapsedTimePct      Decimal  @db.Decimal(8, 4)
+  totalBudget         Decimal  @db.Decimal(24, 6)
+  elapsedBudgetPct    Decimal  @db.Decimal(8, 4)
+  expectedSpend       Decimal  @db.Decimal(24, 6)
+  actualSpend         Decimal  @db.Decimal(24, 6)
+  spendVariance       Decimal  @db.Decimal(24, 6)
+  projectedSpend      Decimal  @db.Decimal(24, 6)
+  remainingBudget     Decimal  @db.Decimal(24, 6)
+  requiredDailyPace   Decimal  @db.Decimal(24, 6)
+  overspendRisk       Boolean  @default(false)
+  underspendRisk      Boolean  @default(false)
+  computedAt          DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, computedAt])
+  @@index([scopeType, scopeId])
+}
+
+model AdvertisingBudgetAlert {
+  id             String                         @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  alertType      AdvertisingBudgetAlertType
+  severity       AdvertisingBudgetAlertSeverity @default(WARNING)
+  message        String
+  provider       String?
+  scopeType      String?
+  scopeId        String?
+  acknowledged   Boolean                        @default(false)
+  acknowledgedAt DateTime?
+  metadata       Json?
+  createdAt      DateTime                       @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, alertType])
+  @@index([acknowledged, createdAt])
+}
+
+model AdvertisingBudgetChangeRequest {
+  id                String                             @id @default(cuid())
+  organisationId    String
+  projectId         String?
+  brandId           String?
+  policyId          String?
+  requestType       AdvertisingBudgetChangeRequestType
+  status            AdvertisingBudgetChangeRequestStatus @default(PENDING)
+  reason            String
+  evidence          String?
+  provider          String?
+  scopeType         String?
+  scopeId           String?
+  currency          String
+  currentBudget     Decimal                            @db.Decimal(24, 6)
+  proposedBudget    Decimal                            @db.Decimal(24, 6)
+  percentageChange  Decimal                            @db.Decimal(8, 2)
+  projectedImpact   String?
+  risk              String?
+  requestedByUserId String
+  createdAt         DateTime                           @default(now())
+  updatedAt         DateTime                           @updatedAt
+
+  organisation Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  requestedBy  UserProfile                 @relation("AdvertisingBudgetChangeRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  approvals    AdvertisingBudgetApproval[]
+
+  @@index([organisationId, brandId, status])
+  @@index([requestType])
+}
+
+model AdvertisingBudgetApproval {
+  id              String    @id @default(cuid())
+  changeRequestId String
+  approverUserId  String
+  decision        String
+  notes           String?
+  approvedAt      DateTime  @default(now())
+
+  changeRequest AdvertisingBudgetChangeRequest @relation(fields: [changeRequestId], references: [id], onDelete: Cascade)
+  approver      UserProfile                    @relation("AdvertisingBudgetApprover", fields: [approverUserId], references: [id], onDelete: Restrict)
+
+  @@index([changeRequestId])
+}
+
+model AdvertisingSpendIncident {
+  id               String                         @id @default(cuid())
+  organisationId   String
+  projectId        String?
+  brandId          String?
+  incidentType     AdvertisingSpendIncidentType
+  status           AdvertisingSpendIncidentStatus @default(ACTIVE)
+  reason           String
+  provider         String?
+  scopeType        String?
+  scopeId          String?
+  providerMutationShutdown Boolean                @default(false)
+  restorationRequiresApproval Boolean             @default(true)
+  resolvedByUserId String?
+  resolvedAt       DateTime?
+  metadata         Json?
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  resolvedBy   UserProfile? @relation("AdvertisingSpendIncidentResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, status])
+  @@index([incidentType])
 }
 
 // ---------------------------------------------------------------------------
