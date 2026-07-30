@@ -158,6 +158,11 @@ export const PERMISSIONS = {
   "advertisingTikTokAds.validate": "advertisingTikTokAds.validate",
   "advertisingTikTokAds.launch": "advertisingTikTokAds.launch",
   "advertisingTikTokAds.manage": "advertisingTikTokAds.manage",
+  "advertisingExperiments.read": "advertisingExperiments.read",
+  "advertisingExperiments.create": "advertisingExperiments.create",
+  "advertisingExperiments.edit": "advertisingExperiments.edit",
+  "advertisingExperiments.analyze": "advertisingExperiments.analyze",
+  "advertisingExperiments.decide": "advertisingExperiments.decide",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -321,6 +326,11 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingTikTokAds.validate"],
     PERMISSIONS["advertisingTikTokAds.launch"],
     PERMISSIONS["advertisingTikTokAds.manage"],
+    PERMISSIONS["advertisingExperiments.read"],
+    PERMISSIONS["advertisingExperiments.create"],
+    PERMISSIONS["advertisingExperiments.edit"],
+    PERMISSIONS["advertisingExperiments.analyze"],
+    PERMISSIONS["advertisingExperiments.decide"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -431,6 +441,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingTikTokAds.connect"],
     PERMISSIONS["advertisingTikTokAds.draft"],
     PERMISSIONS["advertisingTikTokAds.validate"],
+    PERMISSIONS["advertisingExperiments.read"],
+    PERMISSIONS["advertisingExperiments.create"],
+    PERMISSIONS["advertisingExperiments.edit"],
+    PERMISSIONS["advertisingExperiments.analyze"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -476,6 +490,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingMetaAds.read"],
     PERMISSIONS["advertisingLinkedInAds.read"],
     PERMISSIONS["advertisingTikTokAds.read"],
+    PERMISSIONS["advertisingExperiments.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -511,6 +526,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingMetaAds.read"],
     PERMISSIONS["advertisingLinkedInAds.read"],
     PERMISSIONS["advertisingTikTokAds.read"],
+    PERMISSIONS["advertisingExperiments.read"],
     PERMISSIONS["experiments.read"],
   ],
 };

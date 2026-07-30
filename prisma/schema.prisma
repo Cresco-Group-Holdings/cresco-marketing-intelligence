@@ -293,6 +293,10 @@ model UserProfile {
   advertisingTikTokAdsLaunchApprovalsDecided AdvertisingTikTokAdsLaunchApproval[] @relation("AdvertisingTikTokAdsLaunchApprover")
   advertisingTikTokAdsLaunchesExecuted AdvertisingTikTokAdsLaunch[] @relation("AdvertisingTikTokAdsLaunchExecutor")
   advertisingTikTokAdsOperationsRequested AdvertisingTikTokAdsOperation[] @relation("AdvertisingTikTokAdsOperationRequester")
+  advertisingExperimentsCreated AdvertisingExperiment[] @relation("AdvertisingExperimentCreator")
+  advertisingExperimentVersionsCreated AdvertisingExperimentVersion[] @relation("AdvertisingExperimentVersionCreator")
+  advertisingExperimentDecisionsMade AdvertisingExperimentDecision[] @relation("AdvertisingExperimentDecisionMaker")
+  advertisingExperimentDecisionsApproved AdvertisingExperimentDecision[] @relation("AdvertisingExperimentDecisionApprover")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -664,6 +668,7 @@ model Organisation {
   advertisingTikTokAdsLaunches         AdvertisingTikTokAdsLaunch[]
   advertisingTikTokAdsProviderResources AdvertisingTikTokAdsProviderResource[]
   advertisingTikTokAdsOperations       AdvertisingTikTokAdsOperation[]
+  advertisingExperiments               AdvertisingExperiment[]
 
   @@index([status])
   @@index([archivedAt])
@@ -877,6 +882,7 @@ model Project {
   advertisingTikTokAdsAccounts AdvertisingTikTokAdsAccount[]
   advertisingTikTokAdsDrafts   AdvertisingTikTokAdsDraft[]
   advertisingTikTokAdsLaunches AdvertisingTikTokAdsLaunch[]
+  advertisingExperiments       AdvertisingExperiment[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1088,6 +1094,7 @@ model Brand {
   advertisingTikTokAdsDrafts   AdvertisingTikTokAdsDraft[]
   advertisingTikTokAdsLaunches AdvertisingTikTokAdsLaunch[]
   advertisingTikTokAdsOperations AdvertisingTikTokAdsOperation[]
+  advertisingExperiments         AdvertisingExperiment[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -10028,6 +10035,7 @@ model AdvertisingCampaignPlan {
   linkedInAdsLaunches    AdvertisingLinkedInAdsLaunch[]
   tikTokAdsDrafts        AdvertisingTikTokAdsDraft[]
   tikTokAdsLaunches      AdvertisingTikTokAdsLaunch[]
+  advertisingExperiments AdvertisingExperiment[]
 
   @@unique([brandId, internalCampaignId])
   @@index([organisationId, brandId, status])
@@ -11977,6 +11985,282 @@ model AdvertisingTikTokAdsOperation {
   requestedBy    UserProfile               @relation("AdvertisingTikTokAdsOperationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
 
   @@index([brandId, operationType])
+}
+
+// ---------------------------------------------------------------------------
+// Task 5.7 — Advertising Experiments and A/B Testing
+// ---------------------------------------------------------------------------
+
+enum AdvertisingExperimentStatus {
+  DRAFT
+  READY
+  RUNNING
+  PAUSED
+  COMPLETED
+  INCONCLUSIVE
+  CANCELLED
+  ARCHIVED
+}
+
+enum AdvertisingExperimentType {
+  CREATIVE
+  HEADLINE
+  COPY
+  CTA
+  AUDIENCE
+  LANDING_PAGE
+  OFFER
+  PLACEMENT
+  BIDDING_STRATEGY
+  BUDGET_ALLOCATION
+  CAMPAIGN_STRUCTURE
+}
+
+enum AdvertisingExperimentVariantType {
+  CONTROL
+  TREATMENT
+  MULTI_VARIANT
+}
+
+enum AdvertisingExperimentAllocationType {
+  EQUAL
+  WEIGHTED
+  PROVIDER_NATIVE
+  SEQUENTIAL
+  MANUAL
+}
+
+enum AdvertisingExperimentMetricRole {
+  PRIMARY
+  GUARDRAIL
+  SECONDARY
+}
+
+enum AdvertisingExperimentValiditySeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum AdvertisingExperimentDecisionOutcome {
+  ADOPT_VARIANT
+  KEEP_CONTROL
+  CONTINUE_TEST
+  RUN_FOLLOWUP
+  INCONCLUSIVE
+  INVALID_TEST
+  STOP_FOR_SAFETY
+}
+
+model AdvertisingExperiment {
+  id                String                      @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  planId            String?
+  title             String
+  internalRef       String?
+  status            AdvertisingExperimentStatus @default(DRAFT)
+  experimentType    AdvertisingExperimentType
+  provider          String?
+  startDate         DateTime?
+  endDate           DateTime?
+  featureFlags      Json?
+  riskTier          String                      @default("STANDARD")
+  currentVersionId  String?
+  createdByUserId   String
+  cancelledAt       DateTime?
+  cancelledReason   String?
+  archivedAt        DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  organisation    Organisation                      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  plan            AdvertisingCampaignPlan?          @relation(fields: [planId], references: [id], onDelete: SetNull)
+  createdBy       UserProfile                       @relation("AdvertisingExperimentCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions        AdvertisingExperimentVersion[]
+  hypothesis      AdvertisingExperimentHypothesis?
+  variants        AdvertisingExperimentVariant[]
+  allocations     AdvertisingExperimentAllocation[]
+  metrics         AdvertisingExperimentMetric[]
+  observations    AdvertisingExperimentObservation[]
+  results         AdvertisingExperimentResult[]
+  validityChecks  AdvertisingExperimentValidityCheck[]
+  decision        AdvertisingExperimentDecision?
+
+  @@index([organisationId, brandId, status])
+  @@index([experimentType])
+  @@index([planId])
+}
+
+model AdvertisingExperimentVersion {
+  id             String   @id @default(cuid())
+  experimentId   String
+  versionNumber  Int
+  changeSummary  String
+  snapshot       Json?
+  createdByUserId String
+  createdAt      DateTime @default(now())
+
+  experiment   AdvertisingExperiment   @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile           @relation("AdvertisingExperimentVersionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([experimentId, versionNumber])
+  @@index([experimentId])
+}
+
+model AdvertisingExperimentHypothesis {
+  id               String   @id @default(cuid())
+  experimentId     String   @unique
+  observedProblem  String
+  proposedChange   String
+  expectedOutcome  String
+  primaryMetric    String
+  guardrailMetrics String[] @default([])
+  audience         String
+  durationDays     Int
+  minimumVolume    Int
+  decisionRule     String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  experiment AdvertisingExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId])
+}
+
+model AdvertisingExperimentVariant {
+  id                  String                         @id @default(cuid())
+  experimentId        String
+  variantType         AdvertisingExperimentVariantType
+  label               String
+  sortOrder           Int                            @default(0)
+  documentedVariables Json
+  providerCampaignId  String?
+  providerAdSetId     String?
+  providerAdId        String?
+  internalCreativeId  String?
+  providerResourceIds Json?
+  createdAt           DateTime                       @default(now())
+  updatedAt           DateTime                       @updatedAt
+
+  experiment   AdvertisingExperiment            @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  observations AdvertisingExperimentObservation[]
+  results      AdvertisingExperimentResult[]
+  winningFor   AdvertisingExperimentDecision[]  @relation("WinningAdExperimentVariant")
+
+  @@index([experimentId, sortOrder])
+}
+
+model AdvertisingExperimentAllocation {
+  id                       String                            @id @default(cuid())
+  experimentId             String
+  allocationType           AdvertisingExperimentAllocationType
+  weights                  Json?
+  providerNativeSplit      Boolean                           @default(false)
+  randomisationDisclaimer  String?
+  effectiveFrom            DateTime?
+  effectiveTo              DateTime?
+  createdAt                DateTime                          @default(now())
+  updatedAt                DateTime                          @updatedAt
+
+  experiment AdvertisingExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId])
+}
+
+model AdvertisingExperimentMetric {
+  id                    String                        @id @default(cuid())
+  experimentId          String
+  metricKey             String
+  role                  AdvertisingExperimentMetricRole
+  label                 String?
+  attributionDefinition String?
+  providerMetricName    String?
+  createdAt             DateTime                      @default(now())
+
+  experiment AdvertisingExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, metricKey, role])
+  @@index([experimentId, role])
+}
+
+model AdvertisingExperimentObservation {
+  id                       String   @id @default(cuid())
+  experimentId             String
+  variantId                String
+  metricKey                String
+  observedAt               DateTime
+  rawValue                 Decimal  @db.Decimal(24, 6)
+  sampleSize               Int      @default(0)
+  providerAttributionWindow String?
+  dataSource               String?
+  isStale                  Boolean  @default(false)
+  createdAt                DateTime @default(now())
+
+  experiment AdvertisingExperiment        @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant    AdvertisingExperimentVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, variantId, metricKey])
+  @@index([observedAt])
+}
+
+model AdvertisingExperimentResult {
+  id                 String   @id @default(cuid())
+  experimentId       String
+  variantId          String
+  metricKey          String
+  absoluteValue      Decimal  @db.Decimal(24, 6)
+  relativeDifference Decimal? @db.Decimal(24, 6)
+  sampleSize         Int      @default(0)
+  confidenceMethod   String?
+  uncertaintyLower   Decimal? @db.Decimal(24, 6)
+  uncertaintyUpper   Decimal? @db.Decimal(24, 6)
+  computedAt         DateTime @default(now())
+
+  experiment AdvertisingExperiment        @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant    AdvertisingExperimentVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, metricKey])
+  @@index([experimentId])
+}
+
+model AdvertisingExperimentValidityCheck {
+  id           String                              @id @default(cuid())
+  experimentId String
+  checkType    String
+  severity     AdvertisingExperimentValiditySeverity
+  message      String
+  detectedAt   DateTime                            @default(now())
+  resolvedAt   DateTime?
+  metadata     Json?
+
+  experiment AdvertisingExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, severity])
+}
+
+model AdvertisingExperimentDecision {
+  id                String                             @id @default(cuid())
+  experimentId      String                             @unique
+  outcome           AdvertisingExperimentDecisionOutcome
+  winningVariantId  String?
+  recommendation    String
+  limitations       String
+  confidenceNote    String                             @default("Results are observational unless a documented valid statistical method was applied.")
+  decidedByUserId   String
+  approvedByUserId  String?
+  approvedAt        DateTime?
+  decidedAt         DateTime                           @default(now())
+
+  experiment     AdvertisingExperiment         @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  winningVariant AdvertisingExperimentVariant? @relation("WinningAdExperimentVariant", fields: [winningVariantId], references: [id], onDelete: SetNull)
+  decidedBy      UserProfile                   @relation("AdvertisingExperimentDecisionMaker", fields: [decidedByUserId], references: [id], onDelete: Restrict)
+  approvedBy     UserProfile?                  @relation("AdvertisingExperimentDecisionApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([outcome])
 }
 
 // ---------------------------------------------------------------------------
