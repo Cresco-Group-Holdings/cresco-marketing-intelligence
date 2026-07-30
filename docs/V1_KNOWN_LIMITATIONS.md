@@ -6,10 +6,8 @@ Honest inventory of restrictions, disabled features, and engineering debt for V1
 
 | Limitation | Impact | Target |
 |------------|--------|--------|
-| Typecheck failures (49 errors) | CI gate blocked; mostly Prisma Json types and Stage 6 services | Pre-unrestricted production |
-| Production build failure | Deployment blocked until lifecycle handler exports fixed | Immediate |
-| Duplicate permission keys in `permissions.ts` | Typecheck error; potential RBAC ambiguity | Immediate |
 | E2E V1 scenario not automated | Manual sign-off required for release | Post-V1 |
+| Typecheck/build require increased heap | CI must set `NODE_OPTIONS=--max-old-space-size=8192` | CI configuration |
 
 ## Billing and quotas
 
