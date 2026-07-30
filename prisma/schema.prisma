@@ -252,6 +252,8 @@ model UserProfile {
   onPageSeoOverridesCreated     OnPageSeoOverride[]         @relation("OnPageSeoOverrideCreator")
   internalLinkProposalsAssigned InternalLinkChangeProposal[] @relation("InternalLinkProposalAssignee")
   internalLinkProposalsCreated  InternalLinkChangeProposal[] @relation("InternalLinkProposalCreator")
+  seoRankTrackingProjectsCreated SeoRankTrackingProject[] @relation("SeoRankProjectCreator")
+  seoContentRefreshOutcomesCreated SeoContentRefreshOutcome[] @relation("SeoRefreshOutcomeCreator")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -552,6 +554,15 @@ model Organisation {
   internalLinkAnchors            InternalLinkAnchor[]
   internalLinkIssues             InternalLinkIssue[]
   internalLinkChangeProposals    InternalLinkChangeProposal[]
+  seoRankTrackingProjects      SeoRankTrackingProject[]
+  seoTrackedKeywords           SeoTrackedKeyword[]
+  seoRankObservations          SeoRankObservation[]
+  seoSerpObservations          SeoSerpObservation[]
+  seoRankingUrls               SeoRankingUrl[]
+  seoRankChanges               SeoRankChange[]
+  seoContentRefreshCandidates  SeoContentRefreshCandidate[]
+  seoContentRefreshRecommendations SeoContentRefreshRecommendation[]
+  seoContentRefreshOutcomes    SeoContentRefreshOutcome[]
 
   @@index([status])
   @@index([archivedAt])
@@ -747,6 +758,9 @@ model Project {
   longFormContentDocuments       LongFormContentDocument[]
   onPageSeoAudits                OnPageSeoAudit[]
   internalLinkGraphs             InternalLinkGraph[]
+  seoRankTrackingProjects      SeoRankTrackingProject[]
+  seoTrackedKeywords           SeoTrackedKeyword[]
+  seoContentRefreshCandidates  SeoContentRefreshCandidate[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -935,6 +949,9 @@ model Brand {
   longFormContentDocuments       LongFormContentDocument[]
   onPageSeoAudits                OnPageSeoAudit[]
   internalLinkGraphs             InternalLinkGraph[]
+  seoRankTrackingProjects      SeoRankTrackingProject[]
+  seoTrackedKeywords           SeoTrackedKeyword[]
+  seoContentRefreshCandidates  SeoContentRefreshCandidate[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -6841,6 +6858,7 @@ model SeoSite {
   sitemaps           SeoSitemap[]
   keywords           SeoKeyword[]
   internalLinkGraphs InternalLinkGraph[]
+  rankTrackingProjects SeoRankTrackingProject[]
 
   @@unique([brandId, primaryDomain])
   @@index([organisationId, brandId])
@@ -7004,6 +7022,9 @@ model SeoCrawlPage {
   briefInternalLinkDestinations SeoBriefInternalLink[] @relation("BriefLinkDestination")
   onPageSeoAudits               OnPageSeoAudit[]
   internalLinkNodes             InternalLinkNode[]
+  trackedKeywordTargets         SeoTrackedKeyword[]
+  rankingUrls                   SeoRankingUrl[]
+  contentRefreshCandidates      SeoContentRefreshCandidate[]
 
   @@unique([seoSiteId, normalisedUrl])
   @@index([organisationId, brandId])
@@ -7375,6 +7396,7 @@ model SeoKeyword {
   primaryBriefs       SeoContentBrief[] @relation("BriefPrimaryKeyword")
   onPageSeoAudits     OnPageSeoAudit[]
   onPageSeoTargets    OnPageSeoTarget[]
+  trackedKeywords     SeoTrackedKeyword[]
 
   @@unique([brandId, normalisedKeyword, language, country])
   @@index([organisationId, brandId, status])
@@ -9323,6 +9345,350 @@ model InternalLinkChangeProposal {
   createdBy      UserProfile               @relation("InternalLinkProposalCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   @@index([graphId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Rank tracking & content refresh intelligence (Task 4.9)
+// ---------------------------------------------------------------------------
+
+enum SeoRankTrackingProjectStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum SeoRankDataSource {
+  SEARCH_CONSOLE
+  RANK_PROVIDER
+  MANUAL_IMPORT
+  COMPLIANT_SERP
+}
+
+enum SeoTrackedKeywordStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum SeoRankTrackingSchedule {
+  DAILY
+  WEEKLY
+  MANUAL
+}
+
+enum SeoRankDevice {
+  DESKTOP
+  MOBILE
+  TABLET
+  ALL
+}
+
+enum SeoRankResultType {
+  ORGANIC
+  FEATURED_SNIPPET
+  LOCAL_PACK
+  IMAGE
+  VIDEO
+  NEWS
+  OTHER
+}
+
+enum SeoRankChangeType {
+  POSITION_GAIN
+  POSITION_LOSS
+  TOP_3_ENTRY
+  TOP_10_ENTRY
+  TOP_20_ENTRY
+  RANGE_LOSS
+  URL_SWITCH
+  IMPRESSION_DROP
+  CLICK_DECLINE
+  SERP_FEATURE_CHANGE
+  UNSTABLE_RANKING
+  MISSING_OBSERVATION
+  PROVIDER_SYNC_FAILURE
+}
+
+enum SeoContentRefreshCandidateStatus {
+  PENDING
+  REVIEWING
+  APPROVED
+  DISMISSED
+  CONVERTED
+}
+
+enum SeoContentRefreshRecommendationType {
+  UPDATE_FACTS
+  UPDATE_STATISTICS
+  EXPAND_SECTION
+  IMPROVE_TITLE
+  IMPROVE_DESCRIPTION
+  ADD_FAQ
+  ADD_INTERNAL_LINKS
+  CONSOLIDATE_CONTENT
+  FIX_TECHNICAL
+  REWRITE_INTRODUCTION
+  IMPROVE_CTA
+  REVIEW_SEARCH_INTENT
+  RETIRE_CONTENT
+}
+
+enum SeoContentRefreshRecommendationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CONVERTED
+}
+
+enum SeoContentRefreshWorkflowType {
+  SEO_BRIEF
+  CONTENT_TASK
+  LONG_FORM_REVISION
+  EXPERIMENT
+  INTERNAL_LINK_PROPOSAL
+  TECHNICAL_FIX
+}
+
+enum SeoContentRefreshOutcomeStatus {
+  CREATED
+  IN_PROGRESS
+  IMPLEMENTED
+  MEASURED
+  CLOSED
+}
+
+model SeoRankTrackingProject {
+  id             String                       @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  seoSiteId      String
+  name           String
+  status         SeoRankTrackingProjectStatus @default(ACTIVE)
+  keywordQuota   Int                          @default(100)
+  keywordCount   Int                          @default(0)
+  lastSyncAt     DateTime?
+  lastSyncSource SeoRankDataSource?
+  lastSyncStatus String?
+  alertSettings  Json?
+  createdByUserId String
+  createdAt      DateTime                     @default(now())
+  updatedAt      DateTime                     @updatedAt
+
+  organisation   Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  seoSite        SeoSite            @relation(fields: [seoSiteId], references: [id], onDelete: Cascade)
+  createdBy      UserProfile        @relation("SeoRankProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  trackedKeywords SeoTrackedKeyword[]
+  rankChanges    SeoRankChange[]
+  refreshCandidates SeoContentRefreshCandidate[]
+
+  @@index([organisationId, brandId, status])
+  @@index([seoSiteId])
+}
+
+model SeoTrackedKeyword {
+  id             String                  @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  trackingProjectId String
+  keywordId      String?
+  keyword        String
+  targetPageId   String?
+  country        String                  @default("US")
+  language       String                  @default("en")
+  device         SeoRankDevice           @default(ALL)
+  schedule       SeoRankTrackingSchedule @default(WEEKLY)
+  priority       Int                     @default(50)
+  tags           String[]                @default([])
+  status         SeoTrackedKeywordStatus @default(ACTIVE)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organisation    Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  trackingProject SeoRankTrackingProject @relation(fields: [trackingProjectId], references: [id], onDelete: Cascade)
+  seoKeyword      SeoKeyword?           @relation(fields: [keywordId], references: [id], onDelete: SetNull)
+  targetPage      SeoCrawlPage?         @relation(fields: [targetPageId], references: [id], onDelete: SetNull)
+  observations    SeoRankObservation[]
+  serpObservations SeoSerpObservation[]
+  rankingUrls     SeoRankingUrl[]
+  rankChanges     SeoRankChange[]
+
+  @@unique([trackingProjectId, keyword, country, language, device])
+  @@index([organisationId, brandId, status])
+  @@index([trackingProjectId, priority])
+}
+
+model SeoRankObservation {
+  id               String            @id @default(cuid())
+  organisationId   String
+  trackedKeywordId String
+  source           SeoRankDataSource
+  keyword          String
+  location         String
+  language         String
+  device           SeoRankDevice
+  observedDate     DateTime          @db.Date
+  rank             Int?
+  resultType       SeoRankResultType @default(ORGANIC)
+  rankingUrlId     String?
+  impressions      Int?
+  clicks           Int?
+  ctr              Float?
+  providerMetadata Json?
+  idempotencyKey   String?
+  createdAt        DateTime          @default(now())
+
+  organisation   Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  trackedKeyword SeoTrackedKeyword @relation(fields: [trackedKeywordId], references: [id], onDelete: Cascade)
+  rankingUrl     SeoRankingUrl?  @relation(fields: [rankingUrlId], references: [id], onDelete: SetNull)
+  serpObservations SeoSerpObservation[]
+
+  @@unique([trackedKeywordId, source, observedDate, device, resultType])
+  @@index([trackedKeywordId, observedDate])
+  @@index([organisationId, observedDate])
+}
+
+model SeoSerpObservation {
+  id               String            @id @default(cuid())
+  organisationId   String
+  trackedKeywordId String
+  observationId    String?
+  featureType      String
+  position         Int?
+  observedDate     DateTime          @db.Date
+  providerMetadata Json?
+  createdAt        DateTime          @default(now())
+
+  organisation   Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  trackedKeyword SeoTrackedKeyword @relation(fields: [trackedKeywordId], references: [id], onDelete: Cascade)
+  observation    SeoRankObservation? @relation(fields: [observationId], references: [id], onDelete: SetNull)
+
+  @@index([trackedKeywordId, observedDate])
+}
+
+model SeoRankingUrl {
+  id               String   @id @default(cuid())
+  organisationId   String
+  trackedKeywordId String
+  crawlPageId      String?
+  url              String
+  isTarget         Boolean  @default(false)
+  firstSeenAt      DateTime @default(now())
+  lastSeenAt       DateTime @default(now())
+
+  organisation   Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  trackedKeyword SeoTrackedKeyword @relation(fields: [trackedKeywordId], references: [id], onDelete: Cascade)
+  crawlPage      SeoCrawlPage?     @relation(fields: [crawlPageId], references: [id], onDelete: SetNull)
+  observations   SeoRankObservation[]
+
+  @@unique([trackedKeywordId, url])
+  @@index([trackedKeywordId, isTarget])
+}
+
+model SeoRankChange {
+  id               String            @id @default(cuid())
+  organisationId   String
+  trackingProjectId String
+  trackedKeywordId String
+  changeType       SeoRankChangeType
+  severity         String            @default("MEDIUM")
+  previousRank     Int?
+  currentRank      Int?
+  previousUrl      String?
+  currentUrl       String?
+  evidence         Json
+  isAlert          Boolean           @default(false)
+  alertSentAt      DateTime?
+  detectedAt       DateTime          @default(now())
+
+  organisation    Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  trackingProject SeoRankTrackingProject @relation(fields: [trackingProjectId], references: [id], onDelete: Cascade)
+  trackedKeyword  SeoTrackedKeyword    @relation(fields: [trackedKeywordId], references: [id], onDelete: Cascade)
+
+  @@index([trackingProjectId, isAlert, detectedAt])
+  @@index([trackedKeywordId, changeType])
+}
+
+model SeoContentRefreshCandidate {
+  id               String                          @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  trackingProjectId String?
+  crawlPageId      String?
+  url              String
+  title            String?
+  decayScore       Float
+  signals          Json
+  evidence         Json
+  dateRangeStart   DateTime                        @db.Date
+  dateRangeEnd     DateTime                        @db.Date
+  status           SeoContentRefreshCandidateStatus @default(PENDING)
+  createdAt        DateTime                        @default(now())
+  updatedAt        DateTime                        @updatedAt
+
+  organisation    Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  trackingProject SeoRankTrackingProject?         @relation(fields: [trackingProjectId], references: [id], onDelete: SetNull)
+  crawlPage       SeoCrawlPage?                   @relation(fields: [crawlPageId], references: [id], onDelete: SetNull)
+  recommendations SeoContentRefreshRecommendation[]
+  outcomes        SeoContentRefreshOutcome[]
+
+  @@index([organisationId, brandId, status])
+  @@index([trackingProjectId, decayScore])
+}
+
+model SeoContentRefreshRecommendation {
+  id                 String                              @id @default(cuid())
+  organisationId     String
+  candidateId        String
+  recommendationType SeoContentRefreshRecommendationType
+  evidence           Json
+  dateRangeStart     DateTime                            @db.Date
+  dateRangeEnd       DateTime                            @db.Date
+  confidence         Float
+  expectedHypothesis String
+  measurementPlan    String
+  status             SeoContentRefreshRecommendationStatus @default(PENDING)
+  createdAt          DateTime                            @default(now())
+  updatedAt          DateTime                            @updatedAt
+
+  organisation Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  candidate    SeoContentRefreshCandidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  outcomes     SeoContentRefreshOutcome[]
+
+  @@index([candidateId, status])
+  @@index([organisationId, recommendationType])
+}
+
+model SeoContentRefreshOutcome {
+  id               String                        @id @default(cuid())
+  organisationId   String
+  candidateId      String
+  recommendationId String?
+  workflowType     SeoContentRefreshWorkflowType
+  workflowRefId    String?
+  status           SeoContentRefreshOutcomeStatus @default(CREATED)
+  outcomeData      Json?
+  implementedAt    DateTime?
+  measuredAt       DateTime?
+  createdByUserId  String
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
+
+  organisation   Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  candidate      SeoContentRefreshCandidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  recommendation SeoContentRefreshRecommendation? @relation(fields: [recommendationId], references: [id], onDelete: SetNull)
+  createdBy      UserProfile                     @relation("SeoRefreshOutcomeCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([candidateId, workflowType])
+  @@index([organisationId, status])
 }
 
 // ---------------------------------------------------------------------------
