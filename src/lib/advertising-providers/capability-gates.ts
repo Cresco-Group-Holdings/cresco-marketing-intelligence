@@ -82,3 +82,49 @@ export function requireCapability(
 export function getDisabledCapabilities(capabilities: ProviderCapability[]): ProviderCapability[] {
   return capabilities.filter((c) => !c.available);
 }
+
+export const GOOGLE_ADS_CAPABILITIES: ProviderCapability[] = [
+  { id: "api_version", label: "Google Ads API v18", available: true },
+  { id: "oauth", label: "OAuth (adwords scope)", available: true },
+  { id: "developer_token", label: "Developer token (Basic/Standard)", available: true },
+  { id: "account_access", label: "MCC / customer account access", available: true },
+  { id: "search_campaigns", label: "Search campaign creation", available: true },
+  { id: "display_campaigns", label: "Display campaign creation", available: false, reason: "Not verified in controlled launch scope — Search only" },
+  { id: "performance_max", label: "Performance Max", available: false, reason: "Not in Task 5.4 scope" },
+  { id: "video_campaigns", label: "Video campaigns", available: false, reason: "Not verified" },
+  { id: "shopping_campaigns", label: "Shopping campaigns", available: false, reason: "Not verified" },
+  { id: "responsive_search_ads", label: "Responsive search ads", available: true },
+  { id: "conversion_tracking", label: "Conversion actions", available: true },
+  { id: "policy_review", label: "Policy review polling", available: false, reason: "Client-side validation only — live policy API not integrated" },
+  { id: "test_accounts", label: "Test accounts", available: true },
+  { id: "mutations", label: "Controlled mutations (paused launch)", available: true },
+  { id: "smart_bidding", label: "Smart bidding strategies", available: false, reason: "Manual CPC only in initial launch scope" },
+];
+
+export const META_ADS_CAPABILITIES: ProviderCapability[] = [
+  { id: "api_version", label: "Marketing API v19+", available: true },
+  { id: "oauth", label: "OAuth (ads_read, ads_management)", available: true },
+  { id: "app_review", label: "App review for non-owned accounts", available: false, reason: "Requires Meta app review — use owned test accounts in beta" },
+  { id: "account_access", label: "Ad account access via Business Manager", available: true },
+  { id: "traffic_campaigns", label: "Traffic / conversions campaigns", available: true },
+  { id: "lead_gen", label: "Lead generation", available: true },
+  { id: "advantage_plus", label: "Advantage+ shopping", available: false, reason: "Not in Task 5.5 scope" },
+  { id: "catalog_ads", label: "Catalog / dynamic ads", available: false, reason: "Not verified" },
+  { id: "capi", label: "Conversions API (CAPI)", available: true },
+  { id: "special_ad_categories", label: "Housing/credit/employment categories", available: true },
+  { id: "policy_review", label: "Live ad review status polling", available: false, reason: "Client-side validation only" },
+  { id: "test_accounts", label: "Sandbox ad accounts", available: true },
+  { id: "mutations", label: "Controlled mutations (paused launch)", available: true },
+  { id: "lookalike_audiences", label: "Lookalike audiences", available: false, reason: "Requires audience upload workflow — planning only" },
+];
+
+export const PROVIDER_CAPABILITY_REGISTRY = {
+  google: GOOGLE_ADS_CAPABILITIES,
+  meta: META_ADS_CAPABILITIES,
+  linkedin: LINKEDIN_ADS_CAPABILITIES,
+  tiktok: TIKTOK_ADS_CAPABILITIES,
+} as const;
+
+export function getProviderCapabilities(provider: keyof typeof PROVIDER_CAPABILITY_REGISTRY): ProviderCapability[] {
+  return [...PROVIDER_CAPABILITY_REGISTRY[provider]];
+}
