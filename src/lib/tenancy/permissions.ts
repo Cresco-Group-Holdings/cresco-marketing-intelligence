@@ -240,6 +240,14 @@ export const PERMISSIONS = {
   "automation.enroll": "automation.enroll",
   "automation.viewAnalytics": "automation.viewAnalytics",
   "automation.manageTemplates": "automation.manageTemplates",
+  "leadScoring.read": "leadScoring.read",
+  "leadScoring.create": "leadScoring.create",
+  "leadScoring.edit": "leadScoring.edit",
+  "leadScoring.approve": "leadScoring.approve",
+  "leadScoring.activate": "leadScoring.activate",
+  "leadScoring.simulate": "leadScoring.simulate",
+  "leadScoring.override": "leadScoring.override",
+  "leadScoring.viewAnalytics": "leadScoring.viewAnalytics",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -485,6 +493,14 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["automation.enroll"],
     PERMISSIONS["automation.viewAnalytics"],
     PERMISSIONS["automation.manageTemplates"],
+    PERMISSIONS["leadScoring.read"],
+    PERMISSIONS["leadScoring.create"],
+    PERMISSIONS["leadScoring.edit"],
+    PERMISSIONS["leadScoring.approve"],
+    PERMISSIONS["leadScoring.activate"],
+    PERMISSIONS["leadScoring.simulate"],
+    PERMISSIONS["leadScoring.override"],
+    PERMISSIONS["leadScoring.viewAnalytics"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -655,6 +671,13 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["automation.enroll"],
     PERMISSIONS["automation.viewAnalytics"],
     PERMISSIONS["automation.manageTemplates"],
+    PERMISSIONS["leadScoring.read"],
+    PERMISSIONS["leadScoring.create"],
+    PERMISSIONS["leadScoring.edit"],
+    PERMISSIONS["leadScoring.activate"],
+    PERMISSIONS["leadScoring.simulate"],
+    PERMISSIONS["leadScoring.override"],
+    PERMISSIONS["leadScoring.viewAnalytics"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -719,6 +742,9 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["emailCampaigns.viewAnalytics"],
     PERMISSIONS["automation.read"],
     PERMISSIONS["automation.viewAnalytics"],
+    PERMISSIONS["leadScoring.read"],
+    PERMISSIONS["leadScoring.simulate"],
+    PERMISSIONS["leadScoring.viewAnalytics"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -767,6 +793,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["emailCampaigns.read"],
     PERMISSIONS["automation.read"],
     PERMISSIONS["experiments.read"],
+    PERMISSIONS["leadScoring.read"],
   ],
 };
 

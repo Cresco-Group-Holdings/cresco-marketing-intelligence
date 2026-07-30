@@ -18,6 +18,7 @@ import {
   Settings,
   Share2,
   Sprout,
+  Target,
   UserPlus,
   Wallet,
 } from "lucide-react";
@@ -163,6 +164,18 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/crm",
     icon: Contact,
     description: "Leads, contacts, companies, and identity foundation",
+  },
+  {
+    label: "Lead Scoring",
+    href: "/crm/scoring",
+    icon: Target,
+    description: "Rule-based lead scoring models and simulation",
+  },
+  {
+    label: "Qualification",
+    href: "/crm/qualification",
+    icon: Target,
+    description: "Qualification thresholds and status mapping",
   },
   {
     label: "Forms",
