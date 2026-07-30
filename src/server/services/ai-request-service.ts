@@ -2,6 +2,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { ANALYST_OUTPUT_SCHEMAS } from "@/lib/ai/analyst-output-schemas";
 import { TOPIC_OUTPUT_SCHEMAS } from "@/lib/ai/topic-output-schemas";
+import { BRIEF_OUTPUT_SCHEMAS } from "@/lib/ai/brief-output-schemas";
 import { COMPETITOR_OUTPUT_SCHEMAS } from "@/lib/ai/competitor-output-schemas";
 import { KEYWORD_OUTPUT_SCHEMAS } from "@/lib/ai/keyword-output-schemas";
 import { CONTENT_OUTPUT_SCHEMAS } from "@/lib/ai/content-output-schemas";
@@ -44,6 +45,7 @@ const OUTPUT_SCHEMAS = {
   ...KEYWORD_OUTPUT_SCHEMAS,
   ...COMPETITOR_OUTPUT_SCHEMAS,
   ...TOPIC_OUTPUT_SCHEMAS,
+  ...BRIEF_OUTPUT_SCHEMAS,
   "diagnostics.ping": z.object({
     ok: z.boolean(),
     message: z.string(),

@@ -239,6 +239,10 @@ model UserProfile {
   seoKeywordImportsCreated      SeoKeywordImport[]        @relation("SeoKeywordImportCreator")
   seoKeywordStatusChanges       SeoKeywordStatusHistory[] @relation("SeoKeywordStatusChanger")
   seoContentStrategyVersions    SeoContentStrategyVersion[] @relation("SeoContentStrategyVersionCreator")
+  seoContentBriefsCreated       SeoContentBrief[]           @relation("SeoContentBriefCreator")
+  seoBriefApprovalsRequested    SeoBriefApproval[]          @relation("SeoBriefApprovalRequester")
+  seoBriefApprovalsDecided      SeoBriefApproval[]          @relation("SeoBriefApprovalDecider")
+  seoBriefCommentsAuthored      SeoBriefComment[]           @relation("SeoBriefCommentAuthor")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -505,6 +509,17 @@ model Organisation {
   seoContentStrategies           SeoContentStrategy[]
   seoContentStrategyVersions     SeoContentStrategyVersion[]
   seoContentPriorityScores       SeoContentPriorityScore[]
+  seoContentBriefs               SeoContentBrief[]
+  seoContentBriefVersions        SeoContentBriefVersion[]
+  seoBriefKeywords               SeoBriefKeyword[]
+  seoBriefQuestions              SeoBriefQuestion[]
+  seoBriefHeadings               SeoBriefHeading[]
+  seoBriefCompetitorEvidence     SeoBriefCompetitorEvidence[]
+  seoBriefInternalLinks          SeoBriefInternalLink[]
+  seoBriefSchemaSuggestions      SeoBriefSchemaSuggestion[]
+  seoBriefCitationRequirements   SeoBriefCitationRequirement[]
+  seoBriefApprovals              SeoBriefApproval[]
+  seoBriefComments               SeoBriefComment[]
 
   @@index([status])
   @@index([archivedAt])
@@ -696,6 +711,7 @@ model Project {
   seoSupportingPages             SeoSupportingPage[]
   seoContentGapPlans             SeoContentGapPlan[]
   seoContentStrategies           SeoContentStrategy[]
+  seoContentBriefs               SeoContentBrief[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -880,6 +896,7 @@ model Brand {
   seoSupportingPages             SeoSupportingPage[]
   seoContentGapPlans             SeoContentGapPlan[]
   seoContentStrategies           SeoContentStrategy[]
+  seoContentBriefs               SeoContentBrief[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2647,6 +2664,7 @@ model ContentItem {
   seoPillarPages          SeoPillarPage[]
   seoSupportingPages      SeoSupportingPage[]
   seoContentGapPlans      SeoContentGapPlan[]
+  seoContentBriefs        SeoContentBrief[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -6940,6 +6958,9 @@ model SeoCrawlPage {
   pillarPages           SeoPillarPage[]
   supportingPages       SeoSupportingPage[]
   topicClusterMembers   SeoTopicClusterMember[]
+  briefTargetPages      SeoContentBrief[]       @relation("BriefTargetPage")
+  briefInternalLinkSources SeoBriefInternalLink[] @relation("BriefLinkSource")
+  briefInternalLinkDestinations SeoBriefInternalLink[] @relation("BriefLinkDestination")
 
   @@unique([seoSiteId, normalisedUrl])
   @@index([organisationId, brandId])
@@ -7306,6 +7327,8 @@ model SeoKeyword {
   statusHistory  SeoKeywordStatusHistory[]
   keywordOverlaps SeoKeywordOverlap[]
   topicClusterMembers SeoTopicClusterMember[]
+  briefKeywords       SeoBriefKeyword[]
+  primaryBriefs       SeoContentBrief[] @relation("BriefPrimaryKeyword")
 
   @@unique([brandId, normalisedKeyword, language, country])
   @@index([organisationId, brandId, status])
@@ -7966,6 +7989,7 @@ model SeoTopicCluster {
   supportingPages SeoSupportingPage[]
   gapPlans        SeoContentGapPlan[]
   priorityScores  SeoContentPriorityScore[]
+  contentBriefs   SeoContentBrief[]
 
   @@unique([brandId, slug])
   @@index([organisationId, brandId, status])
@@ -8171,6 +8195,267 @@ model SeoContentPriorityScore {
 
   @@index([organisationId, brandId, calculatedAt])
   @@index([clusterId])
+}
+
+// ---------------------------------------------------------------------------
+// AI SEO content brief generator (Task 4.5)
+// ---------------------------------------------------------------------------
+
+enum SeoContentBriefStatus {
+  DRAFT
+  GENERATED
+  IN_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  SUPERSEDED
+  ARCHIVED
+}
+
+enum SeoBriefKeywordRole {
+  PRIMARY
+  SECONDARY
+}
+
+enum SeoBriefApprovalDecision {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+}
+
+enum SeoBriefCommentStatus {
+  OPEN
+  RESOLVED
+}
+
+model SeoContentBrief {
+  id               String               @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  workingTitle     String?
+  contentType      SeoContentFormatType?
+  status           SeoContentBriefStatus @default(DRAFT)
+  currentVersionId String?
+  primaryKeywordId String?
+  clusterId        String?
+  targetPageId     String?
+  contentItemId    String?
+  audience         String?
+  offer            String?
+  cta              String?
+  createdByUserId  String
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+  archivedAt       DateTime?
+
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  primaryKeyword SeoKeyword?               @relation("BriefPrimaryKeyword", fields: [primaryKeywordId], references: [id], onDelete: SetNull)
+  cluster        SeoTopicCluster?          @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  targetPage     SeoCrawlPage?             @relation("BriefTargetPage", fields: [targetPageId], references: [id], onDelete: SetNull)
+  contentItem    ContentItem?              @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  createdBy      UserProfile               @relation("SeoContentBriefCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions       SeoContentBriefVersion[]
+  keywords       SeoBriefKeyword[]
+  questions      SeoBriefQuestion[]
+  headings       SeoBriefHeading[]
+  competitorEvidence SeoBriefCompetitorEvidence[]
+  internalLinks  SeoBriefInternalLink[]
+  schemaSuggestions SeoBriefSchemaSuggestion[]
+  citationRequirements SeoBriefCitationRequirement[]
+  approvals      SeoBriefApproval[]
+  comments       SeoBriefComment[]
+
+  @@index([organisationId, brandId, status])
+  @@index([clusterId])
+}
+
+model SeoContentBriefVersion {
+  id              String               @id @default(cuid())
+  organisationId  String
+  briefId         String
+  versionNumber   Int
+  status          SeoContentBriefStatus
+  structuredOutput Json
+  evidenceSummary Json?
+  limitations     String?
+  aiRequestId     String?
+  aiModel         String?
+  aiProvider      String?
+  changeNote      String?
+  createdByUserId String
+  createdAt       DateTime             @default(now())
+
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief        SeoContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  approvals    SeoBriefApproval[]
+
+  @@unique([briefId, versionNumber])
+  @@index([briefId, createdAt])
+}
+
+model SeoBriefKeyword {
+  id             String            @id @default(cuid())
+  organisationId String
+  briefId        String
+  keywordId      String?
+  keyword        String
+  role           SeoBriefKeywordRole
+  intent         SeoKeywordIntentType?
+  source         String?
+  createdAt      DateTime          @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief        SeoContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  seoKeyword   SeoKeyword?   @relation(fields: [keywordId], references: [id], onDelete: SetNull)
+
+  @@index([briefId])
+}
+
+model SeoBriefQuestion {
+  id             String   @id @default(cuid())
+  organisationId String
+  briefId        String
+  question       String
+  priority       Int      @default(0)
+  isFaq          Boolean  @default(false)
+  evidence       Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief        SeoContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  @@index([briefId])
+}
+
+model SeoBriefHeading {
+  id             String   @id @default(cuid())
+  organisationId String
+  briefId        String
+  level          Int
+  text           String
+  sortOrder      Int      @default(0)
+  notes          String?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief        SeoContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  @@index([briefId, sortOrder])
+}
+
+model SeoBriefCompetitorEvidence {
+  id             String   @id @default(cuid())
+  organisationId String
+  briefId        String
+  competitorId   String?
+  competitorUrl  String?
+  evidenceType   String
+  excerpt        String?
+  coverageNote   String?
+  gapNote        String?
+  observedAt     DateTime?
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief        SeoContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  @@index([briefId])
+}
+
+model SeoBriefInternalLink {
+  id                    String   @id @default(cuid())
+  organisationId        String
+  briefId               String
+  sourcePageId          String?
+  destinationPageId     String?
+  sourceUrl             String?
+  destinationUrl        String?
+  suggestedAnchorConcept String
+  reason                String
+  confidence            Float?
+  createdAt             DateTime @default(now())
+
+  organisation    Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief           SeoContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  sourcePage      SeoCrawlPage? @relation("BriefLinkSource", fields: [sourcePageId], references: [id], onDelete: SetNull)
+  destinationPage SeoCrawlPage? @relation("BriefLinkDestination", fields: [destinationPageId], references: [id], onDelete: SetNull)
+
+  @@index([briefId])
+}
+
+model SeoBriefSchemaSuggestion {
+  id             String   @id @default(cuid())
+  organisationId String
+  briefId        String
+  schemaType     String
+  rationale      String?
+  eligibilityNote String?
+  properties     Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief        SeoContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  @@index([briefId])
+}
+
+model SeoBriefCitationRequirement {
+  id             String   @id @default(cuid())
+  organisationId String
+  briefId        String
+  requirement    String
+  sourceType     String?
+  isRequired     Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief        SeoContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  @@index([briefId])
+}
+
+model SeoBriefApproval {
+  id                String                   @id @default(cuid())
+  organisationId    String
+  briefId           String
+  versionId         String?
+  decision          SeoBriefApprovalDecision @default(PENDING)
+  requestedByUserId String
+  approverUserId    String?
+  decisionNote      String?
+  decidedAt         DateTime?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief        SeoContentBrief       @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  version      SeoContentBriefVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  requestedBy  UserProfile           @relation("SeoBriefApprovalRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  approver     UserProfile?          @relation("SeoBriefApprovalDecider", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([briefId, decision])
+}
+
+model SeoBriefComment {
+  id               String              @id @default(cuid())
+  organisationId   String
+  briefId          String
+  versionId        String?
+  authorUserId     String
+  body             String
+  status           SeoBriefCommentStatus @default(OPEN)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brief        SeoContentBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+  author       UserProfile  @relation("SeoBriefCommentAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+
+  @@index([briefId, status])
 }
 
 // ---------------------------------------------------------------------------

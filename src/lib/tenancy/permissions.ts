@@ -92,6 +92,10 @@ export const PERMISSIONS = {
   "seoTopics.manage": "seoTopics.manage",
   "seoTopics.cluster": "seoTopics.cluster",
   "seoTopics.strategy": "seoTopics.strategy",
+  "seoBriefs.read": "seoBriefs.read",
+  "seoBriefs.manage": "seoBriefs.manage",
+  "seoBriefs.generate": "seoBriefs.generate",
+  "seoBriefs.approve": "seoBriefs.approve",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -189,6 +193,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoTopics.manage"],
     PERMISSIONS["seoTopics.cluster"],
     PERMISSIONS["seoTopics.strategy"],
+    PERMISSIONS["seoBriefs.read"],
+    PERMISSIONS["seoBriefs.manage"],
+    PERMISSIONS["seoBriefs.generate"],
+    PERMISSIONS["seoBriefs.approve"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -255,6 +263,9 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoTopics.manage"],
     PERMISSIONS["seoTopics.cluster"],
     PERMISSIONS["seoTopics.strategy"],
+    PERMISSIONS["seoBriefs.read"],
+    PERMISSIONS["seoBriefs.manage"],
+    PERMISSIONS["seoBriefs.generate"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -287,6 +298,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoCompetitors.read"],
     PERMISSIONS["seoCompetitors.analyze"],
     PERMISSIONS["seoTopics.read"],
+    PERMISSIONS["seoBriefs.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -309,6 +321,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoKeywords.read"],
     PERMISSIONS["seoCompetitors.read"],
     PERMISSIONS["seoTopics.read"],
+    PERMISSIONS["seoBriefs.read"],
     PERMISSIONS["experiments.read"],
   ],
 };
