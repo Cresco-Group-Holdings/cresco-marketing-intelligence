@@ -35,6 +35,12 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Workspace summary and priorities",
   },
   {
+    label: "Advertising Plans",
+    href: "/advertising",
+    icon: Megaphone,
+    description: "Provider-independent campaign planning",
+  },
+  {
     label: "Brands",
     href: "/brands",
     icon: Megaphone,
