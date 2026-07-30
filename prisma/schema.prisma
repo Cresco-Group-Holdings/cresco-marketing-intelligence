@@ -343,6 +343,20 @@ model UserProfile {
   manualImportJobsCreated      ManualImportJob[]         @relation("ManualImportJobCreator")
   identityLinksConfirmed       MarketingIdentityLink[]   @relation("MarketingIdentityLinkConfirmer")
   dataQualityResolutions       DataQualityResolution[]   @relation("DataQualityResolutionResolver")
+  crmLeadsOwned                CrmLead[]                 @relation("CrmLeadOwner")
+  crmLeadsCreated              CrmLead[]                 @relation("CrmLeadCreator")
+  crmCompaniesOwned            CrmCompany[]              @relation("CrmCompanyOwner")
+  crmMergeOperationsPerformed  CrmMergeOperation[]       @relation("CrmMergeOperator")
+  crmImportsCreated            CrmImportJob[]            @relation("CrmImportCreator")
+  crmExportsCreated            CrmExportJob[]            @relation("CrmExportCreator")
+  crmSavedViewsCreated         CrmSavedView[]            @relation("CrmSavedViewCreator")
+  crmLeadAssignmentsReceived   CrmLeadAssignment[]       @relation("CrmLeadAssignee")
+  crmLeadAssignmentsMade       CrmLeadAssignment[]       @relation("CrmLeadAssigner")
+  crmLifecycleHistoryActed     CrmLeadLifecycleHistory[] @relation("CrmLifecycleHistoryActor")
+  crmStatusHistoryActed        CrmLeadStatusHistory[]    @relation("CrmStatusHistoryActor")
+  crmIdentityLinksConfirmed    CrmIdentityLink[]         @relation("CrmIdentityLinkConfirmer")
+  crmDuplicatesReviewed        CrmDuplicateCandidate[]   @relation("CrmDuplicateReviewer")
+  crmTimelineItemsActed        CrmActivityTimelineItem[] @relation("CrmTimelineActor")
 
   @@index([email])
 }
@@ -685,6 +699,15 @@ model Organisation {
   advertisingBudgetChangeRequests      AdvertisingBudgetChangeRequest[]
   advertisingSpendIncidents            AdvertisingSpendIncident[]
   advertisingOptimisationRuns          AdvertisingOptimisationRun[]
+  crmPersons                           CrmPerson[]
+  crmContacts                          CrmContact[]
+  crmCompanies                         CrmCompany[]
+  crmLeads                             CrmLead[]
+  crmLeadSources                       CrmLeadSource[]
+  crmCustomFieldDefinitions            CrmCustomFieldDefinition[]
+  crmImportJobs                        CrmImportJob[]
+  crmExportJobs                        CrmExportJob[]
+  crmSavedViews                        CrmSavedView[]
 
   @@index([status])
   @@index([archivedAt])
@@ -908,6 +931,15 @@ model Project {
   advertisingBudgetChangeRequests AdvertisingBudgetChangeRequest[]
   advertisingSpendIncidents  AdvertisingSpendIncident[]
   advertisingOptimisationRuns AdvertisingOptimisationRun[]
+  crmPersons                  CrmPerson[]
+  crmContacts                 CrmContact[]
+  crmCompanies                CrmCompany[]
+  crmLeads                    CrmLead[]
+  crmLeadSources              CrmLeadSource[]
+  crmCustomFieldDefinitions   CrmCustomFieldDefinition[]
+  crmImportJobs               CrmImportJob[]
+  crmExportJobs               CrmExportJob[]
+  crmSavedViews               CrmSavedView[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1129,6 +1161,15 @@ model Brand {
   advertisingBudgetChangeRequests AdvertisingBudgetChangeRequest[]
   advertisingSpendIncidents      AdvertisingSpendIncident[]
   advertisingOptimisationRuns    AdvertisingOptimisationRun[]
+  crmPersons                     CrmPerson[]
+  crmContacts                    CrmContact[]
+  crmCompanies                   CrmCompany[]
+  crmLeads                       CrmLead[]
+  crmLeadSources                 CrmLeadSource[]
+  crmCustomFieldDefinitions      CrmCustomFieldDefinition[]
+  crmImportJobs                  CrmImportJob[]
+  crmExportJobs                  CrmExportJob[]
+  crmSavedViews                  CrmSavedView[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -12908,6 +12949,673 @@ model AdvertisingOptimisationFeedback {
   user           UserProfile                           @relation("AdvertisingOptimisationFeedbackUser", fields: [userId], references: [id], onDelete: Restrict)
 
   @@index([recommendationId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.1 — CRM and Lead Data Foundation
+// ---------------------------------------------------------------------------
+
+enum CrmLeadStatus {
+  NEW
+  OPEN
+  CONTACTED
+  RESPONDED
+  QUALIFYING
+  QUALIFIED
+  UNQUALIFIED
+  NURTURING
+  OPPORTUNITY_CREATED
+  CUSTOMER
+  LOST
+  SUPPRESSED
+  ARCHIVED
+}
+
+enum CrmLifecycleStage {
+  VISITOR
+  LEAD
+  MARKETING_QUALIFIED
+  SALES_QUALIFIED
+  OPPORTUNITY
+  TRIAL
+  CUSTOMER
+  ACTIVE_CUSTOMER
+  FORMER_CUSTOMER
+  PARTNER
+}
+
+enum CrmQualificationState {
+  UNASSESSED
+  IN_PROGRESS
+  QUALIFIED
+  DISQUALIFIED
+}
+
+enum CrmLeadSourceType {
+  WEBSITE_FORM
+  WEBSITE_EVENT
+  SOCIAL_INBOX
+  SOCIAL_LEAD_FORM
+  ADVERTISING_LEAD_FORM
+  MANUAL_ENTRY
+  CSV_IMPORT
+  API
+  REFERRAL
+  EVENT
+  EMAIL_REPLY
+  CHAT
+  PARTNER
+  PRODUCT_SIGNUP
+  DEMO_REQUEST
+  GRANT_INTEREST
+  CAPITAL_ANALYSIS_INTEREST
+  OTHER
+}
+
+enum CrmContactMethodType {
+  EMAIL
+  PHONE
+  MOBILE
+  LINKEDIN
+  WHATSAPP
+  TELEGRAM
+  WEBSITE
+  OTHER
+}
+
+enum CrmContactVerificationState {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  INVALID
+}
+
+enum CrmDuplicateCandidateStatus {
+  PENDING
+  CONFIRMED
+  NOT_DUPLICATE
+  MERGED
+  EXPIRED
+}
+
+enum CrmMergeOperationStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  ROLLED_BACK
+}
+
+enum CrmCustomFieldType {
+  TEXT
+  LONG_TEXT
+  NUMBER
+  BOOLEAN
+  DATE
+  DATETIME
+  SINGLE_SELECT
+  MULTI_SELECT
+  URL
+  EMAIL
+  PHONE
+  CURRENCY
+}
+
+enum CrmIdentityLinkType {
+  AUTH_USER
+  VERIFIED_EMAIL
+  CONFIRMED_PHONE
+  CRM_EXTERNAL_ID
+  STRIPE_CUSTOMER
+  SOCIAL_LEAD
+  MARKETING_IDENTITY
+  MARKETING_LEAD
+  STAFF_CONFIRMED
+}
+
+enum CrmActivityTimelineType {
+  LEAD_CREATED
+  FORM_SUBMISSION
+  WEBSITE_CONVERSION
+  SOCIAL_MESSAGE
+  EMAIL
+  CALL
+  MEETING
+  NOTE
+  TASK
+  CAMPAIGN_INTERACTION
+  ADVERTISEMENT_INTERACTION
+  LIFECYCLE_CHANGE
+  STATUS_CHANGE
+  PIPELINE_MOVEMENT
+  TRIAL_START
+  SUBSCRIPTION
+  PAYMENT
+  REFUND
+  CONSENT_CHANGE
+}
+
+enum CrmCompanyRelationshipStatus {
+  PROSPECT
+  CUSTOMER
+  PARTNER
+  VENDOR
+  OTHER
+}
+
+model CrmPerson {
+  id                String    @id @default(cuid())
+  organisationId    String
+  projectId         String?
+  brandId           String?
+  displayName       String?
+  preferredLanguage String?
+  country           String?
+  timezone          String?
+  authUserId        String?
+  marketingIdentityId String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  archivedAt        DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contact      CrmContact?
+  leads        CrmLead[]
+  contactMethods CrmContactMethod[]
+  addresses    CrmAddress[]
+  identityLinks CrmIdentityLink[]
+
+  @@index([organisationId, brandId])
+  @@index([authUserId])
+}
+
+model CrmContact {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  personId       String   @unique
+  jobTitle       String?
+  department     String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  archivedAt     DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  person       CrmPerson    @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId])
+}
+
+model CrmCompany {
+  id                    String                       @id @default(cuid())
+  organisationId        String
+  projectId             String?
+  brandId               String?
+  legalName             String?
+  tradingName           String?
+  website               String?
+  country               String?
+  industry              String?
+  employeeSizeBand      String?
+  revenueBand           String?
+  companyRegistrationRef String?
+  companyType           String?
+  relationshipStatus    CrmCompanyRelationshipStatus @default(PROSPECT)
+  ownerUserId           String?
+  parentCompanyId       String?
+  enrichmentProvider    String?
+  enrichmentRetrievedAt DateTime?
+  enrichmentReference   String?
+  enrichmentConfidence  String?
+  createdAt             DateTime                     @default(now())
+  updatedAt             DateTime                     @updatedAt
+  archivedAt            DateTime?
+
+  organisation  Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project?         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand?           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  owner         UserProfile?     @relation("CrmCompanyOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  parentCompany CrmCompany?      @relation("CrmCompanyHierarchy", fields: [parentCompanyId], references: [id], onDelete: SetNull)
+  subsidiaries  CrmCompany[]     @relation("CrmCompanyHierarchy")
+  domains       CrmCompanyDomain[]
+  leads         CrmLead[]
+  addresses     CrmAddress[]
+
+  @@index([organisationId, brandId])
+  @@index([tradingName])
+}
+
+model CrmCompanyDomain {
+  id         String   @id @default(cuid())
+  companyId  String
+  domain     String
+  verified   Boolean  @default(false)
+  verifiedAt DateTime?
+  createdAt  DateTime @default(now())
+
+  company CrmCompany @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@unique([companyId, domain])
+  @@index([domain])
+}
+
+model CrmLead {
+  id                    String                @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  personId              String?
+  companyId             String?
+  sourceId              String?
+  ownerUserId           String?
+  status                CrmLeadStatus         @default(NEW)
+  lifecycleStage        CrmLifecycleStage     @default(LEAD)
+  qualificationState    CrmQualificationState @default(UNASSESSED)
+  primaryProductInterest String?
+  preferredLanguage     String?
+  country               String?
+  timezone              String?
+  marketingLeadId       String?
+  firstSeenAt           DateTime?
+  lastActivityAt        DateTime?
+  createdByUserId       String
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  archivedAt            DateTime?
+
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  person         CrmPerson?                @relation(fields: [personId], references: [id], onDelete: SetNull)
+  company        CrmCompany?               @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  source         CrmLeadSource?            @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  owner          UserProfile?              @relation("CrmLeadOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy      UserProfile               @relation("CrmLeadCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  productInterests CrmLeadProductInterest[]
+  assignments    CrmLeadAssignment[]
+  lifecycleHistory CrmLeadLifecycleHistory[]
+  statusHistory  CrmLeadStatusHistory[]
+  tagLinks       CrmLeadTagLink[]
+  timelineItems  CrmActivityTimelineItem[]
+  customFieldValues CrmCustomFieldValue[]
+  externalReferences CrmExternalReference[]
+
+  @@index([organisationId, brandId, status])
+  @@index([ownerUserId])
+  @@index([lifecycleStage])
+  @@index([marketingLeadId])
+}
+
+model CrmLeadSource {
+  id                   String            @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  sourceType           CrmLeadSourceType
+  originalSourceType   CrmLeadSourceType
+  latestSourceType     CrmLeadSourceType?
+  provider             String?
+  formName             String?
+  landingPage          String?
+  firstTouchCampaign   String?
+  lastTouchCampaign    String?
+  utmSource            String?
+  utmMedium            String?
+  utmCampaign          String?
+  utmTerm              String?
+  utmContent           String?
+  attributionJourneyId String?
+  sourceEvidence       Json?
+  capturedAt           DateTime          @default(now())
+  createdAt            DateTime          @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  leads        CrmLead[]
+
+  @@index([organisationId, brandId, sourceType])
+}
+
+model CrmLeadProductInterest {
+  id        String   @id @default(cuid())
+  leadId    String
+  product   String
+  notes     String?
+  createdAt DateTime @default(now())
+
+  lead CrmLead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+}
+
+model CrmLeadAssignment {
+  id           String   @id @default(cuid())
+  leadId       String
+  assigneeId   String
+  assignedById String
+  reason       String?
+  assignedAt   DateTime @default(now())
+
+  lead       CrmLead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assignee   UserProfile @relation("CrmLeadAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  assignedBy UserProfile @relation("CrmLeadAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@index([leadId])
+}
+
+model CrmLeadLifecycleHistory {
+  id           String            @id @default(cuid())
+  leadId       String
+  previousStage CrmLifecycleStage?
+  newStage     CrmLifecycleStage
+  actorUserId  String?
+  reason       String?
+  source       String?
+  createdAt    DateTime          @default(now())
+
+  lead  CrmLead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor UserProfile? @relation("CrmLifecycleHistoryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+}
+
+model CrmLeadStatusHistory {
+  id             String         @id @default(cuid())
+  leadId         String
+  previousStatus CrmLeadStatus?
+  newStatus      CrmLeadStatus
+  actorUserId    String?
+  reason         String?
+  source         String?
+  createdAt      DateTime       @default(now())
+
+  lead  CrmLead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor UserProfile? @relation("CrmStatusHistoryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, createdAt])
+}
+
+model CrmLeadTag {
+  id             String   @id @default(cuid())
+  organisationId String
+  name           String
+  color          String?
+  createdAt      DateTime @default(now())
+
+  links CrmLeadTagLink[]
+
+  @@unique([organisationId, name])
+}
+
+model CrmLeadTagLink {
+  id     String @id @default(cuid())
+  leadId String
+  tagId  String
+
+  lead CrmLead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tag  CrmLeadTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([leadId, tagId])
+}
+
+model CrmContactMethod {
+  id                String                      @id @default(cuid())
+  personId          String
+  methodType        CrmContactMethodType
+  normalisedValue   String
+  displayValue      String
+  verificationState CrmContactVerificationState @default(UNVERIFIED)
+  isPrimary         Boolean                     @default(false)
+  consentEligible   Boolean                     @default(true)
+  lastVerifiedAt    DateTime?
+  source            String?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  person CrmPerson @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@index([personId, methodType])
+  @@index([normalisedValue])
+}
+
+model CrmAddress {
+  id         String   @id @default(cuid())
+  personId   String?
+  companyId  String?
+  label      String?
+  line1      String?
+  line2      String?
+  city       String?
+  region     String?
+  postalCode String?
+  country    String?
+  isPrimary  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  person  CrmPerson?  @relation(fields: [personId], references: [id], onDelete: Cascade)
+  company CrmCompany? @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([personId])
+  @@index([companyId])
+}
+
+model CrmExternalReference {
+  id           String   @id @default(cuid())
+  leadId       String?
+  personId     String?
+  companyId    String?
+  provider     String
+  externalId   String
+  externalUrl  String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  lead CrmLead? @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, externalId, leadId])
+  @@index([externalId])
+}
+
+model CrmIdentityLink {
+  id              String              @id @default(cuid())
+  personId        String
+  linkType        CrmIdentityLinkType
+  externalId      String
+  evidence        String?
+  confirmedAt     DateTime?
+  confirmedByUserId String?
+  createdAt       DateTime            @default(now())
+
+  person    CrmPerson    @relation(fields: [personId], references: [id], onDelete: Cascade)
+  confirmedBy UserProfile? @relation("CrmIdentityLinkConfirmer", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([personId, linkType, externalId])
+  @@index([linkType, externalId])
+}
+
+model CrmDuplicateCandidate {
+  id              String                      @id @default(cuid())
+  organisationId  String
+  brandId         String?
+  sourceRecordType String
+  sourceRecordId  String
+  targetRecordType String
+  targetRecordId  String
+  matchEvidence   Json
+  status          CrmDuplicateCandidateStatus @default(PENDING)
+  reviewedByUserId String?
+  reviewedAt      DateTime?
+  createdAt       DateTime                    @default(now())
+
+  reviewedBy UserProfile? @relation("CrmDuplicateReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, status])
+  @@index([sourceRecordId, targetRecordId])
+}
+
+model CrmMergeOperation {
+  id                  String                  @id @default(cuid())
+  organisationId      String
+  sourceRecordType    String
+  sourceRecordId      String
+  destinationRecordType String
+  destinationRecordId String
+  fieldConflicts      Json?
+  status              CrmMergeOperationStatus @default(PENDING)
+  consentPreserved    Boolean                 @default(true)
+  attributionPreserved Boolean                @default(true)
+  rollbackStrategy    String?
+  operatorUserId      String
+  completedAt         DateTime?
+  createdAt           DateTime                @default(now())
+
+  operator UserProfile @relation("CrmMergeOperator", fields: [operatorUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, status])
+}
+
+model CrmCustomFieldDefinition {
+  id             String             @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  entityType     String
+  fieldKey       String
+  label          String
+  fieldType      CrmCustomFieldType
+  options        Json?
+  isRequired     Boolean            @default(false)
+  sortOrder      Int                @default(0)
+  visibility     String             @default("STANDARD")
+  archivedAt     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  values       CrmCustomFieldValue[]
+
+  @@unique([organisationId, entityType, fieldKey])
+  @@index([entityType])
+}
+
+model CrmCustomFieldValue {
+  id          String   @id @default(cuid())
+  definitionId String
+  leadId      String?
+  personId    String?
+  companyId   String?
+  valueText   String?
+  valueNumber Decimal? @db.Decimal(24, 6)
+  valueBoolean Boolean?
+  valueDate   DateTime?
+  valueJson   Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  definition CrmCustomFieldDefinition @relation(fields: [definitionId], references: [id], onDelete: Cascade)
+  lead         CrmLead?               @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([definitionId, leadId])
+}
+
+model CrmActivityTimelineItem {
+  id             String                  @id @default(cuid())
+  organisationId String
+  brandId        String?
+  leadId         String?
+  personId       String?
+  companyId      String?
+  itemType       CrmActivityTimelineType
+  title          String
+  summary        String?
+  visibility     String                  @default("STANDARD")
+  sourceSystem   String?
+  sourceId       String?
+  metadata       Json?
+  actorUserId    String?
+  occurredAt     DateTime                @default(now())
+  createdAt      DateTime                @default(now())
+
+  lead  CrmLead?     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  actor UserProfile? @relation("CrmTimelineActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, occurredAt])
+  @@index([organisationId, brandId])
+}
+
+model CrmSavedView {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  name           String
+  entityType     String
+  filters        Json
+  isTeamView     Boolean  @default(false)
+  createdByUserId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile  @relation("CrmSavedViewCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, entityType])
+}
+
+model CrmImportJob {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  entityType     String
+  status         String   @default("PENDING")
+  fileName       String?
+  fieldMapping   Json?
+  totalRows      Int      @default(0)
+  acceptedRows   Int      @default(0)
+  rejectedRows   Int      @default(0)
+  rejectedDetails Json?
+  idempotencyKey String?
+  createdByUserId String
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile  @relation("CrmImportCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, status])
+}
+
+model CrmExportJob {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  entityType     String
+  format         String
+  rowCount       Int      @default(0)
+  filters        Json?
+  createdByUserId String
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile  @relation("CrmExportCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, createdAt])
 }
 
 // ---------------------------------------------------------------------------
