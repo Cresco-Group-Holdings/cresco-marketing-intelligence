@@ -440,6 +440,14 @@ model Organisation {
   funnelStepResults              FunnelStepResult[]
   funnelSegments                 FunnelSegment[]
   funnelDropOffInsights          FunnelDropOffInsight[]
+  revenueCustomers               RevenueCustomer[]
+  revenueCustomerIdentityLinks   RevenueCustomerIdentityLink[]
+  revenueSubscriptions           RevenueSubscription[]
+  revenueTransactions            RevenueTransaction[]
+  revenueTransactionLineItems    RevenueTransactionLineItem[]
+  revenueSyncRuns                RevenueSyncRun[]
+  revenueCohortResults           RevenueCohortResult[]
+  revenueUnitEconomicsSnapshots  RevenueUnitEconomicsSnapshot[]
 
   @@index([status])
   @@index([archivedAt])
@@ -602,6 +610,14 @@ model Project {
   funnelStepResults              FunnelStepResult[]
   funnelSegments                 FunnelSegment[]
   funnelDropOffInsights          FunnelDropOffInsight[]
+  revenueCustomers               RevenueCustomer[]
+  revenueCustomerIdentityLinks   RevenueCustomerIdentityLink[]
+  revenueSubscriptions           RevenueSubscription[]
+  revenueTransactions            RevenueTransaction[]
+  revenueTransactionLineItems    RevenueTransactionLineItem[]
+  revenueSyncRuns                RevenueSyncRun[]
+  revenueCohortResults           RevenueCohortResult[]
+  revenueUnitEconomicsSnapshots  RevenueUnitEconomicsSnapshot[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -756,6 +772,14 @@ model Brand {
   funnelStepResults              FunnelStepResult[]
   funnelSegments                 FunnelSegment[]
   funnelDropOffInsights          FunnelDropOffInsight[]
+  revenueCustomers               RevenueCustomer[]
+  revenueCustomerIdentityLinks   RevenueCustomerIdentityLink[]
+  revenueSubscriptions           RevenueSubscription[]
+  revenueTransactions            RevenueTransaction[]
+  revenueTransactionLineItems    RevenueTransactionLineItem[]
+  revenueSyncRuns                RevenueSyncRun[]
+  revenueCohortResults           RevenueCohortResult[]
+  revenueUnitEconomicsSnapshots  RevenueUnitEconomicsSnapshot[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -4907,6 +4931,8 @@ model MarketingIdentity {
   linksTo      MarketingIdentityLink[] @relation("IdentityLinkTo")
   attributionJourneys    AttributionJourney[]
   attributionTouchpoints AttributionTouchpoint[]
+  revenueCustomers       RevenueCustomer[]
+  revenueCustomerIdentityLinks RevenueCustomerIdentityLink[]
 
   @@unique([brandId, identityType, identityValue])
   @@index([organisationId, brandId])
@@ -6120,6 +6146,319 @@ model FunnelDropOffInsight {
 
   @@index([funnelAnalysisRunId])
   @@index([insightType])
+}
+
+// ---------------------------------------------------------------------------
+// Revenue and unit economics intelligence (Task 3.8)
+// ---------------------------------------------------------------------------
+
+enum RevenueSourceType {
+  STRIPE
+  CRM
+  MANUAL_IMPORT
+  INTERNAL_EVENT
+}
+
+enum RevenueTransactionType {
+  INVOICE
+  PAYMENT
+  REFUND
+  CREDIT
+  DISCOUNT
+  CHARGEBACK
+}
+
+enum RevenueSubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  UNPAID
+  PAUSED
+  INCOMPLETE
+}
+
+enum RevenueCustomerLinkMethod {
+  INTERNAL_CUSTOMER_ID
+  AUTHENTICATED_USER
+  STRIPE_METADATA
+  CRM_ID_CONFIRMED
+  SERVER_SIDE_ASSOCIATION
+}
+
+enum RevenueSyncStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum RevenueCohortDimension {
+  SIGNUP_MONTH
+  ACQUISITION_CHANNEL
+  CAMPAIGN
+  FIRST_TOUCH
+  LAST_TOUCH
+  PRODUCT
+  PLAN
+  COUNTRY
+  CUSTOMER_TYPE
+}
+
+model RevenueCustomer {
+  id                           String            @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  sourceType                   RevenueSourceType
+  providerCustomerId           String
+  marketingIdentityId          String?
+  email                        String?
+  displayName                  String?
+  country                      String?
+  customerType                 String?
+  signupAt                     DateTime?
+  acquisitionChannel           String?
+  firstTouchSource             String?
+  lastTouchSource              String?
+  campaign                     String?
+  originalCurrency             String?
+  reportingCurrency            String?
+  providerMetadata             Json?
+  isDeleted                    Boolean           @default(false)
+  deletedAt                    DateTime?
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @updatedAt
+
+  organisation      Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingIdentity MarketingIdentity?          @relation(fields: [marketingIdentityId], references: [id], onDelete: SetNull)
+  identityLinks     RevenueCustomerIdentityLink[]
+  subscriptions     RevenueSubscription[]
+  transactions      RevenueTransaction[]
+
+  @@unique([brandId, sourceType, providerCustomerId])
+  @@index([organisationId, brandId])
+  @@index([marketingIdentityId])
+  @@index([isDeleted])
+}
+
+model RevenueCustomerIdentityLink {
+  id                String                  @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  revenueCustomerId String
+  marketingIdentityId String
+  linkMethod        RevenueCustomerLinkMethod
+  evidence          Json?
+  confidence        Decimal?                @db.Decimal(5, 4)
+  confirmedByUserId String?
+  confirmedAt       DateTime?
+  createdAt         DateTime                @default(now())
+
+  organisation      Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  revenueCustomer   RevenueCustomer   @relation(fields: [revenueCustomerId], references: [id], onDelete: Cascade)
+  marketingIdentity MarketingIdentity @relation(fields: [marketingIdentityId], references: [id], onDelete: Cascade)
+
+  @@unique([revenueCustomerId, marketingIdentityId])
+  @@index([organisationId, brandId])
+}
+
+model RevenueSubscription {
+  id                   String                    @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  revenueCustomerId    String
+  sourceType           RevenueSourceType
+  providerSubscriptionId String
+  status               RevenueSubscriptionStatus
+  productId            String?
+  productName          String?
+  priceId              String?
+  planName             String?
+  mrrAmount            Decimal?                  @db.Decimal(24, 6)
+  currency             String
+  trialStart           DateTime?
+  trialEnd             DateTime?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  canceledAt           DateTime?
+  providerMetadata     Json?
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  organisation    Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  revenueCustomer RevenueCustomer @relation(fields: [revenueCustomerId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, sourceType, providerSubscriptionId])
+  @@index([organisationId, brandId, status])
+  @@index([revenueCustomerId])
+}
+
+model RevenueTransaction {
+  id                    String                 @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  revenueCustomerId     String?
+  sourceType            RevenueSourceType
+  transactionType       RevenueTransactionType
+  providerTransactionId String
+  originalAmount        Decimal                @db.Decimal(24, 6)
+  netAmount             Decimal                @db.Decimal(24, 6)
+  currency              String
+  reportingAmount       Decimal?               @db.Decimal(24, 6)
+  reportingCurrency     String?
+  exchangeRate          Decimal?               @db.Decimal(18, 8)
+  occurredAt            DateTime
+  invoiceId             String?
+  paymentId             String?
+  subscriptionId        String?
+  isRefund              Boolean                @default(false)
+  isPartialRefund       Boolean                @default(false)
+  parentTransactionId   String?
+  idempotencyKey        String                 @unique
+  providerMetadata      Json?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  organisation      Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  revenueCustomer   RevenueCustomer?           @relation(fields: [revenueCustomerId], references: [id], onDelete: SetNull)
+  parentTransaction RevenueTransaction?        @relation("RevenueTransactionRefund", fields: [parentTransactionId], references: [id], onDelete: SetNull)
+  childTransactions RevenueTransaction[]       @relation("RevenueTransactionRefund")
+  lineItems         RevenueTransactionLineItem[]
+
+  @@unique([brandId, sourceType, providerTransactionId])
+  @@index([organisationId, brandId, occurredAt])
+  @@index([transactionType])
+  @@index([revenueCustomerId])
+}
+
+model RevenueTransactionLineItem {
+  id                   String   @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  revenueTransactionId String
+  providerLineItemId   String
+  description          String?
+  quantity             Int      @default(1)
+  unitAmount           Decimal  @db.Decimal(24, 6)
+  totalAmount          Decimal  @db.Decimal(24, 6)
+  currency             String
+  productId            String?
+  priceId              String?
+  providerMetadata     Json?
+  createdAt            DateTime @default(now())
+
+  organisation       Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project            Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand              Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  revenueTransaction RevenueTransaction @relation(fields: [revenueTransactionId], references: [id], onDelete: Cascade)
+
+  @@unique([revenueTransactionId, providerLineItemId])
+  @@index([organisationId, brandId])
+}
+
+model RevenueSyncRun {
+  id             String            @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  sourceType     RevenueSourceType
+  status         RevenueSyncStatus @default(PENDING)
+  recordsSynced  Int               @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  lastSyncedAt   DateTime?
+  errorMessage   String?
+  idempotencyKey String            @unique
+  metadata       Json?
+  createdAt      DateTime          @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, createdAt])
+  @@index([sourceType, status])
+}
+
+model RevenueCohortResult {
+  id             String               @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  dimension      RevenueCohortDimension
+  cohortKey      String
+  periodStart    DateTime
+  periodEnd      DateTime
+  customerCount  Int                  @default(0)
+  totalRevenue   Decimal              @db.Decimal(24, 6)
+  mrr            Decimal?             @db.Decimal(24, 6)
+  currency       String
+  metadata       Json?
+  calculatedAt   DateTime
+  createdAt      DateTime             @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, dimension, cohortKey])
+  @@index([calculatedAt])
+}
+
+model RevenueUnitEconomicsSnapshot {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  periodStart         DateTime
+  periodEnd           DateTime
+  currency            String
+  reportingCurrency   String?
+  totalRevenue        Decimal  @db.Decimal(24, 6)
+  newRevenue          Decimal  @db.Decimal(24, 6)
+  recurringRevenue    Decimal  @db.Decimal(24, 6)
+  expansionRevenue    Decimal  @db.Decimal(24, 6)
+  contractionRevenue  Decimal  @db.Decimal(24, 6)
+  refunds             Decimal  @db.Decimal(24, 6)
+  netRevenue          Decimal  @db.Decimal(24, 6)
+  mrr                 Decimal  @db.Decimal(24, 6)
+  arr                 Decimal  @db.Decimal(24, 6)
+  customerCount       Int      @default(0)
+  arpc                Decimal? @db.Decimal(24, 6)
+  cac                 Decimal? @db.Decimal(24, 6)
+  blendedCac          Decimal? @db.Decimal(24, 6)
+  paidCac             Decimal? @db.Decimal(24, 6)
+  ltv                 Decimal? @db.Decimal(24, 6)
+  ltvCacRatio         Decimal? @db.Decimal(12, 4)
+  paybackMonths       Decimal? @db.Decimal(12, 4)
+  revenuePerLead      Decimal? @db.Decimal(24, 6)
+  revenuePerConversion Decimal? @db.Decimal(24, 6)
+  trialToPaidRate     Decimal? @db.Decimal(8, 4)
+  unattributedRevenue Decimal  @db.Decimal(24, 6)
+  formulaDefinitions  Json?
+  assumptions         Json?
+  calculatedAt        DateTime
+  createdAt           DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, calculatedAt])
 }
 
 // ---------------------------------------------------------------------------
