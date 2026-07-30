@@ -168,6 +168,10 @@ export const PERMISSIONS = {
   "advertisingBudgets.request": "advertisingBudgets.request",
   "advertisingBudgets.approve": "advertisingBudgets.approve",
   "advertisingBudgets.emergency": "advertisingBudgets.emergency",
+  "advertisingOptimisation.read": "advertisingOptimisation.read",
+  "advertisingOptimisation.run": "advertisingOptimisation.run",
+  "advertisingOptimisation.approve": "advertisingOptimisation.approve",
+  "advertisingOptimisation.feedback": "advertisingOptimisation.feedback",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -341,6 +345,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingBudgets.request"],
     PERMISSIONS["advertisingBudgets.approve"],
     PERMISSIONS["advertisingBudgets.emergency"],
+    PERMISSIONS["advertisingOptimisation.read"],
+    PERMISSIONS["advertisingOptimisation.run"],
+    PERMISSIONS["advertisingOptimisation.approve"],
+    PERMISSIONS["advertisingOptimisation.feedback"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -458,6 +466,9 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingBudgets.read"],
     PERMISSIONS["advertisingBudgets.manage"],
     PERMISSIONS["advertisingBudgets.request"],
+    PERMISSIONS["advertisingOptimisation.read"],
+    PERMISSIONS["advertisingOptimisation.run"],
+    PERMISSIONS["advertisingOptimisation.feedback"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -505,6 +516,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingTikTokAds.read"],
     PERMISSIONS["advertisingExperiments.read"],
     PERMISSIONS["advertisingBudgets.read"],
+    PERMISSIONS["advertisingOptimisation.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -542,6 +554,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingTikTokAds.read"],
     PERMISSIONS["advertisingExperiments.read"],
     PERMISSIONS["advertisingBudgets.read"],
+    PERMISSIONS["advertisingOptimisation.read"],
     PERMISSIONS["experiments.read"],
   ],
 };

@@ -78,6 +78,12 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Budget pacing, alerts, and spend governance",
   },
   {
+    label: "Ad Optimisation",
+    href: "/advertising/optimisation",
+    icon: Bot,
+    description: "AI advertising optimisation recommendations",
+  },
+  {
     label: "Brands",
     href: "/brands",
     icon: Megaphone,
