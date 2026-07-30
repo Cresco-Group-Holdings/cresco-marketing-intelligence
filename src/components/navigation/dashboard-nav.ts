@@ -171,6 +171,12 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Lead capture forms and submissions",
   },
   {
+    label: "Automation",
+    href: "/automation",
+    icon: Bot,
+    description: "Customer journey automations with triggers, conditions, and actions",
+  },
+  {
     label: "Connectors",
     href: "/connectors",
     icon: Link2,
