@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { apiFetch } from "@/lib/api/client";
+import { LifecycleRecommendationPanel } from "@/components/crm/assistant-view";
 
 export type PipelinesViewMode =
   | "pipelines"
@@ -245,6 +246,7 @@ export function PipelinesView({ mode, pipelineId, opportunityId }: Props) {
               <Button variant="outline" className="w-full" onClick={() => postAction({ action: "markLost", opportunityId, lossReasonId })}>Mark lost</Button>
             </CardContent>
           </Card>
+          <LifecycleRecommendationPanel opportunityId={opportunityId} compact />
         </div>
       )}
 
