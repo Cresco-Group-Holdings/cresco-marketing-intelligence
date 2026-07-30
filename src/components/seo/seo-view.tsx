@@ -248,6 +248,9 @@ export function SeoView({
           <Link href="/seo/internal-links">
             <Button variant="outline" size="sm">Internal links</Button>
           </Link>
+          <Link href="/seo/rankings">
+            <Button variant="outline" size="sm">Rankings</Button>
+          </Link>
         </nav>
       )}
 

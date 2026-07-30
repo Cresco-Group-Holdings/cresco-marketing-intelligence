@@ -109,6 +109,11 @@ export const PERMISSIONS = {
   "internalLinks.manage": "internalLinks.manage",
   "internalLinks.build": "internalLinks.build",
   "internalLinks.propose": "internalLinks.propose",
+  "rankTracking.read": "rankTracking.read",
+  "rankTracking.manage": "rankTracking.manage",
+  "rankTracking.import": "rankTracking.import",
+  "contentRefresh.read": "contentRefresh.read",
+  "contentRefresh.manage": "contentRefresh.manage",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -223,6 +228,11 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["internalLinks.manage"],
     PERMISSIONS["internalLinks.build"],
     PERMISSIONS["internalLinks.propose"],
+    PERMISSIONS["rankTracking.read"],
+    PERMISSIONS["rankTracking.manage"],
+    PERMISSIONS["rankTracking.import"],
+    PERMISSIONS["contentRefresh.read"],
+    PERMISSIONS["contentRefresh.manage"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -302,6 +312,11 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["internalLinks.read"],
     PERMISSIONS["internalLinks.manage"],
     PERMISSIONS["internalLinks.build"],
+    PERMISSIONS["rankTracking.read"],
+    PERMISSIONS["rankTracking.manage"],
+    PERMISSIONS["rankTracking.import"],
+    PERMISSIONS["contentRefresh.read"],
+    PERMISSIONS["contentRefresh.manage"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -338,6 +353,8 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["longForm.read"],
     PERMISSIONS["seoOnPage.read"],
     PERMISSIONS["internalLinks.read"],
+    PERMISSIONS["rankTracking.read"],
+    PERMISSIONS["contentRefresh.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -364,6 +381,8 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["longForm.read"],
     PERMISSIONS["seoOnPage.read"],
     PERMISSIONS["internalLinks.read"],
+    PERMISSIONS["rankTracking.read"],
+    PERMISSIONS["contentRefresh.read"],
     PERMISSIONS["experiments.read"],
   ],
 };
