@@ -230,6 +230,7 @@ model UserProfile {
   auditLogs                  AuditLog[]
   workspacePreference        WorkspacePreference?
   executiveDashboardPreferences ExecutiveDashboardPreference[]
+  marketingAnalystRuns          MarketingAnalystRun[]
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -450,6 +451,8 @@ model Organisation {
   revenueCohortResults           RevenueCohortResult[]
   revenueUnitEconomicsSnapshots  RevenueUnitEconomicsSnapshot[]
   executiveDashboardPreferences  ExecutiveDashboardPreference[]
+  marketingAnalystRuns           MarketingAnalystRun[]
+  marketingAnalystRecommendations MarketingAnalystRecommendation[]
 
   @@index([status])
   @@index([archivedAt])
@@ -620,6 +623,8 @@ model Project {
   revenueSyncRuns                RevenueSyncRun[]
   revenueCohortResults           RevenueCohortResult[]
   revenueUnitEconomicsSnapshots  RevenueUnitEconomicsSnapshot[]
+  marketingAnalystRuns           MarketingAnalystRun[]
+  marketingAnalystRecommendations MarketingAnalystRecommendation[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -782,6 +787,8 @@ model Brand {
   revenueSyncRuns                RevenueSyncRun[]
   revenueCohortResults           RevenueCohortResult[]
   revenueUnitEconomicsSnapshots  RevenueUnitEconomicsSnapshot[]
+  marketingAnalystRuns           MarketingAnalystRun[]
+  marketingAnalystRecommendations MarketingAnalystRecommendation[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -6496,6 +6503,95 @@ model ExecutiveDashboardPreference {
 
   @@unique([userId, organisationId])
   @@index([organisationId])
+}
+
+// ---------------------------------------------------------------------------
+// AI marketing analyst (Task 3.10)
+// ---------------------------------------------------------------------------
+
+enum MarketingAnalystRunType {
+  QUESTION
+  BRIEF
+  ANOMALY
+}
+
+enum MarketingAnalystRunStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum MarketingAnalystRecommendationStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
+enum MarketingAnalystActionType {
+  CONTENT_BRIEF
+  EXPERIMENT
+  CAMPAIGN_TASK
+  DATA_QUALITY_TASK
+  CONNECTOR_RECOVERY_TASK
+  LANDING_PAGE_REVIEW
+  OBJECTIVE_UPDATE_PROPOSAL
+}
+
+model MarketingAnalystRun {
+  id               String                    @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  userProfileId    String
+  runType          MarketingAnalystRunType
+  question         String?
+  briefType        String?
+  status           MarketingAnalystRunStatus @default(PENDING)
+  evidencePackage  Json
+  structuredOutput Json?
+  outputSource     String?
+  aiRequestId      String?
+  errorMessage     String?
+  isSaved          Boolean                   @default(false)
+  filters          Json?
+  createdAt        DateTime                  @default(now())
+  completedAt      DateTime?
+
+  organisation     Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  userProfile      UserProfile                     @relation(fields: [userProfileId], references: [id], onDelete: Cascade)
+  recommendations  MarketingAnalystRecommendation[]
+
+  @@index([organisationId, brandId, createdAt])
+  @@index([userProfileId, isSaved])
+  @@index([status])
+}
+
+model MarketingAnalystRecommendation {
+  id                 String                             @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  analystRunId       String
+  actionType         MarketingAnalystActionType
+  title              String
+  description        String
+  priority           Int                                @default(2)
+  status             MarketingAnalystRecommendationStatus @default(OPEN)
+  linkedResourceType String?
+  linkedResourceId   String?
+  createdAt          DateTime                           @default(now())
+  dismissedAt        DateTime?
+  actionedAt         DateTime?
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  analystRun   MarketingAnalystRun @relation(fields: [analystRunId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, status])
+  @@index([analystRunId])
 }
 
 // ---------------------------------------------------------------------------
