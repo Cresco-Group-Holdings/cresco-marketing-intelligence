@@ -28,6 +28,7 @@ const nav: Array<{ label: string; href: string; mode: WarehouseViewMode }> = [
   { label: "Conversions", href: "/data/conversions", mode: "conversions" },
   { label: "Metrics", href: "/data/metrics", mode: "metrics" },
   { label: "Lineage", href: "/data/lineage", mode: "lineage" },
+  { label: "Tracking", href: "/data/tracking", mode: "sources" },
 ];
 
 function defaultDateRange() {

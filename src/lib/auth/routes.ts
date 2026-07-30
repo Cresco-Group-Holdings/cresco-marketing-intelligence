@@ -48,6 +48,10 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
+  if (pathname.startsWith("/api/tracking/v1/events")) {
+    return false;
+  }
+
   return true;
 }
 
