@@ -105,6 +105,10 @@ export const PERMISSIONS = {
   "seoOnPage.manage": "seoOnPage.manage",
   "seoOnPage.audit": "seoOnPage.audit",
   "seoOnPage.override": "seoOnPage.override",
+  "internalLinks.read": "internalLinks.read",
+  "internalLinks.manage": "internalLinks.manage",
+  "internalLinks.build": "internalLinks.build",
+  "internalLinks.propose": "internalLinks.propose",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -215,6 +219,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoOnPage.manage"],
     PERMISSIONS["seoOnPage.audit"],
     PERMISSIONS["seoOnPage.override"],
+    PERMISSIONS["internalLinks.read"],
+    PERMISSIONS["internalLinks.manage"],
+    PERMISSIONS["internalLinks.build"],
+    PERMISSIONS["internalLinks.propose"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -291,6 +299,9 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoOnPage.read"],
     PERMISSIONS["seoOnPage.manage"],
     PERMISSIONS["seoOnPage.audit"],
+    PERMISSIONS["internalLinks.read"],
+    PERMISSIONS["internalLinks.manage"],
+    PERMISSIONS["internalLinks.build"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -326,6 +337,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoBriefs.read"],
     PERMISSIONS["longForm.read"],
     PERMISSIONS["seoOnPage.read"],
+    PERMISSIONS["internalLinks.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -351,6 +363,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoBriefs.read"],
     PERMISSIONS["longForm.read"],
     PERMISSIONS["seoOnPage.read"],
+    PERMISSIONS["internalLinks.read"],
     PERMISSIONS["experiments.read"],
   ],
 };
