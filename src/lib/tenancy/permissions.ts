@@ -72,6 +72,14 @@ export const PERMISSIONS = {
   "tracking.read": "tracking.read",
   "tracking.manage": "tracking.manage",
   "tracking.viewRaw": "tracking.viewRaw",
+  "seoSites.read": "seoSites.read",
+  "seoSites.create": "seoSites.create",
+  "seoSites.manage": "seoSites.manage",
+  "seoCrawls.run": "seoCrawls.run",
+  "seoCrawls.cancel": "seoCrawls.cancel",
+  "seoCrawls.export": "seoCrawls.export",
+  "seoIssues.manage": "seoIssues.manage",
+  "seoRawData.view": "seoRawData.view",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -149,6 +157,14 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["tracking.read"],
     PERMISSIONS["tracking.manage"],
     PERMISSIONS["tracking.viewRaw"],
+    PERMISSIONS["seoSites.read"],
+    PERMISSIONS["seoSites.create"],
+    PERMISSIONS["seoSites.manage"],
+    PERMISSIONS["seoCrawls.run"],
+    PERMISSIONS["seoCrawls.cancel"],
+    PERMISSIONS["seoCrawls.export"],
+    PERMISSIONS["seoIssues.manage"],
+    PERMISSIONS["seoRawData.view"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -199,6 +215,11 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["ai.analyst.read"],
     PERMISSIONS["ai.analyst.generate"],
     PERMISSIONS["tracking.read"],
+    PERMISSIONS["seoSites.read"],
+    PERMISSIONS["seoSites.create"],
+    PERMISSIONS["seoCrawls.run"],
+    PERMISSIONS["seoCrawls.export"],
+    PERMISSIONS["seoIssues.manage"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -224,6 +245,8 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["marketingData.manageQuality"],
     PERMISSIONS["ai.analyst.read"],
     PERMISSIONS["tracking.read"],
+    PERMISSIONS["seoSites.read"],
+    PERMISSIONS["seoCrawls.export"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -242,6 +265,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["marketingData.read"],
     PERMISSIONS["ai.analyst.read"],
     PERMISSIONS["tracking.read"],
+    PERMISSIONS["seoSites.read"],
     PERMISSIONS["experiments.read"],
   ],
 };

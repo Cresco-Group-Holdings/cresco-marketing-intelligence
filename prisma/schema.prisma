@@ -231,6 +231,9 @@ model UserProfile {
   workspacePreference        WorkspacePreference?
   executiveDashboardPreferences ExecutiveDashboardPreference[]
   marketingAnalystRuns          MarketingAnalystRun[]
+  seoDomainsVerified            SeoSiteDomain[]           @relation("SeoDomainVerifier")
+  seoCrawlRunsCreated           SeoCrawlRun[]             @relation("SeoCrawlRunCreator")
+  seoIssueResolutions           SeoIssueResolution[]      @relation("SeoIssueResolver")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -453,6 +456,19 @@ model Organisation {
   executiveDashboardPreferences  ExecutiveDashboardPreference[]
   marketingAnalystRuns           MarketingAnalystRun[]
   marketingAnalystRecommendations MarketingAnalystRecommendation[]
+  seoSites                       SeoSite[]
+  seoSiteDomains                 SeoSiteDomain[]
+  seoCrawlConfigurations         SeoCrawlConfiguration[]
+  seoCrawlRuns                   SeoCrawlRun[]
+  seoCrawlPages                  SeoCrawlPage[]
+  seoPageSnapshots               SeoPageSnapshot[]
+  seoCrawlLinks                  SeoCrawlLink[]
+  seoCrawlResources              SeoCrawlResource[]
+  seoCrawlIssues                 SeoCrawlIssue[]
+  seoIssueResolutions            SeoIssueResolution[]
+  seoRobotsSnapshots             SeoRobotsSnapshot[]
+  seoSitemaps                    SeoSitemap[]
+  seoStructuredDataItems         SeoStructuredDataItem[]
 
   @@index([status])
   @@index([archivedAt])
@@ -625,6 +641,12 @@ model Project {
   revenueUnitEconomicsSnapshots  RevenueUnitEconomicsSnapshot[]
   marketingAnalystRuns           MarketingAnalystRun[]
   marketingAnalystRecommendations MarketingAnalystRecommendation[]
+  seoSites                       SeoSite[]
+  seoSiteDomains                 SeoSiteDomain[]
+  seoCrawlConfigurations         SeoCrawlConfiguration[]
+  seoCrawlRuns                   SeoCrawlRun[]
+  seoCrawlPages                  SeoCrawlPage[]
+  seoCrawlIssues                 SeoCrawlIssue[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -789,6 +811,12 @@ model Brand {
   revenueUnitEconomicsSnapshots  RevenueUnitEconomicsSnapshot[]
   marketingAnalystRuns           MarketingAnalystRun[]
   marketingAnalystRecommendations MarketingAnalystRecommendation[]
+  seoSites                       SeoSite[]
+  seoSiteDomains                 SeoSiteDomain[]
+  seoCrawlConfigurations         SeoCrawlConfiguration[]
+  seoCrawlRuns                   SeoCrawlRun[]
+  seoCrawlPages                  SeoCrawlPage[]
+  seoCrawlIssues                 SeoCrawlIssue[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -6595,6 +6623,487 @@ model MarketingAnalystRecommendation {
 }
 
 // ---------------------------------------------------------------------------
+// Technical SEO crawler (Task 4.1)
+// ---------------------------------------------------------------------------
+
+enum SeoSiteStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+  VERIFICATION_REQUIRED
+}
+
+enum SeoDomainVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum SeoDomainVerificationMethod {
+  DNS_TXT
+  HTML_FILE
+  META_TAG
+  TRACKING_PROPERTY
+  SEARCH_CONSOLE
+}
+
+enum SeoCrawlRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum SeoCrawlQueueItemStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum SeoLinkType {
+  INTERNAL
+  EXTERNAL
+  ASSET
+  MAILTO
+  TELEPHONE
+  OTHER
+}
+
+enum SeoIssueSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum SeoIssueStatus {
+  OPEN
+  ACKNOWLEDGED
+  FIXED
+  IGNORED
+  FALSE_POSITIVE
+  REOPENED
+}
+
+model SeoSite {
+  id                 String        @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  trackingPropertyId String?
+  name               String
+  primaryDomain      String
+  preferredProtocol  String        @default("https")
+  defaultLocale      String?
+  defaultTimezone    String?
+  status             SeoSiteStatus @default(VERIFICATION_REQUIRED)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  organisation       Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project            Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand              Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  trackingProperty   TrackingProperty?     @relation(fields: [trackingPropertyId], references: [id], onDelete: SetNull)
+  domains            SeoSiteDomain[]
+  crawlConfiguration SeoCrawlConfiguration?
+  crawlRuns          SeoCrawlRun[]
+  crawlPages         SeoCrawlPage[]
+  crawlIssues        SeoCrawlIssue[]
+  robotsSnapshots    SeoRobotsSnapshot[]
+  sitemaps           SeoSitemap[]
+
+  @@unique([brandId, primaryDomain])
+  @@index([organisationId, brandId])
+  @@index([status])
+}
+
+model SeoSiteDomain {
+  id                 String                      @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  seoSiteId          String
+  hostname           String
+  verificationMethod SeoDomainVerificationMethod?
+  verificationTokenHash String?
+  verificationStatus SeoDomainVerificationStatus @default(PENDING)
+  verifiedAt         DateTime?
+  verifiedByUserId   String?
+  lastCheckedAt      DateTime?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime                    @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  seoSite      SeoSite      @relation(fields: [seoSiteId], references: [id], onDelete: Cascade)
+  verifiedBy   UserProfile? @relation("SeoDomainVerifier", fields: [verifiedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([seoSiteId, hostname])
+  @@index([organisationId, brandId])
+  @@index([verificationStatus])
+}
+
+model SeoCrawlConfiguration {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  seoSiteId           String   @unique
+  startUrls           String[] @default([])
+  allowedDomains      String[] @default([])
+  allowedSubdomains   Boolean  @default(true)
+  includeRules        String[] @default([])
+  excludeRules        String[] @default([])
+  maxPages            Int      @default(500)
+  maxDepth            Int      @default(5)
+  requestConcurrency  Int      @default(2)
+  requestDelayMs      Int      @default(500)
+  requestTimeoutMs    Int      @default(15000)
+  redirectLimit       Int      @default(5)
+  userAgent           String   @default("CrescoSEOBot/1.0")
+  respectRobotsTxt    Boolean  @default(true)
+  followCanonical     Boolean  @default(true)
+  queryParamRules     Json?
+  ignoredExtensions   String[] @default([".pdf", ".zip", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".css", ".js", ".woff", ".woff2"])
+  customHeaders       Json?
+  crawlSchedule       String?
+  configVersion       Int      @default(1)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  seoSite      SeoSite      @relation(fields: [seoSiteId], references: [id], onDelete: Cascade)
+}
+
+model SeoCrawlRun {
+  id               String            @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  seoSiteId        String
+  status           SeoCrawlRunStatus @default(QUEUED)
+  idempotencyKey   String            @unique
+  pagesDiscovered  Int               @default(0)
+  pagesCrawled     Int               @default(0)
+  pagesBlocked     Int               @default(0)
+  issuesFound      Int               @default(0)
+  attemptCount     Int               @default(0)
+  maxAttempts      Int               @default(3)
+  nextRetryAt      DateTime?
+  startedAt        DateTime?
+  heartbeatAt      DateTime?
+  leaseExpiresAt   DateTime?
+  workerId         String?
+  completedAt      DateTime?
+  cancelledAt      DateTime?
+  lastError        String?
+  createdByUserId  String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  seoSite      SeoSite              @relation(fields: [seoSiteId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile?         @relation("SeoCrawlRunCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  queueItems   SeoCrawlQueueItem[]
+  snapshots    SeoPageSnapshot[]
+  links        SeoCrawlLink[]
+  resources    SeoCrawlResource[]
+  issues       SeoCrawlIssue[]
+
+  @@index([organisationId, brandId, createdAt])
+  @@index([seoSiteId, status])
+  @@index([status, nextRetryAt])
+}
+
+model SeoCrawlQueueItem {
+  id             String                  @id @default(cuid())
+  organisationId String
+  seoSiteId      String
+  crawlRunId     String
+  url            String
+  normalisedUrl  String
+  depth          Int                     @default(0)
+  status         SeoCrawlQueueItemStatus @default(PENDING)
+  idempotencyKey String                  @unique
+  attemptCount   Int                     @default(0)
+  lastError      String?
+  processedAt    DateTime?
+  createdAt      DateTime                @default(now())
+
+  crawlRun SeoCrawlRun @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+
+  @@index([crawlRunId, status])
+  @@index([normalisedUrl, crawlRunId])
+}
+
+model SeoCrawlPage {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  seoSiteId      String
+  normalisedUrl  String
+  path           String?
+  firstSeenAt    DateTime @default(now())
+  lastSeenAt     DateTime @default(now())
+  lastStatusCode Int?
+  isOrphanCandidate Boolean @default(false)
+
+  organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  seoSite      SeoSite             @relation(fields: [seoSiteId], references: [id], onDelete: Cascade)
+  snapshots    SeoPageSnapshot[]
+  outboundLinks SeoCrawlLink[]     @relation("SourcePage")
+  inboundLinks  SeoCrawlLink[]     @relation("DestinationPage")
+  structuredData SeoStructuredDataItem[]
+  issues       SeoCrawlIssue[]
+
+  @@unique([seoSiteId, normalisedUrl])
+  @@index([organisationId, brandId])
+}
+
+model SeoPageSnapshot {
+  id              String   @id @default(cuid())
+  organisationId  String
+  seoSiteId       String
+  crawlRunId      String
+  pageId          String
+  requestedUrl    String
+  finalUrl        String
+  statusCode      Int
+  contentType     String?
+  responseTimeMs  Int?
+  contentHash     String?
+  title           String?
+  description     String?
+  canonicalUrl    String?
+  robotsDirective String?
+  lang            String?
+  wordCount       Int?
+  headings        Json?
+  openGraph       Json?
+  twitterCard     Json?
+  redirectChain   Json?
+  extractedAt     DateTime @default(now())
+  parserVersion   String   @default("1.0")
+  rawReference    String?
+  createdAt       DateTime @default(now())
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  crawlRun     SeoCrawlRun         @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  page         SeoCrawlPage        @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  links        SeoCrawlLink[]
+  structuredData SeoStructuredDataItem[]
+  issues       SeoCrawlIssue[]
+
+  @@index([crawlRunId])
+  @@index([pageId, createdAt])
+}
+
+model SeoCrawlLink {
+  id                String      @id @default(cuid())
+  organisationId    String
+  seoSiteId         String
+  crawlRunId        String
+  snapshotId        String?
+  sourcePageId      String
+  destinationPageId String?
+  sourceUrl         String
+  destinationUrl    String
+  linkType          SeoLinkType
+  anchorText        String?
+  rel               String?
+  isFollowed        Boolean     @default(true)
+  isImageLink       Boolean     @default(false)
+  statusCode        Int?
+  firstSeenAt       DateTime    @default(now())
+  lastSeenAt        DateTime    @default(now())
+
+  organisation    Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  crawlRun        SeoCrawlRun    @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  snapshot        SeoPageSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  sourcePage      SeoCrawlPage   @relation("SourcePage", fields: [sourcePageId], references: [id], onDelete: Cascade)
+  destinationPage SeoCrawlPage?  @relation("DestinationPage", fields: [destinationPageId], references: [id], onDelete: SetNull)
+
+  @@index([crawlRunId, linkType])
+  @@index([sourcePageId])
+}
+
+model SeoCrawlResource {
+  id             String   @id @default(cuid())
+  organisationId String
+  crawlRunId     String
+  url            String
+  resourceType   String
+  statusCode     Int?
+  contentLength  Int?
+  contentType    String?
+  fetchedAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  crawlRun     SeoCrawlRun  @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+
+  @@index([crawlRunId])
+}
+
+model SeoIssueDefinition {
+  id          String           @id @default(cuid())
+  ruleId      String           @unique
+  version     Int              @default(1)
+  name        String
+  description String
+  severity    SeoIssueSeverity
+  category    String
+  isActive    Boolean          @default(true)
+  thresholds  Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  issues SeoCrawlIssue[]
+}
+
+model SeoCrawlIssue {
+  id             String           @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  seoSiteId      String
+  crawlRunId     String
+  pageId         String?
+  snapshotId     String?
+  ruleId         String
+  ruleVersion    Int
+  severity       SeoIssueSeverity
+  status         SeoIssueStatus   @default(OPEN)
+  affectedUrl    String
+  evidence       Json
+  explanation    String
+  recommendedAction String?
+  detectedAt     DateTime         @default(now())
+  resolvedAt     DateTime?
+
+  organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  seoSite      SeoSite             @relation(fields: [seoSiteId], references: [id], onDelete: Cascade)
+  crawlRun     SeoCrawlRun         @relation(fields: [crawlRunId], references: [id], onDelete: Cascade)
+  page         SeoCrawlPage?       @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  snapshot     SeoPageSnapshot?    @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+  definition   SeoIssueDefinition  @relation(fields: [ruleId], references: [ruleId])
+  resolutions  SeoIssueResolution[]
+
+  @@index([organisationId, brandId, status])
+  @@index([crawlRunId, severity])
+  @@index([seoSiteId, ruleId])
+}
+
+model SeoIssueResolution {
+  id             String   @id @default(cuid())
+  organisationId String
+  issueId        String
+  status         SeoIssueStatus
+  note           String?
+  resolvedByUserId String?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  issue        SeoCrawlIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  resolvedBy   UserProfile?  @relation("SeoIssueResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([issueId])
+}
+
+model SeoRobotsSnapshot {
+  id              String   @id @default(cuid())
+  organisationId  String
+  seoSiteId       String
+  fetchedUrl      String
+  httpStatus      Int
+  contentHash     String?
+  content         String?
+  crawlDelay      Int?
+  sitemapUrls     String[] @default([])
+  applicableRules Json?
+  parsingWarnings String[] @default([])
+  fetchedAt       DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  seoSite      SeoSite      @relation(fields: [seoSiteId], references: [id], onDelete: Cascade)
+
+  @@index([seoSiteId, fetchedAt])
+}
+
+model SeoSitemap {
+  id              String   @id @default(cuid())
+  organisationId  String
+  seoSiteId       String
+  sitemapUrl      String
+  sitemapType     String   @default("urlset")
+  httpStatus      Int?
+  lastModified    DateTime?
+  discoveredCount Int      @default(0)
+  parsingErrors   String[] @default([])
+  contentHash     String?
+  fetchedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  seoSite      SeoSite       @relation(fields: [seoSiteId], references: [id], onDelete: Cascade)
+  urls         SeoSitemapUrl[]
+
+  @@unique([seoSiteId, sitemapUrl])
+  @@index([organisationId])
+}
+
+model SeoSitemapUrl {
+  id         String   @id @default(cuid())
+  sitemapId  String
+  loc        String
+  lastmod    DateTime?
+  changefreq String?
+  priority   Float?
+  createdAt  DateTime @default(now())
+
+  sitemap SeoSitemap @relation(fields: [sitemapId], references: [id], onDelete: Cascade)
+
+  @@unique([sitemapId, loc])
+  @@index([sitemapId])
+}
+
+model SeoStructuredDataItem {
+  id               String   @id @default(cuid())
+  organisationId   String
+  seoSiteId        String
+  pageId           String
+  snapshotId       String?
+  schemaType       String
+  format           String   @default("json-ld")
+  parsedContent    Json?
+  validationStatus String   @default("UNKNOWN")
+  parsingError     String?
+  createdAt        DateTime @default(now())
+
+  organisation Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  page         SeoCrawlPage    @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  snapshot     SeoPageSnapshot? @relation(fields: [snapshotId], references: [id], onDelete: SetNull)
+
+  @@index([pageId])
+  @@index([seoSiteId, schemaType])
+}
+
+// ---------------------------------------------------------------------------
 // First-party website analytics (Task 3.2)
 // ---------------------------------------------------------------------------
 
@@ -6666,6 +7175,7 @@ model TrackingProperty {
   apiKeys        TrackingApiKey[]
   installations  TrackingInstallation[]
   ingestLogs     TrackingIngestLog[]
+  seoSites       SeoSite[]
 
   @@index([organisationId, brandId])
   @@index([status])
