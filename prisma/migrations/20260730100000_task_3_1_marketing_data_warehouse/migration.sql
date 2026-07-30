@@ -262,7 +262,7 @@ CREATE TABLE "RawMarketingPayloadReference" (
 );
 
 -- CreateTable
-CREATE TABLE "MarketingChannel" (
+CREATE TABLE "WarehouseMarketingChannel" (
     "id" TEXT NOT NULL,
     "organisationId" TEXT NOT NULL,
     "projectId" TEXT NOT NULL,
@@ -1064,16 +1064,16 @@ CREATE INDEX "RawMarketingPayloadReference_organisationId_brandId_idx" ON "RawMa
 CREATE INDEX "RawMarketingPayloadReference_storagePath_idx" ON "RawMarketingPayloadReference"("storagePath");
 
 -- CreateIndex
-CREATE INDEX "MarketingChannel_organisationId_brandId_idx" ON "MarketingChannel"("organisationId", "brandId");
+CREATE INDEX "MarketingChannel_organisationId_brandId_idx" ON "WarehouseMarketingChannel"("organisationId", "brandId");
 
 -- CreateIndex
-CREATE INDEX "MarketingChannel_marketingDataSourceAccountId_idx" ON "MarketingChannel"("marketingDataSourceAccountId");
+CREATE INDEX "MarketingChannel_marketingDataSourceAccountId_idx" ON "WarehouseMarketingChannel"("marketingDataSourceAccountId");
 
 -- CreateIndex
-CREATE INDEX "MarketingChannel_status_idx" ON "MarketingChannel"("status");
+CREATE INDEX "MarketingChannel_status_idx" ON "WarehouseMarketingChannel"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "MarketingChannel_brandId_provider_providerChannelId_key" ON "MarketingChannel"("brandId", "provider", "providerChannelId");
+CREATE UNIQUE INDEX "MarketingChannel_brandId_provider_providerChannelId_key" ON "WarehouseMarketingChannel"("brandId", "provider", "providerChannelId");
 
 -- CreateIndex
 CREATE INDEX "MarketingAccount_organisationId_brandId_idx" ON "MarketingAccount"("organisationId", "brandId");
@@ -1511,16 +1511,16 @@ ALTER TABLE "RawMarketingPayloadReference" ADD CONSTRAINT "RawMarketingPayloadRe
 ALTER TABLE "RawMarketingPayloadReference" ADD CONSTRAINT "RawMarketingPayloadReference_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "Brand"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MarketingChannel" ADD CONSTRAINT "MarketingChannel_organisationId_fkey" FOREIGN KEY ("organisationId") REFERENCES "Organisation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "WarehouseMarketingChannel" ADD CONSTRAINT "MarketingChannel_organisationId_fkey" FOREIGN KEY ("organisationId") REFERENCES "Organisation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MarketingChannel" ADD CONSTRAINT "MarketingChannel_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "WarehouseMarketingChannel" ADD CONSTRAINT "MarketingChannel_projectId_fkey" FOREIGN KEY ("projectId") REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MarketingChannel" ADD CONSTRAINT "MarketingChannel_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "Brand"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "WarehouseMarketingChannel" ADD CONSTRAINT "MarketingChannel_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "Brand"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MarketingChannel" ADD CONSTRAINT "MarketingChannel_marketingDataSourceAccountId_fkey" FOREIGN KEY ("marketingDataSourceAccountId") REFERENCES "MarketingDataSourceAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "WarehouseMarketingChannel" ADD CONSTRAINT "MarketingChannel_marketingDataSourceAccountId_fkey" FOREIGN KEY ("marketingDataSourceAccountId") REFERENCES "MarketingDataSourceAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MarketingAccount" ADD CONSTRAINT "MarketingAccount_organisationId_fkey" FOREIGN KEY ("organisationId") REFERENCES "Organisation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1550,7 +1550,7 @@ ALTER TABLE "MarketingCampaign" ADD CONSTRAINT "MarketingCampaign_marketingDataS
 ALTER TABLE "MarketingCampaign" ADD CONSTRAINT "MarketingCampaign_marketingAccountId_fkey" FOREIGN KEY ("marketingAccountId") REFERENCES "MarketingAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MarketingCampaign" ADD CONSTRAINT "MarketingCampaign_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "MarketingChannel"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "MarketingCampaign" ADD CONSTRAINT "MarketingCampaign_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "WarehouseMarketingChannel"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MarketingAdGroup" ADD CONSTRAINT "MarketingAdGroup_organisationId_fkey" FOREIGN KEY ("organisationId") REFERENCES "Organisation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1595,7 +1595,7 @@ ALTER TABLE "MarketingContentItem" ADD CONSTRAINT "MarketingContentItem_brandId_
 ALTER TABLE "MarketingContentItem" ADD CONSTRAINT "MarketingContentItem_marketingDataSourceAccountId_fkey" FOREIGN KEY ("marketingDataSourceAccountId") REFERENCES "MarketingDataSourceAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MarketingContentItem" ADD CONSTRAINT "MarketingContentItem_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "MarketingChannel"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "MarketingContentItem" ADD CONSTRAINT "MarketingContentItem_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "WarehouseMarketingChannel"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MarketingAudience" ADD CONSTRAINT "MarketingAudience_organisationId_fkey" FOREIGN KEY ("organisationId") REFERENCES "Organisation"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -1628,7 +1628,7 @@ ALTER TABLE "MarketingChannelClassification" ADD CONSTRAINT "MarketingChannelCla
 ALTER TABLE "MarketingChannelClassification" ADD CONSTRAINT "MarketingChannelClassification_brandId_fkey" FOREIGN KEY ("brandId") REFERENCES "Brand"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MarketingChannelClassification" ADD CONSTRAINT "MarketingChannelClassification_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "MarketingChannel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "MarketingChannelClassification" ADD CONSTRAINT "MarketingChannelClassification_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "WarehouseMarketingChannel"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MarketingChannelClassification" ADD CONSTRAINT "MarketingChannelClassification_marketingChannelRuleId_fkey" FOREIGN KEY ("marketingChannelRuleId") REFERENCES "MarketingChannelRule"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -1670,7 +1670,7 @@ ALTER TABLE "MarketingMetricObservation" ADD CONSTRAINT "MarketingMetricObservat
 ALTER TABLE "MarketingMetricObservation" ADD CONSTRAINT "MarketingMetricObservation_marketingMetricDefinitionId_fkey" FOREIGN KEY ("marketingMetricDefinitionId") REFERENCES "MarketingMetricDefinition"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MarketingMetricObservation" ADD CONSTRAINT "MarketingMetricObservation_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "MarketingChannel"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "MarketingMetricObservation" ADD CONSTRAINT "MarketingMetricObservation_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "WarehouseMarketingChannel"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "MarketingMetricObservation" ADD CONSTRAINT "MarketingMetricObservation_marketingAccountId_fkey" FOREIGN KEY ("marketingAccountId") REFERENCES "MarketingAccount"("id") ON DELETE SET NULL ON UPDATE CASCADE;
@@ -1823,7 +1823,7 @@ ALTER TABLE "MarketingCostRecord" ADD CONSTRAINT "MarketingCostRecord_marketingA
 ALTER TABLE "MarketingCostRecord" ADD CONSTRAINT "MarketingCostRecord_marketingAdId_fkey" FOREIGN KEY ("marketingAdId") REFERENCES "MarketingAd"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "MarketingCostRecord" ADD CONSTRAINT "MarketingCostRecord_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "MarketingChannel"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "MarketingCostRecord" ADD CONSTRAINT "MarketingCostRecord_marketingChannelId_fkey" FOREIGN KEY ("marketingChannelId") REFERENCES "WarehouseMarketingChannel"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "CurrencyRate" ADD CONSTRAINT "CurrencyRate_organisationId_fkey" FOREIGN KEY ("organisationId") REFERENCES "Organisation"("id") ON DELETE CASCADE ON UPDATE CASCADE;

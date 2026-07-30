@@ -4215,6 +4215,7 @@ model MarketingChannel {
   @@index([organisationId, brandId])
   @@index([marketingDataSourceAccountId])
   @@index([status])
+  @@map("WarehouseMarketingChannel")
 }
 
 model MarketingAccount {

@@ -100,6 +100,8 @@ MarketingAccount      (parallel to channel; used for paid accounts)
 
 `MarketingCampaign` in the warehouse is a **marketing dimension** — distinct from future `ContentCampaign` (Stage 2 content operations).
 
+`MarketingChannel` (Prisma model) maps to the `WarehouseMarketingChannel` database table to avoid clashing with the onboarding `MarketingChannel` enum type from Stage 1.
+
 Channel classification:
 
 | Model | Purpose |
