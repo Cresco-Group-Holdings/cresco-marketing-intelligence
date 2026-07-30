@@ -254,10 +254,6 @@ export const PERMISSIONS = {
   "leadScoring.simulate": "leadScoring.simulate",
   "leadScoring.override": "leadScoring.override",
   "leadScoring.viewAnalytics": "leadScoring.viewAnalytics",
-  "lifecycleAgent.read": "lifecycleAgent.read",
-  "lifecycleAgent.run": "lifecycleAgent.run",
-  "lifecycleAgent.approve": "lifecycleAgent.approve",
-  "lifecycleAgent.feedback": "lifecycleAgent.feedback",
   "auditLogs.read": "auditLogs.read",
 } as const;
 

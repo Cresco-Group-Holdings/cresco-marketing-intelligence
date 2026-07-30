@@ -43,3 +43,23 @@ export const withLifecycleAgentFeedback = (
     organisationId,
     permission: PERMISSIONS["lifecycleAgent.feedback"],
   });
+
+export const withLifecycleAgentDraft = (
+  request: NextRequest,
+  organisationId: string,
+  handler: Parameters<typeof withApiHandler>[1],
+) =>
+  withApiHandler(request, handler, {
+    organisationId,
+    permission: PERMISSIONS["lifecycleAgent.draft"],
+  });
+
+export const withLifecycleAgentViewHistory = (
+  request: NextRequest,
+  organisationId: string,
+  handler: Parameters<typeof withApiHandler>[1],
+) =>
+  withApiHandler(request, handler, {
+    organisationId,
+    permission: PERMISSIONS["lifecycleAgent.viewHistory"],
+  });
