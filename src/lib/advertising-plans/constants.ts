@@ -1,0 +1,37 @@
+import type { AdvertisingCampaignPlanStatus } from "@prisma/client";
+
+export const PLAN_STATUS_TRANSITIONS: Record<AdvertisingCampaignPlanStatus, AdvertisingCampaignPlanStatus[]> = {
+  DRAFT: ["PLANNING", "ARCHIVED"],
+  PLANNING: ["READY_FOR_REVIEW", "DRAFT", "ARCHIVED"],
+  READY_FOR_REVIEW: ["APPROVED", "CHANGES_REQUESTED", "ARCHIVED"],
+  CHANGES_REQUESTED: ["PLANNING", "READY_FOR_REVIEW", "ARCHIVED"],
+  APPROVED: ["PROVIDER_CONFIGURATION", "ARCHIVED"],
+  PROVIDER_CONFIGURATION: ["READY_TO_LAUNCH", "ARCHIVED"],
+  READY_TO_LAUNCH: ["LAUNCHED", "ARCHIVED"],
+  LAUNCHED: ["PAUSED", "COMPLETED", "CANCELLED"],
+  PAUSED: ["LAUNCHED", "CANCELLED", "ARCHIVED"],
+  COMPLETED: ["ARCHIVED"],
+  CANCELLED: ["ARCHIVED"],
+  ARCHIVED: [],
+};
+
+export const DEFAULT_NAMING_TEMPLATE = "{brand}_{channel}_{objective}_{country}_{date}";
+
+export const PROVIDER_NAME_LIMITS: Record<string, number> = {
+  GOOGLE_ADS: 255,
+  META: 400,
+  LINKEDIN: 255,
+  TIKTOK: 512,
+  DEFAULT: 255,
+};
+
+export const BUDGET_APPROVAL_THRESHOLD_DEFAULT = 10000;
+
+export const REQUIRED_APPROVAL_TYPES = [
+  "STRATEGY",
+  "BUDGET",
+  "AUDIENCE",
+  "CREATIVE",
+  "COMPLIANCE",
+  "LAUNCH",
+] as const;

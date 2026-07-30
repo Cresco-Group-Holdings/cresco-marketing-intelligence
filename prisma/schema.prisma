@@ -175,6 +175,7 @@ enum AIPurpose {
   ANALYTICS_INSIGHT
   SALES_ASSIST
   LEAD_QUALIFICATION_SUGGEST
+  ADVERTISING_PLANNING
 }
 
 enum AIRequestStatus {
@@ -254,6 +255,11 @@ model UserProfile {
   internalLinkProposalsCreated  InternalLinkChangeProposal[] @relation("InternalLinkProposalCreator")
   seoRankTrackingProjectsCreated SeoRankTrackingProject[] @relation("SeoRankProjectCreator")
   seoContentRefreshOutcomesCreated SeoContentRefreshOutcome[] @relation("SeoRefreshOutcomeCreator")
+  advertisingCampaignPlansOwned AdvertisingCampaignPlan[] @relation("AdvertisingPlanOwner")
+  advertisingCampaignPlansCreated AdvertisingCampaignPlan[] @relation("AdvertisingPlanCreator")
+  advertisingCampaignApprovalsRequested AdvertisingCampaignApproval[] @relation("AdvertisingApprovalRequester")
+  advertisingCampaignApprovalsDecided AdvertisingCampaignApproval[] @relation("AdvertisingApprovalDecider")
+  advertisingBudgetsOwned AdvertisingCampaignBudget[] @relation("AdvertisingBudgetOwner")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -563,6 +569,20 @@ model Organisation {
   seoContentRefreshCandidates  SeoContentRefreshCandidate[]
   seoContentRefreshRecommendations SeoContentRefreshRecommendation[]
   seoContentRefreshOutcomes    SeoContentRefreshOutcome[]
+  advertisingCampaignPlans     AdvertisingCampaignPlan[]
+  advertisingCampaignPlanVersions AdvertisingCampaignPlanVersion[]
+  advertisingCampaignObjectives AdvertisingCampaignObjective[]
+  advertisingCampaignChannels  AdvertisingCampaignChannel[]
+  advertisingCampaignBudgets   AdvertisingCampaignBudget[]
+  advertisingCampaignSchedules AdvertisingCampaignSchedule[]
+  advertisingCampaignDestinations AdvertisingCampaignDestination[]
+  advertisingCampaignConversionGoals AdvertisingCampaignConversionGoal[]
+  advertisingCampaignAudiencePlans AdvertisingCampaignAudiencePlan[]
+  advertisingCampaignPlacementPlans AdvertisingCampaignPlacementPlan[]
+  advertisingCampaignCreativePlans AdvertisingCampaignCreativePlan[]
+  advertisingCampaignReadinessChecks AdvertisingCampaignReadinessCheck[]
+  advertisingCampaignApprovals AdvertisingCampaignApproval[]
+  advertisingCampaignProviderDrafts AdvertisingCampaignProviderDraft[]
 
   @@index([status])
   @@index([archivedAt])
@@ -761,6 +781,7 @@ model Project {
   seoRankTrackingProjects      SeoRankTrackingProject[]
   seoTrackedKeywords           SeoTrackedKeyword[]
   seoContentRefreshCandidates  SeoContentRefreshCandidate[]
+  advertisingCampaignPlans     AdvertisingCampaignPlan[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -952,6 +973,7 @@ model Brand {
   seoRankTrackingProjects      SeoRankTrackingProject[]
   seoTrackedKeywords           SeoTrackedKeyword[]
   seoContentRefreshCandidates  SeoContentRefreshCandidate[]
+  advertisingCampaignPlans     AdvertisingCampaignPlan[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -1073,6 +1095,7 @@ model MarketingObjective {
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
   contentItems ContentItem[]
+  advertisingCampaignObjectives AdvertisingCampaignObjective[]
 
   @@unique([brandId, objectiveType])
   @@index([organisationId])
@@ -1126,6 +1149,7 @@ model BrandAudience {
   project      Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
   contentItems ContentItem[]
+  advertisingAudiencePlans AdvertisingCampaignAudiencePlan[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -1384,6 +1408,7 @@ model MarketingAsset {
   visualGenerationSources VisualGeneration[]    @relation("VisualGenerationSourceAsset")
   marketingAds            MarketingAd[]
   paidAdsCreativeMappings PaidAdsCreativeMapping[]
+  advertisingCreativePlans AdvertisingCampaignCreativePlan[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -2721,6 +2746,7 @@ model ContentItem {
   seoContentGapPlans      SeoContentGapPlan[]
   seoContentBriefs        SeoContentBrief[]
   longFormDocuments       LongFormContentDocument[]
+  advertisingCreativePlans AdvertisingCampaignCreativePlan[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -2772,6 +2798,7 @@ model ContentVariant {
   experimentVariants ExperimentVariant[]
   marketingAds         MarketingAd[]
   paidAdsCreativeMappings PaidAdsCreativeMapping[]
+  advertisingCreativePlans AdvertisingCampaignCreativePlan[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -5162,6 +5189,7 @@ model MarketingConversionDefinition {
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  advertisingConversionGoals AdvertisingCampaignConversionGoal[]
 
   @@unique([brandId, provider, conversionKey])
   @@index([organisationId, brandId])
@@ -7025,6 +7053,7 @@ model SeoCrawlPage {
   trackedKeywordTargets         SeoTrackedKeyword[]
   rankingUrls                   SeoRankingUrl[]
   contentRefreshCandidates      SeoContentRefreshCandidate[]
+  advertisingDestinations         AdvertisingCampaignDestination[]
 
   @@unique([seoSiteId, normalisedUrl])
   @@index([organisationId, brandId])
@@ -9689,6 +9718,485 @@ model SeoContentRefreshOutcome {
 
   @@index([candidateId, workflowType])
   @@index([organisationId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Advertising campaign planning (Task 5.1)
+// ---------------------------------------------------------------------------
+
+enum AdvertisingCampaignPlanStatus {
+  DRAFT
+  PLANNING
+  READY_FOR_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  PROVIDER_CONFIGURATION
+  READY_TO_LAUNCH
+  LAUNCHED
+  PAUSED
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum AdvertisingPlanObjectiveType {
+  BRAND_AWARENESS
+  REACH
+  VIDEO_VIEWS
+  WEBSITE_TRAFFIC
+  ENGAGEMENT
+  LEAD_GENERATION
+  DEMO_REQUESTS
+  APP_SIGNUPS
+  TRIAL_STARTS
+  SUBSCRIPTIONS
+  PURCHASES
+  RETARGETING
+  CUSTOMER_RETENTION
+  CUSTOM
+}
+
+enum AdvertisingChannelType {
+  GOOGLE_SEARCH
+  GOOGLE_DISPLAY
+  GOOGLE_VIDEO
+  GOOGLE_PERFORMANCE_MAX
+  META_FACEBOOK
+  META_INSTAGRAM
+  LINKEDIN
+  TIKTOK
+  YOUTUBE
+  X
+  OTHER
+}
+
+enum AdvertisingBudgetType {
+  DAILY
+  LIFETIME
+  MONTHLY
+  FLIGHT
+  MANUAL_ALLOCATION
+}
+
+enum AdvertisingBudgetPacing {
+  EVEN
+  ACCELERATED
+  STANDARD
+}
+
+enum AdvertisingDestinationType {
+  WEBSITE_PAGE
+  LANDING_PAGE
+  LEAD_FORM
+  APP_PAGE
+  VIDEO
+  PROFILE
+  MESSAGING_DESTINATION
+  PHONE
+  CUSTOM
+}
+
+enum AdvertisingAudienceType {
+  BROAD
+  DEMOGRAPHIC
+  GEOGRAPHIC
+  INTEREST
+  JOB_ROLE
+  COMPANY
+  INDUSTRY
+  KEYWORD
+  CUSTOM_LIST
+  WEBSITE_VISITORS
+  VIDEO_VIEWERS
+  CUSTOMER_LIST
+  LOOKALIKE
+  RETARGETING
+  EXCLUSION
+  PROVIDER_SPECIFIC
+}
+
+enum AdvertisingPlacementMode {
+  AUTOMATIC
+  MANUAL
+}
+
+enum AdvertisingReadinessStatus {
+  NOT_READY
+  NEEDS_ATTENTION
+  READY_FOR_REVIEW
+  READY_TO_LAUNCH
+}
+
+enum AdvertisingApprovalType {
+  STRATEGY
+  BUDGET
+  AUDIENCE
+  CREATIVE
+  COMPLIANCE
+  LAUNCH
+}
+
+enum AdvertisingApprovalDecision {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+  REJECTED
+}
+
+enum AdvertisingChannelEligibility {
+  ELIGIBLE
+  NEEDS_ACCOUNT
+  NEEDS_CREATIVE
+  UNSUPPORTED
+  WARNING
+}
+
+model AdvertisingCampaignPlan {
+  id                 String                        @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  internalCampaignId String
+  name               String
+  description        String?
+  status             AdvertisingCampaignPlanStatus @default(DRAFT)
+  primaryObjective   AdvertisingPlanObjectiveType?
+  ownerUserId        String
+  startAt            DateTime?
+  endAt              DateTime?
+  reportingCurrency  String                        @default("USD")
+  totalBudgetAmount  Decimal?                      @db.Decimal(18, 4)
+  currentVersionId   String?
+  namingTemplate     String?
+  namingPreview      String?
+  createdByUserId    String
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  archivedAt         DateTime?
+
+  organisation   Organisation                      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  owner          UserProfile                       @relation("AdvertisingPlanOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy      UserProfile                       @relation("AdvertisingPlanCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions       AdvertisingCampaignPlanVersion[]
+  objectives     AdvertisingCampaignObjective[]
+  channels       AdvertisingCampaignChannel[]
+  budgets        AdvertisingCampaignBudget[]
+  schedule       AdvertisingCampaignSchedule?
+  destinations   AdvertisingCampaignDestination[]
+  conversionGoals AdvertisingCampaignConversionGoal[]
+  audiences      AdvertisingCampaignAudiencePlan[]
+  placements     AdvertisingCampaignPlacementPlan[]
+  creatives      AdvertisingCampaignCreativePlan[]
+  readinessChecks AdvertisingCampaignReadinessCheck[]
+  approvals      AdvertisingCampaignApproval[]
+  providerDrafts AdvertisingCampaignProviderDraft[]
+
+  @@unique([brandId, internalCampaignId])
+  @@index([organisationId, brandId, status])
+}
+
+model AdvertisingCampaignPlanVersion {
+  id              String                        @id @default(cuid())
+  organisationId  String
+  planId          String
+  versionNumber   Int
+  status          AdvertisingCampaignPlanStatus
+  structuredOutput Json
+  evidenceSummary Json?
+  assumptions     Json?
+  limitations     String?
+  aiRequestId     String?
+  aiModel         String?
+  aiProvider      String?
+  changeNote      String?
+  createdByUserId String
+  createdAt       DateTime                      @default(now())
+
+  organisation Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan         AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  approvals    AdvertisingCampaignApproval[]
+
+  @@unique([planId, versionNumber])
+  @@index([planId, createdAt])
+}
+
+model AdvertisingCampaignObjective {
+  id                      String                       @id @default(cuid())
+  organisationId          String
+  planId                  String
+  objectiveType           AdvertisingPlanObjectiveType
+  primaryConversion       String?
+  supportingMetrics       String[]                     @default([])
+  successCriteria         String?
+  targetAudienceSummary   String?
+  destinationSummary      String?
+  attributionExpectations String?
+  measurementLimitations  String?
+  marketingObjectiveId    String?
+  createdAt               DateTime                     @default(now())
+  updatedAt               DateTime                     @updatedAt
+
+  organisation       Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan               AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  marketingObjective MarketingObjective?  @relation(fields: [marketingObjectiveId], references: [id], onDelete: SetNull)
+
+  @@index([planId])
+}
+
+model AdvertisingCampaignChannel {
+  id                    String                      @id @default(cuid())
+  organisationId        String
+  planId                String
+  channelType           AdvertisingChannelType
+  provider              String?
+  intendedCampaignType  String?
+  eligibilityStatus     AdvertisingChannelEligibility @default(ELIGIBLE)
+  requiredAccountId     String?
+  requiredCreativeFormats String[]                  @default([])
+  requiredDestination   String?
+  conversionTracking    String?
+  unsupportedWarnings   String[]                    @default([])
+  sortOrder             Int                         @default(0)
+  createdAt             DateTime                    @default(now())
+  updatedAt             DateTime                    @updatedAt
+
+  organisation Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan         AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  budgets      AdvertisingCampaignBudget[]
+  placements   AdvertisingCampaignPlacementPlan[]
+
+  @@index([planId, channelType])
+}
+
+model AdvertisingCampaignBudget {
+  id                String                  @id @default(cuid())
+  organisationId    String
+  planId            String
+  channelId         String?
+  budgetType        AdvertisingBudgetType
+  currency          String
+  amount            Decimal                 @db.Decimal(18, 4)
+  minimumAmount     Decimal?                @db.Decimal(18, 4)
+  maximumAmount     Decimal?                @db.Decimal(18, 4)
+  channelAllocation Decimal?                @db.Decimal(18, 4)
+  reserveAmount     Decimal?                @db.Decimal(18, 4)
+  pacingMethod      AdvertisingBudgetPacing @default(EVEN)
+  plannedStart      DateTime?
+  plannedEnd        DateTime?
+  approvalThreshold Decimal?                @db.Decimal(18, 4)
+  budgetOwnerUserId String?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  organisation Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan         AdvertisingCampaignPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  channel      AdvertisingCampaignChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+  budgetOwner  UserProfile?              @relation("AdvertisingBudgetOwner", fields: [budgetOwnerUserId], references: [id], onDelete: SetNull)
+
+  @@index([planId])
+}
+
+model AdvertisingCampaignSchedule {
+  id              String   @id @default(cuid())
+  organisationId  String
+  planId          String   @unique
+  timezone        String   @default("UTC")
+  dayOfWeekSchedule Json?
+  hourOfDaySchedule Json?
+  launchWindowStart DateTime?
+  launchWindowEnd DateTime?
+  embargoUntil    DateTime?
+  blackoutDates   DateTime[] @default([])
+  providerTimezoneWarning String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organisation Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan         AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+}
+
+model AdvertisingCampaignDestination {
+  id                   String                     @id @default(cuid())
+  organisationId       String
+  planId               String
+  destinationType      AdvertisingDestinationType
+  destinationUrl       String?
+  trackingParameters   Json?
+  utmTemplate          String?
+  mobileUrl            String?
+  crawlPageId          String?
+  pageVerified         Boolean                    @default(false)
+  httpsStatus          Boolean?
+  conversionReady      Boolean                    @default(false)
+  pageHealthSummary    Json?
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+
+  organisation Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan         AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  crawlPage    SeoCrawlPage?           @relation(fields: [crawlPageId], references: [id], onDelete: SetNull)
+
+  @@index([planId])
+}
+
+model AdvertisingCampaignConversionGoal {
+  id                        String   @id @default(cuid())
+  organisationId            String
+  planId                    String
+  conversionDefinitionId    String?
+  isPrimary                 Boolean  @default(false)
+  conversionValue           Decimal? @db.Decimal(18, 4)
+  valueCurrency             String?
+  attributionModel          String?
+  measurementSource         String?
+  serverSideTrackingStatus  String?
+  providerTrackingStatus    String?
+  dataQualityWarning        String?
+  trackingVerified          Boolean  @default(false)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  organisation         Organisation                  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan                 AdvertisingCampaignPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  conversionDefinition MarketingConversionDefinition? @relation(fields: [conversionDefinitionId], references: [id], onDelete: SetNull)
+
+  @@index([planId, isPrimary])
+}
+
+model AdvertisingCampaignAudiencePlan {
+  id              String                  @id @default(cuid())
+  organisationId  String
+  planId          String
+  audienceType    AdvertisingAudienceType
+  name            String
+  description     String?
+  logicSpec       Json
+  brandAudienceId String?
+  estimatedSize   Int?
+  isExclusion     Boolean                 @default(false)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  organisation  Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan          AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  brandAudience BrandAudience?          @relation(fields: [brandAudienceId], references: [id], onDelete: SetNull)
+
+  @@index([planId])
+}
+
+model AdvertisingCampaignPlacementPlan {
+  id              String                   @id @default(cuid())
+  organisationId  String
+  planId          String
+  channelId       String?
+  placementMode   AdvertisingPlacementMode @default(AUTOMATIC)
+  devices         String[]                 @default([])
+  platforms       String[]                 @default([])
+  networks        String[]                 @default([])
+  feeds           String[]                 @default([])
+  placements      String[]                 @default([])
+  providerNotes   String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  organisation Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan         AdvertisingCampaignPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  channel      AdvertisingCampaignChannel? @relation(fields: [channelId], references: [id], onDelete: SetNull)
+
+  @@index([planId])
+}
+
+model AdvertisingCampaignCreativePlan {
+  id                String   @id @default(cuid())
+  organisationId    String
+  planId            String
+  format            String
+  aspectRatio       String?
+  durationSeconds   Int?
+  headline          String?
+  description       String?
+  cta               String?
+  language          String   @default("en")
+  destinationId     String?
+  contentItemId     String?
+  contentVariantId  String?
+  marketingAssetId  String?
+  placementCompatibility String[] @default([])
+  approvalStatus    String   @default("DRAFT")
+  copyRequirements  Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation   Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan           AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  contentItem    ContentItem?            @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  contentVariant ContentVariant?         @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
+  marketingAsset MarketingAsset?         @relation(fields: [marketingAssetId], references: [id], onDelete: SetNull)
+
+  @@index([planId, approvalStatus])
+}
+
+model AdvertisingCampaignReadinessCheck {
+  id             String                     @id @default(cuid())
+  organisationId String
+  planId         String
+  checkType      String
+  status         AdvertisingReadinessStatus
+  severity       String                     @default("MEDIUM")
+  title          String
+  description    String
+  evidence       Json?
+  checkedAt      DateTime                   @default(now())
+
+  organisation Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan         AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, status])
+}
+
+model AdvertisingCampaignApproval {
+  id                String                      @id @default(cuid())
+  organisationId    String
+  planId            String
+  versionId         String?
+  approvalType      AdvertisingApprovalType
+  decision          AdvertisingApprovalDecision @default(PENDING)
+  requestedByUserId String
+  approverUserId    String?
+  decisionNote      String?
+  budgetThreshold   Decimal?                    @db.Decimal(18, 4)
+  decidedAt         DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  organisation Organisation                  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan         AdvertisingCampaignPlan       @relation(fields: [planId], references: [id], onDelete: Cascade)
+  version      AdvertisingCampaignPlanVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  requestedBy  UserProfile                   @relation("AdvertisingApprovalRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  approver     UserProfile?                  @relation("AdvertisingApprovalDecider", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([planId, approvalType, decision])
+}
+
+model AdvertisingCampaignProviderDraft {
+  id               String   @id @default(cuid())
+  organisationId   String
+  planId           String
+  provider         String
+  channelType      AdvertisingChannelType
+  draftPayload     Json
+  validationResult Json?
+  validationStatus String   @default("PENDING")
+  providerAccountId String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  organisation Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  plan         AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@index([planId, provider])
 }
 
 // ---------------------------------------------------------------------------

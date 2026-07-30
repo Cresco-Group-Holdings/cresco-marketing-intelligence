@@ -114,6 +114,15 @@ export const PERMISSIONS = {
   "rankTracking.import": "rankTracking.import",
   "contentRefresh.read": "contentRefresh.read",
   "contentRefresh.manage": "contentRefresh.manage",
+  "advertisingPlans.read": "advertisingPlans.read",
+  "advertisingPlans.create": "advertisingPlans.create",
+  "advertisingPlans.edit": "advertisingPlans.edit",
+  "advertisingPlans.archive": "advertisingPlans.archive",
+  "advertisingPlans.approveStrategy": "advertisingPlans.approveStrategy",
+  "advertisingPlans.approveBudget": "advertisingPlans.approveBudget",
+  "advertisingPlans.approveCreative": "advertisingPlans.approveCreative",
+  "advertisingPlans.approveCompliance": "advertisingPlans.approveCompliance",
+  "advertisingPlans.approveLaunch": "advertisingPlans.approveLaunch",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -233,6 +242,15 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["rankTracking.import"],
     PERMISSIONS["contentRefresh.read"],
     PERMISSIONS["contentRefresh.manage"],
+    PERMISSIONS["advertisingPlans.read"],
+    PERMISSIONS["advertisingPlans.create"],
+    PERMISSIONS["advertisingPlans.edit"],
+    PERMISSIONS["advertisingPlans.archive"],
+    PERMISSIONS["advertisingPlans.approveStrategy"],
+    PERMISSIONS["advertisingPlans.approveBudget"],
+    PERMISSIONS["advertisingPlans.approveCreative"],
+    PERMISSIONS["advertisingPlans.approveCompliance"],
+    PERMISSIONS["advertisingPlans.approveLaunch"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -317,6 +335,9 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["rankTracking.import"],
     PERMISSIONS["contentRefresh.read"],
     PERMISSIONS["contentRefresh.manage"],
+    PERMISSIONS["advertisingPlans.read"],
+    PERMISSIONS["advertisingPlans.create"],
+    PERMISSIONS["advertisingPlans.edit"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -355,6 +376,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["internalLinks.read"],
     PERMISSIONS["rankTracking.read"],
     PERMISSIONS["contentRefresh.read"],
+    PERMISSIONS["advertisingPlans.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -383,6 +405,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["internalLinks.read"],
     PERMISSIONS["rankTracking.read"],
     PERMISSIONS["contentRefresh.read"],
+    PERMISSIONS["advertisingPlans.read"],
     PERMISSIONS["experiments.read"],
   ],
 };
