@@ -248,6 +248,8 @@ model UserProfile {
   longFormReviewsRequested      LongFormReview[]            @relation("LongFormReviewRequester")
   longFormReviewsDecided        LongFormReview[]            @relation("LongFormReviewDecider")
   longFormExportsCreated        LongFormExport[]            @relation("LongFormExportCreator")
+  onPageSeoAuditsCreated        OnPageSeoAudit[]            @relation("OnPageSeoAuditCreator")
+  onPageSeoOverridesCreated     OnPageSeoOverride[]         @relation("OnPageSeoOverrideCreator")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -533,6 +535,13 @@ model Organisation {
   longFormGenerationRuns         LongFormGenerationRun[]
   longFormReviews                LongFormReview[]
   longFormExports                LongFormExport[]
+  onPageSeoAudits                OnPageSeoAudit[]
+  onPageSeoAuditVersions         OnPageSeoAuditVersion[]
+  onPageSeoFindings              OnPageSeoFinding[]
+  onPageSeoRecommendations       OnPageSeoRecommendation[]
+  onPageSeoTargets               OnPageSeoTarget[]
+  onPageSeoComparisons           OnPageSeoComparison[]
+  onPageSeoOverrides             OnPageSeoOverride[]
 
   @@index([status])
   @@index([archivedAt])
@@ -726,6 +735,7 @@ model Project {
   seoContentStrategies           SeoContentStrategy[]
   seoContentBriefs               SeoContentBrief[]
   longFormContentDocuments       LongFormContentDocument[]
+  onPageSeoAudits                OnPageSeoAudit[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -912,6 +922,7 @@ model Brand {
   seoContentStrategies           SeoContentStrategy[]
   seoContentBriefs               SeoContentBrief[]
   longFormContentDocuments       LongFormContentDocument[]
+  onPageSeoAudits                OnPageSeoAudit[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -6977,6 +6988,7 @@ model SeoCrawlPage {
   briefTargetPages      SeoContentBrief[]       @relation("BriefTargetPage")
   briefInternalLinkSources SeoBriefInternalLink[] @relation("BriefLinkSource")
   briefInternalLinkDestinations SeoBriefInternalLink[] @relation("BriefLinkDestination")
+  onPageSeoAudits               OnPageSeoAudit[]
 
   @@unique([seoSiteId, normalisedUrl])
   @@index([organisationId, brandId])
@@ -7015,6 +7027,7 @@ model SeoPageSnapshot {
   links        SeoCrawlLink[]
   structuredData SeoStructuredDataItem[]
   issues       SeoCrawlIssue[]
+  onPageSeoAudits OnPageSeoAudit[]
 
   @@index([crawlRunId])
   @@index([pageId, createdAt])
@@ -7345,6 +7358,8 @@ model SeoKeyword {
   topicClusterMembers SeoTopicClusterMember[]
   briefKeywords       SeoBriefKeyword[]
   primaryBriefs       SeoContentBrief[] @relation("BriefPrimaryKeyword")
+  onPageSeoAudits     OnPageSeoAudit[]
+  onPageSeoTargets    OnPageSeoTarget[]
 
   @@unique([brandId, normalisedKeyword, language, country])
   @@index([organisationId, brandId, status])
@@ -7439,6 +7454,8 @@ model SeoKeywordGroup {
   project      Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
   brand        Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
   members      SeoKeywordGroupMember[]
+  onPageSeoAudits OnPageSeoAudit[]
+  onPageSeoTargets OnPageSeoTarget[]
 
   @@unique([brandId, name])
   @@index([organisationId, brandId])
@@ -8006,6 +8023,8 @@ model SeoTopicCluster {
   gapPlans        SeoContentGapPlan[]
   priorityScores  SeoContentPriorityScore[]
   contentBriefs   SeoContentBrief[]
+  onPageSeoAudits OnPageSeoAudit[]
+  onPageSeoTargets OnPageSeoTarget[]
 
   @@unique([brandId, slug])
   @@index([organisationId, brandId, status])
@@ -8284,6 +8303,7 @@ model SeoContentBrief {
   approvals      SeoBriefApproval[]
   comments       SeoBriefComment[]
   longFormDocuments LongFormContentDocument[]
+  onPageSeoAudits   OnPageSeoAudit[]
 
   @@index([organisationId, brandId, status])
   @@index([clusterId])
@@ -8603,6 +8623,7 @@ model LongFormContentDocument {
   generationRuns LongFormGenerationRun[]
   reviews        LongFormReview[]
   exports        LongFormExport[]
+  onPageSeoAudits OnPageSeoAudit[]
 
   @@index([organisationId, brandId, status])
   @@index([briefId])
@@ -8770,6 +8791,260 @@ model LongFormExport {
   createdBy    UserProfile             @relation("LongFormExportCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   @@index([documentId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// On-page SEO optimisation (Task 4.7)
+// ---------------------------------------------------------------------------
+
+enum OnPageSeoAuditStatus {
+  DRAFT
+  RUNNING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+enum OnPageSeoAuditSourceType {
+  CRAWL_SNAPSHOT
+  LONG_FORM_DRAFT
+  SEO_BRIEF
+  MANUAL_URL
+}
+
+enum OnPageSeoFindingCategory {
+  TECHNICAL
+  SEMANTIC
+  KEYWORD
+  READABILITY
+  STRUCTURED_DATA
+  LINKS
+  ACCESSIBILITY
+}
+
+enum OnPageSeoFindingStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+  OVERRIDDEN
+}
+
+enum OnPageSeoRecommendationType {
+  FIX_TECHNICAL
+  IMPROVE_TITLE
+  IMPROVE_DESCRIPTION
+  RESTRUCTURE_HEADINGS
+  ADD_SECTION
+  REMOVE_DUPLICATION
+  ADD_INTERNAL_LINK
+  IMPROVE_CTA
+  ADD_EVIDENCE
+  UPDATE_SCHEMA
+  IMPROVE_ACCESSIBILITY
+  CLARIFY_CONTENT
+  UPDATE_INFORMATION
+}
+
+enum OnPageSeoRecommendationPriority {
+  LOW
+  MEDIUM
+  HIGH
+  BLOCKING
+}
+
+enum OnPageSeoRecommendationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  APPLIED
+  DISMISSED
+}
+
+enum OnPageSeoComparisonType {
+  PREVIOUS_AUDIT
+  LIVE_VS_DRAFT
+  CRAWL_VS_DRAFT
+  RESOLVED_ISSUES
+}
+
+model OnPageSeoAudit {
+  id                  String                 @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  sourceType          OnPageSeoAuditSourceType
+  url                 String?
+  pageTitle           String?
+  status              OnPageSeoAuditStatus   @default(DRAFT)
+  currentVersionId    String?
+  crawlPageId         String?
+  pageSnapshotId      String?
+  longFormDocumentId  String?
+  briefId             String?
+  targetKeywordId     String?
+  keywordGroupId      String?
+  clusterId           String?
+  staleSnapshotWarning Boolean               @default(false)
+  staleSnapshotNote   String?
+  createdByUserId     String
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  archivedAt          DateTime?
+
+  organisation     Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  crawlPage        SeoCrawlPage?           @relation(fields: [crawlPageId], references: [id], onDelete: SetNull)
+  pageSnapshot     SeoPageSnapshot?        @relation(fields: [pageSnapshotId], references: [id], onDelete: SetNull)
+  longFormDocument LongFormContentDocument? @relation(fields: [longFormDocumentId], references: [id], onDelete: SetNull)
+  brief            SeoContentBrief?        @relation(fields: [briefId], references: [id], onDelete: SetNull)
+  targetKeyword    SeoKeyword?             @relation(fields: [targetKeywordId], references: [id], onDelete: SetNull)
+  keywordGroup     SeoKeywordGroup?        @relation(fields: [keywordGroupId], references: [id], onDelete: SetNull)
+  cluster          SeoTopicCluster?        @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+  createdBy        UserProfile             @relation("OnPageSeoAuditCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions         OnPageSeoAuditVersion[]
+  findings         OnPageSeoFinding[]
+  recommendations  OnPageSeoRecommendation[]
+  targets          OnPageSeoTarget[]
+  comparisons      OnPageSeoComparison[]
+  overrides        OnPageSeoOverride[]
+
+  @@index([organisationId, brandId, status])
+  @@index([crawlPageId])
+}
+
+model OnPageSeoAuditVersion {
+  id                  String               @id @default(cuid())
+  organisationId      String
+  auditId             String
+  versionNumber       Int
+  status              OnPageSeoAuditStatus
+  inputSnapshot       Json?
+  technicalSummary    Json?
+  semanticSummary     Json?
+  keywordSummary      Json?
+  readabilitySnapshot Json?
+  evidenceBundle      Json?
+  changeNote          String?
+  createdAt           DateTime             @default(now())
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audit        OnPageSeoAudit     @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  findings     OnPageSeoFinding[]
+  comparisonsAsBaseline OnPageSeoComparison[] @relation("ComparisonBaseline")
+  comparisonsAsCompare  OnPageSeoComparison[] @relation("ComparisonCompare")
+
+  @@unique([auditId, versionNumber])
+  @@index([auditId, createdAt])
+}
+
+model OnPageSeoFinding {
+  id             String                   @id @default(cuid())
+  organisationId String
+  auditId        String
+  versionId      String?
+  category       OnPageSeoFindingCategory
+  ruleId         String?
+  title          String
+  description    String
+  evidence       Json
+  status         OnPageSeoFindingStatus   @default(OPEN)
+  priority       OnPageSeoRecommendationPriority @default(MEDIUM)
+  resolvedAt     DateTime?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organisation    Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audit           OnPageSeoAudit          @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  version         OnPageSeoAuditVersion?  @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  recommendations OnPageSeoRecommendation[]
+  overrides       OnPageSeoOverride[]
+
+  @@index([auditId, status])
+  @@index([auditId, category])
+}
+
+model OnPageSeoRecommendation {
+  id             String                          @id @default(cuid())
+  organisationId String
+  auditId        String
+  findingId      String?
+  type           OnPageSeoRecommendationType
+  priority       OnPageSeoRecommendationPriority
+  title          String
+  description    String
+  evidence       Json
+  status         OnPageSeoRecommendationStatus   @default(PENDING)
+  createdAt      DateTime                        @default(now())
+  updatedAt      DateTime                        @updatedAt
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audit        OnPageSeoAudit     @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  finding      OnPageSeoFinding?  @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  overrides    OnPageSeoOverride[]
+
+  @@index([auditId, status])
+  @@index([auditId, priority])
+}
+
+model OnPageSeoTarget {
+  id               String   @id @default(cuid())
+  organisationId   String
+  auditId          String
+  targetKeywordId  String?
+  keywordGroupId   String?
+  clusterId        String?
+  targetUrl        String?
+  intent           String?
+  createdAt        DateTime @default(now())
+
+  organisation  Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audit         OnPageSeoAudit  @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  targetKeyword SeoKeyword?     @relation(fields: [targetKeywordId], references: [id], onDelete: SetNull)
+  keywordGroup  SeoKeywordGroup? @relation(fields: [keywordGroupId], references: [id], onDelete: SetNull)
+  cluster       SeoTopicCluster? @relation(fields: [clusterId], references: [id], onDelete: SetNull)
+
+  @@index([auditId])
+}
+
+model OnPageSeoComparison {
+  id                    String                  @id @default(cuid())
+  organisationId        String
+  auditId               String
+  comparisonType        OnPageSeoComparisonType
+  baselineVersionId     String?
+  compareVersionId      String?
+  baselineSnapshotId    String?
+  compareSnapshotId     String?
+  diffSummary           Json?
+  disclaimer            String                  @default("Comparisons are advisory. Rankings improvements are not guaranteed.")
+  createdAt             DateTime                @default(now())
+
+  organisation     Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audit            OnPageSeoAudit        @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  baselineVersion  OnPageSeoAuditVersion? @relation("ComparisonBaseline", fields: [baselineVersionId], references: [id], onDelete: SetNull)
+  compareVersion   OnPageSeoAuditVersion? @relation("ComparisonCompare", fields: [compareVersionId], references: [id], onDelete: SetNull)
+
+  @@index([auditId, comparisonType])
+}
+
+model OnPageSeoOverride {
+  id                String   @id @default(cuid())
+  organisationId    String
+  auditId           String
+  findingId         String?
+  recommendationId  String?
+  reason            String
+  overriddenByUserId String
+  createdAt         DateTime @default(now())
+
+  organisation   Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audit          OnPageSeoAudit         @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  finding        OnPageSeoFinding?      @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  recommendation OnPageSeoRecommendation? @relation(fields: [recommendationId], references: [id], onDelete: SetNull)
+  overriddenBy   UserProfile            @relation("OnPageSeoOverrideCreator", fields: [overriddenByUserId], references: [id], onDelete: Restrict)
+
+  @@index([auditId])
 }
 
 // ---------------------------------------------------------------------------

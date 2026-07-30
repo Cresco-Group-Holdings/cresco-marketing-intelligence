@@ -242,6 +242,9 @@ export function SeoView({
           <Link href="/seo/briefs">
             <Button variant="outline" size="sm">Briefs</Button>
           </Link>
+          <Link href="/seo/on-page">
+            <Button variant="outline" size="sm">On-page SEO</Button>
+          </Link>
         </nav>
       )}
 

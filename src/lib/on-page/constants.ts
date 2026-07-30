@@ -1,0 +1,40 @@
+export const ON_PAGE_RULE_VERSION = 1;
+
+export const STALE_SNAPSHOT_DAYS = 14;
+
+export const RANKING_DISCLAIMER =
+  "Recommendations are evidence-based and advisory. Rankings improvements are not guaranteed.";
+
+export const RECOMMENDATION_TYPE_LABELS: Record<string, string> = {
+  FIX_TECHNICAL: "Fix technical issue",
+  IMPROVE_TITLE: "Improve title",
+  IMPROVE_DESCRIPTION: "Improve meta description",
+  RESTRUCTURE_HEADINGS: "Restructure headings",
+  ADD_SECTION: "Add section",
+  REMOVE_DUPLICATION: "Remove duplication",
+  ADD_INTERNAL_LINK: "Add internal link",
+  IMPROVE_CTA: "Improve CTA",
+  ADD_EVIDENCE: "Add evidence",
+  UPDATE_SCHEMA: "Update structured data",
+  IMPROVE_ACCESSIBILITY: "Improve accessibility",
+  CLARIFY_CONTENT: "Clarify content",
+  UPDATE_INFORMATION: "Update information",
+};
+
+export const TECHNICAL_RULE_TO_RECOMMENDATION: Record<string, string> = {
+  MISSING_TITLE: "IMPROVE_TITLE",
+  TITLE_TOO_SHORT: "IMPROVE_TITLE",
+  TITLE_TOO_LONG: "IMPROVE_TITLE",
+  MISSING_META_DESCRIPTION: "IMPROVE_DESCRIPTION",
+  MISSING_H1: "RESTRUCTURE_HEADINGS",
+  MULTIPLE_H1: "RESTRUCTURE_HEADINGS",
+  MISSING_IMAGE_ALT: "IMPROVE_ACCESSIBILITY",
+  BROKEN_INTERNAL_LINK: "ADD_INTERNAL_LINK",
+  DUPLICATE_CONTENT_HASH: "REMOVE_DUPLICATION",
+  INVALID_STRUCTURED_DATA: "UPDATE_SCHEMA",
+  NON_HTTPS_URL: "FIX_TECHNICAL",
+  CANONICAL_MISMATCH: "FIX_TECHNICAL",
+  NOINDEX_IN_SITEMAP: "FIX_TECHNICAL",
+  THIN_CONTENT: "ADD_SECTION",
+  EMPTY_PAGE: "ADD_SECTION",
+};

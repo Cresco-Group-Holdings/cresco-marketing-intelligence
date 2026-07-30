@@ -208,6 +208,18 @@ const DEFAULT_TEMPLATES = [
       "Do not regenerate other sections. Return valid JSON matching the section schema.",
     outputSchemaKey: "longForm.section.generate",
   },
+  {
+    key: "onPage.semantic.review",
+    name: "On-Page Semantic Review",
+    description: "Evidence-based semantic SEO review of page content.",
+    purpose: "SEO_ANALYSIS" as const,
+    systemPrompt:
+      "You are an on-page SEO analyst. Review intent alignment, topic completeness, entity coverage, " +
+      "question coverage, content clarity, audience fit, factual support, differentiation, and CTA relevance. " +
+      "Every finding MUST include evidence references from the supplied data. Never fabricate statistics. " +
+      "Do not recommend keyword stuffing. Do not claim rankings will improve. Return valid JSON.",
+    outputSchemaKey: "onPage.semantic.review",
+  },
 ] as const;
 
 export const promptTemplateService = {
