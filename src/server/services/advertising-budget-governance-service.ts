@@ -18,6 +18,7 @@ import {
 } from "@/lib/advertising-budget-governance/emergency-controls";
 import { calculatePacing } from "@/lib/advertising-budget-governance/pacing";
 import { AppError } from "@/lib/errors";
+import { recordAdvertisingAuditEvent } from "@/lib/advertising/audit-events";
 import type { TenantContext } from "@/lib/tenancy/context";
 import { brandService } from "@/server/services/workspace-service";
 
@@ -434,7 +435,7 @@ export const advertisingBudgetGovernanceService = {
     context: TenantContext,
   ) {
     const brand = await brandService.getById(brandId, organisationId, context);
-    return prisma.advertisingSpendIncident.create({
+    const incident = await prisma.advertisingSpendIncident.create({
       data: {
         organisationId,
         projectId: brand.projectId,
@@ -449,6 +450,16 @@ export const advertisingBudgetGovernanceService = {
         restorationRequiresApproval: true,
       },
     });
+    await recordAdvertisingAuditEvent({
+      organisationId,
+      projectId: brand.projectId,
+      actorUserId: context.userProfileId,
+      action: "advertising.budget.emergency_pause",
+      resourceType: "AdvertisingSpendIncident",
+      resourceId: incident.id,
+      metadata: { incidentType: input.incidentType, reason: input.reason },
+    });
+    return incident;
   },
 
   async resolveIncident(
@@ -475,7 +486,7 @@ export const advertisingBudgetGovernanceService = {
       throw new AppError("VALIDATION_ERROR", restoration.reason);
     }
 
-    return prisma.advertisingSpendIncident.update({
+    const resolved = await prisma.advertisingSpendIncident.update({
       where: { id: incidentId },
       data: {
         status: "RESOLVED",
@@ -483,6 +494,15 @@ export const advertisingBudgetGovernanceService = {
         resolvedAt: new Date(),
       },
     });
+    await recordAdvertisingAuditEvent({
+      organisationId,
+      projectId: incident.projectId ?? undefined,
+      actorUserId: context.userProfileId,
+      action: "advertising.budget.emergency_resolved",
+      resourceType: "AdvertisingSpendIncident",
+      resourceId: incidentId,
+    });
+    return resolved;
   },
 
   async recordObservation(

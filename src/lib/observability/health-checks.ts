@@ -3,6 +3,7 @@ import { getServerEnv } from "@/lib/environment";
 import { isAiDiagnosticsEnabled } from "@/lib/ai/diagnostics-access";
 import { getSeoMetricsSnapshot } from "@/lib/seo/observability";
 import { isSeoEngineShutdown } from "@/lib/seo/quotas";
+import { getAdvertisingMetricsSnapshot, isAdvertisingEmergencyShutdown } from "@/lib/advertising/observability";
 
 export type HealthCheckStatus = "pass" | "fail" | "warn";
 
@@ -110,6 +111,38 @@ function checkSeoEngineStatus(): HealthCheckResult {
   };
 }
 
+function checkAdvertisingPlatformStatus(): HealthCheckResult {
+  if (isAdvertisingEmergencyShutdown()) {
+    return {
+      name: "advertising_platform",
+      status: "warn",
+      message: "ADVERTISING_EMERGENCY_SHUTDOWN is enabled. Provider mutations are blocked.",
+    };
+  }
+  const metrics = getAdvertisingMetricsSnapshot();
+  const launchFailures = metrics.counters.launch_failure ?? 0;
+  const unauthorised = metrics.counters.unauthorised_mutation_attempts ?? 0;
+  if (launchFailures > 50) {
+    return {
+      name: "advertising_platform",
+      status: "warn",
+      message: `Elevated launch failure count: ${launchFailures}.`,
+    };
+  }
+  if (unauthorised > 0) {
+    return {
+      name: "advertising_platform",
+      status: "warn",
+      message: `Unauthorised mutation attempts blocked: ${unauthorised}.`,
+    };
+  }
+  return {
+    name: "advertising_platform",
+    status: "pass",
+    message: "Advertising platform operational.",
+  };
+}
+
 export async function runReadinessChecks(): Promise<ReadinessReport> {
   const checks = await Promise.all([
     checkDatabaseConnectivity(),
@@ -117,6 +150,7 @@ export async function runReadinessChecks(): Promise<ReadinessReport> {
     Promise.resolve(checkJobSystem()),
     Promise.resolve(checkConnectorDiagnostics()),
     Promise.resolve(checkSeoEngineStatus()),
+    Promise.resolve(checkAdvertisingPlatformStatus()),
   ]);
 
   const ready = checks.every((check) => check.status !== "fail");
