@@ -1,5 +1,6 @@
 import type { ConnectorType } from "@prisma/client";
 import type { ConnectorRegistryEntry } from "@/lib/connectors/types";
+import { isStripeConfigured } from "@/lib/revenue/config";
 
 const CATALOGUE: ConnectorRegistryEntry[] = [
   {
@@ -148,12 +149,16 @@ export class ConnectorRegistry {
   }
 
   isConnectable(key: ConnectorType): boolean {
+    if (key === "STRIPE") return isStripeConfigured();
     return this.get(key).platformAvailability === "AVAILABLE";
   }
 
   getConnectDisabledReason(key: ConnectorType): string | null {
+    if (key === "STRIPE" && !isStripeConfigured()) {
+      return "Stripe requires STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET environment variables.";
+    }
     const entry = this.get(key);
-    if (entry.platformAvailability === "AVAILABLE") {
+    if (entry.platformAvailability === "AVAILABLE" || (key === "STRIPE" && isStripeConfigured())) {
       return null;
     }
     return "This integration is not yet available. Connector infrastructure is in place, but provider adapters are coming in a future release.";
