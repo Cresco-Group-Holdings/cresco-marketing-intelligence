@@ -378,6 +378,10 @@ model UserProfile {
   emailTemplateVersionsApproved EmailTemplateVersion[]   @relation("EmailTemplateApprover")
   emailTemplateVersionsCreated  EmailTemplateVersion[]   @relation("EmailTemplateCreator")
   emailMessagesCreated          EmailMessage[]            @relation("EmailMessageCreator")
+  crmAudienceSegmentsCreated    CrmAudienceSegment[]      @relation("CrmAudienceSegmentCreator")
+  crmAudienceSegmentsApproved   CrmAudienceSegment[]      @relation("CrmAudienceSegmentApprover")
+  emailCampaignsCreated         EmailCampaign[]           @relation("EmailCampaignCreator")
+  emailCampaignApprovalsActed   EmailCampaignApproval[]   @relation("EmailCampaignApprover")
 
   @@index([email])
 }
@@ -751,6 +755,8 @@ model Organisation {
   emailTrackingPolicies                EmailTrackingPolicy[]
   emailProviderWebhooks                EmailProviderWebhook[]
   emailDeliverabilitySnapshots         EmailDeliverabilitySnapshot[]
+  crmAudienceSegments                  CrmAudienceSegment[]
+  emailCampaigns                       EmailCampaign[]
 
   @@index([status])
   @@index([archivedAt])
@@ -990,6 +996,7 @@ model Project {
   crmTasks                    CrmTask[]
   crmActivities               CrmActivity[]
   emailMessages               EmailMessage[]
+  emailCampaigns              EmailCampaign[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1239,6 +1246,8 @@ model Brand {
   emailUnsubscribes              EmailUnsubscribe[]
   emailTrackingPolicies          EmailTrackingPolicy[]
   emailDeliverabilitySnapshots   EmailDeliverabilitySnapshot[]
+  crmAudienceSegments            CrmAudienceSegment[]
+  emailCampaigns                 EmailCampaign[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -15195,6 +15204,344 @@ model EmailDeliverabilitySnapshot {
   domain       EmailSendingDomain? @relation(fields: [domainId], references: [id], onDelete: SetNull)
 
   @@index([organisationId, brandId, computedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.6 — Email Campaigns and Newsletter Management
+// ---------------------------------------------------------------------------
+
+enum EmailCampaignStatus {
+  DRAFT
+  BUILDING
+  READY_FOR_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  SCHEDULED
+  SENDING
+  SENT
+  PARTIALLY_SENT
+  CANCELLED
+  FAILED
+  ARCHIVED
+}
+
+enum EmailCampaignType {
+  NEWSLETTER
+  PRODUCT_UPDATE
+  EDUCATIONAL
+  EVENT_INVITATION
+  ANNOUNCEMENT
+  LEAD_NURTURE_BROADCAST
+  CUSTOMER_UPDATE
+  RE_ENGAGEMENT
+  CUSTOM
+}
+
+enum CrmAudienceSegmentStatus {
+  DRAFT
+  APPROVED
+  ARCHIVED
+}
+
+enum EmailCampaignApprovalType {
+  AUDIENCE
+  CONTENT
+  COMPLIANCE
+  SCHEDULE
+  FINAL_SEND
+}
+
+enum EmailCampaignApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  INVALIDATED
+}
+
+enum EmailCampaignReadinessCheckType {
+  SENDING_DOMAIN
+  VERIFIED_SENDER
+  TEMPLATE_APPROVAL
+  AUDIENCE_ELIGIBILITY
+  CONSENT
+  SUPPRESSION
+  UNSUBSCRIBE_LINK
+  LEGAL_SENDER_DETAILS
+  SCHEDULE
+  TEST_SEND
+  RECIPIENT_COUNT
+  TENANT_QUOTA
+  DELIVERABILITY_SHUTDOWN
+  REQUIRED_APPROVAL
+}
+
+enum EmailCampaignExperimentVariant {
+  SUBJECT
+  PREHEADER
+  SENDER_NAME
+  CONTENT
+  CTA
+}
+
+enum EmailCampaignExperimentStatus {
+  DRAFT
+  RUNNING
+  COMPLETED
+  INSUFFICIENT_EVIDENCE
+}
+
+model CrmAudienceSegment {
+  id               String                   @id @default(cuid())
+  organisationId   String
+  brandId          String
+  name             String
+  description      String?
+  rules            Json
+  status           CrmAudienceSegmentStatus @default(DRAFT)
+  memberCountCache Int?
+  lastComputedAt   DateTime?
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdByUserId  String
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  approvedBy   UserProfile?           @relation("CrmAudienceSegmentApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  createdBy    UserProfile            @relation("CrmAudienceSegmentCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  audiences    EmailCampaignAudience[]
+
+  @@index([organisationId, brandId, status])
+}
+
+model EmailCampaign {
+  id               String              @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  name             String
+  campaignType     EmailCampaignType
+  status           EmailCampaignStatus @default(DRAFT)
+  currentVersionId String?
+  objective        String?
+  emergencyStopped Boolean             @default(false)
+  createdByUserId  String
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  archivedAt       DateTime?
+
+  organisation Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile               @relation("EmailCampaignCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions     EmailCampaignVersion[]
+  audiences    EmailCampaignAudience[]
+  contents     EmailCampaignContent[]
+  schedules    EmailCampaignSchedule[]
+  approvals    EmailCampaignApproval[]
+  readinessChecks EmailCampaignReadinessCheck[]
+  snapshots    EmailCampaignRecipientSnapshot[]
+  sendRuns     EmailCampaignSendRun[]
+  metrics      EmailCampaignMetricSnapshot[]
+  experiments  EmailCampaignExperiment[]
+
+  @@index([organisationId, brandId, status])
+}
+
+model EmailCampaignVersion {
+  id              String              @id @default(cuid())
+  campaignId      String
+  versionNumber   Int
+  status          EmailCampaignStatus @default(DRAFT)
+  contentHash     String?
+  audienceRuleHash String?
+  createdByUserId String
+  createdAt       DateTime            @default(now())
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, versionNumber])
+}
+
+model EmailCampaignAudience {
+  id                 String    @id @default(cuid())
+  campaignId         String
+  versionId          String
+  segmentId          String?
+  segmentRules       Json?
+  totalMembers       Int       @default(0)
+  consentEligible    Int       @default(0)
+  suppressedCount    Int       @default(0)
+  invalidCount       Int       @default(0)
+  duplicatedCount    Int       @default(0)
+  finalSendableCount Int       @default(0)
+  segmentFreshness   DateTime?
+  computedAt         DateTime?
+
+  campaign EmailCampaign       @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  segment  CrmAudienceSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId])
+}
+
+model EmailCampaignContent {
+  id                String  @id @default(cuid())
+  campaignId        String
+  versionId         String
+  templateId        String?
+  templateVersionId String?
+  senderIdentityId  String?
+  replyTo           String?
+  subject           String
+  preheader         String?
+  htmlBody          String?
+  plainTextBody     String?
+  ctaText           String?
+  ctaUrl            String?
+  utmParameters     Json?
+  language          String  @default("en")
+  complianceFooter  String?
+  unsubscribeLink   String?
+  contentHash       String?
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, versionId])
+}
+
+model EmailCampaignSchedule {
+  id          String    @id @default(cuid())
+  campaignId  String
+  versionId   String
+  sendNow     Boolean   @default(false)
+  scheduledAt DateTime?
+  timezone    String?
+  batchSize   Int?
+  cancelledAt DateTime?
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+}
+
+model EmailCampaignApproval {
+  id                String                      @id @default(cuid())
+  campaignId        String
+  versionId         String
+  approvalType      EmailCampaignApprovalType
+  status            EmailCampaignApprovalStatus @default(PENDING)
+  contentHash       String?
+  audienceRuleHash  String?
+  recipientCountMin Int?
+  recipientCountMax Int?
+  scheduledAtBound  DateTime?
+  approvedByUserId  String?
+  approvedAt        DateTime?
+  notes             String?
+
+  campaign   EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  approvedBy UserProfile?  @relation("EmailCampaignApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, versionId])
+}
+
+model EmailCampaignReadinessCheck {
+  id         String                          @id @default(cuid())
+  campaignId String
+  versionId  String
+  checkType  EmailCampaignReadinessCheckType
+  passed     Boolean
+  message    String?
+  checkedAt  DateTime                        @default(now())
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, versionId])
+}
+
+model EmailCampaignRecipientSnapshot {
+  id                String   @id @default(cuid())
+  campaignId        String
+  versionId         String
+  sendRunId         String?
+  emailAddress      String
+  displayName       String?
+  leadId            String?
+  contactId         String?
+  variables         Json?
+  experimentVariant String?
+  consentGranted    Boolean  @default(false)
+  snapshottedAt     DateTime @default(now())
+
+  campaign EmailCampaign        @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  sendRun  EmailCampaignSendRun? @relation(fields: [sendRunId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, versionId, emailAddress])
+  @@index([sendRunId])
+}
+
+model EmailCampaignSendRun {
+  id               String              @id @default(cuid())
+  campaignId       String
+  versionId        String
+  status           EmailCampaignStatus @default(SENDING)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  totalAttempted   Int                 @default(0)
+  totalSent        Int                 @default(0)
+  totalFailed      Int                 @default(0)
+  emergencyStopped Boolean             @default(false)
+  emailMessageId   String?
+
+  campaign  EmailCampaign                  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  snapshots EmailCampaignRecipientSnapshot[]
+
+  @@index([campaignId])
+}
+
+model EmailCampaignMetricSnapshot {
+  id           String    @id @default(cuid())
+  campaignId   String
+  sendRunId    String?
+  attempted    Int       @default(0)
+  sent         Int       @default(0)
+  delivered    Int       @default(0)
+  bounced      Int       @default(0)
+  complained   Int       @default(0)
+  unsubscribed Int       @default(0)
+  opened       Int       @default(0)
+  clicked      Int       @default(0)
+  ctaClicks    Int       @default(0)
+  conversions  Int       @default(0)
+  revenue      Decimal?
+  limitations  Json?
+  computedAt   DateTime  @default(now())
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, computedAt])
+}
+
+model EmailCampaignExperiment {
+  id                      String                        @id @default(cuid())
+  campaignId              String
+  versionId               String
+  variantType             EmailCampaignExperimentVariant
+  variantA                Json
+  variantB                Json
+  sampleAllocationPercent Int                           @default(50)
+  primaryMetric           String                        @default("click_rate")
+  minimumSample           Int                           @default(100)
+  decisionRule            String?
+  testDurationHours       Int?
+  winnerVariant           String?
+  validityWarnings        Json?
+  status                  EmailCampaignExperimentStatus @default(DRAFT)
+
+  campaign EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
 }
 
 // ---------------------------------------------------------------------------
