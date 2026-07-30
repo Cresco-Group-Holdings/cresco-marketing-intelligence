@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bot,
   CalendarDays,
+  Contact,
   Database,
   FlaskConical,
   FolderOpen,
@@ -155,6 +156,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/leads",
     icon: UserPlus,
     description: "Social engagement to qualified leads",
+  },
+  {
+    label: "CRM",
+    href: "/crm",
+    icon: Contact,
+    description: "Leads, contacts, companies, and identity foundation",
   },
   {
     label: "Connectors",
