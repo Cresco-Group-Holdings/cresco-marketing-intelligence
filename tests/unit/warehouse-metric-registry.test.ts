@@ -5,6 +5,10 @@ import {
 } from "@/lib/warehouse/metric-registry";
 
 describe("warehouse metric registry", () => {
+  it("defines exactly 10 default canonical metrics", () => {
+    expect(DEFAULT_METRIC_DEFINITIONS).toHaveLength(10);
+  });
+
   it("defines canonical metric keys with aggregation metadata", () => {
     const keys = DEFAULT_METRIC_DEFINITIONS.map((definition) => definition.canonicalKey);
     expect(keys).toContain("sessions");

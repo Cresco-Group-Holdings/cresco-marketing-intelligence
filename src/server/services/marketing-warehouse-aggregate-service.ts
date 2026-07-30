@@ -1,13 +1,13 @@
-import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/database/prisma";
-import { AppError } from "@/lib/errors";
+import { buildCorrectionIndex } from "@/lib/warehouse/effective-metric-value";
 import { incrementWarehouseCounter } from "@/lib/warehouse/observability";
 import type { TenantContext } from "@/lib/tenancy/context";
 import type { WarehouseAggregateRefreshInput } from "@/lib/validation/warehouse";
 import { recordAuditEvent } from "@/server/services/audit-service";
+import { marketingWarehouseCorrectionService } from "@/server/services/marketing-warehouse-correction-service";
 import { brandService } from "@/server/services/workspace-service";
 
-function startOfDay(date: Date) {
+function startOfDayUtc(date: Date) {
   const copy = new Date(date);
   copy.setUTCHours(0, 0, 0, 0);
   return copy;
@@ -25,112 +25,136 @@ export const marketingWarehouseAggregateService = {
     const existing = await prisma.aggregateRefreshRun.findUnique({
       where: { idempotencyKey: input.idempotencyKey },
     });
-    if (existing) {
+    if (existing?.status === "COMPLETED") {
       return existing;
     }
 
-    const run = await prisma.aggregateRefreshRun.create({
-      data: {
-        organisationId,
-        projectId: brand.projectId,
-        brandId: input.brandId,
-        status: "RUNNING",
-        idempotencyKey: input.idempotencyKey,
-        aggregateFrom: startOfDay(input.from),
-        aggregateTo: startOfDay(input.to),
-        startedAt: new Date(),
-      },
-    });
-
-    const observations = await prisma.marketingMetricObservation.findMany({
-      where: {
-        organisationId,
-        brandId: input.brandId,
-        observedAt: { gte: input.from, lte: input.to },
-        ...(input.metricKeys?.length ? { metricKey: { in: input.metricKeys } } : {}),
-      },
-    });
-
-    const buckets = new Map<string, { total: number; count: number; metricKey: string; date: Date }>();
-    for (const observation of observations) {
-      const date = startOfDay(observation.observedAt);
-      const key = `${observation.metricKey}:${date.toISOString()}`;
-      const current = buckets.get(key) ?? {
-        total: 0,
-        count: 0,
-        metricKey: observation.metricKey,
-        date,
-      };
-      current.total += Number(observation.metricValue);
-      current.count += 1;
-      buckets.set(key, current);
-    }
-
-    let metricsRefreshed = 0;
-    for (const bucket of buckets.values()) {
-      const definition = await prisma.marketingMetricDefinition.findFirst({
-        where: { brandId: input.brandId, canonicalKey: bucket.metricKey },
-      });
-
-      const existing = await prisma.dailyMarketingAggregate.findFirst({
-        where: {
+    const run =
+      existing ??
+      (await prisma.aggregateRefreshRun.create({
+        data: {
+          organisationId,
+          projectId: brand.projectId,
           brandId: input.brandId,
-          metricKey: bucket.metricKey,
-          aggregateDate: bucket.date,
-          dimensionKey: null,
-          dimensionValue: null,
+          status: "RUNNING",
+          idempotencyKey: input.idempotencyKey,
+          aggregateFrom: startOfDayUtc(input.from),
+          aggregateTo: startOfDayUtc(input.to),
+          startedAt: new Date(),
+        },
+      }));
+
+    try {
+      const observations = await prisma.marketingMetricObservation.findMany({
+        where: {
+          organisationId,
+          brandId: input.brandId,
+          observedAt: { gte: input.from, lte: input.to },
+          ...(input.metricKeys?.length ? { metricKey: { in: input.metricKeys } } : {}),
         },
       });
 
-      if (existing) {
-        await prisma.dailyMarketingAggregate.update({
-          where: { id: existing.id },
-          data: {
-            value: bucket.total,
-            sampleCount: bucket.count,
-            computedAt: new Date(),
-          },
-        });
-      } else {
-        await prisma.dailyMarketingAggregate.create({
-          data: {
-            organisationId,
-            projectId: brand.projectId,
-            brandId: input.brandId,
-            marketingMetricDefinitionId: definition?.id,
-            metricKey: bucket.metricKey,
-            aggregateDate: bucket.date,
-            value: bucket.total,
-            sampleCount: bucket.count,
-          },
-        });
+      const corrections = await marketingWarehouseCorrectionService.getLatestCorrectionsForObservations(
+        observations.map((observation) => observation.id),
+      );
+      const correctionIndex = buildCorrectionIndex(corrections);
+
+      const buckets = new Map<string, { total: number; count: number; metricKey: string; date: Date }>();
+      for (const observation of observations) {
+        const effective =
+          correctionIndex.get(observation.id)?.value ?? observation.metricValue;
+        const date = startOfDayUtc(observation.observedAt);
+        const key = `${observation.metricKey}:${date.toISOString()}`;
+        const current = buckets.get(key) ?? {
+          total: 0,
+          count: 0,
+          metricKey: observation.metricKey,
+          date,
+        };
+        current.total += Number(effective);
+        current.count += 1;
+        buckets.set(key, current);
       }
-      metricsRefreshed += 1;
+
+      const metricsRefreshed = await prisma.$transaction(async (tx) => {
+        let refreshed = 0;
+        for (const bucket of buckets.values()) {
+          const definition = await tx.marketingMetricDefinition.findFirst({
+            where: { brandId: input.brandId, canonicalKey: bucket.metricKey },
+          });
+
+          const existingAggregate = await tx.dailyMarketingAggregate.findFirst({
+            where: {
+              brandId: input.brandId,
+              metricKey: bucket.metricKey,
+              aggregateDate: bucket.date,
+              dimensionKey: null,
+              dimensionValue: null,
+            },
+          });
+
+          if (existingAggregate) {
+            await tx.dailyMarketingAggregate.update({
+              where: { id: existingAggregate.id },
+              data: {
+                value: bucket.total,
+                sampleCount: bucket.count,
+                computedAt: new Date(),
+              },
+            });
+          } else {
+            await tx.dailyMarketingAggregate.create({
+              data: {
+                organisationId,
+                projectId: brand.projectId,
+                brandId: input.brandId,
+                marketingMetricDefinitionId: definition?.id,
+                metricKey: bucket.metricKey,
+                aggregateDate: bucket.date,
+                value: bucket.total,
+                sampleCount: bucket.count,
+              },
+            });
+          }
+          refreshed += 1;
+        }
+        return refreshed;
+      });
+
+      const completed = await prisma.aggregateRefreshRun.update({
+        where: { id: run.id },
+        data: {
+          status: "COMPLETED",
+          metricsRefreshed,
+          completedAt: new Date(),
+        },
+      });
+
+      incrementWarehouseCounter("warehouse.aggregates_refreshed", metricsRefreshed);
+
+      await recordAuditEvent({
+        organisationId,
+        projectId: brand.projectId,
+        actorUserId: context.userProfileId,
+        action: "warehouse.aggregates.refreshed",
+        resourceType: "AggregateRefreshRun",
+        resourceId: run.id,
+        requestId,
+        metadata: { metricsRefreshed },
+      });
+
+      return completed;
+    } catch (error) {
+      await prisma.aggregateRefreshRun.update({
+        where: { id: run.id },
+        data: {
+          status: "FAILED",
+          completedAt: new Date(),
+          errorMessage: error instanceof Error ? error.message : "Aggregate refresh failed",
+        },
+      });
+      throw error;
     }
-
-    const completed = await prisma.aggregateRefreshRun.update({
-      where: { id: run.id },
-      data: {
-        status: "COMPLETED",
-        metricsRefreshed,
-        completedAt: new Date(),
-      },
-    });
-
-    incrementWarehouseCounter("warehouse.aggregates_refreshed", metricsRefreshed);
-
-    await recordAuditEvent({
-      organisationId,
-      projectId: brand.projectId,
-      actorUserId: context.userProfileId,
-      action: "warehouse.aggregates.refreshed",
-      resourceType: "AggregateRefreshRun",
-      resourceId: run.id,
-      requestId,
-      metadata: { metricsRefreshed },
-    });
-
-    return completed;
   },
 
   async listAggregates(

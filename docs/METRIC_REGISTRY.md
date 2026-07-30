@@ -37,6 +37,25 @@ Definitions may be scoped at different tenant levels:
 
 Unique constraint: `[brandId, canonicalKey]`.
 
+## Default seed metrics (Task 3.1)
+
+`DEFAULT_METRIC_DEFINITIONS` in `src/lib/warehouse/metric-registry.ts` seeds **exactly 10** canonical metrics per brand on first normalisation:
+
+| # | `canonicalKey` | Unit | `dataType` | `aggregation` | `isCumulative` |
+| --- | --- | --- | --- | --- | --- |
+| 1 | `sessions` | count | `INTEGER` | `SUM` | false |
+| 2 | `users` | count | `INTEGER` | `SUM` | false |
+| 3 | `pageviews` | count | `INTEGER` | `SUM` | false |
+| 4 | `impressions` | count | `INTEGER` | `SUM` | true |
+| 5 | `clicks` | count | `INTEGER` | `SUM` | true |
+| 6 | `conversions` | count | `INTEGER` | `SUM` | false |
+| 7 | `revenue` | currency | `CURRENCY` | `SUM` | false |
+| 8 | `cost` | currency | `CURRENCY` | `SUM` | false |
+| 9 | `ctr` | percentage | `PERCENTAGE` | `AVG` | false |
+| 10 | `engagement_rate` | percentage | `PERCENTAGE` | `AVG` | false |
+
+Uniqueness: `@@unique([brandId, canonicalKey])` on `MarketingMetricDefinition`. Non-additive rates (`ctr`, `engagement_rate`) use `AVG` aggregation and must not be summed in daily rollups without numerator/denominator logic (deferred to query-time derivation in 3.2).
+
 ## Data types
 
 `MarketingMetricDataType`:

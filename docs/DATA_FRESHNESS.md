@@ -19,14 +19,26 @@ Health records are append-only snapshots (new row per check), not upserted. Late
 
 ## Status determination
 
-| Status | Condition |
-| --- | --- |
-| `HEALTHY` | `freshnessLagMinutes` within SLA threshold |
-| `DEGRADED` | Lag exceeds warning threshold but within critical threshold |
-| `UNHEALTHY` | Lag exceeds critical threshold, or last batch `FAILED` |
-| `UNKNOWN` | No ingest history (new account, or never synced) |
+Warehouse code computes an internal freshness ladder (`computeFreshnessState` in `src/lib/warehouse/freshness.ts`) before mapping to health API statuses:
 
-Default SLA thresholds (configurable per brand in 3.2):
+| Internal freshness | Maps to health `status` | Meaning |
+| --- | --- | --- |
+| `FRESH` | `HEALTHY` | Lag within expected sync interval |
+| `STALE` | `DEGRADED` | Lag exceeds stale multiplier (default 2× interval) |
+| `CRITICAL` | `UNHEALTHY` | Lag exceeds critical multiplier (default 4× interval) |
+| `UNKNOWN` | `UNKNOWN` | No successful sync timestamp |
+
+`CRITICAL` intentionally replaces the task-spec `ERROR` label for data-age breaches. Connector/auth problems are **not** freshness states — they are reported separately in health `metadata.connectorState`:
+
+| `metadata.connectorState` | When set | Health `status` |
+| --- | --- | --- |
+| `ACTIVE` | Account active; freshness ladder applies | `HEALTHY` / `DEGRADED` / `UNHEALTHY` |
+| `INACTIVE` / `DEPRECATED` | `MarketingDataSourceAccount.status` not active | `UNKNOWN` (not a lag issue) |
+| `AUTH_OR_SYNC_ERROR` | `lastSyncStatus = FAILED` | `UNHEALTHY` (connector failure, not staleness) |
+
+Disabled or auth-error sources must not be misclassified as merely stale data.
+
+## SLA thresholds
 
 | Source type | Warning (degraded) | Critical (unhealthy) |
 | --- | --- | --- |

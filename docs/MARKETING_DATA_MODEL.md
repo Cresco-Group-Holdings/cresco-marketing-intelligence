@@ -201,6 +201,22 @@ These models remain separate. The warehouse reads from them via the social bridg
 | `SocialAnalyticsSync` | Parallel to `RawMarketingBatch` |
 | `ConnectorSync` | Parallel to `RawMarketingBatch` (connector path) |
 
+## Deferred dimensions (Task 3.2 extension)
+
+The following task-spec dimensions are **not** separate tables in 3.1 but can be added without breaking existing observations:
+
+| Planned dimension | Extension strategy |
+| --- | --- |
+| `MarketingLandingPage` | New table + nullable `marketingLandingPageId` on `MarketingMetricObservation` / `MarketingEvent` |
+| `MarketingDevice` | New table + nullable `marketingDeviceId` FK |
+| `MarketingGeography` | New table + nullable `marketingGeographyId` FK |
+| `MarketingReferrer` | New table or normalised `dimensions` JSON keys |
+| `MarketingSearchQuery` | New table linked to SEO provider accounts |
+| `MarketingCustomer` | New table; links to `MarketingIdentity` |
+| `MarketingLeadDimension` | New table; bridges to `MarketingLead` |
+
+Existing `dimensions` JSON on observations and `properties` on events preserve provider-specific attributes until dedicated dimension tables ship. Migrations are additive — no observation rows need rewriting.
+
 ## Indexing strategy
 
 Initial indexes favour tenant + time range queries:

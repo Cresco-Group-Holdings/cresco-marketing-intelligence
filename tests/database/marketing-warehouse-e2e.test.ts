@@ -190,7 +190,7 @@ suite("marketing data warehouse against a real database", () => {
       tenantA.context as never,
     );
 
-    expect(preview.preview.rowCount).toBe(2);
+    expect(preview.job.rowCount).toBe(2);
     expect(preview.job.status).toBe("VALIDATING");
 
     const completed = await manualImportService.confirmImport(

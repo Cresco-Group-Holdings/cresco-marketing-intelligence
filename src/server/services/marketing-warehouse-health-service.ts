@@ -34,6 +34,46 @@ export const marketingWarehouseHealthService = {
       return null;
     }
 
+    if (account.status === "INACTIVE" || account.status === "DEPRECATED") {
+      return prisma.marketingDataSourceHealth.create({
+        data: {
+          organisationId: account.organisationId,
+          projectId: account.projectId,
+          brandId: account.brandId,
+          marketingDataSourceAccountId: account.id,
+          status: "UNKNOWN",
+          freshnessLagMinutes: null,
+          lastSuccessfulSyncAt: account.lastSyncAt,
+          errorMessage: `Source account is ${account.status.toLowerCase()}.`,
+          metadata: {
+            connectorState: account.status,
+            freshnessState: null,
+            provider: account.marketingDataSource.provider,
+          },
+        },
+      });
+    }
+
+    if (account.lastSyncStatus === "FAILED") {
+      return prisma.marketingDataSourceHealth.create({
+        data: {
+          organisationId: account.organisationId,
+          projectId: account.projectId,
+          brandId: account.brandId,
+          marketingDataSourceAccountId: account.id,
+          status: "UNHEALTHY",
+          freshnessLagMinutes: null,
+          lastSuccessfulSyncAt: account.lastSyncAt,
+          errorMessage: "Last sync attempt failed.",
+          metadata: {
+            connectorState: "AUTH_OR_SYNC_ERROR",
+            freshnessState: null,
+            provider: account.marketingDataSource.provider,
+          },
+        },
+      });
+    }
+
     const config = getWarehouseConfig();
     const lastBatch = await prisma.rawMarketingBatch.findFirst({
       where: {
@@ -64,6 +104,7 @@ export const marketingWarehouseHealthService = {
             ? `Data is critically stale (${freshness.lagMinutes ?? "unknown"} minutes lag).`
             : null,
         metadata: {
+          connectorState: "ACTIVE",
           freshnessState: freshness.state,
           provider: account.marketingDataSource.provider,
         },

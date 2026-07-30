@@ -116,7 +116,25 @@ Transitions to `PROCESSING`:
 5. Triggers aggregate refresh
 6. Completes job with `rowsProcessed` / `rowsFailed` counts
 
-Idempotency: `ManualImportJob.idempotencyKey` prevents duplicate processing.
+Idempotency: `ManualImportJob.idempotencyKey` prevents duplicate processing. `confirmImport` returns the completed job without re-ingesting when `status = COMPLETED`.
+
+## Batch chunking
+
+Imports may contain up to `MARKETING_WAREHOUSE_MAX_IMPORT_ROWS` rows (default **10,000**). Ingestion enforces `MARKETING_WAREHOUSE_MAX_BATCH_SIZE` (**5,000**) records per `ingestRecords` call.
+
+`confirmImport` therefore:
+
+1. Creates one `RawMarketingBatch` (`idempotencyKey = import-batch:{jobId}`)
+2. Splits rows into 5,000-record chunks via `ingestRecordsInChunks`
+3. Normalises the batch once all chunks are ingested
+
+| Row count | Ingestion chunks | Result |
+| --- | --- | --- |
+| 5,000 | 1 × 5,000 | Single ingest call |
+| 5,001 | 5,000 + 1 | Two ingest calls, one batch |
+| 10,000 | 5,000 + 5,000 | Two ingest calls, one batch |
+
+A single `ingestRecords` call with 5,001 rows is rejected with `VALIDATION_ERROR`.
 
 ## Record types
 

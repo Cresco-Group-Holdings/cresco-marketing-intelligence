@@ -4,6 +4,8 @@ import { AppError } from "@/lib/errors";
 import { getWarehouseConfig } from "@/lib/warehouse/config";
 import { incrementWarehouseCounter } from "@/lib/warehouse/observability";
 import { hashPayload } from "@/lib/warehouse/payload-hash";
+import { chunkArray } from "@/lib/warehouse/chunking";
+import { ensureRawSchemaVersion } from "@/lib/warehouse/transformation-version";
 import type { TenantContext } from "@/lib/tenancy/context";
 import type { WarehouseIngestBatchInput } from "@/lib/validation/warehouse";
 import { recordAuditEvent } from "@/server/services/audit-service";
@@ -76,7 +78,7 @@ export const marketingWarehouseIngestionService = {
     incrementWarehouseCounter("warehouse.batches_created", 1, { batchId: batch.id });
 
     if (input.records?.length) {
-      await this.ingestRecords(batch.id, input.records, context, requestId);
+      await this.ingestRecordsInChunks(batch.id, input.records, context, requestId);
     }
 
     await recordAuditEvent({
@@ -91,6 +93,28 @@ export const marketingWarehouseIngestionService = {
     });
 
     return prisma.rawMarketingBatch.findUniqueOrThrow({ where: { id: batch.id } });
+  },
+
+  async ingestRecordsInChunks(
+    batchId: string,
+    records: IngestRecord[],
+    context: TenantContext,
+    requestId?: string,
+  ) {
+    const config = getWarehouseConfig();
+    const chunks = chunkArray(records, config.maxBatchSize);
+    let received = 0;
+    let deduped = 0;
+    let failed = 0;
+
+    for (const chunk of chunks) {
+      const result = await this.ingestRecords(batchId, chunk, context, requestId);
+      received += result.received;
+      deduped += result.deduped;
+      failed += result.failed;
+    }
+
+    return { received, deduped, failed };
   },
 
   async ingestRecords(
@@ -111,6 +135,10 @@ export const marketingWarehouseIngestionService = {
     if (!batch || batch.organisationId !== context.organisationId) {
       throw new AppError("NOT_FOUND", "Batch was not found.");
     }
+
+    const schemaVersion = batch.marketingDataSourceAccount.marketingDataSource?.id
+      ? await ensureRawSchemaVersion(batch.marketingDataSourceAccount.marketingDataSource.id)
+      : null;
 
     let received = 0;
     let deduped = 0;
@@ -134,18 +162,34 @@ export const marketingWarehouseIngestionService = {
       }
 
       try {
-        await prisma.rawMarketingRecord.create({
-          data: {
+        await prisma.rawMarketingRecord.upsert({
+          where: {
+            marketingDataSourceAccountId_providerRecordId_recordType: {
+              marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+              providerRecordId: record.providerRecordId,
+              recordType: record.recordType,
+            },
+          },
+          create: {
             organisationId: batch.organisationId,
             projectId: batch.projectId,
             brandId: batch.brandId,
             marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
             rawMarketingBatchId: batch.id,
+            schemaVersionId: schemaVersion?.id,
             provider: batch.provider,
             providerRecordId: record.providerRecordId,
             recordType: record.recordType,
             eventTime: record.eventTime ? new Date(record.eventTime) : undefined,
             idempotencyKey,
+            checksum: payloadHash,
+            inlinePayload: record.payload as Prisma.InputJsonValue,
+            metadata: record.metadata as Prisma.InputJsonValue | undefined,
+            status: "RECEIVED",
+          },
+          update: {
+            rawMarketingBatchId: batch.id,
+            schemaVersionId: schemaVersion?.id,
             checksum: payloadHash,
             inlinePayload: record.payload as Prisma.InputJsonValue,
             metadata: record.metadata as Prisma.InputJsonValue | undefined,

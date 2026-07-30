@@ -3,6 +3,8 @@ import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { getWarehouseConfig } from "@/lib/warehouse/config";
+import { sanitizeCsvRow } from "@/lib/warehouse/csv-safety";
+import { chunkArray } from "@/lib/warehouse/chunking";
 import { incrementWarehouseCounter } from "@/lib/warehouse/observability";
 import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
@@ -25,7 +27,9 @@ function parseCsv(content: string): { headers: string[]; rows: ParsedRow[] } {
   const headers = lines[0]!.split(",").map((header) => header.trim());
   const rows = lines.slice(1).map((line) => {
     const values = line.split(",").map((value) => value.trim());
-    return Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""]));
+    return sanitizeCsvRow(
+      Object.fromEntries(headers.map((header, index) => [header, values[index] ?? ""])),
+    );
   });
   return { headers, rows };
 }
@@ -199,11 +203,16 @@ export const marketingManualImportService = {
         provider: "MANUAL_IMPORT",
         syncType: "MANUAL",
         idempotencyKey: `import-batch:${job.id}`,
-        records,
       },
       context,
       requestId,
     );
+
+    const config = getWarehouseConfig();
+    const chunks = chunkArray(records, config.maxBatchSize);
+    for (const chunk of chunks) {
+      await marketingWarehouseIngestionService.ingestRecords(batch.id, chunk, context, requestId);
+    }
 
     await marketingWarehouseNormalisationService.normaliseBatch(batch.id, context, requestId);
 

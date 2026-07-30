@@ -79,7 +79,21 @@ export const marketingWarehouseQualityService = {
         recordsChecked = observations.length;
 
         for (const observation of observations) {
-          const issue = await prisma.dataQualityIssue.create({
+          const openIssue = await prisma.dataQualityIssue.findFirst({
+            where: {
+              organisationId,
+              brandId,
+              dataQualityRuleId: rule.id,
+              entityType: "MarketingMetricObservation",
+              entityId: observation.id,
+              status: "OPEN",
+            },
+          });
+          if (openIssue) {
+            continue;
+          }
+
+          await prisma.dataQualityIssue.create({
             data: {
               organisationId,
               projectId: brand.projectId,
@@ -95,7 +109,6 @@ export const marketingWarehouseQualityService = {
           });
           ruleIssues += 1;
           issuesFound += 1;
-          void issue;
         }
       }
 
