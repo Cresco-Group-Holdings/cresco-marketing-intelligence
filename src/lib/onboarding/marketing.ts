@@ -1,4 +1,4 @@
-import { MarketingChannel, MarketingObjectiveType } from "@prisma/client";
+import { BrandMarketingChannel, MarketingObjectiveType } from "@prisma/client";
 
 export const MARKETING_OBJECTIVE_LABELS: Record<MarketingObjectiveType, string> = {
   BRAND_AWARENESS: "Brand awareness",
@@ -13,7 +13,7 @@ export const MARKETING_OBJECTIVE_LABELS: Record<MarketingObjectiveType, string> 
   CUSTOMER_RETENTION: "Customer retention",
 };
 
-export const MARKETING_CHANNEL_LABELS: Record<MarketingChannel, string> = {
+export const MARKETING_CHANNEL_LABELS: Record<BrandMarketingChannel, string> = {
   WEBSITE: "Website",
   SEO: "SEO",
   GOOGLE_ADS: "Google Ads",
@@ -26,7 +26,7 @@ export const MARKETING_CHANNEL_LABELS: Record<MarketingChannel, string> = {
   EMAIL: "Email",
 };
 
-export const MARKETING_CHANNELS = Object.values(MarketingChannel);
+export const MARKETING_CHANNELS = Object.values(BrandMarketingChannel);
 
 export const MARKETING_OBJECTIVE_TYPES = Object.values(MarketingObjectiveType);
 

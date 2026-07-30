@@ -108,6 +108,25 @@ Connector OAuth access and refresh tokens are **not** implemented in Task 1.3. S
 
 Both run in pull request CI.
 
+## Marketing data warehouse permissions (Task 3.1)
+
+Warehouse APIs enforce `marketingData.*` permissions defined in `src/lib/tenancy/permissions.ts`:
+
+| Permission | Purpose |
+| --- | --- |
+| `marketingData.read` | View metrics, dimensions, health, lineage summaries, quality issues |
+| `marketingData.import` | Upload and process manual import files |
+| `marketingData.sync` | Trigger batches, reprocess, cancel |
+| `marketingData.manage` | Manage channel rules, quality resolutions, currency rates, identity links |
+| `marketingData.viewRaw` | Access raw payloads and uploaded import files (OWNER/ADMIN only) |
+| `marketingData.admin` | Suppress quality rules, advanced operations |
+
+Raw marketing payloads must not contain secrets. Connector OAuth tokens remain in encrypted `ConnectorCredential` records only. Large payloads are stored via `RawMarketingPayloadReference` with brand-scoped object storage paths.
+
+Warehouse worker routes (`/api/marketing-data/batches/process-due`, etc.) require `MARKETING_WAREHOUSE_WORKER_TOKEN` — same bearer pattern as `src/lib/api/worker-auth.ts`.
+
+See `docs/TASK_3_1_SECURITY_REVIEW.md` for the full threat review.
+
 ## Pending security work
 
 The following assumptions remain open for later tasks:
@@ -117,5 +136,7 @@ The following assumptions remain open for later tasks:
 - full CSRF token strategy beyond SameSite cookies and origin checks
 - secret rotation automation
 - Microsoft OAuth enablement
-- penetration testing and formal security review
+- penetration testing and formal security review (warehouse endpoints reviewed in Task 3.1; live connector ingest review deferred to 3.2)
 - SOC2 / ISO control mapping
+- rate limiting on warehouse import endpoints
+- optional encryption at rest for raw marketing payloads

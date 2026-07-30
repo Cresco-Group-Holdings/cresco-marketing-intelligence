@@ -69,7 +69,7 @@ enum MarketingObjectiveStatus {
   ARCHIVED
 }
 
-enum MarketingChannel {
+enum BrandMarketingChannel {
   WEBSITE
   SEO
   GOOGLE_ADS
@@ -80,6 +80,8 @@ enum MarketingChannel {
   YOUTUBE
   X
   EMAIL
+
+  @@map("MarketingChannel")
 }
 
 enum OnboardingStepKey {
@@ -262,7 +264,10 @@ model UserProfile {
   experimentReuseConfirmed   ExperimentReuseRecord[]   @relation("ExperimentReuseConfirmer")
   socialReportsCreated       SocialReport[]            @relation("SocialReportCreator")
   socialReportSchedulesCreated SocialReportSchedule[]  @relation("SocialReportScheduleCreator")
-  socialReportRecipients     SocialReportRecipient[]   @relation("SocialReportRecipientUser")
+  socialReportRecipients       SocialReportRecipient[]   @relation("SocialReportRecipientUser")
+  manualImportJobsCreated      ManualImportJob[]         @relation("ManualImportJobCreator")
+  identityLinksConfirmed       MarketingIdentityLink[]   @relation("MarketingIdentityLinkConfirmer")
+  dataQualityResolutions       DataQualityResolution[]   @relation("DataQualityResolutionResolver")
 
   @@index([email])
 }
@@ -367,7 +372,45 @@ model Organisation {
   crmHandoffs              CrmHandoff[]
   socialExperiments        SocialExperiment[]
   socialReports            SocialReport[]
-  socialReportSchedules    SocialReportSchedule[]
+  socialReportSchedules          SocialReportSchedule[]
+  marketingDataSourceAccounts    MarketingDataSourceAccount[]
+  marketingDataSourceHealthRecords MarketingDataSourceHealth[]
+  rawMarketingBatches            RawMarketingBatch[]
+  rawMarketingRecords            RawMarketingRecord[]
+  rawMarketingPayloadReferences  RawMarketingPayloadReference[]
+  marketingChannels              MarketingChannel[]
+  marketingAccounts              MarketingAccount[]
+  marketingCampaigns             MarketingCampaign[]
+  marketingAdGroups              MarketingAdGroup[]
+  marketingAds                   MarketingAd[]
+  marketingContentItems          MarketingContentItem[]
+  marketingAudiences             MarketingAudience[]
+  marketingChannelRules          MarketingChannelRule[]
+  marketingChannelClassifications MarketingChannelClassification[]
+  marketingMetricDefinitions     MarketingMetricDefinition[]
+  marketingMetricMappings        MarketingMetricMapping[]
+  marketingMetricObservations    MarketingMetricObservation[]
+  marketingMetricCorrections     MarketingMetricCorrection[]
+  marketingEvents                MarketingEvent[]
+  marketingEventProperties       MarketingEventProperty[]
+  marketingSessions              MarketingSession[]
+  marketingIdentities            MarketingIdentity[]
+  marketingIdentityLinks         MarketingIdentityLink[]
+  marketingConversionDefinitions MarketingConversionDefinition[]
+  marketingRevenueRecords        MarketingRevenueRecord[]
+  marketingCostRecords           MarketingCostRecord[]
+  currencyRates                  CurrencyRate[]
+  currencyConversionRecords      CurrencyConversionRecord[]
+  dataLineageRecords             DataLineageRecord[]
+  dataTransformationRuns         DataTransformationRun[]
+  dataQualityRules               DataQualityRule[]
+  dataQualityChecks              DataQualityCheck[]
+  dataQualityIssues              DataQualityIssue[]
+  dataQualityResolutions         DataQualityResolution[]
+  dailyMarketingAggregates       DailyMarketingAggregate[]
+  aggregateRefreshRuns           AggregateRefreshRun[]
+  manualImportJobs               ManualImportJob[]
+  manualImportMappings           ManualImportMapping[]
 
   @@index([status])
   @@index([archivedAt])
@@ -464,7 +507,44 @@ model Project {
   crmHandoffs              CrmHandoff[]
   socialExperiments        SocialExperiment[]
   socialReports            SocialReport[]
-  socialReportSchedules    SocialReportSchedule[]
+  socialReportSchedules          SocialReportSchedule[]
+  marketingDataSourceAccounts    MarketingDataSourceAccount[]
+  marketingDataSourceHealthRecords MarketingDataSourceHealth[]
+  rawMarketingBatches            RawMarketingBatch[]
+  rawMarketingRecords            RawMarketingRecord[]
+  rawMarketingPayloadReferences  RawMarketingPayloadReference[]
+  marketingChannels              MarketingChannel[]
+  marketingAccounts              MarketingAccount[]
+  marketingCampaigns             MarketingCampaign[]
+  marketingAdGroups              MarketingAdGroup[]
+  marketingAds                   MarketingAd[]
+  marketingContentItems          MarketingContentItem[]
+  marketingAudiences             MarketingAudience[]
+  marketingChannelRules          MarketingChannelRule[]
+  marketingChannelClassifications MarketingChannelClassification[]
+  marketingMetricDefinitions     MarketingMetricDefinition[]
+  marketingMetricMappings        MarketingMetricMapping[]
+  marketingMetricObservations    MarketingMetricObservation[]
+  marketingMetricCorrections     MarketingMetricCorrection[]
+  marketingEvents                MarketingEvent[]
+  marketingEventProperties       MarketingEventProperty[]
+  marketingSessions              MarketingSession[]
+  marketingIdentities            MarketingIdentity[]
+  marketingIdentityLinks         MarketingIdentityLink[]
+  marketingConversionDefinitions MarketingConversionDefinition[]
+  marketingRevenueRecords        MarketingRevenueRecord[]
+  marketingCostRecords           MarketingCostRecord[]
+  currencyConversionRecords      CurrencyConversionRecord[]
+  dataLineageRecords             DataLineageRecord[]
+  dataTransformationRuns         DataTransformationRun[]
+  dataQualityRules               DataQualityRule[]
+  dataQualityChecks              DataQualityCheck[]
+  dataQualityIssues              DataQualityIssue[]
+  dataQualityResolutions         DataQualityResolution[]
+  dailyMarketingAggregates       DailyMarketingAggregate[]
+  aggregateRefreshRuns           AggregateRefreshRun[]
+  manualImportJobs               ManualImportJob[]
+  manualImportMappings           ManualImportMapping[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -553,7 +633,44 @@ model Brand {
   crmHandoffs              CrmHandoff[]
   socialExperiments        SocialExperiment[]
   socialReports            SocialReport[]
-  socialReportSchedules    SocialReportSchedule[]
+  socialReportSchedules          SocialReportSchedule[]
+  marketingDataSourceAccounts    MarketingDataSourceAccount[]
+  marketingDataSourceHealthRecords MarketingDataSourceHealth[]
+  rawMarketingBatches            RawMarketingBatch[]
+  rawMarketingRecords            RawMarketingRecord[]
+  rawMarketingPayloadReferences  RawMarketingPayloadReference[]
+  marketingChannels              MarketingChannel[]
+  marketingAccounts              MarketingAccount[]
+  marketingCampaigns             MarketingCampaign[]
+  marketingAdGroups              MarketingAdGroup[]
+  marketingAds                   MarketingAd[]
+  marketingContentItems          MarketingContentItem[]
+  marketingAudiences             MarketingAudience[]
+  marketingChannelRules          MarketingChannelRule[]
+  marketingChannelClassifications MarketingChannelClassification[]
+  marketingMetricDefinitions     MarketingMetricDefinition[]
+  marketingMetricMappings        MarketingMetricMapping[]
+  marketingMetricObservations    MarketingMetricObservation[]
+  marketingMetricCorrections     MarketingMetricCorrection[]
+  marketingEvents                MarketingEvent[]
+  marketingEventProperties       MarketingEventProperty[]
+  marketingSessions              MarketingSession[]
+  marketingIdentities            MarketingIdentity[]
+  marketingIdentityLinks         MarketingIdentityLink[]
+  marketingConversionDefinitions MarketingConversionDefinition[]
+  marketingRevenueRecords        MarketingRevenueRecord[]
+  marketingCostRecords           MarketingCostRecord[]
+  currencyConversionRecords      CurrencyConversionRecord[]
+  dataLineageRecords             DataLineageRecord[]
+  dataTransformationRuns         DataTransformationRun[]
+  dataQualityRules               DataQualityRule[]
+  dataQualityChecks              DataQualityCheck[]
+  dataQualityIssues              DataQualityIssue[]
+  dataQualityResolutions         DataQualityResolution[]
+  dailyMarketingAggregates       DailyMarketingAggregate[]
+  aggregateRefreshRuns           AggregateRefreshRun[]
+  manualImportJobs               ManualImportJob[]
+  manualImportMappings           ManualImportMapping[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -688,7 +805,7 @@ model BrandChannelPreference {
   organisationId String
   projectId      String
   brandId        String
-  channel        MarketingChannel
+  channel        BrandMarketingChannel
   enabled        Boolean          @default(true)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
@@ -1658,8 +1775,9 @@ model ConnectorAccount {
   credential       ConnectorCredential?
   syncs            ConnectorSync[]
   errors           ConnectorError[]
-  syncCursors      ConnectorSyncCursor[]
-  webhookEndpoints WebhookEndpoint[]
+  syncCursors                   ConnectorSyncCursor[]
+  webhookEndpoints              WebhookEndpoint[]
+  marketingDataSourceAccounts   MarketingDataSourceAccount[]
 
   @@unique([brandId, connectorType])
   @@index([organisationId])
@@ -3561,4 +3679,1518 @@ model SocialReportExport {
   socialReport SocialReport @relation(fields: [socialReportId], references: [id], onDelete: Cascade)
 
   @@index([socialReportId, createdAt])
+}
+// Task 3.1 — Unified Marketing Data Warehouse
+// Appended to schema.prisma after SocialReportExport
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum MarketingDataProvider {
+  GA4
+  GOOGLE_SEARCH_CONSOLE
+  GOOGLE_ADS
+  META
+  INSTAGRAM
+  LINKEDIN
+  TIKTOK
+  YOUTUBE
+  X
+  STRIPE
+  EMAIL_PROVIDER
+  CRM_PROVIDER
+  FIRST_PARTY
+  MANUAL_IMPORT
+  SOCIAL_BRIDGE
+}
+
+enum MarketingDataSourceStatus {
+  ACTIVE
+  INACTIVE
+  DEPRECATED
+}
+
+enum MarketingDataSourceCapabilityType {
+  METRICS
+  EVENTS
+  DIMENSIONS
+  REVENUE
+  COST
+  LEADS
+  AUDIENCES
+  CONTENT
+  RAW_EXPORT
+}
+
+enum MarketingDataSourceHealthStatus {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+  UNKNOWN
+}
+
+enum RawMarketingRecordStatus {
+  RECEIVED
+  VALIDATED
+  TRANSFORMED
+  REJECTED
+  ARCHIVED
+}
+
+enum RawMarketingBatchStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  CANCELLED
+}
+
+enum RawMarketingBatchSyncType {
+  SCHEDULED
+  MANUAL
+  BACKFILL
+  WEBHOOK
+  REPROCESS
+}
+
+enum RawMarketingPayloadStorageType {
+  INLINE
+  OBJECT_STORAGE
+}
+
+enum MarketingDimensionStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+  REMOVED
+}
+
+enum MarketingMetricSource {
+  CONNECTOR
+  SOCIAL
+  MANUAL_IMPORT
+  FIRST_PARTY
+  DERIVED
+  CORRECTION
+}
+
+enum MarketingMetricAggregation {
+  SUM
+  AVG
+  MAX
+  MIN
+  COUNT
+  LAST
+}
+
+enum MarketingMetricDataType {
+  INTEGER
+  DECIMAL
+  PERCENTAGE
+  CURRENCY
+  DURATION
+  RATIO
+}
+
+enum MarketingEventSource {
+  CONNECTOR
+  FIRST_PARTY
+  MANUAL_IMPORT
+  SOCIAL
+}
+
+enum MarketingIdentityType {
+  ANONYMOUS_ID
+  USER_ID
+  EMAIL
+  PHONE
+  DEVICE_ID
+  COOKIE_ID
+  PROVIDER_ID
+}
+
+enum MarketingIdentityLinkStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  EXPIRED
+}
+
+enum MarketingConversionType {
+  GOAL
+  TRANSACTION
+  LEAD
+  SIGNUP
+  CUSTOM
+}
+
+enum DataLineageEntityType {
+  RAW_RECORD
+  BATCH
+  DIMENSION
+  METRIC
+  EVENT
+  AGGREGATE
+  TRANSFORMATION
+}
+
+enum DataTransformationRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum DataQualityRuleType {
+  COMPLETENESS
+  FRESHNESS
+  UNIQUENESS
+  RANGE
+  CONSISTENCY
+  REFERENTIAL
+  CUSTOM
+}
+
+enum DataQualityCheckStatus {
+  PASSED
+  FAILED
+  WARNING
+  SKIPPED
+  ERROR
+}
+
+enum DataQualityIssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum DataQualityIssueStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  SUPPRESSED
+}
+
+enum DataQualityResolutionAction {
+  CORRECTED
+  SUPPRESSED
+  DEFERRED
+  FALSE_POSITIVE
+  REPROCESSED
+}
+
+enum ManualImportJobStatus {
+  DRAFT
+  UPLOADED
+  MAPPING
+  VALIDATING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ManualImportFileFormat {
+  CSV
+  TSV
+  JSON
+  XLSX
+}
+
+enum AggregateRefreshRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum CurrencyRateSource {
+  MANUAL
+  ECB
+  OPEN_EXCHANGE
+  PROVIDER
+}
+
+// ---------------------------------------------------------------------------
+// Source registry
+// ---------------------------------------------------------------------------
+
+model MarketingDataSource {
+  id               String                    @id @default(cuid())
+  provider         MarketingDataProvider
+  key              String                    @unique
+  displayName      String
+  description      String?
+  category         String?
+  isConnected      Boolean                   @default(false)
+  documentationUrl String?
+  status           MarketingDataSourceStatus @default(ACTIVE)
+  metadata         Json?
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  accounts     MarketingDataSourceAccount[]
+  capabilities MarketingDataSourceCapability[]
+  fields       MarketingDataSourceField[]
+  schemaVersions RawMarketingSchemaVersion[]
+
+  @@index([provider])
+  @@index([status])
+}
+
+model MarketingDataSourceAccount {
+  id                    String                    @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  marketingDataSourceId String
+  connectorAccountId    String?
+  externalAccountId     String?
+  displayName           String?
+  currency              String?
+  timezone              String?
+  status                MarketingDataSourceStatus @default(ACTIVE)
+  lastSyncAt            DateTime?
+  lastSyncStatus        RawMarketingBatchStatus?
+  metadata              Json?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  organisation         Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project              Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSource  MarketingDataSource       @relation(fields: [marketingDataSourceId], references: [id], onDelete: Restrict)
+  connectorAccount     ConnectorAccount?         @relation(fields: [connectorAccountId], references: [id], onDelete: SetNull)
+  healthRecords        MarketingDataSourceHealth[]
+  rawBatches           RawMarketingBatch[]
+  rawRecords           RawMarketingRecord[]
+  channels             MarketingChannel[]
+  accounts             MarketingAccount[]
+  campaigns            MarketingCampaign[]
+  adGroups             MarketingAdGroup[]
+  ads                  MarketingAd[]
+  contentItems         MarketingContentItem[]
+  audiences            MarketingAudience[]
+  metricObservations   MarketingMetricObservation[]
+  metricCorrections    MarketingMetricCorrection[]
+  events               MarketingEvent[]
+  sessions             MarketingSession[]
+  revenueRecords       MarketingRevenueRecord[]
+  costRecords          MarketingCostRecord[]
+  manualImportJobs     ManualImportJob[]
+
+  @@unique([brandId, marketingDataSourceId, externalAccountId])
+  @@index([organisationId, brandId])
+  @@index([projectId])
+  @@index([connectorAccountId])
+  @@index([status])
+}
+
+model MarketingDataSourceCapability {
+  id                    String                            @id @default(cuid())
+  marketingDataSourceId String
+  capabilityType        MarketingDataSourceCapabilityType
+  enabled               Boolean                           @default(true)
+  description           String?
+  metadata              Json?
+  createdAt             DateTime                          @default(now())
+  updatedAt             DateTime                          @updatedAt
+
+  marketingDataSource MarketingDataSource @relation(fields: [marketingDataSourceId], references: [id], onDelete: Cascade)
+
+  @@unique([marketingDataSourceId, capabilityType])
+  @@index([marketingDataSourceId])
+}
+
+model MarketingDataSourceField {
+  id                    String              @id @default(cuid())
+  marketingDataSourceId String
+  fieldKey              String
+  displayName           String
+  dataType              String
+  isRequired            Boolean             @default(false)
+  isDimension           Boolean             @default(false)
+  isMetric              Boolean             @default(false)
+  description           String?
+  metadata              Json?
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+
+  marketingDataSource MarketingDataSource @relation(fields: [marketingDataSourceId], references: [id], onDelete: Cascade)
+
+  @@unique([marketingDataSourceId, fieldKey])
+  @@index([marketingDataSourceId])
+}
+
+model MarketingDataSourceHealth {
+  id                           String                        @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String
+  status                       MarketingDataSourceHealthStatus @default(UNKNOWN)
+  freshnessLagMinutes          Int?
+  lastSuccessfulSyncAt         DateTime?
+  lastCheckedAt                DateTime                      @default(now())
+  errorMessage                 String?
+  metadata                     Json?
+  createdAt                    DateTime                      @default(now())
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, lastCheckedAt])
+  @@index([marketingDataSourceAccountId, lastCheckedAt])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Raw ingestion layer
+// ---------------------------------------------------------------------------
+
+model RawMarketingSchemaVersion {
+  id                    String              @id @default(cuid())
+  marketingDataSourceId String
+  version               String
+  schemaHash            String?
+  schemaDefinition      Json
+  isActive              Boolean             @default(true)
+  effectiveFrom         DateTime            @default(now())
+  effectiveTo           DateTime?
+  createdAt             DateTime            @default(now())
+
+  marketingDataSource MarketingDataSource @relation(fields: [marketingDataSourceId], references: [id], onDelete: Cascade)
+  rawRecords          RawMarketingRecord[]
+
+  @@unique([marketingDataSourceId, version])
+  @@index([marketingDataSourceId, isActive])
+}
+
+model RawMarketingBatch {
+  id                           String                    @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String
+  provider                     MarketingDataProvider
+  status                       RawMarketingBatchStatus   @default(QUEUED)
+  syncType                     RawMarketingBatchSyncType
+  idempotencyKey               String                    @unique
+  cursor                       Json?
+  attemptCount                 Int                       @default(0)
+  maxAttempts                  Int                       @default(3)
+  scheduledFor                 DateTime?
+  nextRetryAt                  DateTime?
+  startedAt                    DateTime?
+  heartbeatAt                  DateTime?
+  leaseExpiresAt               DateTime?
+  workerId                     String?
+  completedAt                  DateTime?
+  backfillFrom                 DateTime?
+  backfillTo                   DateTime?
+  recordsReceived              Int                       @default(0)
+  recordsProcessed             Int                       @default(0)
+  recordsFailed                Int                       @default(0)
+  lastError                    String?
+  metadata                     Json?
+  createdAt                    DateTime                  @default(now())
+  updatedAt                    DateTime                  @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: Cascade)
+  rawRecords                 RawMarketingRecord[]
+  transformationRuns         DataTransformationRun[]
+  dataQualityChecks          DataQualityCheck[]
+
+  @@index([organisationId, brandId])
+  @@index([marketingDataSourceAccountId, status])
+  @@index([scheduledFor])
+  @@index([status, leaseExpiresAt])
+  @@index([status, nextRetryAt])
+}
+
+model RawMarketingRecord {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String
+  rawMarketingBatchId          String?
+  schemaVersionId              String?
+  provider                     MarketingDataProvider
+  providerRecordId             String
+  recordType                   String
+  status                       RawMarketingRecordStatus @default(RECEIVED)
+  receivedAt                   DateTime                 @default(now())
+  eventTime                    DateTime?
+  idempotencyKey               String                   @unique
+  checksum                     String?
+  inlinePayload                Json?
+  payloadReferenceId           String?
+  metadata                     Json?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount  @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: Cascade)
+  rawMarketingBatch          RawMarketingBatch?          @relation(fields: [rawMarketingBatchId], references: [id], onDelete: SetNull)
+  schemaVersion              RawMarketingSchemaVersion?  @relation(fields: [schemaVersionId], references: [id], onDelete: SetNull)
+  payloadReference           RawMarketingPayloadReference? @relation(fields: [payloadReferenceId], references: [id], onDelete: SetNull)
+  lineageRecords             DataLineageRecord[]
+
+  @@unique([marketingDataSourceAccountId, providerRecordId, recordType])
+  @@index([organisationId, brandId, receivedAt])
+  @@index([rawMarketingBatchId])
+  @@index([provider, recordType])
+  @@index([status])
+  @@index([eventTime])
+}
+
+model RawMarketingPayloadReference {
+  id             String                         @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  storageType    RawMarketingPayloadStorageType @default(OBJECT_STORAGE)
+  storagePath    String
+  byteSize       Int?
+  contentType    String?
+  checksum       String?
+  metadata       Json?
+  createdAt      DateTime                       @default(now())
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  rawRecords   RawMarketingRecord[]
+
+  @@index([organisationId, brandId])
+  @@index([storagePath])
+}
+
+// ---------------------------------------------------------------------------
+// Dimension models
+// ---------------------------------------------------------------------------
+
+model MarketingChannel {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  provider                     MarketingDataProvider
+  providerChannelId            String
+  name                         String
+  channelType                  String?
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  campaigns                  MarketingCampaign[]
+  contentItems               MarketingContentItem[]
+  classifications            MarketingChannelClassification[]
+  metricObservations         MarketingMetricObservation[]
+  costRecords                MarketingCostRecord[]
+
+  @@unique([brandId, provider, providerChannelId])
+  @@index([organisationId, brandId])
+  @@index([marketingDataSourceAccountId])
+  @@index([status])
+}
+
+model MarketingAccount {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  provider                     MarketingDataProvider
+  providerAccountId            String
+  name                         String
+  currency                     String?
+  timezone                     String?
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  campaigns                  MarketingCampaign[]
+  metricObservations         MarketingMetricObservation[]
+  costRecords                MarketingCostRecord[]
+  revenueRecords             MarketingRevenueRecord[]
+
+  @@unique([brandId, provider, providerAccountId])
+  @@index([organisationId, brandId])
+  @@index([marketingDataSourceAccountId])
+  @@index([status])
+}
+
+model MarketingCampaign {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingAccountId           String?
+  marketingChannelId           String?
+  provider                     MarketingDataProvider
+  providerCampaignId           String
+  name                         String
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  campaignType                 String?
+  startDate                    DateTime?
+  endDate                      DateTime?
+  budgetAmount                 Decimal?                 @db.Decimal(24, 6)
+  budgetCurrency               String?
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingAccount           MarketingAccount?          @relation(fields: [marketingAccountId], references: [id], onDelete: SetNull)
+  marketingChannel           MarketingChannel?          @relation(fields: [marketingChannelId], references: [id], onDelete: SetNull)
+  adGroups                   MarketingAdGroup[]
+  metricObservations         MarketingMetricObservation[]
+  costRecords                MarketingCostRecord[]
+
+  @@unique([brandId, provider, providerCampaignId])
+  @@index([organisationId, brandId])
+  @@index([marketingAccountId])
+  @@index([marketingChannelId])
+  @@index([status])
+  @@index([startDate, endDate])
+}
+
+model MarketingAdGroup {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingCampaignId          String?
+  provider                     MarketingDataProvider
+  providerAdGroupId            String
+  name                         String
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingCampaign          MarketingCampaign?         @relation(fields: [marketingCampaignId], references: [id], onDelete: SetNull)
+  ads                        MarketingAd[]
+  metricObservations         MarketingMetricObservation[]
+  costRecords                MarketingCostRecord[]
+
+  @@unique([brandId, provider, providerAdGroupId])
+  @@index([organisationId, brandId])
+  @@index([marketingCampaignId])
+  @@index([status])
+}
+
+model MarketingAd {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingAdGroupId           String?
+  provider                     MarketingDataProvider
+  providerAdId                 String
+  name                         String?
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  adType                       String?
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingAdGroup           MarketingAdGroup?          @relation(fields: [marketingAdGroupId], references: [id], onDelete: SetNull)
+  metricObservations         MarketingMetricObservation[]
+  costRecords                MarketingCostRecord[]
+
+  @@unique([brandId, provider, providerAdId])
+  @@index([organisationId, brandId])
+  @@index([marketingAdGroupId])
+  @@index([status])
+}
+
+model MarketingContentItem {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingChannelId           String?
+  provider                     MarketingDataProvider
+  providerContentId            String
+  title                        String?
+  contentType                  String
+  url                          String?
+  publishedAt                  DateTime?
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingChannel           MarketingChannel?          @relation(fields: [marketingChannelId], references: [id], onDelete: SetNull)
+  metricObservations         MarketingMetricObservation[]
+
+  @@unique([brandId, provider, providerContentId])
+  @@index([organisationId, brandId])
+  @@index([marketingChannelId])
+  @@index([publishedAt])
+  @@index([status])
+}
+
+model MarketingAudience {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  provider                     MarketingDataProvider
+  providerAudienceId           String
+  name                         String
+  audienceSize                 Int?
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+
+  @@unique([brandId, provider, providerAudienceId])
+  @@index([organisationId, brandId])
+  @@index([status])
+}
+
+model MarketingChannelRule {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  name           String
+  description    String?
+  priority       Int      @default(100)
+  matchPattern   String
+  matchField     String
+  targetChannel  String
+  isActive       Boolean  @default(true)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation     Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  classifications  MarketingChannelClassification[]
+
+  @@index([organisationId, brandId, isActive])
+  @@index([priority])
+}
+
+model MarketingChannelClassification {
+  id                     String   @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  marketingChannelId     String
+  marketingChannelRuleId String?
+  classifiedChannel      String
+  confidence             Decimal? @db.Decimal(5, 4)
+  classifiedAt           DateTime @default(now())
+  metadata               Json?
+
+  organisation         Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project              Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingChannel     MarketingChannel      @relation(fields: [marketingChannelId], references: [id], onDelete: Cascade)
+  marketingChannelRule MarketingChannelRule? @relation(fields: [marketingChannelRuleId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId])
+  @@index([marketingChannelId])
+  @@index([classifiedChannel])
+}
+
+// ---------------------------------------------------------------------------
+// Metrics layer
+// ---------------------------------------------------------------------------
+
+model MarketingMetricDefinition {
+  id              String                    @id @default(cuid())
+  organisationId  String?
+  projectId       String?
+  brandId         String?
+  canonicalKey    String
+  displayName     String
+  description     String?
+  unit            String?
+  dataType        MarketingMetricDataType   @default(DECIMAL)
+  aggregation     MarketingMetricAggregation @default(SUM)
+  isCumulative    Boolean                   @default(false)
+  isActive        Boolean                   @default(true)
+  metadata        Json?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  organisation  Organisation?            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project?               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand?                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  mappings      MarketingMetricMapping[]
+  observations  MarketingMetricObservation[]
+  corrections   MarketingMetricCorrection[]
+  dailyAggregates DailyMarketingAggregate[]
+
+  @@unique([brandId, canonicalKey])
+  @@index([organisationId, brandId])
+  @@index([canonicalKey])
+  @@index([isActive])
+}
+
+model MarketingMetricMapping {
+  id                        String                @id @default(cuid())
+  organisationId            String
+  projectId                 String
+  brandId                   String
+  marketingMetricDefinitionId String
+  provider                  MarketingDataProvider
+  providerMetricKey         String
+  providerSourceField       String?
+  transformExpression       String?
+  isActive                  Boolean               @default(true)
+  metadata                  Json?
+  createdAt                 DateTime              @default(now())
+  updatedAt                 DateTime              @updatedAt
+
+  organisation              Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                   Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                     Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingMetricDefinition MarketingMetricDefinition @relation(fields: [marketingMetricDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, provider, providerMetricKey])
+  @@index([organisationId, brandId])
+  @@index([marketingMetricDefinitionId])
+}
+
+model MarketingMetricObservation {
+  id                           String                @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingMetricDefinitionId  String?
+  provider                     MarketingDataProvider
+  source                       MarketingMetricSource
+  metricKey                    String
+  metricValue                  Decimal               @db.Decimal(24, 6)
+  unit                         String?
+  dimensions                   Json?
+  observedAt                   DateTime
+  periodStart                  DateTime?
+  periodEnd                    DateTime?
+  periodGrain                  String?
+  idempotencyKey               String                @unique
+  marketingChannelId           String?
+  marketingAccountId           String?
+  marketingCampaignId          String?
+  marketingAdGroupId           String?
+  marketingAdId                String?
+  marketingContentItemId       String?
+  providerMetadata             Json?
+  createdAt                    DateTime              @default(now())
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingMetricDefinition  MarketingMetricDefinition?  @relation(fields: [marketingMetricDefinitionId], references: [id], onDelete: SetNull)
+  marketingChannel           MarketingChannel?           @relation(fields: [marketingChannelId], references: [id], onDelete: SetNull)
+  marketingAccount           MarketingAccount?           @relation(fields: [marketingAccountId], references: [id], onDelete: SetNull)
+  marketingCampaign          MarketingCampaign?          @relation(fields: [marketingCampaignId], references: [id], onDelete: SetNull)
+  marketingAdGroup           MarketingAdGroup?           @relation(fields: [marketingAdGroupId], references: [id], onDelete: SetNull)
+  marketingAd                MarketingAd?                @relation(fields: [marketingAdId], references: [id], onDelete: SetNull)
+  marketingContentItem       MarketingContentItem?       @relation(fields: [marketingContentItemId], references: [id], onDelete: SetNull)
+  corrections                MarketingMetricCorrection[]
+
+  @@index([organisationId, brandId, observedAt])
+  @@index([provider, metricKey, observedAt])
+  @@index([marketingMetricDefinitionId, observedAt])
+  @@index([marketingCampaignId])
+  @@index([marketingChannelId])
+  @@index([source])
+}
+
+model MarketingMetricCorrection {
+  id                           String                @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingMetricDefinitionId  String?
+  marketingMetricObservationId String?
+  provider                     MarketingDataProvider
+  metricKey                    String
+  originalValue                Decimal?              @db.Decimal(24, 6)
+  correctedValue               Decimal               @db.Decimal(24, 6)
+  reason                       String
+  observedAt                   DateTime
+  appliedAt                    DateTime              @default(now())
+  metadata                     Json?
+  createdAt                    DateTime              @default(now())
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingMetricDefinition  MarketingMetricDefinition?  @relation(fields: [marketingMetricDefinitionId], references: [id], onDelete: SetNull)
+  marketingMetricObservation MarketingMetricObservation? @relation(fields: [marketingMetricObservationId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, observedAt])
+  @@index([marketingMetricObservationId])
+  @@index([metricKey])
+}
+
+// ---------------------------------------------------------------------------
+// Events and identity
+// ---------------------------------------------------------------------------
+
+model MarketingEvent {
+  id                           String               @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  provider                     MarketingDataProvider
+  source                       MarketingEventSource
+  providerEventId              String
+  eventName                    String
+  occurredAt                   DateTime
+  sessionId                    String?
+  identityId                   String?
+  marketingCampaignId          String?
+  properties                   Json?
+  providerMetadata             Json?
+  idempotencyKey               String               @unique
+  createdAt                    DateTime             @default(now())
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  session                    MarketingSession?           @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  identity                   MarketingIdentity?          @relation(fields: [identityId], references: [id], onDelete: SetNull)
+  eventProperties            MarketingEventProperty[]
+
+  @@unique([brandId, provider, providerEventId])
+  @@index([organisationId, brandId, occurredAt])
+  @@index([eventName, occurredAt])
+  @@index([sessionId])
+  @@index([identityId])
+}
+
+model MarketingEventProperty {
+  id               String   @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  marketingEventId String
+  propertyKey      String
+  propertyValue    String?
+  propertyType     String?
+  createdAt        DateTime @default(now())
+
+  organisation   Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingEvent MarketingEvent @relation(fields: [marketingEventId], references: [id], onDelete: Cascade)
+
+  @@unique([marketingEventId, propertyKey])
+  @@index([organisationId, brandId])
+  @@index([propertyKey])
+}
+
+model MarketingSession {
+  id                           String                @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  provider                     MarketingDataProvider
+  providerSessionId            String
+  startedAt                    DateTime
+  endedAt                      DateTime?
+  landingPage                  String?
+  referrer                     String?
+  utmSource                    String?
+  utmMedium                    String?
+  utmCampaign                  String?
+  utmTerm                      String?
+  utmContent                   String?
+  deviceCategory               String?
+  country                      String?
+  providerMetadata             Json?
+  createdAt                    DateTime              @default(now())
+  updatedAt                    DateTime              @updatedAt
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  events                     MarketingEvent[]
+
+  @@unique([brandId, provider, providerSessionId])
+  @@index([organisationId, brandId, startedAt])
+  @@index([utmSource, utmMedium, utmCampaign])
+}
+
+model MarketingIdentity {
+  id             String                @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  identityType   MarketingIdentityType
+  identityValue  String
+  firstSeenAt    DateTime?
+  lastSeenAt     DateTime?
+  metadata       Json?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  events       MarketingEvent[]
+  linksFrom    MarketingIdentityLink[] @relation("IdentityLinkFrom")
+  linksTo      MarketingIdentityLink[] @relation("IdentityLinkTo")
+
+  @@unique([brandId, identityType, identityValue])
+  @@index([organisationId, brandId])
+  @@index([identityType])
+}
+
+model MarketingIdentityLink {
+  id                String                    @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  fromIdentityId    String
+  toIdentityId      String
+  status            MarketingIdentityLinkStatus @default(PENDING)
+  confidence        Decimal?                  @db.Decimal(5, 4)
+  linkMethod        String?
+  confirmedByUserId String?
+  confirmedAt       DateTime?
+  metadata          Json?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
+  organisation  Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  fromIdentity  MarketingIdentity @relation("IdentityLinkFrom", fields: [fromIdentityId], references: [id], onDelete: Cascade)
+  toIdentity    MarketingIdentity @relation("IdentityLinkTo", fields: [toIdentityId], references: [id], onDelete: Cascade)
+  confirmedBy   UserProfile?      @relation("MarketingIdentityLinkConfirmer", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([fromIdentityId, toIdentityId])
+  @@index([organisationId, brandId, status])
+  @@index([confirmedByUserId])
+}
+
+model MarketingConversionDefinition {
+  id             String                @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  provider       MarketingDataProvider
+  conversionKey  String
+  displayName    String
+  conversionType MarketingConversionType
+  valueCurrency  String?
+  isActive       Boolean               @default(true)
+  metadata       Json?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, provider, conversionKey])
+  @@index([organisationId, brandId])
+  @@index([isActive])
+}
+
+// ---------------------------------------------------------------------------
+// Revenue and cost
+// ---------------------------------------------------------------------------
+
+model MarketingRevenueRecord {
+  id                           String                @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingAccountId           String?
+  provider                     MarketingDataProvider
+  providerRevenueId            String
+  amount                       Decimal               @db.Decimal(24, 6)
+  currency                     String
+  recognisedAt                 DateTime
+  attributionCampaign          String?
+  idempotencyKey               String                @unique
+  providerMetadata             Json?
+  createdAt                    DateTime              @default(now())
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingAccount           MarketingAccount?           @relation(fields: [marketingAccountId], references: [id], onDelete: SetNull)
+
+  @@unique([brandId, provider, providerRevenueId])
+  @@index([organisationId, brandId, recognisedAt])
+  @@index([currency])
+}
+
+model MarketingCostRecord {
+  id                           String                @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  marketingAccountId           String?
+  marketingCampaignId          String?
+  marketingAdGroupId           String?
+  marketingAdId                String?
+  marketingChannelId           String?
+  provider                     MarketingDataProvider
+  providerCostId               String
+  amount                       Decimal               @db.Decimal(24, 6)
+  currency                     String
+  periodStart                  DateTime
+  periodEnd                    DateTime
+  idempotencyKey               String                @unique
+  providerMetadata             Json?
+  createdAt                    DateTime              @default(now())
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  marketingAccount           MarketingAccount?           @relation(fields: [marketingAccountId], references: [id], onDelete: SetNull)
+  marketingCampaign          MarketingCampaign?          @relation(fields: [marketingCampaignId], references: [id], onDelete: SetNull)
+  marketingAdGroup           MarketingAdGroup?           @relation(fields: [marketingAdGroupId], references: [id], onDelete: SetNull)
+  marketingAd                MarketingAd?                @relation(fields: [marketingAdId], references: [id], onDelete: SetNull)
+  marketingChannel           MarketingChannel?           @relation(fields: [marketingChannelId], references: [id], onDelete: SetNull)
+
+  @@unique([brandId, provider, providerCostId])
+  @@index([organisationId, brandId, periodStart])
+  @@index([marketingCampaignId])
+  @@index([currency])
+}
+
+// ---------------------------------------------------------------------------
+// Currency
+// ---------------------------------------------------------------------------
+
+model CurrencyRate {
+  id             String             @id @default(cuid())
+  organisationId String?
+  baseCurrency   String
+  quoteCurrency  String
+  rate           Decimal            @db.Decimal(24, 10)
+  effectiveDate  DateTime           @db.Date
+  source         CurrencyRateSource @default(MANUAL)
+  metadata       Json?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  organisation        Organisation?            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  conversionRecords   CurrencyConversionRecord[]
+
+  @@unique([baseCurrency, quoteCurrency, effectiveDate, source])
+  @@index([organisationId])
+  @@index([effectiveDate])
+}
+
+model CurrencyConversionRecord {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  currencyRateId String
+  sourceAmount   Decimal  @db.Decimal(24, 6)
+  sourceCurrency String
+  targetAmount   Decimal  @db.Decimal(24, 6)
+  targetCurrency String
+  convertedAt    DateTime
+  entityType     String
+  entityId       String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  currencyRate CurrencyRate @relation(fields: [currencyRateId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, brandId, convertedAt])
+  @@index([entityType, entityId])
+  @@index([currencyRateId])
+}
+
+// ---------------------------------------------------------------------------
+// Lineage and transformation
+// ---------------------------------------------------------------------------
+
+model DataLineageRecord {
+  id                 String                @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  entityType         DataLineageEntityType
+  entityId           String
+  parentEntityType   DataLineageEntityType?
+  parentEntityId     String?
+  rawMarketingRecordId String?
+  transformationVersionId String?
+  metadata           Json?
+  recordedAt         DateTime              @default(now())
+
+  organisation         Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project              Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  rawMarketingRecord   RawMarketingRecord?       @relation(fields: [rawMarketingRecordId], references: [id], onDelete: SetNull)
+  transformationVersion DataTransformationVersion? @relation(fields: [transformationVersionId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, recordedAt])
+  @@index([entityType, entityId])
+  @@index([parentEntityType, parentEntityId])
+  @@index([rawMarketingRecordId])
+}
+
+model DataTransformationVersion {
+  id          String   @id @default(cuid())
+  name        String
+  version     String
+  description String?
+  definition  Json
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  runs            DataTransformationRun[]
+  lineageRecords  DataLineageRecord[]
+
+  @@unique([name, version])
+  @@index([isActive])
+}
+
+model DataTransformationRun {
+  id                        String                      @id @default(cuid())
+  organisationId            String
+  projectId                 String
+  brandId                   String
+  rawMarketingBatchId       String?
+  transformationVersionId   String?
+  status                    DataTransformationRunStatus @default(QUEUED)
+  idempotencyKey            String                      @unique
+  recordsIn                 Int                         @default(0)
+  recordsOut                Int                         @default(0)
+  recordsFailed             Int                         @default(0)
+  startedAt                 DateTime?
+  completedAt               DateTime?
+  errorMessage              String?
+  metadata                  Json?
+  createdAt                 DateTime                    @default(now())
+  updatedAt                 DateTime                    @updatedAt
+
+  organisation          Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project               Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                 Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  rawMarketingBatch     RawMarketingBatch?        @relation(fields: [rawMarketingBatchId], references: [id], onDelete: SetNull)
+  transformationVersion DataTransformationVersion? @relation(fields: [transformationVersionId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId])
+  @@index([rawMarketingBatchId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Data quality
+// ---------------------------------------------------------------------------
+
+model DataQualityRule {
+  id             String              @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  name           String
+  description    String?
+  ruleType       DataQualityRuleType
+  targetEntity   String
+  ruleExpression Json
+  severity       DataQualityIssueSeverity @default(MEDIUM)
+  isActive       Boolean             @default(true)
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  checks       DataQualityCheck[]
+  issues       DataQualityIssue[]
+
+  @@index([organisationId, brandId, isActive])
+  @@index([ruleType])
+}
+
+model DataQualityCheck {
+  id                  String               @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  dataQualityRuleId   String
+  rawMarketingBatchId String?
+  status              DataQualityCheckStatus
+  recordsChecked      Int                  @default(0)
+  issuesFound         Int                  @default(0)
+  checkedAt           DateTime             @default(now())
+  metadata            Json?
+
+  organisation      Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  dataQualityRule   DataQualityRule   @relation(fields: [dataQualityRuleId], references: [id], onDelete: Cascade)
+  rawMarketingBatch RawMarketingBatch? @relation(fields: [rawMarketingBatchId], references: [id], onDelete: SetNull)
+  issues            DataQualityIssue[]
+
+  @@index([organisationId, brandId, checkedAt])
+  @@index([dataQualityRuleId])
+  @@index([status])
+}
+
+model DataQualityIssue {
+  id                 String                   @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  dataQualityRuleId  String
+  dataQualityCheckId String?
+  severity           DataQualityIssueSeverity
+  status             DataQualityIssueStatus   @default(OPEN)
+  entityType         String
+  entityId           String
+  message            String
+  details            Json?
+  detectedAt         DateTime                 @default(now())
+  resolvedAt         DateTime?
+  metadata           Json?
+
+  organisation       Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project            Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand              Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  dataQualityRule    DataQualityRule       @relation(fields: [dataQualityRuleId], references: [id], onDelete: Cascade)
+  dataQualityCheck   DataQualityCheck?     @relation(fields: [dataQualityCheckId], references: [id], onDelete: SetNull)
+  resolutions        DataQualityResolution[]
+
+  @@index([organisationId, brandId, status])
+  @@index([dataQualityRuleId])
+  @@index([severity])
+  @@index([entityType, entityId])
+}
+
+model DataQualityResolution {
+  id                  String                      @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  dataQualityIssueId  String
+  action              DataQualityResolutionAction
+  notes               String?
+  resolvedByUserId    String?
+  resolvedAt          DateTime                    @default(now())
+  metadata            Json?
+
+  organisation     Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  dataQualityIssue DataQualityIssue @relation(fields: [dataQualityIssueId], references: [id], onDelete: Cascade)
+  resolvedBy       UserProfile?     @relation("DataQualityResolutionResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId])
+  @@index([dataQualityIssueId])
+  @@index([resolvedByUserId])
+}
+
+// ---------------------------------------------------------------------------
+// Aggregates
+// ---------------------------------------------------------------------------
+
+model DailyMarketingAggregate {
+  id                        String   @id @default(cuid())
+  organisationId            String
+  projectId                 String
+  brandId                   String
+  marketingMetricDefinitionId String?
+  metricKey                 String
+  aggregateDate             DateTime @db.Date
+  dimensionKey              String?
+  dimensionValue            String?
+  value                     Decimal  @db.Decimal(24, 6)
+  sampleCount               Int      @default(0)
+  currency                  String?
+  metadata                  Json?
+  computedAt                DateTime @default(now())
+
+  organisation              Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                   Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                     Brand                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingMetricDefinition MarketingMetricDefinition? @relation(fields: [marketingMetricDefinitionId], references: [id], onDelete: SetNull)
+
+  @@unique([brandId, metricKey, aggregateDate, dimensionKey, dimensionValue])
+  @@index([organisationId, brandId, aggregateDate])
+  @@index([metricKey, aggregateDate])
+}
+
+model AggregateRefreshRun {
+  id             String                    @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  status         AggregateRefreshRunStatus @default(QUEUED)
+  idempotencyKey String                    @unique
+  aggregateFrom  DateTime                  @db.Date
+  aggregateTo    DateTime                  @db.Date
+  metricsRefreshed Int                     @default(0)
+  startedAt      DateTime?
+  completedAt    DateTime?
+  errorMessage   String?
+  metadata       Json?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId])
+  @@index([status])
+  @@index([aggregateFrom, aggregateTo])
+}
+
+// ---------------------------------------------------------------------------
+// Manual import (CSV foundation)
+// ---------------------------------------------------------------------------
+
+model ManualImportJob {
+  id                           String                 @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  createdByUserId              String
+  status                       ManualImportJobStatus  @default(DRAFT)
+  fileName                     String?
+  fileFormat                   ManualImportFileFormat @default(CSV)
+  fileSizeBytes                Int?
+  rowCount                     Int?
+  rowsProcessed                Int                    @default(0)
+  rowsFailed                   Int                    @default(0)
+  storagePath                  String?
+  idempotencyKey               String                 @unique
+  errorMessage                 String?
+  metadata                     Json?
+  uploadedAt                   DateTime?
+  completedAt                  DateTime?
+  createdAt                    DateTime               @default(now())
+  updatedAt                    DateTime               @updatedAt
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  createdBy                  UserProfile                 @relation("ManualImportJobCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  mappings                   ManualImportMapping[]
+
+  @@index([organisationId, brandId, status])
+  @@index([createdByUserId])
+  @@index([createdAt])
+}
+
+model ManualImportMapping {
+  id                String   @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  manualImportJobId String
+  sourceColumn      String
+  targetField       String
+  transformRule     String?
+  isRequired        Boolean  @default(false)
+  sampleValue       String?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation    Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  manualImportJob ManualImportJob @relation(fields: [manualImportJobId], references: [id], onDelete: Cascade)
+
+  @@unique([manualImportJobId, sourceColumn])
+  @@index([organisationId, brandId])
 }

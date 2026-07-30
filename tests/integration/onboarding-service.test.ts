@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { MarketingChannel, MarketingObjectiveType, OnboardingStepKey } from "@prisma/client";
+import { BrandMarketingChannel, MarketingObjectiveType, OnboardingStepKey } from "@prisma/client";
 import { AppError } from "@/lib/errors";
 import {
   applyOnboardingProgressUpdate,
@@ -228,7 +228,7 @@ describe("onboarding service resilience", () => {
     vi.mocked(prisma.brand.findFirst).mockResolvedValue(createMockBrand());
 
     const progress = await onboardingService.saveChannelPreferences(userProfileId, {
-      channels: [MarketingChannel.WEBSITE, MarketingChannel.SEO],
+      channels: [BrandMarketingChannel.WEBSITE, BrandMarketingChannel.SEO],
     });
 
     expect(progress.currentStep).toBe(OnboardingStepKey.REVIEW);

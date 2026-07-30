@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bot,
   CalendarDays,
+  Database,
   FlaskConical,
   FolderOpen,
   LayoutDashboard,
@@ -79,6 +80,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/analytics",
     icon: BarChart3,
     description: "Performance and intelligence",
+  },
+  {
+    label: "Data Hub",
+    href: "/data",
+    icon: Database,
+    description: "Unified marketing data warehouse",
   },
   {
     label: "Growth",

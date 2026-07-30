@@ -1,6 +1,6 @@
 import {
   BrandStatus,
-  MarketingChannel,
+  BrandMarketingChannel,
   MarketingObjectiveStatus,
   OnboardingStepKey,
   Prisma,
