@@ -65,6 +65,12 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Controlled TikTok campaign management",
   },
   {
+    label: "Ad Experiments",
+    href: "/advertising/experiments",
+    icon: FlaskConical,
+    description: "Advertising A/B tests and experiment analysis",
+  },
+  {
     label: "Brands",
     href: "/brands",
     icon: Megaphone,
