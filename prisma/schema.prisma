@@ -234,6 +234,10 @@ model UserProfile {
   seoDomainsVerified            SeoSiteDomain[]           @relation("SeoDomainVerifier")
   seoCrawlRunsCreated           SeoCrawlRun[]             @relation("SeoCrawlRunCreator")
   seoIssueResolutions           SeoIssueResolution[]      @relation("SeoIssueResolver")
+  seoKeywordIntentsOverridden   SeoKeywordIntent[]        @relation("SeoKeywordIntentOverrider")
+  seoKeywordEntitiesConfirmed   SeoKeywordEntity[]        @relation("SeoKeywordEntityConfirmer")
+  seoKeywordImportsCreated      SeoKeywordImport[]        @relation("SeoKeywordImportCreator")
+  seoKeywordStatusChanges       SeoKeywordStatusHistory[] @relation("SeoKeywordStatusChanger")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -469,6 +473,17 @@ model Organisation {
   seoRobotsSnapshots             SeoRobotsSnapshot[]
   seoSitemaps                    SeoSitemap[]
   seoStructuredDataItems         SeoStructuredDataItem[]
+  seoKeywords                    SeoKeyword[]
+  seoKeywordGroups               SeoKeywordGroup[]
+  seoKeywordImports              SeoKeywordImport[]
+  seoKeywordOpportunities        SeoKeywordOpportunity[]
+  seoKeywordSources              SeoKeywordSource[]
+  seoKeywordMetrics              SeoKeywordMetric[]
+  seoKeywordMetricSnapshots      SeoKeywordMetricSnapshot[]
+  seoKeywordIntents              SeoKeywordIntent[]
+  seoKeywordEntities             SeoKeywordEntity[]
+  seoKeywordPageMappings         SeoKeywordPageMapping[]
+  seoKeywordStatusHistories      SeoKeywordStatusHistory[]
 
   @@index([status])
   @@index([archivedAt])
@@ -647,6 +662,10 @@ model Project {
   seoCrawlRuns                   SeoCrawlRun[]
   seoCrawlPages                  SeoCrawlPage[]
   seoCrawlIssues                 SeoCrawlIssue[]
+  seoKeywords                    SeoKeyword[]
+  seoKeywordGroups               SeoKeywordGroup[]
+  seoKeywordImports              SeoKeywordImport[]
+  seoKeywordOpportunities        SeoKeywordOpportunity[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -817,6 +836,10 @@ model Brand {
   seoCrawlRuns                   SeoCrawlRun[]
   seoCrawlPages                  SeoCrawlPage[]
   seoCrawlIssues                 SeoCrawlIssue[]
+  seoKeywords                    SeoKeyword[]
+  seoKeywordGroups               SeoKeywordGroup[]
+  seoKeywordImports              SeoKeywordImport[]
+  seoKeywordOpportunities        SeoKeywordOpportunity[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -6716,6 +6739,7 @@ model SeoSite {
   crawlIssues        SeoCrawlIssue[]
   robotsSnapshots    SeoRobotsSnapshot[]
   sitemaps           SeoSitemap[]
+  keywords           SeoKeyword[]
 
   @@unique([brandId, primaryDomain])
   @@index([organisationId, brandId])
@@ -6868,6 +6892,7 @@ model SeoCrawlPage {
   inboundLinks  SeoCrawlLink[]     @relation("DestinationPage")
   structuredData SeoStructuredDataItem[]
   issues       SeoCrawlIssue[]
+  keywordPageMappings SeoKeywordPageMapping[]
 
   @@unique([seoSiteId, normalisedUrl])
   @@index([organisationId, brandId])
@@ -7101,6 +7126,391 @@ model SeoStructuredDataItem {
 
   @@index([pageId])
   @@index([seoSiteId, schemaType])
+}
+
+// ---------------------------------------------------------------------------
+// Keyword intelligence (Task 4.2)
+// ---------------------------------------------------------------------------
+
+enum SeoKeywordStatus {
+  ACTIVE
+  WATCHING
+  EXCLUDED
+  ARCHIVED
+}
+
+enum SeoKeywordSourceType {
+  SEARCH_CONSOLE
+  MANUAL
+  CSV_IMPORT
+  SITE_CONTENT
+  INTERNAL_SEARCH
+  PROVIDER_EXTENSION
+  AI_SUGGESTION
+}
+
+enum SeoKeywordIntentType {
+  INFORMATIONAL
+  NAVIGATIONAL
+  COMMERCIAL
+  TRANSACTIONAL
+  LOCAL
+  SUPPORT
+  MIXED
+  UNKNOWN
+}
+
+enum SeoKeywordPageRelationType {
+  PRIMARY_TARGET
+  SECONDARY_TARGET
+  CURRENTLY_RANKING
+  POTENTIAL_TARGET
+  CONFLICTING_TARGET
+  NOT_RELEVANT
+}
+
+enum SeoCannibalisationStatus {
+  POSSIBLE
+  LIKELY
+  CONFIRMED
+  DISMISSED
+}
+
+enum SeoKeywordMetricType {
+  IMPRESSIONS
+  CLICKS
+  CTR
+  AVERAGE_POSITION
+  SEARCH_VOLUME
+  CPC
+  COMPETITION
+  DIFFICULTY
+  TREND
+  RESULT_COUNT
+  RANKING_URL
+  RANK_POSITION
+}
+
+enum SeoKeywordOpportunityType {
+  HIGH_IMPRESSIONS_LOW_CTR
+  POSITION_4_TO_20
+  INCREASING_IMPRESSIONS
+  DECLINING_POSITION
+  NO_TARGET_PAGE
+  WEAK_TARGET_PAGE
+  BRANDED_NO_RESULT
+  INCOMPLETE_CLUSTER
+}
+
+enum SeoKeywordEntityType {
+  PRODUCT
+  ORGANISATION
+  LOCATION
+  SECTOR
+  SERVICE
+  PROBLEM
+  AUDIENCE
+  REGULATION
+  TECHNOLOGY
+  OTHER
+}
+
+enum SeoKeywordImportStatus {
+  VALIDATING
+  PREVIEW
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model SeoKeyword {
+  id                String           @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  seoSiteId         String?
+  normalisedKeyword String
+  displayKeyword    String
+  language          String           @default("en")
+  country           String?
+  locale            String?
+  status            SeoKeywordStatus @default(ACTIVE)
+  primaryIntent     SeoKeywordIntentType @default(UNKNOWN)
+  sourceCount       Int              @default(0)
+  firstSeenAt       DateTime         @default(now())
+  lastSeenAt        DateTime         @default(now())
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  organisation   Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  seoSite        SeoSite?                @relation(fields: [seoSiteId], references: [id], onDelete: SetNull)
+  sources        SeoKeywordSource[]
+  metrics        SeoKeywordMetric[]
+  metricSnapshots SeoKeywordMetricSnapshot[]
+  intents        SeoKeywordIntent[]
+  entities       SeoKeywordEntity[]
+  pageMappings   SeoKeywordPageMapping[]
+  tags           SeoKeywordTag[]
+  groupMembers   SeoKeywordGroupMember[]
+  opportunities  SeoKeywordOpportunity[]
+  statusHistory  SeoKeywordStatusHistory[]
+
+  @@unique([brandId, normalisedKeyword, language, country])
+  @@index([organisationId, brandId, status])
+  @@index([seoSiteId])
+  @@index([primaryIntent])
+}
+
+model SeoKeywordSource {
+  id             String              @id @default(cuid())
+  organisationId String
+  keywordId      String
+  sourceType     SeoKeywordSourceType
+  provider       String?
+  externalId     String?
+  isSuggestion   Boolean             @default(false)
+  confidence     Float?
+  metadata       Json?
+  firstSeenAt    DateTime            @default(now())
+  lastSeenAt     DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  keyword      SeoKeyword   @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+
+  @@unique([keywordId, sourceType, externalId])
+  @@index([keywordId, sourceType])
+}
+
+model SeoKeywordMetric {
+  id             String              @id @default(cuid())
+  organisationId String
+  keywordId      String
+  metricType     SeoKeywordMetricType
+  provider       String
+  source         SeoKeywordSourceType
+  location       String?
+  language       String?
+  value          Float?
+  stringValue    String?
+  measuredAt     DateTime
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  confidence     Float?
+  freshness      String?
+  providerDefinition String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  keyword      SeoKeyword   @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  snapshots    SeoKeywordMetricSnapshot[]
+
+  @@unique([keywordId, metricType, provider, source, location, language, measuredAt])
+  @@index([keywordId, metricType])
+}
+
+model SeoKeywordMetricSnapshot {
+  id             String              @id @default(cuid())
+  organisationId String
+  keywordId      String
+  metricId       String
+  metricType     SeoKeywordMetricType
+  value          Float?
+  stringValue    String?
+  measuredAt     DateTime
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  idempotencyKey String              @unique
+  createdAt      DateTime            @default(now())
+
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  keyword      SeoKeyword       @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  metric       SeoKeywordMetric @relation(fields: [metricId], references: [id], onDelete: Cascade)
+
+  @@index([keywordId, measuredAt])
+}
+
+model SeoKeywordGroup {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  name           String
+  description    String?
+  groupType      String   @default("topic")
+  isAiSuggested  Boolean  @default(false)
+  isConfirmed    Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  members      SeoKeywordGroupMember[]
+
+  @@unique([brandId, name])
+  @@index([organisationId, brandId])
+}
+
+model SeoKeywordGroupMember {
+  id        String   @id @default(cuid())
+  groupId   String
+  keywordId String
+  addedAt   DateTime @default(now())
+
+  group   SeoKeywordGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  keyword SeoKeyword      @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, keywordId])
+  @@index([keywordId])
+}
+
+model SeoKeywordIntent {
+  id               String               @id @default(cuid())
+  organisationId   String
+  keywordId        String
+  intent           SeoKeywordIntentType
+  confidence       Float?
+  source           String               @default("deterministic")
+  evidence         Json?
+  isManualOverride Boolean              @default(false)
+  overriddenByUserId String?
+  modelId          String?
+  promptVersion    String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  keyword      SeoKeyword   @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  overriddenBy UserProfile? @relation("SeoKeywordIntentOverrider", fields: [overriddenByUserId], references: [id], onDelete: SetNull)
+
+  @@index([keywordId, createdAt])
+}
+
+model SeoKeywordEntity {
+  id               String               @id @default(cuid())
+  organisationId   String
+  keywordId        String
+  entityType       SeoKeywordEntityType
+  canonicalValue   String
+  confidence       Float?
+  source           String               @default("ai")
+  isConfirmed      Boolean              @default(false)
+  confirmedByUserId String?
+  createdAt        DateTime             @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  keyword      SeoKeyword   @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  confirmedBy  UserProfile? @relation("SeoKeywordEntityConfirmer", fields: [confirmedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([keywordId, entityType])
+}
+
+model SeoKeywordPageMapping {
+  id             String                     @id @default(cuid())
+  organisationId String
+  keywordId      String
+  pageId         String?
+  intendedUrl    String?
+  relationType   SeoKeywordPageRelationType
+  confidence     Float?
+  evidence       Json?
+  isManual       Boolean                    @default(false)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  keyword      SeoKeyword    @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  page         SeoCrawlPage? @relation(fields: [pageId], references: [id], onDelete: SetNull)
+
+  @@index([keywordId, relationType])
+  @@index([pageId])
+}
+
+model SeoKeywordTag {
+  id        String   @id @default(cuid())
+  keywordId String
+  tag       String
+  createdAt DateTime @default(now())
+
+  keyword SeoKeyword @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+
+  @@unique([keywordId, tag])
+  @@index([tag])
+}
+
+model SeoKeywordImport {
+  id               String                 @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  seoSiteId        String?
+  status           SeoKeywordImportStatus @default(VALIDATING)
+  fileName         String
+  provider         String                 @default("CSV_IMPORT")
+  rowCount         Int                    @default(0)
+  acceptedCount    Int                    @default(0)
+  rejectedCount    Int                    @default(0)
+  idempotencyKey   String                 @unique
+  columnMappings   Json?
+  preview          Json?
+  rejectedRows     Json?
+  createdByUserId  String?
+  createdAt        DateTime               @default(now())
+  completedAt      DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile? @relation("SeoKeywordImportCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, status])
+}
+
+model SeoKeywordOpportunity {
+  id             String                    @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  keywordId      String
+  opportunityType SeoKeywordOpportunityType
+  severity       String                    @default("MEDIUM")
+  title          String
+  explanation    String
+  evidence       Json
+  recommendedAction String?
+  status         String                    @default("OPEN")
+  detectedAt     DateTime                  @default(now())
+  dismissedAt    DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  keyword      SeoKeyword   @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, status])
+  @@index([keywordId, opportunityType])
+}
+
+model SeoKeywordStatusHistory {
+  id             String           @id @default(cuid())
+  organisationId String
+  keywordId      String
+  fromStatus     SeoKeywordStatus?
+  toStatus       SeoKeywordStatus
+  note           String?
+  changedByUserId String?
+  createdAt      DateTime         @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  keyword      SeoKeyword   @relation(fields: [keywordId], references: [id], onDelete: Cascade)
+  changedBy    UserProfile? @relation("SeoKeywordStatusChanger", fields: [changedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([keywordId, createdAt])
 }
 
 // ---------------------------------------------------------------------------

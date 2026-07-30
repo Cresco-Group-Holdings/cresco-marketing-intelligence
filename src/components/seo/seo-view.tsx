@@ -230,6 +230,9 @@ export function SeoView({
           <Link href="/seo/sites/new">
             <Button variant={mode === "new" ? "primary" : "outline"} size="sm">Add site</Button>
           </Link>
+          <Link href="/seo/keywords">
+            <Button variant="outline" size="sm">Keywords</Button>
+          </Link>
         </nav>
       )}
 

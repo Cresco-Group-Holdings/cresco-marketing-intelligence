@@ -80,6 +80,10 @@ export const PERMISSIONS = {
   "seoCrawls.export": "seoCrawls.export",
   "seoIssues.manage": "seoIssues.manage",
   "seoRawData.view": "seoRawData.view",
+  "seoKeywords.read": "seoKeywords.read",
+  "seoKeywords.manage": "seoKeywords.manage",
+  "seoKeywords.import": "seoKeywords.import",
+  "seoKeywords.export": "seoKeywords.export",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -165,6 +169,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoCrawls.export"],
     PERMISSIONS["seoIssues.manage"],
     PERMISSIONS["seoRawData.view"],
+    PERMISSIONS["seoKeywords.read"],
+    PERMISSIONS["seoKeywords.manage"],
+    PERMISSIONS["seoKeywords.import"],
+    PERMISSIONS["seoKeywords.export"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -220,6 +228,9 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["seoCrawls.run"],
     PERMISSIONS["seoCrawls.export"],
     PERMISSIONS["seoIssues.manage"],
+    PERMISSIONS["seoKeywords.read"],
+    PERMISSIONS["seoKeywords.manage"],
+    PERMISSIONS["seoKeywords.import"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -247,6 +258,8 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["tracking.read"],
     PERMISSIONS["seoSites.read"],
     PERMISSIONS["seoCrawls.export"],
+    PERMISSIONS["seoKeywords.read"],
+    PERMISSIONS["seoKeywords.export"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -266,6 +279,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["ai.analyst.read"],
     PERMISSIONS["tracking.read"],
     PERMISSIONS["seoSites.read"],
+    PERMISSIONS["seoKeywords.read"],
     PERMISSIONS["experiments.read"],
   ],
 };
