@@ -134,6 +134,12 @@ export const PERMISSIONS = {
   "advertisingAudiences.edit": "advertisingAudiences.edit",
   "advertisingAudiences.review": "advertisingAudiences.review",
   "advertisingAudiences.approve": "advertisingAudiences.approve",
+  "advertisingGoogleAds.read": "advertisingGoogleAds.read",
+  "advertisingGoogleAds.connect": "advertisingGoogleAds.connect",
+  "advertisingGoogleAds.draft": "advertisingGoogleAds.draft",
+  "advertisingGoogleAds.validate": "advertisingGoogleAds.validate",
+  "advertisingGoogleAds.launch": "advertisingGoogleAds.launch",
+  "advertisingGoogleAds.manage": "advertisingGoogleAds.manage",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -273,6 +279,12 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingAudiences.edit"],
     PERMISSIONS["advertisingAudiences.review"],
     PERMISSIONS["advertisingAudiences.approve"],
+    PERMISSIONS["advertisingGoogleAds.read"],
+    PERMISSIONS["advertisingGoogleAds.connect"],
+    PERMISSIONS["advertisingGoogleAds.draft"],
+    PERMISSIONS["advertisingGoogleAds.validate"],
+    PERMISSIONS["advertisingGoogleAds.launch"],
+    PERMISSIONS["advertisingGoogleAds.manage"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -367,6 +379,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingAudiences.read"],
     PERMISSIONS["advertisingAudiences.create"],
     PERMISSIONS["advertisingAudiences.edit"],
+    PERMISSIONS["advertisingGoogleAds.read"],
+    PERMISSIONS["advertisingGoogleAds.connect"],
+    PERMISSIONS["advertisingGoogleAds.draft"],
+    PERMISSIONS["advertisingGoogleAds.validate"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -408,6 +424,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingPlans.read"],
     PERMISSIONS["advertisingCreatives.read"],
     PERMISSIONS["advertisingAudiences.read"],
+    PERMISSIONS["advertisingGoogleAds.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -439,6 +456,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingPlans.read"],
     PERMISSIONS["advertisingCreatives.read"],
     PERMISSIONS["advertisingAudiences.read"],
+    PERMISSIONS["advertisingGoogleAds.read"],
     PERMISSIONS["experiments.read"],
   ],
 };
