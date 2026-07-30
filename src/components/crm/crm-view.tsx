@@ -32,6 +32,9 @@ function CrmNav({ active }: { active: CrmViewMode }) {
     { mode: "duplicates", label: "Duplicates", href: "/crm/duplicates" },
     { mode: "import", label: "Import", href: "/crm/import" },
     { mode: "fields", label: "Fields", href: "/crm/settings/fields" },
+    { mode: "overview", label: "Pipelines", href: "/crm/pipelines" },
+    { mode: "overview", label: "Opportunities", href: "/crm/opportunities" },
+    { mode: "overview", label: "Forecast", href: "/crm/forecast" },
   ];
   return (
     <nav className="flex flex-wrap gap-2 border-b pb-3 mb-6">
