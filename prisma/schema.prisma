@@ -229,6 +229,7 @@ model UserProfile {
   memberships                OrganisationMembership[]
   auditLogs                  AuditLog[]
   workspacePreference        WorkspacePreference?
+  executiveDashboardPreferences ExecutiveDashboardPreference[]
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -448,6 +449,7 @@ model Organisation {
   revenueSyncRuns                RevenueSyncRun[]
   revenueCohortResults           RevenueCohortResult[]
   revenueUnitEconomicsSnapshots  RevenueUnitEconomicsSnapshot[]
+  executiveDashboardPreferences  ExecutiveDashboardPreference[]
 
   @@index([status])
   @@index([archivedAt])
@@ -6459,6 +6461,41 @@ model RevenueUnitEconomicsSnapshot {
   brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
 
   @@index([organisationId, brandId, calculatedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Executive marketing intelligence dashboard (Task 3.9)
+// ---------------------------------------------------------------------------
+
+enum ExecutiveComparisonType {
+  PREVIOUS_PERIOD
+  PREVIOUS_MONTH
+  PREVIOUS_QUARTER
+  CUSTOM
+  PROJECT
+  BRAND
+}
+
+model ExecutiveDashboardPreference {
+  id                String                  @id @default(cuid())
+  userId            String
+  organisationId    String
+  projectId         String?
+  brandId           String?
+  dateRangeDays     Int                     @default(28)
+  comparisonType    ExecutiveComparisonType @default(PREVIOUS_PERIOD)
+  comparisonFrom    DateTime?
+  comparisonTo      DateTime?
+  reportingCurrency String                  @default("USD")
+  filters           Json?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  user         UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organisationId])
+  @@index([organisationId])
 }
 
 // ---------------------------------------------------------------------------
