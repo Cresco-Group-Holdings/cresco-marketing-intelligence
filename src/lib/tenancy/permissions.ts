@@ -123,6 +123,12 @@ export const PERMISSIONS = {
   "advertisingPlans.approveCreative": "advertisingPlans.approveCreative",
   "advertisingPlans.approveCompliance": "advertisingPlans.approveCompliance",
   "advertisingPlans.approveLaunch": "advertisingPlans.approveLaunch",
+  "advertisingCreatives.read": "advertisingCreatives.read",
+  "advertisingCreatives.create": "advertisingCreatives.create",
+  "advertisingCreatives.edit": "advertisingCreatives.edit",
+  "advertisingCreatives.generate": "advertisingCreatives.generate",
+  "advertisingCreatives.review": "advertisingCreatives.review",
+  "advertisingCreatives.approve": "advertisingCreatives.approve",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -251,6 +257,12 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingPlans.approveCreative"],
     PERMISSIONS["advertisingPlans.approveCompliance"],
     PERMISSIONS["advertisingPlans.approveLaunch"],
+    PERMISSIONS["advertisingCreatives.read"],
+    PERMISSIONS["advertisingCreatives.create"],
+    PERMISSIONS["advertisingCreatives.edit"],
+    PERMISSIONS["advertisingCreatives.generate"],
+    PERMISSIONS["advertisingCreatives.review"],
+    PERMISSIONS["advertisingCreatives.approve"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -338,6 +350,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingPlans.read"],
     PERMISSIONS["advertisingPlans.create"],
     PERMISSIONS["advertisingPlans.edit"],
+    PERMISSIONS["advertisingCreatives.read"],
+    PERMISSIONS["advertisingCreatives.create"],
+    PERMISSIONS["advertisingCreatives.edit"],
+    PERMISSIONS["advertisingCreatives.generate"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -377,6 +393,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["rankTracking.read"],
     PERMISSIONS["contentRefresh.read"],
     PERMISSIONS["advertisingPlans.read"],
+    PERMISSIONS["advertisingCreatives.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -406,6 +423,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["rankTracking.read"],
     PERMISSIONS["contentRefresh.read"],
     PERMISSIONS["advertisingPlans.read"],
+    PERMISSIONS["advertisingCreatives.read"],
     PERMISSIONS["experiments.read"],
   ],
 };

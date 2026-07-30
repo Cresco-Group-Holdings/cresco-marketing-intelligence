@@ -176,6 +176,7 @@ enum AIPurpose {
   SALES_ASSIST
   LEAD_QUALIFICATION_SUGGEST
   ADVERTISING_PLANNING
+  ADVERTISING_CREATIVE
 }
 
 enum AIRequestStatus {
@@ -260,6 +261,10 @@ model UserProfile {
   advertisingCampaignApprovalsRequested AdvertisingCampaignApproval[] @relation("AdvertisingApprovalRequester")
   advertisingCampaignApprovalsDecided AdvertisingCampaignApproval[] @relation("AdvertisingApprovalDecider")
   advertisingBudgetsOwned AdvertisingCampaignBudget[] @relation("AdvertisingBudgetOwner")
+  advertisingCreativeProjectsOwned AdvertisingCreativeProject[] @relation("AdvertisingCreativeProjectOwner")
+  advertisingCreativeProjectsCreated AdvertisingCreativeProject[] @relation("AdvertisingCreativeProjectCreator")
+  advertisingCreativeReviewsDecided AdvertisingCreativeReview[] @relation("AdvertisingCreativeReviewer")
+  advertisingCreativeVersionsCreated AdvertisingCreativeVersion[] @relation("AdvertisingCreativeVersionCreator")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -583,6 +588,16 @@ model Organisation {
   advertisingCampaignReadinessChecks AdvertisingCampaignReadinessCheck[]
   advertisingCampaignApprovals AdvertisingCampaignApproval[]
   advertisingCampaignProviderDrafts AdvertisingCampaignProviderDraft[]
+  advertisingCreativeProjects    AdvertisingCreativeProject[]
+  advertisingCreativeConcepts    AdvertisingCreativeConcept[]
+  advertisingCreativeVariants    AdvertisingCreativeVariant[]
+  advertisingCreativeCopies      AdvertisingCreativeCopy[]
+  advertisingCreativeAssets      AdvertisingCreativeAsset[]
+  advertisingCreativeFormats     AdvertisingCreativeFormat[]
+  advertisingCreativeReviews     AdvertisingCreativeReview[]
+  advertisingCreativeVersions    AdvertisingCreativeVersion[]
+  advertisingCreativeProviderValidations AdvertisingCreativeProviderValidation[]
+  advertisingCreativePerformanceLinks AdvertisingCreativePerformanceLink[]
 
   @@index([status])
   @@index([archivedAt])
@@ -782,6 +797,7 @@ model Project {
   seoTrackedKeywords           SeoTrackedKeyword[]
   seoContentRefreshCandidates  SeoContentRefreshCandidate[]
   advertisingCampaignPlans     AdvertisingCampaignPlan[]
+  advertisingCreativeProjects  AdvertisingCreativeProject[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -974,6 +990,7 @@ model Brand {
   seoTrackedKeywords           SeoTrackedKeyword[]
   seoContentRefreshCandidates  SeoContentRefreshCandidate[]
   advertisingCampaignPlans     AdvertisingCampaignPlan[]
+  advertisingCreativeProjects  AdvertisingCreativeProject[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -1409,6 +1426,7 @@ model MarketingAsset {
   marketingAds            MarketingAd[]
   paidAdsCreativeMappings PaidAdsCreativeMapping[]
   advertisingCreativePlans AdvertisingCampaignCreativePlan[]
+  advertisingCreativeAssets  AdvertisingCreativeAsset[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -1533,6 +1551,7 @@ model VisualProject {
   pages           VisualPage[]
   exports         VisualExport[]
   generations     VisualGeneration[]
+  advertisingCreativeAssets AdvertisingCreativeAsset[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -4718,6 +4737,7 @@ model MarketingCreative {
   marketingAd                MarketingAd?               @relation(fields: [marketingAdId], references: [id], onDelete: SetNull)
   metricObservations         MarketingMetricObservation[]
   creativeMappings           PaidAdsCreativeMapping[]
+  advertisingPerformanceLinks AdvertisingCreativePerformanceLink[]
 
   @@unique([brandId, provider, providerCreativeId])
   @@index([organisationId, brandId])
@@ -9892,6 +9912,7 @@ model AdvertisingCampaignPlan {
   readinessChecks AdvertisingCampaignReadinessCheck[]
   approvals      AdvertisingCampaignApproval[]
   providerDrafts AdvertisingCampaignProviderDraft[]
+  creativeProjects AdvertisingCreativeProject[]
 
   @@unique([brandId, internalCampaignId])
   @@index([organisationId, brandId, status])
@@ -10197,6 +10218,353 @@ model AdvertisingCampaignProviderDraft {
   plan         AdvertisingCampaignPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@index([planId, provider])
+}
+
+// ---------------------------------------------------------------------------
+// Task 5.2 — AI Advertising Creative Studio
+// ---------------------------------------------------------------------------
+
+enum AdvertisingCreativeFormatType {
+  SEARCH_TEXT_AD
+  RESPONSIVE_SEARCH_AD
+  DISPLAY_BANNER
+  SINGLE_IMAGE
+  CAROUSEL
+  STORY
+  REEL
+  SHORT_VIDEO
+  LONG_VIDEO
+  LEAD_FORM_AD
+  DOCUMENT_AD
+  MESSAGE_AD
+  COLLECTION
+  PERFORMANCE_MAX_ASSET
+  PROVIDER_EXTENSION
+}
+
+enum AdvertisingCreativeConceptCategory {
+  PROBLEM_SOLUTION
+  BENEFIT_LED
+  EVIDENCE_LED
+  PRODUCT_DEMONSTRATION
+  CUSTOMER_STORY
+  COMPARISON
+  EDUCATIONAL
+  FOUNDER_LED
+  URGENCY
+  OBJECTION_HANDLING
+  SOCIAL_PROOF
+  FEATURE_HIGHLIGHT
+}
+
+enum AdvertisingCreativeProjectStatus {
+  DRAFT
+  GENERATING
+  IN_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+  ARCHIVED
+}
+
+enum AdvertisingCreativeReviewDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+}
+
+enum AdvertisingCreativeReviewRole {
+  MARKETER
+  BRAND_OWNER
+  COMPLIANCE_REVIEWER
+  BUDGET_OWNER
+  CLIENT_APPROVER
+}
+
+enum AdvertisingCreativeValidationStatus {
+  PENDING
+  PASSED
+  FAILED
+  WARNING
+}
+
+enum AdvertisingCreativeAssetSource {
+  ASSET_LIBRARY
+  AI_IMAGE_STUDIO
+  AI_CAROUSEL_STUDIO
+  AI_VIDEO_PIPELINE
+  UPLOAD
+  EXTERNAL
+}
+
+model AdvertisingCreativeProject {
+  id                 String                          @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  campaignPlanId     String?
+  name               String
+  description        String?
+  status             AdvertisingCreativeProjectStatus @default(DRAFT)
+  primaryFormat      AdvertisingCreativeFormatType?
+  channelType        AdvertisingChannelType?
+  objectiveType      AdvertisingPlanObjectiveType?
+  audienceSummary    String?
+  placementSummary   String?
+  offerSummary       String?
+  currentVersionId   String?
+  ownerUserId        String
+  createdByUserId    String
+  createdAt          DateTime                        @default(now())
+  updatedAt          DateTime                        @updatedAt
+  archivedAt         DateTime?
+
+  organisation   Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaignPlan   AdvertisingCampaignPlan?        @relation(fields: [campaignPlanId], references: [id], onDelete: SetNull)
+  owner          UserProfile                     @relation("AdvertisingCreativeProjectOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy      UserProfile                     @relation("AdvertisingCreativeProjectCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  concepts       AdvertisingCreativeConcept[]
+  variants       AdvertisingCreativeVariant[]
+  copies         AdvertisingCreativeCopy[]
+  assets         AdvertisingCreativeAsset[]
+  formats        AdvertisingCreativeFormat[]
+  reviews        AdvertisingCreativeReview[]
+  versions       AdvertisingCreativeVersion[]
+  validations    AdvertisingCreativeProviderValidation[]
+  performanceLinks AdvertisingCreativePerformanceLink[]
+
+  @@index([organisationId, brandId, status])
+  @@index([campaignPlanId])
+}
+
+model AdvertisingCreativeConcept {
+  id                  String                            @id @default(cuid())
+  organisationId      String
+  creativeProjectId   String
+  category            AdvertisingCreativeConceptCategory
+  campaignObjective   String?
+  audienceSummary     String?
+  message             String
+  visualDirection     String?
+  cta                 String?
+  hypothesis          String?
+  complianceRisk      String?
+  aiGenerated         Boolean                           @default(false)
+  sortOrder           Int                               @default(0)
+  createdAt           DateTime                          @default(now())
+  updatedAt           DateTime                          @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creativeProject AdvertisingCreativeProject @relation(fields: [creativeProjectId], references: [id], onDelete: Cascade)
+  variants        AdvertisingCreativeVariant[]
+
+  @@index([creativeProjectId, category])
+}
+
+model AdvertisingCreativeVariant {
+  id                String   @id @default(cuid())
+  organisationId    String
+  creativeProjectId String
+  conceptId         String?
+  hypothesis        String?
+  variantLabel      String
+  hook              String?
+  headline          String?
+  primaryText       String?
+  visualDirection   String?
+  cta               String?
+  audienceRef       String?
+  placementRef      String?
+  offerRef          String?
+  landingPageRef    String?
+  isLocked          Boolean  @default(false)
+  lockedFields      String[] @default([])
+  sortOrder         Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creativeProject AdvertisingCreativeProject @relation(fields: [creativeProjectId], references: [id], onDelete: Cascade)
+  concept         AdvertisingCreativeConcept? @relation(fields: [conceptId], references: [id], onDelete: SetNull)
+  copies          AdvertisingCreativeCopy[]
+  assets          AdvertisingCreativeAsset[]
+  performanceLinks AdvertisingCreativePerformanceLink[]
+
+  @@index([creativeProjectId, conceptId])
+}
+
+model AdvertisingCreativeCopy {
+  id                String   @id @default(cuid())
+  organisationId    String
+  creativeProjectId String
+  variantId         String?
+  fieldKey          String
+  fieldValue        String
+  characterCount    Int      @default(0)
+  maxLength         Int?
+  isLocked          Boolean  @default(false)
+  providerLimit     Int?
+  truncationWarning String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creativeProject AdvertisingCreativeProject @relation(fields: [creativeProjectId], references: [id], onDelete: Cascade)
+  variant         AdvertisingCreativeVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([creativeProjectId, variantId, fieldKey])
+}
+
+model AdvertisingCreativeAsset {
+  id                String                       @id @default(cuid())
+  organisationId    String
+  creativeProjectId String
+  variantId         String?
+  marketingAssetId  String?
+  visualProjectId   String?
+  source            AdvertisingCreativeAssetSource
+  formatType        AdvertisingCreativeFormatType?
+  aspectRatio       String?
+  width             Int?
+  height            Int?
+  durationSeconds   Int?
+  fileSizeBytes     Int?
+  mimeType          String?
+  provenanceLabel   String?
+  isSynthetic       Boolean                      @default(false)
+  syntheticDisclaimer String?
+  sortOrder         Int                          @default(0)
+  createdAt         DateTime                     @default(now())
+  updatedAt         DateTime                     @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creativeProject AdvertisingCreativeProject @relation(fields: [creativeProjectId], references: [id], onDelete: Cascade)
+  variant         AdvertisingCreativeVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  marketingAsset  MarketingAsset?           @relation(fields: [marketingAssetId], references: [id], onDelete: SetNull)
+  visualProject   VisualProject?            @relation(fields: [visualProjectId], references: [id], onDelete: SetNull)
+
+  @@index([creativeProjectId, variantId])
+}
+
+model AdvertisingCreativeFormat {
+  id                String                        @id @default(cuid())
+  organisationId    String
+  creativeProjectId String
+  formatType        AdvertisingCreativeFormatType
+  channelType       AdvertisingChannelType?
+  aspectRatio       String?
+  resolution        String?
+  maxFileSizeBytes  Int?
+  maxDurationSeconds Int?
+  textLimits        Json?
+  safeZones         Json?
+  audioRequired     Boolean                       @default(false)
+  subtitlesRequired Boolean                       @default(false)
+  thumbnailRequired Boolean                       @default(false)
+  createdAt         DateTime                      @default(now())
+  updatedAt         DateTime                      @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creativeProject AdvertisingCreativeProject @relation(fields: [creativeProjectId], references: [id], onDelete: Cascade)
+  validations     AdvertisingCreativeProviderValidation[]
+
+  @@index([creativeProjectId, formatType])
+}
+
+model AdvertisingCreativeReview {
+  id                String                            @id @default(cuid())
+  organisationId    String
+  creativeProjectId String
+  versionId         String?
+  reviewerRole      AdvertisingCreativeReviewRole
+  decision          AdvertisingCreativeReviewDecision @default(PENDING)
+  decisionNote      String?
+  comment           String?
+  lockedSections    String[]                          @default([])
+  reviewerUserId    String?
+  decidedAt         DateTime?
+  createdAt         DateTime                          @default(now())
+  updatedAt         DateTime                          @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creativeProject AdvertisingCreativeProject @relation(fields: [creativeProjectId], references: [id], onDelete: Cascade)
+  version         AdvertisingCreativeVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  reviewer        UserProfile?              @relation("AdvertisingCreativeReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
+
+  @@index([creativeProjectId, reviewerRole, decision])
+}
+
+model AdvertisingCreativeVersion {
+  id                String   @id @default(cuid())
+  organisationId    String
+  creativeProjectId String
+  versionNumber     Int
+  status            AdvertisingCreativeProjectStatus
+  snapshot          Json
+  changeNote        String?
+  aiRequestId       String?
+  createdByUserId   String
+  createdAt         DateTime @default(now())
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creativeProject AdvertisingCreativeProject @relation(fields: [creativeProjectId], references: [id], onDelete: Cascade)
+  createdBy       UserProfile               @relation("AdvertisingCreativeVersionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  reviews         AdvertisingCreativeReview[]
+
+  @@unique([creativeProjectId, versionNumber])
+  @@index([creativeProjectId, createdAt])
+}
+
+model AdvertisingCreativeProviderValidation {
+  id                String                            @id @default(cuid())
+  organisationId    String
+  creativeProjectId String
+  formatId          String?
+  provider          String
+  channelType       AdvertisingChannelType?
+  validationStatus  AdvertisingCreativeValidationStatus @default(PENDING)
+  isLocalPrecheck   Boolean                           @default(true)
+  fieldResults      Json?
+  warnings          String[]                          @default([])
+  errors            String[]                          @default([])
+  validatedAt       DateTime?
+  createdAt         DateTime                          @default(now())
+  updatedAt         DateTime                          @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creativeProject AdvertisingCreativeProject @relation(fields: [creativeProjectId], references: [id], onDelete: Cascade)
+  format          AdvertisingCreativeFormat? @relation(fields: [formatId], references: [id], onDelete: SetNull)
+
+  @@index([creativeProjectId, provider])
+}
+
+model AdvertisingCreativePerformanceLink {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  creativeProjectId   String
+  variantId           String?
+  marketingCreativeId String?
+  providerCreativeId  String?
+  provider            String?
+  impressions         Int?
+  clicks              Int?
+  conversions         Int?
+  cost                Decimal? @db.Decimal(18, 4)
+  revenue             Decimal? @db.Decimal(18, 4)
+  experimentVariant   String?
+  linkedAt            DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  organisation    Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  creativeProject AdvertisingCreativeProject @relation(fields: [creativeProjectId], references: [id], onDelete: Cascade)
+  variant         AdvertisingCreativeVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  marketingCreative MarketingCreative?      @relation(fields: [marketingCreativeId], references: [id], onDelete: SetNull)
+
+  @@index([creativeProjectId, variantId])
+  @@index([marketingCreativeId])
 }
 
 // ---------------------------------------------------------------------------

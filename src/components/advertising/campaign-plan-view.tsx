@@ -250,6 +250,16 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
           </Card>
           <Card>
             <CardHeader>
+              <CardTitle className="text-base">Creative Studio</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ButtonLink href="/advertising/creatives" variant="outline">
+                Manage ad creatives
+              </ButtonLink>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
               <CardTitle className="text-base">Performance Data</CardTitle>
             </CardHeader>
             <CardContent>
