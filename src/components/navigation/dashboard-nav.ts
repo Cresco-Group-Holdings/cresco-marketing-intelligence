@@ -41,6 +41,12 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Provider-independent campaign planning",
   },
   {
+    label: "Google Ads",
+    href: "/advertising/google",
+    icon: Megaphone,
+    description: "Controlled Google Ads campaign management",
+  },
+  {
     label: "Brands",
     href: "/brands",
     icon: Megaphone,

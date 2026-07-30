@@ -269,6 +269,12 @@ model UserProfile {
   advertisingAudiencesOwned            AdvertisingAudience[]        @relation("AdvertisingAudienceOwner")
   advertisingAudiencesCreated          AdvertisingAudience[]        @relation("AdvertisingAudienceCreator")
   advertisingAudienceVersionsCreated   AdvertisingAudienceVersion[] @relation("AdvertisingAudienceVersionCreator")
+  advertisingGoogleAdsAccountsAssigned AdvertisingGoogleAdsAccount[] @relation("AdvertisingGoogleAdsAccountAssigner")
+  advertisingGoogleAdsDraftsCreated    AdvertisingGoogleAdsDraft[] @relation("AdvertisingGoogleAdsDraftCreator")
+  advertisingGoogleAdsMutationPlansCreated AdvertisingGoogleAdsMutationPlan[] @relation("AdvertisingGoogleAdsMutationPlanCreator")
+  advertisingGoogleAdsLaunchApprovalsDecided AdvertisingGoogleAdsLaunchApproval[] @relation("AdvertisingGoogleAdsLaunchApprover")
+  advertisingGoogleAdsLaunchesExecuted AdvertisingGoogleAdsLaunch[] @relation("AdvertisingGoogleAdsLaunchExecutor")
+  advertisingGoogleAdsOperationsRequested AdvertisingGoogleAdsOperation[] @relation("AdvertisingGoogleAdsOperationRequester")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -611,6 +617,13 @@ model Organisation {
   advertisingAudienceConsentPolicies AdvertisingAudienceConsentPolicy[]
   advertisingAudienceProviderMappings AdvertisingAudienceProviderMapping[]
   advertisingAudienceEligibilityChecks AdvertisingAudienceEligibilityCheck[]
+  advertisingGoogleAdsAccounts         AdvertisingGoogleAdsAccount[]
+  advertisingGoogleAdsDrafts           AdvertisingGoogleAdsDraft[]
+  advertisingGoogleAdsMutationPlans      AdvertisingGoogleAdsMutationPlan[]
+  advertisingGoogleAdsLaunchApprovals  AdvertisingGoogleAdsLaunchApproval[]
+  advertisingGoogleAdsLaunches         AdvertisingGoogleAdsLaunch[]
+  advertisingGoogleAdsProviderResources AdvertisingGoogleAdsProviderResource[]
+  advertisingGoogleAdsOperations       AdvertisingGoogleAdsOperation[]
 
   @@index([status])
   @@index([archivedAt])
@@ -812,6 +825,9 @@ model Project {
   advertisingCampaignPlans     AdvertisingCampaignPlan[]
   advertisingCreativeProjects  AdvertisingCreativeProject[]
   advertisingAudiences         AdvertisingAudience[]
+  advertisingGoogleAdsAccounts AdvertisingGoogleAdsAccount[]
+  advertisingGoogleAdsDrafts   AdvertisingGoogleAdsDraft[]
+  advertisingGoogleAdsLaunches AdvertisingGoogleAdsLaunch[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1006,6 +1022,10 @@ model Brand {
   advertisingCampaignPlans     AdvertisingCampaignPlan[]
   advertisingCreativeProjects  AdvertisingCreativeProject[]
   advertisingAudiences         AdvertisingAudience[]
+  advertisingGoogleAdsAccounts AdvertisingGoogleAdsAccount[]
+  advertisingGoogleAdsDrafts   AdvertisingGoogleAdsDraft[]
+  advertisingGoogleAdsLaunches AdvertisingGoogleAdsLaunch[]
+  advertisingGoogleAdsOperations AdvertisingGoogleAdsOperation[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2121,6 +2141,7 @@ model ConnectorAccount {
   syncCursors                   ConnectorSyncCursor[]
   webhookEndpoints              WebhookEndpoint[]
   marketingDataSourceAccounts   MarketingDataSourceAccount[]
+  advertisingGoogleAdsAccount   AdvertisingGoogleAdsAccount?
 
   @@unique([brandId, connectorType])
   @@index([organisationId])
@@ -4647,6 +4668,7 @@ model MarketingCampaign {
   adGroups                   MarketingAdGroup[]
   metricObservations         MarketingMetricObservation[]
   costRecords                MarketingCostRecord[]
+  googleAdsLaunches          AdvertisingGoogleAdsLaunch[]
 
   @@unique([brandId, provider, providerCampaignId])
   @@index([organisationId, brandId])
@@ -9930,6 +9952,8 @@ model AdvertisingCampaignPlan {
   providerDrafts AdvertisingCampaignProviderDraft[]
   creativeProjects AdvertisingCreativeProject[]
   advertisingAudiences AdvertisingAudience[]
+  googleAdsDrafts        AdvertisingGoogleAdsDraft[]
+  googleAdsLaunches      AdvertisingGoogleAdsLaunch[]
 
   @@unique([brandId, internalCampaignId])
   @@index([organisationId, brandId, status])
@@ -10849,6 +10873,246 @@ model AdvertisingAudienceEligibilityCheck {
   audience     AdvertisingAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
 
   @@index([audienceId, checkType])
+}
+
+// ---------------------------------------------------------------------------
+// Task 5.4 — Controlled Google Ads Campaign Management
+// ---------------------------------------------------------------------------
+
+enum AdvertisingGoogleAdsAccountStatus {
+  PENDING
+  CONNECTED
+  DISCONNECTED
+  PERMISSION_LOST
+}
+
+enum AdvertisingGoogleAdsDraftStatus {
+  DRAFT
+  VALIDATED
+  STALE
+  ARCHIVED
+}
+
+enum AdvertisingGoogleAdsLaunchStatus {
+  PENDING_APPROVAL
+  APPROVED
+  LAUNCHING
+  LAUNCHED
+  PARTIAL_SUCCESS
+  FAILED
+  STALE_APPROVAL
+  ARCHIVED
+}
+
+enum AdvertisingGoogleAdsOperationType {
+  PAUSE_CAMPAIGN
+  RESUME_CAMPAIGN
+  ADJUST_BUDGET
+  UPDATE_STATUS
+  ARCHIVE_MAPPING
+}
+
+enum AdvertisingGoogleAdsOperationStatus {
+  PENDING
+  PREVIEWED
+  CONFIRMED
+  EXECUTING
+  SUCCEEDED
+  FAILED
+}
+
+model AdvertisingGoogleAdsAccount {
+  id                 String                            @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String                            @unique
+  connectorAccountId String                            @unique
+  managerCustomerId  String?
+  customerId         String
+  customerName       String?
+  currency           String?
+  timezone           String?
+  accessLevel        String?
+  isTestAccount      Boolean                           @default(false)
+  status             AdvertisingGoogleAdsAccountStatus @default(PENDING)
+  assignedAt         DateTime?
+  assignedByUserId   String?
+  disconnectedAt     DateTime?
+  metadata           Json?
+  createdAt          DateTime                          @default(now())
+  updatedAt          DateTime                          @updatedAt
+
+  organisation     Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connectorAccount ConnectorAccount                @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  assignedBy       UserProfile?                    @relation("AdvertisingGoogleAdsAccountAssigner", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+  drafts           AdvertisingGoogleAdsDraft[]
+  launches         AdvertisingGoogleAdsLaunch[]
+  operations       AdvertisingGoogleAdsOperation[]
+
+  @@index([organisationId, brandId])
+  @@index([customerId])
+}
+
+model AdvertisingGoogleAdsDraft {
+  id                 String                          @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  planId             String
+  googleAdsAccountId String
+  providerDraftId    String?
+  campaignType       String                          @default("SEARCH")
+  draftPayload       Json
+  featureFlags       Json?
+  status             AdvertisingGoogleAdsDraftStatus @default(DRAFT)
+  validationResult   Json?
+  validationStatus   String                          @default("PENDING")
+  createdByUserId    String
+  createdAt          DateTime                        @default(now())
+  updatedAt          DateTime                        @updatedAt
+
+  organisation     Organisation                       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  plan             AdvertisingCampaignPlan            @relation(fields: [planId], references: [id], onDelete: Cascade)
+  googleAdsAccount AdvertisingGoogleAdsAccount          @relation(fields: [googleAdsAccountId], references: [id], onDelete: Cascade)
+  createdBy        UserProfile                        @relation("AdvertisingGoogleAdsDraftCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  mutationPlans    AdvertisingGoogleAdsMutationPlan[]
+  launches         AdvertisingGoogleAdsLaunch[]
+
+  @@index([planId])
+  @@index([brandId, status])
+}
+
+model AdvertisingGoogleAdsMutationPlan {
+  id                String   @id @default(cuid())
+  organisationId    String
+  draftId           String
+  planHash          String
+  operations        Json
+  resourcesCreated  Json?
+  resourcesChanged  Json?
+  budgetSummary     Json?
+  accountSnapshot   Json?
+  destinationSummary Json?
+  risks             String[] @default([])
+  validationResult  Json?
+  validationStatus  String   @default("PENDING")
+  isStale           Boolean  @default(false)
+  createdByUserId   String
+  createdAt         DateTime @default(now())
+
+  organisation    Organisation                         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  draft           AdvertisingGoogleAdsDraft              @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  createdBy       UserProfile                          @relation("AdvertisingGoogleAdsMutationPlanCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  launchApprovals AdvertisingGoogleAdsLaunchApproval[]
+  launches        AdvertisingGoogleAdsLaunch[]
+
+  @@unique([draftId, planHash])
+  @@index([draftId])
+}
+
+model AdvertisingGoogleAdsLaunchApproval {
+  id             String    @id @default(cuid())
+  organisationId String
+  mutationPlanId String
+  approvalType   String
+  planHash       String
+  decision       String    @default("PENDING")
+  approverUserId String?
+  notes          String?
+  approvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  mutationPlan AdvertisingGoogleAdsMutationPlan @relation(fields: [mutationPlanId], references: [id], onDelete: Cascade)
+  approver     UserProfile?                   @relation("AdvertisingGoogleAdsLaunchApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([mutationPlanId, approvalType])
+}
+
+model AdvertisingGoogleAdsLaunch {
+  id                  String                           @id @default(cuid())
+  organisationId      String
+  projectId           String
+  brandId             String
+  planId              String
+  draftId             String
+  mutationPlanId      String
+  googleAdsAccountId  String
+  planHash            String
+  launchVersion       Int                              @default(1)
+  status              AdvertisingGoogleAdsLaunchStatus @default(PENDING_APPROVAL)
+  launchedByUserId    String?
+  launchedAt          DateTime?
+  providerResponse    Json?
+  errorDetails        Json?
+  idempotencyKey      String                           @unique
+  marketingCampaignId String?
+  createdAt           DateTime                         @default(now())
+  updatedAt           DateTime                         @updatedAt
+
+  organisation      Organisation                         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand                                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  plan              AdvertisingCampaignPlan              @relation(fields: [planId], references: [id], onDelete: Cascade)
+  draft             AdvertisingGoogleAdsDraft            @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  mutationPlan      AdvertisingGoogleAdsMutationPlan       @relation(fields: [mutationPlanId], references: [id], onDelete: Restrict)
+  googleAdsAccount  AdvertisingGoogleAdsAccount            @relation(fields: [googleAdsAccountId], references: [id], onDelete: Restrict)
+  launchedBy        UserProfile?                         @relation("AdvertisingGoogleAdsLaunchExecutor", fields: [launchedByUserId], references: [id], onDelete: SetNull)
+  marketingCampaign MarketingCampaign?                   @relation(fields: [marketingCampaignId], references: [id], onDelete: SetNull)
+  providerResources AdvertisingGoogleAdsProviderResource[]
+
+  @@index([brandId, status])
+  @@index([planId])
+}
+
+model AdvertisingGoogleAdsProviderResource {
+  id                   String   @id @default(cuid())
+  organisationId       String
+  launchId             String
+  resourceType         String
+  internalRef          String
+  providerResourceName String?
+  providerId           String?
+  status               String   @default("PENDING")
+  providerResponse     Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organisation Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  launch       AdvertisingGoogleAdsLaunch @relation(fields: [launchId], references: [id], onDelete: Cascade)
+
+  @@unique([launchId, internalRef])
+  @@index([launchId, resourceType])
+}
+
+model AdvertisingGoogleAdsOperation {
+  id                 String                              @id @default(cuid())
+  organisationId     String
+  brandId            String
+  googleAdsAccountId String
+  launchId           String?
+  providerCampaignId String?
+  operationType      AdvertisingGoogleAdsOperationType
+  status             AdvertisingGoogleAdsOperationStatus @default(PENDING)
+  reason             String
+  preview            Json?
+  confirmation       Json?
+  providerResult     Json?
+  requestedByUserId  String
+  executedAt         DateTime?
+  createdAt          DateTime                            @default(now())
+  updatedAt          DateTime                            @updatedAt
+
+  organisation     Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand            Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  googleAdsAccount AdvertisingGoogleAdsAccount @relation(fields: [googleAdsAccountId], references: [id], onDelete: Cascade)
+  requestedBy      UserProfile                 @relation("AdvertisingGoogleAdsOperationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([brandId, operationType])
 }
 
 // ---------------------------------------------------------------------------
