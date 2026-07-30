@@ -1,34 +1,43 @@
-# Known Limitations — Stage 1
+# Known Limitations
 
-Documented limitations at the end of Stage 1 foundation. These are intentional scope boundaries, not bugs.
+Documented limitations across Stage 1 and Stage 2. See `docs/STAGE_2_KNOWN_LIMITATIONS.md` for Stage 2-specific gaps.
 
-## Product scope
+## Stage 2 status (Task 2.20)
+
+Stage 2 Social Media AI is **not ready for unrestricted production launch**. Key blockers:
+- Mock OAuth adapters only in `src/lib/social/bootstrap.ts` — production OAuth not wired on `main`
+- Social inbox and Video Studio not implemented on `main`
+- Notifications, team ops, and reporting on separate PR branches not merged to `main`
+
+Publishing scheduler, capability enforcement, provider kill switches, and operational runbooks were added in Task 2.20. See `docs/STAGE_2_PRODUCTION_READINESS.md` for the full audit.
+
+## Product scope (Stage 1 baseline)
 
 | Limitation | Status | Stage 2 plan |
 |------------|--------|--------------|
-| Content Studio | Coming soon | Content generation workflows |
-| Content Calendar | Coming soon | Scheduling and publishing |
-| Social Media | Coming soon | Social integrations and posting |
-| Analytics dashboards | Coming soon | Requires live connector data |
+| Content Studio | Implemented (Stage 2) | AI content generation available |
+| Content Calendar | Implemented (Stage 2) | Scheduling engine operational |
+| Social Media | Partial (Stage 2) | Publishing adapters implemented; OAuth mock only |
+| Analytics dashboards | Partial (Stage 2) | Sync and query APIs; dashboards on separate branch |
 | AI Agents (user-facing) | Coming soon | Built on Secure AI Core |
-| Live connector sync | Not available | Provider adapters per platform |
+| Live connector sync | Partial | Analytics scheduler operational; OAuth mock only |
 
 ## Connectors
 
-- Connector catalogue displays all platforms; most are `COMING_SOON`
-- Connect buttons disabled until adapter is implemented and marked `AVAILABLE`
-- No live Instagram, TikTok, Meta, or Google data sync in Stage 1
+- Production OAuth adapters not registered on `main` (mock adapters in bootstrap)
+- Connector catalogue may display platforms before production wiring is complete
+- Analytics sync requires `READ_INSIGHTS` capability and live credentials
 
 ## Jobs and background processing
 
-- Job provider abstraction exists; production persistent queue not deployed
-- Sync engine runs inline in request context for tests/dev
-- Scheduled sync requires Stage 2 worker infrastructure
+- Publishing scheduler added (Task 2.20) — requires cron with `PUBLISHING_WORKER_TOKEN`
+- Analytics scheduler operational — requires cron with `PUBLISHING_WORKER_TOKEN`
+- Job processing is sequential per worker batch (no parallel provider calls)
 
 ## AI
 
 - AI diagnostics available to OWNER/ADMIN only
-- No user-facing content generators
+- AI Content Studio available; generated content requires approval before publishing
 - Mock provider used when real providers unconfigured
 
 ## Performance
@@ -46,7 +55,7 @@ Documented limitations at the end of Stage 1 foundation. These are intentional s
 ## Observability
 
 - Error monitoring uses console abstraction only (no Sentry/Datadog wired)
-- No custom metrics dashboard
+- Publishing and analytics counters emitted as structured logs (no metrics dashboard)
 - Alerting requires external uptime monitor on `/api/health` and `/api/readiness`
 
 ## Multi-region
@@ -56,4 +65,4 @@ Documented limitations at the end of Stage 1 foundation. These are intentional s
 
 ## Billing
 
-- No usage-based billing or subscription management in Stage 1
+- No usage-based billing or subscription management

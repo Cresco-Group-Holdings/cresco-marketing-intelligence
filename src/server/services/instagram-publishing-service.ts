@@ -11,6 +11,8 @@ import { createObjectStorageProvider } from "@/lib/storage/supabase-storage-prov
 import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { socialCredentialService } from "@/server/services/social-credential-service";
+import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities";
+import { isProviderPublishingDisabled } from "@/lib/publishing/config";
 import { brandService } from "@/server/services/workspace-service";
 
 /** Meta containers expire after 24h; bounded polling keeps a stuck job from running forever. */
@@ -76,6 +78,12 @@ export const instagramPublishingService = {
     requestId?: string,
   ) {
     const brand = await brandService.getById(brandId, organisationId, context);
+    if (isProviderPublishingDisabled("INSTAGRAM")) {
+      throw new AppError(
+        "FORBIDDEN",
+        "Instagram publishing is temporarily disabled by an operator.",
+      );
+    }
 
     const existingJob = await prisma.publishingJob.findFirst({
       where: { organisationId, brandId, idempotencyKey: input.idempotencyKey },
@@ -110,6 +118,7 @@ export const instagramPublishingService = {
       },
     });
     if (!account) throw new AppError("VALIDATION_ERROR", "Instagram account is not connected.");
+    await assertAccountPublishingCapability(account.id, variant.format);
 
     const schedule = await prisma.contentSchedule.create({
       data: {
