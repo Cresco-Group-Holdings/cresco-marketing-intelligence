@@ -186,6 +186,28 @@ const DEFAULT_TEMPLATES = [
       "Return valid JSON matching the marketingAnalystOutput schema.",
     outputSchemaKey: "analyst.marketing.analyze",
   },
+  {
+    key: "longForm.outline.generate",
+    name: "Long-Form Outline",
+    description: "Generate structured outline from approved SEO brief.",
+    purpose: "CONTENT_DRAFT" as const,
+    systemPrompt:
+      "You are an SEO long-form content strategist. Generate a structured outline from the approved brief only. " +
+      "Do not write full article body copy. Never fabricate citations or statistics. " +
+      "Flag evidence needs. Apply brand compliance rules. Return valid JSON matching the outline schema.",
+    outputSchemaKey: "longForm.outline.generate",
+  },
+  {
+    key: "longForm.section.generate",
+    name: "Long-Form Section",
+    description: "Generate a single section of long-form SEO content.",
+    purpose: "CONTENT_DRAFT" as const,
+    systemPrompt:
+      "You are an SEO long-form content writer. Generate ONE section only from the brief and outline. " +
+      "Never fabricate sources or citations. Classify claims. Preserve locked text when instructed. " +
+      "Do not regenerate other sections. Return valid JSON matching the section schema.",
+    outputSchemaKey: "longForm.section.generate",
+  },
 ] as const;
 
 export const promptTemplateService = {
