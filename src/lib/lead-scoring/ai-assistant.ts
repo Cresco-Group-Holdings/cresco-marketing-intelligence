@@ -114,7 +114,7 @@ export function suggestFollowUp(
 
   const missingFields = detectMissingInfo(snapshot);
 
-  if (qualification.status === "NEEDS_INFO" && missingFields.length > 0) {
+  if (qualification.status === "SALES_REVIEW_REQUIRED" && missingFields.length > 0) {
     return {
       suggestionType: "COLLECT_MISSING_INFO",
       title: "Collect missing lead information",
@@ -132,7 +132,7 @@ export function suggestFollowUp(
     };
   }
 
-  if (qualification.status === "HOT" || qualification.status === "QUALIFIED") {
+  if (qualification.status === "MARKETING_QUALIFIED" || qualification.status === "SALES_QUALIFIED") {
     return {
       suggestionType: "SALES_OUTREACH",
       title: "Prioritise sales outreach",
@@ -154,7 +154,7 @@ export function suggestFollowUp(
     };
   }
 
-  if (qualification.status === "WARM") {
+  if (qualification.status === "SALES_REVIEW_REQUIRED" && missingFields.length === 0) {
     return {
       suggestionType: "NURTURE",
       title: "Continue nurture sequence",
@@ -172,7 +172,7 @@ export function suggestFollowUp(
     };
   }
 
-  if (qualification.status === "COLD") {
+  if (qualification.status === "LOW_PRIORITY") {
     return {
       suggestionType: "RE_ENGAGE",
       title: "Consider re-engagement campaign",

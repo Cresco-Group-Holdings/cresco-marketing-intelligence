@@ -303,20 +303,19 @@ describe("negative signals", () => {
 });
 
 describe("qualification thresholds", () => {
-  it("returns NEEDS_INFO when required fields are missing", () => {
+  it("returns SALES_REVIEW_REQUIRED when required fields are missing", () => {
     const model = baseModel({ ruleGroups: [] });
     const scores = computeScores(model, completeSnapshot({ country: undefined }), now);
     const qualification = mapScoreToQualificationStatus(scores, completeSnapshot({ country: undefined }));
 
-    expect(qualification.status).toBe("NEEDS_INFO");
+    expect(qualification.status).toBe("SALES_REVIEW_REQUIRED");
     expect(qualification.missingFields).toContain("country");
   });
 
-  it("maps composite score to COLD, WARM, HOT, and QUALIFIED bands", () => {
+  it("maps composite score to qualification bands", () => {
     const model = baseModel({ ruleGroups: [] });
 
     for (const [status, threshold] of Object.entries(QUALIFICATION_THRESHOLDS)) {
-      if (status === "DISQUALIFIED") continue;
       const midScore = (threshold.min + threshold.max) / 2;
       const scores = computeScores(model, completeSnapshot(), now);
       scores.compositeScore = midScore;
@@ -330,7 +329,7 @@ describe("qualification thresholds", () => {
     const scores = computeScores(model, completeSnapshot({ suppressed: true }), now);
     const qualification = mapScoreToQualificationStatus(scores, completeSnapshot({ suppressed: true }));
 
-    expect(qualification.status).toBe("DISQUALIFIED");
+    expect(qualification.status).toBe("NOT_QUALIFIED");
     expect(qualification.reasons[0]).toContain("suppressed");
   });
 });
@@ -405,12 +404,12 @@ describe("simulation output", () => {
     const leads = [
       {
         snapshot: completeSnapshot({ leadId: "lead-a" }),
-        previousStatus: "COLD" as const,
+        previousStatus: "LOW_PRIORITY" as const,
         previousCompositeScore: 0,
       },
       {
         snapshot: completeSnapshot({ leadId: "lead-b", unsubscribed: true }),
-        previousStatus: "WARM" as const,
+        previousStatus: "SALES_REVIEW_REQUIRED" as const,
         previousCompositeScore: 30,
       },
     ];

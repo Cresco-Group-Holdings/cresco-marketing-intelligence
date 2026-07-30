@@ -114,7 +114,7 @@ export function simulateModel(
     const qualification = mapScoreToQualificationStatus(scores, lead.snapshot);
     compositeScores.push(scores.compositeScore);
 
-    const previousStatus = lead.previousStatus ?? "UNASSESSED";
+    const previousStatus = lead.previousStatus ?? "UNREVIEWED";
     const previousScore = lead.previousCompositeScore ?? 0;
     const scoreChanged = scores.compositeScore !== previousScore;
     const statusChanged = qualification.status !== previousStatus;

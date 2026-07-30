@@ -47,7 +47,7 @@ export function detectMissingInfo(snapshot: LeadSnapshot): string[] {
 }
 
 function resolveThresholdStatus(compositeScore: number): QualificationStatus {
-  if (compositeScore < 0) return "DISQUALIFIED";
+  if (compositeScore < 0) return "NOT_QUALIFIED";
 
   for (const [status, threshold] of Object.entries(QUALIFICATION_THRESHOLDS)) {
     if (compositeScore >= threshold.min && compositeScore <= threshold.max) {
@@ -55,8 +55,8 @@ function resolveThresholdStatus(compositeScore: number): QualificationStatus {
     }
   }
 
-  if (compositeScore >= QUALIFICATION_THRESHOLDS.QUALIFIED.min) return "QUALIFIED";
-  return "COLD";
+  if (compositeScore >= QUALIFICATION_THRESHOLDS.SALES_QUALIFIED.min) return "SALES_QUALIFIED";
+  return "LOW_PRIORITY";
 }
 
 function computeConfidence(
@@ -76,9 +76,19 @@ export function mapScoreToQualificationStatus(
   const missingFields = detectMissingInfo(snapshot);
   const reasons: string[] = [];
 
+  if (snapshot.lifecycleStage === "CUSTOMER") {
+    return {
+      status: "CUSTOMER",
+      compositeScore: scores.compositeScore,
+      missingFields,
+      reasons: ["Lead is an existing customer."],
+      confidence: "HIGH",
+    };
+  }
+
   if (snapshot.suppressed) {
     return {
-      status: "DISQUALIFIED",
+      status: "NOT_QUALIFIED",
       compositeScore: scores.compositeScore,
       missingFields,
       reasons: ["Lead is suppressed."],
@@ -92,7 +102,7 @@ export function mapScoreToQualificationStatus(
 
   if (snapshot.status === "DISQUALIFIED" || snapshot.qualificationState === "DISQUALIFIED") {
     return {
-      status: "DISQUALIFIED",
+      status: "NOT_QUALIFIED",
       compositeScore: scores.compositeScore,
       missingFields,
       reasons: ["Lead status indicates disqualification.", ...reasons],
@@ -102,7 +112,7 @@ export function mapScoreToQualificationStatus(
 
   if (missingFields.length > 0) {
     return {
-      status: "NEEDS_INFO",
+      status: "SALES_REVIEW_REQUIRED",
       compositeScore: scores.compositeScore,
       missingFields,
       reasons: [
@@ -115,11 +125,11 @@ export function mapScoreToQualificationStatus(
 
   const status = resolveThresholdStatus(scores.compositeScore);
 
-  if (status === "HOT" || status === "QUALIFIED") {
+  if (status === "MARKETING_QUALIFIED" || status === "SALES_QUALIFIED") {
     reasons.push(`Composite score ${scores.compositeScore} meets ${status} threshold.`);
-  } else if (status === "WARM") {
+  } else if (status === "SALES_REVIEW_REQUIRED") {
     reasons.push(`Composite score ${scores.compositeScore} indicates moderate interest.`);
-  } else if (status === "COLD") {
+  } else if (status === "LOW_PRIORITY") {
     reasons.push(`Composite score ${scores.compositeScore} indicates low engagement or fit.`);
   }
 

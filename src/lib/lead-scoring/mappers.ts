@@ -73,16 +73,7 @@ export function categoryToScoreType(category: LeadScoringSignalCategory): LeadSc
 }
 
 export function mapLibQualificationToDb(status: QualificationStatus): LeadScoringQualificationStatus {
-  const mapping: Record<QualificationStatus, LeadScoringQualificationStatus> = {
-    UNASSESSED: "UNREVIEWED",
-    NEEDS_INFO: "SALES_REVIEW_REQUIRED",
-    COLD: "LOW_PRIORITY",
-    WARM: "SALES_REVIEW_REQUIRED",
-    HOT: "MARKETING_QUALIFIED",
-    QUALIFIED: "SALES_QUALIFIED",
-    DISQUALIFIED: "NOT_QUALIFIED",
-  };
-  return mapping[status];
+  return status as LeadScoringQualificationStatus;
 }
 
 export function hashRuleGroups(groups: SaveRuleGroupInput[]): string {

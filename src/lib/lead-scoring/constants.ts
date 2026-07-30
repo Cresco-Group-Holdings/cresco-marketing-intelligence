@@ -83,13 +83,14 @@ export const PROHIBITED_ATTRIBUTES = [
 export type ProhibitedAttribute = (typeof PROHIBITED_ATTRIBUTES)[number];
 
 export const QUALIFICATION_STATUSES = [
-  "UNASSESSED",
-  "NEEDS_INFO",
-  "COLD",
-  "WARM",
-  "HOT",
-  "QUALIFIED",
-  "DISQUALIFIED",
+  "UNREVIEWED",
+  "LOW_PRIORITY",
+  "MARKETING_QUALIFIED",
+  "SALES_REVIEW_REQUIRED",
+  "SALES_QUALIFIED",
+  "NOT_QUALIFIED",
+  "CUSTOMER",
+  "MANUAL_OVERRIDE",
 ] as const;
 
 export type QualificationStatus = (typeof QUALIFICATION_STATUSES)[number];
@@ -144,14 +145,14 @@ export const DEFAULT_CATEGORY_CAPS: Record<SignalCategory, number> = {
 };
 
 export const QUALIFICATION_THRESHOLDS: Record<
-  Exclude<QualificationStatus, "UNASSESSED" | "NEEDS_INFO">,
+  Exclude<QualificationStatus, "UNREVIEWED" | "MANUAL_OVERRIDE" | "CUSTOMER">,
   { min: number; max: number }
 > = {
-  COLD: { min: 0, max: 24 },
-  WARM: { min: 25, max: 49 },
-  HOT: { min: 50, max: 74 },
-  QUALIFIED: { min: 75, max: 100 },
-  DISQUALIFIED: { min: -100, max: -1 },
+  LOW_PRIORITY: { min: 0, max: 24 },
+  SALES_REVIEW_REQUIRED: { min: 25, max: 49 },
+  MARKETING_QUALIFIED: { min: 50, max: 74 },
+  SALES_QUALIFIED: { min: 75, max: 100 },
+  NOT_QUALIFIED: { min: -100, max: -1 },
 };
 
 export const REQUIRED_FIT_FIELDS = [
