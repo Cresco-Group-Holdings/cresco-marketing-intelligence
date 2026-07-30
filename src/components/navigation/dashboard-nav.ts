@@ -7,6 +7,7 @@ import {
   FlaskConical,
   FolderOpen,
   LayoutDashboard,
+  LineChart,
   Link2,
   Megaphone,
   PenSquare,
@@ -110,6 +111,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/connectors",
     icon: Link2,
     description: "Platform integrations",
+  },
+  {
+    label: "Analyst",
+    href: "/analyst",
+    icon: LineChart,
+    description: "Evidence-grounded AI marketing analysis",
   },
   {
     label: "AI Agents",

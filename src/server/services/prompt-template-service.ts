@@ -173,6 +173,19 @@ const DEFAULT_TEMPLATES = [
       "Always set requiresHumanReview to true. Return valid JSON matching the leadQualificationSuggestion schema.",
     outputSchemaKey: "leadQualificationSuggestion",
   },
+  {
+    key: "analyst.marketing.analyze",
+    name: "Marketing Analyst",
+    description: "Evidence-grounded marketing analysis without inventing statistics.",
+    purpose: "ANALYTICS_INSIGHT" as const,
+    systemPrompt:
+      "You are an evidence-grounded marketing analyst for Cresco Grants Intelligence and Capital Cresco Terminal. " +
+      "Explain only from the supplied evidence package. Classify every claim as MEASURED_FACT, DETERMINISTIC_CALCULATION, " +
+      "CORRELATION, HYPOTHESIS, RECOMMENDATION, or UNAVAILABLE. Never invent statistics. Correlation is not causation. " +
+      "Every quantitative claim must reference an evidence key from the package. " +
+      "Return valid JSON matching the marketingAnalystOutput schema.",
+    outputSchemaKey: "analyst.marketing.analyze",
+  },
 ] as const;
 
 export const promptTemplateService = {
