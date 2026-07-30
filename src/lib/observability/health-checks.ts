@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/database/prisma";
 import { getServerEnv } from "@/lib/environment";
 import { isAiDiagnosticsEnabled } from "@/lib/ai/diagnostics-access";
+import { getSeoMetricsSnapshot } from "@/lib/seo/observability";
+import { isSeoEngineShutdown } from "@/lib/seo/quotas";
 
 export type HealthCheckStatus = "pass" | "fail" | "warn";
 
@@ -76,12 +78,45 @@ function checkConnectorDiagnostics(): HealthCheckResult {
   };
 }
 
+function checkSeoEngineStatus(): HealthCheckResult {
+  if (isSeoEngineShutdown()) {
+    return {
+      name: "seo_engine",
+      status: "warn",
+      message: "SEO_ENGINE_EMERGENCY_SHUTDOWN is enabled. Crawls are disabled.",
+    };
+  }
+  const metrics = getSeoMetricsSnapshot();
+  const failures = metrics.counters.crawl_failures ?? 0;
+  const ssrf = metrics.counters.ssrf_attempts ?? 0;
+  if (failures > 100) {
+    return {
+      name: "seo_engine",
+      status: "warn",
+      message: `Elevated crawl failure count: ${failures}.`,
+    };
+  }
+  if (ssrf > 0) {
+    return {
+      name: "seo_engine",
+      status: "warn",
+      message: `SSRF attempts blocked since startup: ${ssrf}.`,
+    };
+  }
+  return {
+    name: "seo_engine",
+    status: "pass",
+    message: "SEO engine operational.",
+  };
+}
+
 export async function runReadinessChecks(): Promise<ReadinessReport> {
   const checks = await Promise.all([
     checkDatabaseConnectivity(),
     Promise.resolve(checkEnvironmentConfiguration()),
     Promise.resolve(checkJobSystem()),
     Promise.resolve(checkConnectorDiagnostics()),
+    Promise.resolve(checkSeoEngineStatus()),
   ]);
 
   const ready = checks.every((check) => check.status !== "fail");

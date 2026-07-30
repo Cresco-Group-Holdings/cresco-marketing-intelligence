@@ -17,6 +17,9 @@ import {
   SEO_ISSUE_DEFINITIONS,
 } from "@/lib/seo/issue-rules";
 import { incrementSeoCounter } from "@/lib/seo/observability";
+import { sanitiseCrawlCustomHeaders } from "@/lib/seo/custom-headers";
+import { isPathIncluded } from "@/lib/seo/path-rules";
+import { isSeoEngineShutdown, resolveOrgQuota } from "@/lib/seo/quotas";
 import { isPathAllowed, parseRobotsTxt } from "@/lib/seo/robots-parser";
 import { assertCrawlUrl, validateCrawlUrl } from "@/lib/seo/ssrf-guard";
 import { normaliseUrl } from "@/lib/seo/url-normalisation";
@@ -189,6 +192,29 @@ export const seoCrawlService = {
     idempotencyKey?: string,
   ) {
     await brandService.getById(brandId, organisationId, context);
+    if (isSeoEngineShutdown()) {
+      throw new AppError("FORBIDDEN", "SEO crawl engine is temporarily disabled.");
+    }
+
+    const activeCrawls = await prisma.seoCrawlRun.count({
+      where: {
+        organisationId,
+        status: { in: [SeoCrawlRunStatus.QUEUED, SeoCrawlRunStatus.RUNNING, SeoCrawlRunStatus.PARTIAL] },
+      },
+    });
+    if (activeCrawls >= resolveOrgQuota(organisationId, "maxConcurrentCrawls")) {
+      throw new AppError("VALIDATION_ERROR", "Concurrent crawl limit reached for this organisation.");
+    }
+
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    const crawlsToday = await prisma.seoCrawlRun.count({
+      where: { organisationId, createdAt: { gte: dayStart } },
+    });
+    if (crawlsToday >= resolveOrgQuota(organisationId, "maxCrawlsPerDay")) {
+      throw new AppError("VALIDATION_ERROR", "Daily crawl limit reached for this organisation.");
+    }
+
     const crawlable = await seoSiteService.isSiteCrawlable(siteId);
     if (!crawlable) {
       throw new AppError("FORBIDDEN", "Site must be verified before crawling.");
@@ -357,14 +383,20 @@ export const seoCrawlService = {
       crawlConfig.allowedDomains.length > 0
         ? crawlConfig.allowedDomains
         : [site.primaryDomain];
-    const customHeaders =
+    const customHeaders = sanitiseCrawlCustomHeaders(
       crawlConfig.customHeaders && typeof crawlConfig.customHeaders === "object"
         ? (crawlConfig.customHeaders as Record<string, string>)
-        : undefined;
+        : undefined,
+    );
+
+    let robotsCrawlDelayMs = 0;
 
     try {
       if (crawlConfig.respectRobotsTxt) {
-        await this.fetchRobots(site.id, site.organisationId, allowedHostnames, crawlConfig);
+        const snapshot = await this.fetchRobots(site.id, site.organisationId, allowedHostnames, crawlConfig);
+        if (snapshot?.crawlDelay && snapshot.crawlDelay > 0) {
+          robotsCrawlDelayMs = snapshot.crawlDelay * 1000;
+        }
       }
 
       const batchSize = config.maxQueueItemsPerBatch;
@@ -426,8 +458,8 @@ export const seoCrawlService = {
           },
         });
 
-        if (crawlConfig.requestDelayMs > 0) {
-          await new Promise((r) => setTimeout(r, crawlConfig.requestDelayMs));
+        if (crawlConfig.requestDelayMs > 0 || robotsCrawlDelayMs > 0) {
+          await new Promise((r) => setTimeout(r, Math.max(crawlConfig.requestDelayMs, robotsCrawlDelayMs)));
         }
       }
 
@@ -476,6 +508,8 @@ export const seoCrawlService = {
     allowedHostnames: string[],
     crawlConfig: {
       allowedSubdomains: boolean;
+      includeRules: string[];
+      excludeRules: string[];
       maxDepth: number;
       userAgent: string;
       requestTimeoutMs: number;
@@ -493,6 +527,15 @@ export const seoCrawlService = {
     if (ext) return { skipped: true, crawled: false, blocked: false, failed: false, issuesFound: 0 };
 
     if (item.depth > crawlConfig.maxDepth) {
+      return { skipped: true, crawled: false, blocked: false, failed: false, issuesFound: 0 };
+    }
+
+    const pathCheck = isPathIncluded(
+      new URL(item.url).pathname,
+      crawlConfig.includeRules ?? [],
+      crawlConfig.excludeRules ?? [],
+    );
+    if (!pathCheck.allowed) {
       return { skipped: true, crawled: false, blocked: false, failed: false, issuesFound: 0 };
     }
 
@@ -703,7 +746,7 @@ export const seoCrawlService = {
     organisationId: string,
     allowedHostnames: string[],
     crawlConfig: { userAgent: string; requestTimeoutMs: number },
-  ) {
+  ): Promise<{ crawlDelay?: number | null } | null> {
     const hostname = allowedHostnames[0];
     const robotsUrl = `https://${hostname}/robots.txt`;
     try {
@@ -729,8 +772,10 @@ export const seoCrawlService = {
           parsingWarnings: parsed?.warnings ?? [],
         },
       });
+      return { crawlDelay: parsed?.crawlDelay ?? null };
     } catch {
       incrementSeoCounter("robots_fetch_failures");
+      return null;
     }
   },
 
