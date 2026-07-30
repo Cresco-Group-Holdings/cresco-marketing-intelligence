@@ -5,6 +5,7 @@ import {
   CalendarDays,
   Contact,
   Database,
+  FileInput,
   FlaskConical,
   FolderOpen,
   Globe,
@@ -162,6 +163,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/crm",
     icon: Contact,
     description: "Leads, contacts, companies, and identity foundation",
+  },
+  {
+    label: "Forms",
+    href: "/forms",
+    icon: FileInput,
+    description: "Lead capture forms and submissions",
   },
   {
     label: "Connectors",
