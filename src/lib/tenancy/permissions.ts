@@ -129,6 +129,11 @@ export const PERMISSIONS = {
   "advertisingCreatives.generate": "advertisingCreatives.generate",
   "advertisingCreatives.review": "advertisingCreatives.review",
   "advertisingCreatives.approve": "advertisingCreatives.approve",
+  "advertisingAudiences.read": "advertisingAudiences.read",
+  "advertisingAudiences.create": "advertisingAudiences.create",
+  "advertisingAudiences.edit": "advertisingAudiences.edit",
+  "advertisingAudiences.review": "advertisingAudiences.review",
+  "advertisingAudiences.approve": "advertisingAudiences.approve",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -263,6 +268,11 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingCreatives.generate"],
     PERMISSIONS["advertisingCreatives.review"],
     PERMISSIONS["advertisingCreatives.approve"],
+    PERMISSIONS["advertisingAudiences.read"],
+    PERMISSIONS["advertisingAudiences.create"],
+    PERMISSIONS["advertisingAudiences.edit"],
+    PERMISSIONS["advertisingAudiences.review"],
+    PERMISSIONS["advertisingAudiences.approve"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -354,6 +364,9 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["advertisingCreatives.create"],
     PERMISSIONS["advertisingCreatives.edit"],
     PERMISSIONS["advertisingCreatives.generate"],
+    PERMISSIONS["advertisingAudiences.read"],
+    PERMISSIONS["advertisingAudiences.create"],
+    PERMISSIONS["advertisingAudiences.edit"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -394,6 +407,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["contentRefresh.read"],
     PERMISSIONS["advertisingPlans.read"],
     PERMISSIONS["advertisingCreatives.read"],
+    PERMISSIONS["advertisingAudiences.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -424,6 +438,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["contentRefresh.read"],
     PERMISSIONS["advertisingPlans.read"],
     PERMISSIONS["advertisingCreatives.read"],
+    PERMISSIONS["advertisingAudiences.read"],
     PERMISSIONS["experiments.read"],
   ],
 };

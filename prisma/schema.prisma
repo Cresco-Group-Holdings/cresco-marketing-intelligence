@@ -177,6 +177,7 @@ enum AIPurpose {
   LEAD_QUALIFICATION_SUGGEST
   ADVERTISING_PLANNING
   ADVERTISING_CREATIVE
+  ADVERTISING_AUDIENCE
 }
 
 enum AIRequestStatus {
@@ -265,6 +266,9 @@ model UserProfile {
   advertisingCreativeProjectsCreated AdvertisingCreativeProject[] @relation("AdvertisingCreativeProjectCreator")
   advertisingCreativeReviewsDecided AdvertisingCreativeReview[] @relation("AdvertisingCreativeReviewer")
   advertisingCreativeVersionsCreated AdvertisingCreativeVersion[] @relation("AdvertisingCreativeVersionCreator")
+  advertisingAudiencesOwned            AdvertisingAudience[]        @relation("AdvertisingAudienceOwner")
+  advertisingAudiencesCreated          AdvertisingAudience[]        @relation("AdvertisingAudienceCreator")
+  advertisingAudienceVersionsCreated   AdvertisingAudienceVersion[] @relation("AdvertisingAudienceVersionCreator")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -598,6 +602,15 @@ model Organisation {
   advertisingCreativeVersions    AdvertisingCreativeVersion[]
   advertisingCreativeProviderValidations AdvertisingCreativeProviderValidation[]
   advertisingCreativePerformanceLinks AdvertisingCreativePerformanceLink[]
+  advertisingAudiences             AdvertisingAudience[]
+  advertisingAudienceVersions      AdvertisingAudienceVersion[]
+  advertisingAudienceRules         AdvertisingAudienceRule[]
+  advertisingAudienceSegments      AdvertisingAudienceSegment[]
+  advertisingAudienceEstimates     AdvertisingAudienceEstimate[]
+  advertisingAudienceExclusions    AdvertisingAudienceExclusion[]
+  advertisingAudienceConsentPolicies AdvertisingAudienceConsentPolicy[]
+  advertisingAudienceProviderMappings AdvertisingAudienceProviderMapping[]
+  advertisingAudienceEligibilityChecks AdvertisingAudienceEligibilityCheck[]
 
   @@index([status])
   @@index([archivedAt])
@@ -798,6 +811,7 @@ model Project {
   seoContentRefreshCandidates  SeoContentRefreshCandidate[]
   advertisingCampaignPlans     AdvertisingCampaignPlan[]
   advertisingCreativeProjects  AdvertisingCreativeProject[]
+  advertisingAudiences         AdvertisingAudience[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -991,6 +1005,7 @@ model Brand {
   seoContentRefreshCandidates  SeoContentRefreshCandidate[]
   advertisingCampaignPlans     AdvertisingCampaignPlan[]
   advertisingCreativeProjects  AdvertisingCreativeProject[]
+  advertisingAudiences         AdvertisingAudience[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -1167,6 +1182,7 @@ model BrandAudience {
   brand        Brand         @relation(fields: [brandId], references: [id], onDelete: Cascade)
   contentItems ContentItem[]
   advertisingAudiencePlans AdvertisingCampaignAudiencePlan[]
+  advertisingAudiences     AdvertisingAudience[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -9913,6 +9929,7 @@ model AdvertisingCampaignPlan {
   approvals      AdvertisingCampaignApproval[]
   providerDrafts AdvertisingCampaignProviderDraft[]
   creativeProjects AdvertisingCreativeProject[]
+  advertisingAudiences AdvertisingAudience[]
 
   @@unique([brandId, internalCampaignId])
   @@index([organisationId, brandId, status])
@@ -10565,6 +10582,273 @@ model AdvertisingCreativePerformanceLink {
 
   @@index([creativeProjectId, variantId])
   @@index([marketingCreativeId])
+}
+
+// ---------------------------------------------------------------------------
+// Task 5.3 — Advertising Audience Intelligence
+// ---------------------------------------------------------------------------
+
+enum AdvertisingAudienceIntelligenceType {
+  PROSPECTING
+  RETARGETING
+  CUSTOMER
+  LEAD
+  TRIAL_USER
+  SUBSCRIBER
+  CHURN_RISK
+  CONTENT_ENGAGER
+  WEBSITE_VISITOR
+  CONVERSION_ABANDONER
+  CUSTOM_RULE_BASED
+  PROVIDER_NATIVE
+  EXCLUSION
+}
+
+enum AdvertisingAudienceStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  CHANGES_REQUESTED
+  ARCHIVED
+}
+
+enum AdvertisingAudienceRuleOperator {
+  EQUALS
+  NOT_EQUALS
+  GREATER_THAN
+  LESS_THAN
+  IN
+  NOT_IN
+  OCCURRED_WITHIN
+  NOT_OCCURRED_WITHIN
+  IS_TRUE
+  IS_FALSE
+}
+
+enum AdvertisingAudienceExclusionType {
+  EXISTING_CUSTOMERS
+  CONVERTED_USERS
+  EMPLOYEES
+  TEST_USERS
+  UNSUBSCRIBED_USERS
+  RECENT_PURCHASERS
+  ALREADY_BOOKED_DEMO
+  ACTIVE_SUBSCRIBERS
+  SUPPRESSED_LEADS
+}
+
+enum AdvertisingAudienceEligibilityStatus {
+  ELIGIBLE
+  NEEDS_ATTENTION
+  NOT_ELIGIBLE
+  PENDING_REVIEW
+}
+
+enum AdvertisingAudienceDataSource {
+  CRM
+  LEADS
+  CUSTOMERS
+  WEBSITE_EVENTS
+  CONTENT_ENGAGEMENT
+  PRODUCT_USAGE
+  EMAIL_ACTIVITY
+  CAMPAIGN_INTERACTIONS
+  GEOGRAPHIC
+  DECLARED_INTERESTS
+  PROVIDER_NATIVE
+}
+
+model AdvertisingAudience {
+  id                    String                            @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  campaignPlanId        String?
+  brandAudienceId       String?
+  name                  String
+  description           String?
+  status                AdvertisingAudienceStatus           @default(DRAFT)
+  audienceType          AdvertisingAudienceIntelligenceType
+  retargetingWindowDays Int?
+  dataSources           AdvertisingAudienceDataSource[]   @default([])
+  funnelStage           String?
+  messageAngle          String?
+  currentVersionId      String?
+  ownerUserId           String
+  createdByUserId       String
+  createdAt             DateTime                          @default(now())
+  updatedAt             DateTime                          @updatedAt
+  archivedAt            DateTime?
+
+  organisation      Organisation                      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand                             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaignPlan      AdvertisingCampaignPlan?          @relation(fields: [campaignPlanId], references: [id], onDelete: SetNull)
+  brandAudience     BrandAudience?                    @relation(fields: [brandAudienceId], references: [id], onDelete: SetNull)
+  owner             UserProfile                       @relation("AdvertisingAudienceOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy         UserProfile                       @relation("AdvertisingAudienceCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions          AdvertisingAudienceVersion[]
+  rules             AdvertisingAudienceRule[]
+  segments          AdvertisingAudienceSegment[]
+  estimates         AdvertisingAudienceEstimate[]
+  exclusions        AdvertisingAudienceExclusion[]
+  consentPolicy     AdvertisingAudienceConsentPolicy?
+  providerMappings  AdvertisingAudienceProviderMapping[]
+  eligibilityChecks AdvertisingAudienceEligibilityCheck[]
+
+  @@index([organisationId, brandId, status])
+  @@index([campaignPlanId])
+}
+
+model AdvertisingAudienceVersion {
+  id              String                  @id @default(cuid())
+  organisationId  String
+  audienceId      String
+  versionNumber   Int
+  status          AdvertisingAudienceStatus
+  snapshot        Json
+  changeNote      String?
+  aiRequestId     String?
+  createdByUserId String
+  createdAt       DateTime                @default(now())
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audience     AdvertisingAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile         @relation("AdvertisingAudienceVersionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([audienceId, versionNumber])
+  @@index([audienceId, createdAt])
+}
+
+model AdvertisingAudienceRule {
+  id              String                        @id @default(cuid())
+  organisationId  String
+  audienceId      String
+  ruleKey         String
+  operator        AdvertisingAudienceRuleOperator
+  value           Json
+  logicGroup      String                        @default("AND")
+  sortOrder       Int                           @default(0)
+  isActive        Boolean                       @default(true)
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audience     AdvertisingAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+
+  @@index([audienceId, ruleKey])
+}
+
+model AdvertisingAudienceSegment {
+  id              String   @id @default(cuid())
+  organisationId  String
+  audienceId      String
+  name            String
+  description     String?
+  segmentLogic    Json
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audience     AdvertisingAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+
+  @@index([audienceId])
+}
+
+model AdvertisingAudienceEstimate {
+  id                    String   @id @default(cuid())
+  organisationId        String
+  audienceId            String
+  eligibleCount         Int?
+  excludedCount         Int?
+  consentCoveredCount   Int?
+  providerMatchNote     String?
+  freshnessAt           DateTime?
+  sourceCoverage        Json?
+  calculatedAt          DateTime @default(now())
+  disclaimer            String   @default("Counts based on available first-party data only. Provider reach not estimated.")
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audience     AdvertisingAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+
+  @@index([audienceId, calculatedAt])
+}
+
+model AdvertisingAudienceExclusion {
+  id              String                         @id @default(cuid())
+  organisationId  String
+  audienceId      String
+  exclusionType   AdvertisingAudienceExclusionType
+  description     String?
+  ruleKey         String?
+  isActive        Boolean                        @default(true)
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audience     AdvertisingAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+
+  @@index([audienceId, exclusionType])
+}
+
+model AdvertisingAudienceConsentPolicy {
+  id                      String   @id @default(cuid())
+  organisationId          String
+  audienceId              String   @unique
+  marketingConsentRequired Boolean @default(true)
+  dataSources             AdvertisingAudienceDataSource[] @default([])
+  retentionDays           Int?
+  permittedPurpose        String?
+  customerListEligible    Boolean  @default(false)
+  deletionExcluded        Boolean  @default(true)
+  geoRestrictions         String[] @default([])
+  providerConsentNotes    String?
+  humanBridgeSafeguards   Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audience     AdvertisingAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+}
+
+model AdvertisingAudienceProviderMapping {
+  id                      String   @id @default(cuid())
+  organisationId          String
+  audienceId              String
+  provider                String
+  providerAudienceType    String?
+  eligibilityStatus       AdvertisingAudienceEligibilityStatus @default(PENDING_REVIEW)
+  minimumSizeRule         Int?
+  requiredIdentifierType  String?
+  supportedRetentionDays  Int?
+  policyWarnings          String[] @default([])
+  isActivated             Boolean  @default(false)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audience     AdvertisingAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+
+  @@index([audienceId, provider])
+}
+
+model AdvertisingAudienceEligibilityCheck {
+  id              String                           @id @default(cuid())
+  organisationId  String
+  audienceId      String
+  checkType       String
+  status          AdvertisingAudienceEligibilityStatus
+  severity        String                           @default("HIGH")
+  title           String
+  description     String
+  evidence        Json?
+  checkedAt       DateTime                         @default(now())
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  audience     AdvertisingAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+
+  @@index([audienceId, checkType])
 }
 
 // ---------------------------------------------------------------------------

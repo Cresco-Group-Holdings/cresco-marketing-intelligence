@@ -9,6 +9,7 @@ import { COMPETITOR_OUTPUT_SCHEMAS } from "@/lib/ai/competitor-output-schemas";
 import { KEYWORD_OUTPUT_SCHEMAS } from "@/lib/ai/keyword-output-schemas";
 import { ADVERTISING_PLAN_OUTPUT_SCHEMAS } from "@/lib/ai/advertising-plan-output-schemas";
 import { ADVERTISING_CREATIVE_OUTPUT_SCHEMAS } from "@/lib/ai/advertising-creative-output-schemas";
+import { ADVERTISING_AUDIENCE_OUTPUT_SCHEMAS } from "@/lib/ai/advertising-audience-output-schemas";
 import { CONTENT_OUTPUT_SCHEMAS } from "@/lib/ai/content-output-schemas";
 import { GROWTH_OUTPUT_SCHEMAS } from "@/lib/ai/growth-output-schemas";
 import { LEADS_OUTPUT_SCHEMAS } from "@/lib/ai/leads-output-schemas";
@@ -54,6 +55,7 @@ const OUTPUT_SCHEMAS = {
   ...ON_PAGE_OUTPUT_SCHEMAS,
   ...ADVERTISING_PLAN_OUTPUT_SCHEMAS,
   ...ADVERTISING_CREATIVE_OUTPUT_SCHEMAS,
+  ...ADVERTISING_AUDIENCE_OUTPUT_SCHEMAS,
   "diagnostics.ping": z.object({
     ok: z.boolean(),
     message: z.string(),
