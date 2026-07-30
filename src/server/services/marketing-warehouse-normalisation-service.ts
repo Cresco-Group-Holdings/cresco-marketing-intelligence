@@ -3,7 +3,7 @@ import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { DEFAULT_METRIC_DEFINITIONS } from "@/lib/warehouse/metric-registry";
 import { incrementWarehouseCounter } from "@/lib/warehouse/observability";
-import { getStubNormaliser, supportsStubNormaliser } from "@/lib/warehouse/transformation/stub-adapter";
+import { getWarehouseNormaliser, supportsWarehouseNormaliser } from "@/lib/warehouse/transformation/registry";
 import { ensureTransformationVersion } from "@/lib/warehouse/transformation-version";
 import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
@@ -92,7 +92,7 @@ export const marketingWarehouseNormalisationService = {
       throw new AppError("NOT_FOUND", "Batch was not found.");
     }
 
-    if (!supportsStubNormaliser(batch.provider)) {
+    if (!supportsWarehouseNormaliser(batch.provider)) {
       throw new AppError(
         "INTERNAL_ERROR",
         `Normalisation adapter not available for provider ${batch.provider}.`,
@@ -145,7 +145,7 @@ export const marketingWarehouseNormalisationService = {
       });
     }
 
-    const normaliser = getStubNormaliser(batch.provider);
+    const normaliser = getWarehouseNormaliser(batch.provider);
     const recordContext = {
       organisationId: batch.organisationId,
       projectId: batch.projectId,

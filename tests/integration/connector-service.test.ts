@@ -97,7 +97,11 @@ describe("connectorService", () => {
       connectorTenantContext,
     );
     expect(catalogue.length).toBeGreaterThan(10);
-    expect(catalogue.every((item) => item.canConnect === false)).toBe(true);
+    const ga4 = catalogue.find((item) => item.key === "GOOGLE_ANALYTICS_4");
+    expect(ga4?.canConnect).toBe(true);
+    expect(catalogue.filter((item) => item.key !== "GOOGLE_ANALYTICS_4").every((item) => !item.canConnect)).toBe(
+      true,
+    );
   });
 
   it("rejects connect for unavailable connectors", async () => {
@@ -106,7 +110,7 @@ describe("connectorService", () => {
       connectorService.beginConnect(
         connectorTestIds.brandId,
         connectorTestIds.organisationId,
-        "GOOGLE_ANALYTICS_4",
+        "META",
         connectorTenantContext,
       ),
     ).rejects.toThrow(/not yet available/i);

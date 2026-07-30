@@ -204,7 +204,15 @@ export default function ConnectorsPage() {
                         >
                           Details
                         </Button>
-                        <Button size="sm" disabled={!item.canConnect || actionLoading}>
+                        <Button
+                          size="sm"
+                          disabled={!item.canConnect || actionLoading}
+                          onClick={() => {
+                            if (item.key === "GOOGLE_ANALYTICS_4") {
+                              window.location.href = "/connectors/google-analytics";
+                            }
+                          }}
+                        >
                           Connect
                         </Button>
                       </div>
