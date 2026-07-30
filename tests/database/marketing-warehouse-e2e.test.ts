@@ -8,6 +8,24 @@ import {
 
 const suite = databaseSuiteEnabled ? describe : describe.skip;
 
+type ImportPreviewPayload = {
+  rowCount: number;
+};
+
+function isImportPreviewPayload(value: unknown): value is ImportPreviewPayload {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+  return typeof Reflect.get(value, "rowCount") === "number";
+}
+
+function assertImportPreviewPayload(value: unknown): ImportPreviewPayload {
+  if (!isImportPreviewPayload(value)) {
+    throw new Error("Expected import preview payload with numeric rowCount");
+  }
+  return value;
+}
+
 suite("marketing data warehouse against a real database", () => {
   let tenantA: Awaited<ReturnType<typeof createTenant>>;
   let tenantB: Awaited<ReturnType<typeof createTenant>>;
@@ -190,7 +208,8 @@ suite("marketing data warehouse against a real database", () => {
       tenantA.context as never,
     );
 
-    expect(preview.job.rowCount).toBe(2);
+    const previewPayload = assertImportPreviewPayload(preview.preview);
+    expect(previewPayload.rowCount).toBe(2);
     expect(preview.job.status).toBe("VALIDATING");
 
     const completed = await manualImportService.confirmImport(
