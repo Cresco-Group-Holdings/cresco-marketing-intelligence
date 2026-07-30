@@ -281,6 +281,18 @@ model UserProfile {
   advertisingMetaAdsLaunchApprovalsDecided AdvertisingMetaAdsLaunchApproval[] @relation("AdvertisingMetaAdsLaunchApprover")
   advertisingMetaAdsLaunchesExecuted AdvertisingMetaAdsLaunch[] @relation("AdvertisingMetaAdsLaunchExecutor")
   advertisingMetaAdsOperationsRequested AdvertisingMetaAdsOperation[] @relation("AdvertisingMetaAdsOperationRequester")
+  advertisingLinkedInAdsAccountsAssigned AdvertisingLinkedInAdsAccount[] @relation("AdvertisingLinkedInAdsAccountAssigner")
+  advertisingLinkedInAdsDraftsCreated AdvertisingLinkedInAdsDraft[] @relation("AdvertisingLinkedInAdsDraftCreator")
+  advertisingLinkedInAdsMutationPlansCreated AdvertisingLinkedInAdsMutationPlan[] @relation("AdvertisingLinkedInAdsMutationPlanCreator")
+  advertisingLinkedInAdsLaunchApprovalsDecided AdvertisingLinkedInAdsLaunchApproval[] @relation("AdvertisingLinkedInAdsLaunchApprover")
+  advertisingLinkedInAdsLaunchesExecuted AdvertisingLinkedInAdsLaunch[] @relation("AdvertisingLinkedInAdsLaunchExecutor")
+  advertisingLinkedInAdsOperationsRequested AdvertisingLinkedInAdsOperation[] @relation("AdvertisingLinkedInAdsOperationRequester")
+  advertisingTikTokAdsAccountsAssigned AdvertisingTikTokAdsAccount[] @relation("AdvertisingTikTokAdsAccountAssigner")
+  advertisingTikTokAdsDraftsCreated AdvertisingTikTokAdsDraft[] @relation("AdvertisingTikTokAdsDraftCreator")
+  advertisingTikTokAdsMutationPlansCreated AdvertisingTikTokAdsMutationPlan[] @relation("AdvertisingTikTokAdsMutationPlanCreator")
+  advertisingTikTokAdsLaunchApprovalsDecided AdvertisingTikTokAdsLaunchApproval[] @relation("AdvertisingTikTokAdsLaunchApprover")
+  advertisingTikTokAdsLaunchesExecuted AdvertisingTikTokAdsLaunch[] @relation("AdvertisingTikTokAdsLaunchExecutor")
+  advertisingTikTokAdsOperationsRequested AdvertisingTikTokAdsOperation[] @relation("AdvertisingTikTokAdsOperationRequester")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -638,6 +650,20 @@ model Organisation {
   advertisingMetaAdsProviderResources  AdvertisingMetaAdsProviderResource[]
   advertisingMetaAdsOperations         AdvertisingMetaAdsOperation[]
   advertisingMetaAdsCapiEvents         AdvertisingMetaAdsCapiEvent[]
+  advertisingLinkedInAdsAccounts       AdvertisingLinkedInAdsAccount[]
+  advertisingLinkedInAdsDrafts           AdvertisingLinkedInAdsDraft[]
+  advertisingLinkedInAdsMutationPlans    AdvertisingLinkedInAdsMutationPlan[]
+  advertisingLinkedInAdsLaunchApprovals  AdvertisingLinkedInAdsLaunchApproval[]
+  advertisingLinkedInAdsLaunches         AdvertisingLinkedInAdsLaunch[]
+  advertisingLinkedInAdsProviderResources AdvertisingLinkedInAdsProviderResource[]
+  advertisingLinkedInAdsOperations     AdvertisingLinkedInAdsOperation[]
+  advertisingTikTokAdsAccounts         AdvertisingTikTokAdsAccount[]
+  advertisingTikTokAdsDrafts           AdvertisingTikTokAdsDraft[]
+  advertisingTikTokAdsMutationPlans    AdvertisingTikTokAdsMutationPlan[]
+  advertisingTikTokAdsLaunchApprovals  AdvertisingTikTokAdsLaunchApproval[]
+  advertisingTikTokAdsLaunches         AdvertisingTikTokAdsLaunch[]
+  advertisingTikTokAdsProviderResources AdvertisingTikTokAdsProviderResource[]
+  advertisingTikTokAdsOperations       AdvertisingTikTokAdsOperation[]
 
   @@index([status])
   @@index([archivedAt])
@@ -845,6 +871,12 @@ model Project {
   advertisingMetaAdsAccounts AdvertisingMetaAdsAccount[]
   advertisingMetaAdsDrafts   AdvertisingMetaAdsDraft[]
   advertisingMetaAdsLaunches AdvertisingMetaAdsLaunch[]
+  advertisingLinkedInAdsAccounts AdvertisingLinkedInAdsAccount[]
+  advertisingLinkedInAdsDrafts   AdvertisingLinkedInAdsDraft[]
+  advertisingLinkedInAdsLaunches AdvertisingLinkedInAdsLaunch[]
+  advertisingTikTokAdsAccounts AdvertisingTikTokAdsAccount[]
+  advertisingTikTokAdsDrafts   AdvertisingTikTokAdsDraft[]
+  advertisingTikTokAdsLaunches AdvertisingTikTokAdsLaunch[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1048,6 +1080,14 @@ model Brand {
   advertisingMetaAdsLaunches AdvertisingMetaAdsLaunch[]
   advertisingMetaAdsOperations AdvertisingMetaAdsOperation[]
   advertisingMetaAdsCapiEvents AdvertisingMetaAdsCapiEvent[]
+  advertisingLinkedInAdsAccounts AdvertisingLinkedInAdsAccount[]
+  advertisingLinkedInAdsDrafts   AdvertisingLinkedInAdsDraft[]
+  advertisingLinkedInAdsLaunches AdvertisingLinkedInAdsLaunch[]
+  advertisingLinkedInAdsOperations AdvertisingLinkedInAdsOperation[]
+  advertisingTikTokAdsAccounts AdvertisingTikTokAdsAccount[]
+  advertisingTikTokAdsDrafts   AdvertisingTikTokAdsDraft[]
+  advertisingTikTokAdsLaunches AdvertisingTikTokAdsLaunch[]
+  advertisingTikTokAdsOperations AdvertisingTikTokAdsOperation[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2165,6 +2205,8 @@ model ConnectorAccount {
   marketingDataSourceAccounts   MarketingDataSourceAccount[]
   advertisingGoogleAdsAccount   AdvertisingGoogleAdsAccount?
   advertisingMetaAdsAccount     AdvertisingMetaAdsAccount?
+  advertisingLinkedInAdsAccount AdvertisingLinkedInAdsAccount?
+  advertisingTikTokAdsAccount   AdvertisingTikTokAdsAccount?
 
   @@unique([brandId, connectorType])
   @@index([organisationId])
@@ -4693,6 +4735,8 @@ model MarketingCampaign {
   costRecords                MarketingCostRecord[]
   googleAdsLaunches          AdvertisingGoogleAdsLaunch[]
   metaAdsLaunches            AdvertisingMetaAdsLaunch[]
+  linkedInAdsLaunches        AdvertisingLinkedInAdsLaunch[]
+  tikTokAdsLaunches          AdvertisingTikTokAdsLaunch[]
 
   @@unique([brandId, provider, providerCampaignId])
   @@index([organisationId, brandId])
@@ -9980,6 +10024,10 @@ model AdvertisingCampaignPlan {
   googleAdsLaunches      AdvertisingGoogleAdsLaunch[]
   metaAdsDrafts          AdvertisingMetaAdsDraft[]
   metaAdsLaunches        AdvertisingMetaAdsLaunch[]
+  linkedInAdsDrafts      AdvertisingLinkedInAdsDraft[]
+  linkedInAdsLaunches    AdvertisingLinkedInAdsLaunch[]
+  tikTokAdsDrafts        AdvertisingTikTokAdsDraft[]
+  tikTokAdsLaunches      AdvertisingTikTokAdsLaunch[]
 
   @@unique([brandId, internalCampaignId])
   @@index([organisationId, brandId, status])
@@ -11430,6 +11478,505 @@ model AdvertisingMetaAdsCapiEvent {
 
   @@unique([metaAdsAccountId, eventId])
   @@index([brandId, status])
+}
+
+// ---------------------------------------------------------------------------
+// Task 5.6 — Controlled LinkedIn & TikTok Ads Campaign Management
+// ---------------------------------------------------------------------------
+
+enum AdvertisingLinkedInAdsAccountStatus {
+  PENDING
+  CONNECTED
+  DISCONNECTED
+  PERMISSION_LOST
+  APPROVAL_UNAVAILABLE
+}
+
+enum AdvertisingLinkedInAdsDraftStatus {
+  DRAFT
+  VALIDATED
+  STALE
+  ARCHIVED
+}
+
+enum AdvertisingLinkedInAdsLaunchStatus {
+  PENDING_APPROVAL
+  APPROVED
+  LAUNCHING
+  LAUNCHED
+  PARTIAL_SUCCESS
+  FAILED
+  STALE_APPROVAL
+  POLICY_REJECTED
+  ARCHIVED
+}
+
+enum AdvertisingLinkedInAdsOperationType {
+  PAUSE_CAMPAIGN
+  RESUME_CAMPAIGN
+  ADJUST_BUDGET
+  UPDATE_SCHEDULE
+  REPLACE_CREATIVE
+  ARCHIVE_MAPPING
+}
+
+enum AdvertisingLinkedInAdsOperationStatus {
+  PENDING
+  PREVIEWED
+  CONFIRMED
+  EXECUTING
+  SUCCEEDED
+  FAILED
+}
+
+model AdvertisingLinkedInAdsAccount {
+  id                 String                            @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String                            @unique
+  connectorAccountId String                            @unique
+  linkedInAccountId  String
+  linkedInAccountName String?
+  organizationUrn    String?
+  currency           String?
+  timezone           String?
+  isTestAccount      Boolean                           @default(false)
+  status             AdvertisingLinkedInAdsAccountStatus @default(PENDING)
+  assignedAt         DateTime?
+  assignedByUserId   String?
+  disconnectedAt     DateTime?
+  metadata           Json?
+  createdAt          DateTime                          @default(now())
+  updatedAt          DateTime                          @updatedAt
+
+  organisation     Organisation                      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connectorAccount ConnectorAccount                  @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  assignedBy       UserProfile?                      @relation("AdvertisingLinkedInAdsAccountAssigner", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+  drafts           AdvertisingLinkedInAdsDraft[]
+  launches         AdvertisingLinkedInAdsLaunch[]
+  operations       AdvertisingLinkedInAdsOperation[]
+
+  @@index([organisationId, brandId])
+  @@index([linkedInAccountId])
+}
+
+model AdvertisingLinkedInAdsDraft {
+  id                   String                          @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  planId               String
+  linkedInAdsAccountId String
+  providerDraftId      String?
+  objective            String?
+  draftPayload         Json
+  featureFlags         Json?
+  status               AdvertisingLinkedInAdsDraftStatus @default(DRAFT)
+  validationResult     Json?
+  validationStatus     String                          @default("PENDING")
+  reviewStatus         String                          @default("PENDING")
+  createdByUserId      String
+  createdAt            DateTime                        @default(now())
+  updatedAt            DateTime                        @updatedAt
+
+  organisation       Organisation                       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project            Project                            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand              Brand                              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  plan               AdvertisingCampaignPlan            @relation(fields: [planId], references: [id], onDelete: Cascade)
+  linkedInAdsAccount AdvertisingLinkedInAdsAccount      @relation(fields: [linkedInAdsAccountId], references: [id], onDelete: Cascade)
+  createdBy          UserProfile                        @relation("AdvertisingLinkedInAdsDraftCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  mutationPlans      AdvertisingLinkedInAdsMutationPlan[]
+  launches           AdvertisingLinkedInAdsLaunch[]
+
+  @@index([planId])
+  @@index([brandId, status])
+}
+
+model AdvertisingLinkedInAdsMutationPlan {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  draftId             String
+  planHash            String
+  operations          Json
+  resourcesCreated    Json?
+  resourcesChanged    Json?
+  budgetSummary       Json?
+  accountSnapshot     Json?
+  targetingSummary    Json?
+  creativeSummary     Json?
+  trackingSummary     Json?
+  optimisationSummary Json?
+  destinationSummary  Json?
+  providerWarnings    String[] @default([])
+  risks               String[] @default([])
+  validationResult    Json?
+  validationStatus    String   @default("PENDING")
+  isStale             Boolean  @default(false)
+  createdByUserId     String
+  createdAt           DateTime @default(now())
+
+  organisation    Organisation                         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  draft           AdvertisingLinkedInAdsDraft          @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  createdBy       UserProfile                          @relation("AdvertisingLinkedInAdsMutationPlanCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  launchApprovals AdvertisingLinkedInAdsLaunchApproval[]
+  launches        AdvertisingLinkedInAdsLaunch[]
+
+  @@unique([draftId, planHash])
+  @@index([draftId])
+}
+
+model AdvertisingLinkedInAdsLaunchApproval {
+  id             String    @id @default(cuid())
+  organisationId String
+  mutationPlanId String
+  approvalType   String
+  planHash       String
+  decision       String    @default("PENDING")
+  approverUserId String?
+  notes          String?
+  approvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  mutationPlan AdvertisingLinkedInAdsMutationPlan @relation(fields: [mutationPlanId], references: [id], onDelete: Cascade)
+  approver     UserProfile?                     @relation("AdvertisingLinkedInAdsLaunchApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([mutationPlanId, approvalType])
+}
+
+model AdvertisingLinkedInAdsLaunch {
+  id                    String                           @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  planId                String
+  draftId               String
+  mutationPlanId        String
+  linkedInAdsAccountId  String
+  planHash              String
+  launchVersion         Int                              @default(1)
+  status                AdvertisingLinkedInAdsLaunchStatus @default(PENDING_APPROVAL)
+  policyStatus          String?
+  policyRejectionReason String?
+  launchedByUserId      String?
+  launchedAt            DateTime?
+  providerResponse      Json?
+  errorDetails          Json?
+  idempotencyKey        String                           @unique
+  marketingCampaignId   String?
+  createdAt             DateTime                         @default(now())
+  updatedAt             DateTime                         @updatedAt
+
+  organisation      Organisation                           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand                                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  plan              AdvertisingCampaignPlan                @relation(fields: [planId], references: [id], onDelete: Cascade)
+  draft             AdvertisingLinkedInAdsDraft            @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  mutationPlan      AdvertisingLinkedInAdsMutationPlan       @relation(fields: [mutationPlanId], references: [id], onDelete: Restrict)
+  linkedInAdsAccount AdvertisingLinkedInAdsAccount           @relation(fields: [linkedInAdsAccountId], references: [id], onDelete: Restrict)
+  launchedBy        UserProfile?                           @relation("AdvertisingLinkedInAdsLaunchExecutor", fields: [launchedByUserId], references: [id], onDelete: SetNull)
+  marketingCampaign MarketingCampaign?                     @relation(fields: [marketingCampaignId], references: [id], onDelete: SetNull)
+  providerResources AdvertisingLinkedInAdsProviderResource[]
+
+  @@index([brandId, status])
+  @@index([planId])
+}
+
+model AdvertisingLinkedInAdsProviderResource {
+  id                   String   @id @default(cuid())
+  organisationId       String
+  launchId             String
+  resourceType         String
+  internalRef          String
+  providerResourceId   String?
+  providerResourceName String?
+  status               String   @default("PENDING")
+  providerResponse     Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organisation Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  launch       AdvertisingLinkedInAdsLaunch @relation(fields: [launchId], references: [id], onDelete: Cascade)
+
+  @@unique([launchId, internalRef])
+  @@index([launchId, resourceType])
+}
+
+model AdvertisingLinkedInAdsOperation {
+  id                 String                              @id @default(cuid())
+  organisationId     String
+  brandId            String
+  linkedInAdsAccountId String
+  launchId           String?
+  providerCampaignId String?
+  operationType      AdvertisingLinkedInAdsOperationType
+  status             AdvertisingLinkedInAdsOperationStatus @default(PENDING)
+  reason             String
+  preview            Json?
+  confirmation       Json?
+  providerResult     Json?
+  requestedByUserId  String
+  executedAt         DateTime?
+  createdAt          DateTime                            @default(now())
+  updatedAt          DateTime                            @updatedAt
+
+  organisation       Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand              Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  linkedInAdsAccount AdvertisingLinkedInAdsAccount @relation(fields: [linkedInAdsAccountId], references: [id], onDelete: Cascade)
+  requestedBy        UserProfile                 @relation("AdvertisingLinkedInAdsOperationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([brandId, operationType])
+}
+
+enum AdvertisingTikTokAdsAccountStatus {
+  PENDING
+  CONNECTED
+  DISCONNECTED
+  PERMISSION_LOST
+  APPROVAL_UNAVAILABLE
+}
+
+enum AdvertisingTikTokAdsDraftStatus {
+  DRAFT
+  VALIDATED
+  STALE
+  ARCHIVED
+}
+
+enum AdvertisingTikTokAdsLaunchStatus {
+  PENDING_APPROVAL
+  APPROVED
+  LAUNCHING
+  LAUNCHED
+  PARTIAL_SUCCESS
+  FAILED
+  STALE_APPROVAL
+  POLICY_REJECTED
+  ARCHIVED
+}
+
+enum AdvertisingTikTokAdsOperationType {
+  PAUSE_CAMPAIGN
+  RESUME_CAMPAIGN
+  PAUSE_AD_GROUP
+  RESUME_AD_GROUP
+  ADJUST_BUDGET
+  UPDATE_SCHEDULE
+  REPLACE_CREATIVE
+  ARCHIVE_MAPPING
+}
+
+enum AdvertisingTikTokAdsOperationStatus {
+  PENDING
+  PREVIEWED
+  CONFIRMED
+  EXECUTING
+  SUCCEEDED
+  FAILED
+}
+
+model AdvertisingTikTokAdsAccount {
+  id                 String                          @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String                          @unique
+  connectorAccountId String                          @unique
+  advertiserId       String
+  advertiserName     String?
+  pixelId            String?
+  currency           String?
+  timezone           String?
+  isTestAccount      Boolean                         @default(false)
+  status             AdvertisingTikTokAdsAccountStatus @default(PENDING)
+  assignedAt         DateTime?
+  assignedByUserId   String?
+  disconnectedAt   DateTime?
+  metadata           Json?
+  createdAt          DateTime                        @default(now())
+  updatedAt          DateTime                        @updatedAt
+
+  organisation     Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  connectorAccount ConnectorAccount                @relation(fields: [connectorAccountId], references: [id], onDelete: Cascade)
+  assignedBy       UserProfile?                    @relation("AdvertisingTikTokAdsAccountAssigner", fields: [assignedByUserId], references: [id], onDelete: SetNull)
+  drafts           AdvertisingTikTokAdsDraft[]
+  launches         AdvertisingTikTokAdsLaunch[]
+  operations       AdvertisingTikTokAdsOperation[]
+
+  @@index([organisationId, brandId])
+  @@index([advertiserId])
+}
+
+model AdvertisingTikTokAdsDraft {
+  id                 String                        @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  planId             String
+  tikTokAdsAccountId String
+  providerDraftId    String?
+  objective          String?
+  draftPayload       Json
+  featureFlags       Json?
+  status             AdvertisingTikTokAdsDraftStatus @default(DRAFT)
+  validationResult   Json?
+  validationStatus   String                        @default("PENDING")
+  reviewStatus       String                        @default("PENDING")
+  createdByUserId    String
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+
+  organisation     Organisation                     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  plan             AdvertisingCampaignPlan          @relation(fields: [planId], references: [id], onDelete: Cascade)
+  tikTokAdsAccount AdvertisingTikTokAdsAccount      @relation(fields: [tikTokAdsAccountId], references: [id], onDelete: Cascade)
+  createdBy        UserProfile                      @relation("AdvertisingTikTokAdsDraftCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  mutationPlans    AdvertisingTikTokAdsMutationPlan[]
+  launches         AdvertisingTikTokAdsLaunch[]
+
+  @@index([planId])
+  @@index([brandId, status])
+}
+
+model AdvertisingTikTokAdsMutationPlan {
+  id                  String   @id @default(cuid())
+  organisationId      String
+  draftId             String
+  planHash            String
+  operations          Json
+  resourcesCreated    Json?
+  resourcesChanged    Json?
+  budgetSummary       Json?
+  accountSnapshot     Json?
+  targetingSummary    Json?
+  creativeSummary     Json?
+  trackingSummary     Json?
+  optimisationSummary Json?
+  destinationSummary  Json?
+  providerWarnings    String[] @default([])
+  risks               String[] @default([])
+  validationResult    Json?
+  validationStatus    String   @default("PENDING")
+  isStale             Boolean  @default(false)
+  createdByUserId     String
+  createdAt           DateTime @default(now())
+
+  organisation    Organisation                       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  draft           AdvertisingTikTokAdsDraft          @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  createdBy       UserProfile                        @relation("AdvertisingTikTokAdsMutationPlanCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  launchApprovals AdvertisingTikTokAdsLaunchApproval[]
+  launches        AdvertisingTikTokAdsLaunch[]
+
+  @@unique([draftId, planHash])
+  @@index([draftId])
+}
+
+model AdvertisingTikTokAdsLaunchApproval {
+  id             String    @id @default(cuid())
+  organisationId String
+  mutationPlanId String
+  approvalType   String
+  planHash       String
+  decision       String    @default("PENDING")
+  approverUserId String?
+  notes          String?
+  approvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  mutationPlan AdvertisingTikTokAdsMutationPlan @relation(fields: [mutationPlanId], references: [id], onDelete: Cascade)
+  approver     UserProfile?                   @relation("AdvertisingTikTokAdsLaunchApprover", fields: [approverUserId], references: [id], onDelete: SetNull)
+
+  @@index([mutationPlanId, approvalType])
+}
+
+model AdvertisingTikTokAdsLaunch {
+  id                    String                         @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  planId                String
+  draftId               String
+  mutationPlanId        String
+  tikTokAdsAccountId    String
+  planHash              String
+  launchVersion         Int                            @default(1)
+  status                AdvertisingTikTokAdsLaunchStatus @default(PENDING_APPROVAL)
+  policyStatus          String?
+  policyRejectionReason String?
+  launchedByUserId      String?
+  launchedAt            DateTime?
+  providerResponse      Json?
+  errorDetails          Json?
+  idempotencyKey        String                         @unique
+  marketingCampaignId   String?
+  createdAt             DateTime                       @default(now())
+  updatedAt             DateTime                       @updatedAt
+
+  organisation      Organisation                         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand                                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  plan              AdvertisingCampaignPlan              @relation(fields: [planId], references: [id], onDelete: Cascade)
+  draft             AdvertisingTikTokAdsDraft            @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  mutationPlan      AdvertisingTikTokAdsMutationPlan       @relation(fields: [mutationPlanId], references: [id], onDelete: Restrict)
+  tikTokAdsAccount  AdvertisingTikTokAdsAccount            @relation(fields: [tikTokAdsAccountId], references: [id], onDelete: Restrict)
+  launchedBy        UserProfile?                         @relation("AdvertisingTikTokAdsLaunchExecutor", fields: [launchedByUserId], references: [id], onDelete: SetNull)
+  marketingCampaign MarketingCampaign?                   @relation(fields: [marketingCampaignId], references: [id], onDelete: SetNull)
+  providerResources AdvertisingTikTokAdsProviderResource[]
+
+  @@index([brandId, status])
+  @@index([planId])
+}
+
+model AdvertisingTikTokAdsProviderResource {
+  id                   String   @id @default(cuid())
+  organisationId       String
+  launchId             String
+  resourceType         String
+  internalRef          String
+  providerResourceId   String?
+  providerResourceName String?
+  status               String   @default("PENDING")
+  providerResponse     Json?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  launch       AdvertisingTikTokAdsLaunch @relation(fields: [launchId], references: [id], onDelete: Cascade)
+
+  @@unique([launchId, internalRef])
+  @@index([launchId, resourceType])
+}
+
+model AdvertisingTikTokAdsOperation {
+  id               String                            @id @default(cuid())
+  organisationId   String
+  brandId          String
+  tikTokAdsAccountId String
+  launchId         String?
+  providerCampaignId String?
+  providerAdGroupId  String?
+  operationType    AdvertisingTikTokAdsOperationType
+  status           AdvertisingTikTokAdsOperationStatus @default(PENDING)
+  reason           String
+  preview          Json?
+  confirmation     Json?
+  providerResult   Json?
+  requestedByUserId String
+  executedAt       DateTime?
+  createdAt        DateTime                          @default(now())
+  updatedAt        DateTime                          @updatedAt
+
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  tikTokAdsAccount AdvertisingTikTokAdsAccount @relation(fields: [tikTokAdsAccountId], references: [id], onDelete: Cascade)
+  requestedBy    UserProfile               @relation("AdvertisingTikTokAdsOperationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([brandId, operationType])
 }
 
 // ---------------------------------------------------------------------------

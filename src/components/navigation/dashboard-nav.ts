@@ -53,6 +53,18 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Controlled Meta Facebook and Instagram campaigns",
   },
   {
+    label: "LinkedIn Ads",
+    href: "/advertising/linkedin",
+    icon: Megaphone,
+    description: "Controlled LinkedIn campaign management",
+  },
+  {
+    label: "TikTok Ads",
+    href: "/advertising/tiktok",
+    icon: Megaphone,
+    description: "Controlled TikTok campaign management",
+  },
+  {
     label: "Brands",
     href: "/brands",
     icon: Megaphone,
