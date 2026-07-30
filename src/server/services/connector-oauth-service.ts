@@ -10,6 +10,8 @@ import {
   inspectGrantedScopes,
 } from "@/lib/connectors/oauth/utils";
 import { connectorAdapterFactory } from "@/lib/connectors/adapters/fake-connector-adapter";
+import "@/lib/connectors/adapters/register-adapters";
+import { buildGoogleOAuthAuthorisationUrl } from "@/lib/connectors/oauth/google";
 import { connectorCredentialService } from "@/server/services/connector-credential-service";
 import { getServerEnv } from "@/lib/environment";
 
@@ -58,7 +60,16 @@ export const connectorOAuthService = {
       redirectUri,
       scopes: definition.requiredScopes,
       codeChallenge: codeVerifier ? generatePkceChallenge(codeVerifier) : undefined,
-      authorisationUrl: `${redirectUri}?state=${state}&connectorType=${input.connectorType}`,
+      authorisationUrl:
+        input.connectorType === "GOOGLE_ANALYTICS_4" ||
+        input.connectorType === "GOOGLE_SEARCH_CONSOLE"
+          ? buildGoogleOAuthAuthorisationUrl({
+              state,
+              redirectUri,
+              scopes: definition.requiredScopes,
+              codeChallenge: codeVerifier ? generatePkceChallenge(codeVerifier) : undefined,
+            })
+          : `${redirectUri}?state=${state}&connectorType=${input.connectorType}`,
     };
   },
 

@@ -3,6 +3,7 @@ import type { ConnectorSyncType, ConnectorType } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { connectorAdapterFactory } from "@/lib/connectors/adapters/fake-connector-adapter";
+import "@/lib/connectors/adapters/register-adapters";
 import { runConnectorSync } from "@/lib/connectors/sync/engine";
 import { connectorCredentialService } from "@/server/services/connector-credential-service";
 

@@ -52,6 +52,10 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
+  if (pathname.startsWith("/api/connectors/oauth/")) {
+    return false;
+  }
+
   return true;
 }
 

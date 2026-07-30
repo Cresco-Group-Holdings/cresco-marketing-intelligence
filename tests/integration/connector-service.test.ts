@@ -87,6 +87,7 @@ describe("connectorService", () => {
     vi.clearAllMocks();
     resetConnectorAdaptersForTests();
     registerFakeConnectorAdapter("GOOGLE_ANALYTICS_4");
+    registerFakeConnectorAdapter("GOOGLE_SEARCH_CONSOLE");
     prismaMock.connectorAccount.findMany.mockResolvedValue([]);
   });
 
@@ -97,7 +98,15 @@ describe("connectorService", () => {
       connectorTenantContext,
     );
     expect(catalogue.length).toBeGreaterThan(10);
-    expect(catalogue.every((item) => item.canConnect === false)).toBe(true);
+    const ga4 = catalogue.find((item) => item.key === "GOOGLE_ANALYTICS_4");
+    const gsc = catalogue.find((item) => item.key === "GOOGLE_SEARCH_CONSOLE");
+    expect(ga4?.canConnect).toBe(true);
+    expect(gsc?.canConnect).toBe(true);
+    expect(
+      catalogue
+        .filter((item) => item.key !== "GOOGLE_ANALYTICS_4" && item.key !== "GOOGLE_SEARCH_CONSOLE")
+        .every((item) => !item.canConnect),
+    ).toBe(true);
   });
 
   it("rejects connect for unavailable connectors", async () => {
@@ -106,7 +115,7 @@ describe("connectorService", () => {
       connectorService.beginConnect(
         connectorTestIds.brandId,
         connectorTestIds.organisationId,
-        "GOOGLE_ANALYTICS_4",
+        "META",
         connectorTenantContext,
       ),
     ).rejects.toThrow(/not yet available/i);
@@ -230,6 +239,7 @@ describe("connector registry", () => {
   it("lists all required connector types", () => {
     const keys = connectorRegistry.list().map((entry) => entry.key);
     expect(keys).toContain("GOOGLE_ANALYTICS_4");
+    expect(keys).toContain("GOOGLE_SEARCH_CONSOLE");
     expect(keys).toContain("CRM_PROVIDER");
     expect(keys).toContain("EMAIL_PROVIDER");
   });

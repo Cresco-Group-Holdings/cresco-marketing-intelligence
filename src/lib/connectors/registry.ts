@@ -10,7 +10,7 @@ const CATALOGUE: ConnectorRegistryEntry[] = [
     requiredScopes: ["https://www.googleapis.com/auth/analytics.readonly"],
     optionalScopes: [],
     supportsOAuth: true,
-    platformAvailability: "COMING_SOON",
+    platformAvailability: "AVAILABLE",
     documentationUrl: "https://developers.google.com/analytics",
   },
   {
@@ -21,7 +21,7 @@ const CATALOGUE: ConnectorRegistryEntry[] = [
     requiredScopes: ["https://www.googleapis.com/auth/webmasters.readonly"],
     optionalScopes: [],
     supportsOAuth: true,
-    platformAvailability: "COMING_SOON",
+    platformAvailability: "AVAILABLE",
     documentationUrl: "https://developers.google.com/webmaster-tools",
   },
   {

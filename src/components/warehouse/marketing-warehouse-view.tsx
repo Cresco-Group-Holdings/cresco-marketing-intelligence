@@ -22,6 +22,7 @@ export type WarehouseViewMode =
 const nav: Array<{ label: string; href: string; mode: WarehouseViewMode }> = [
   { label: "Overview", href: "/data", mode: "sources" },
   { label: "Sources", href: "/data/sources", mode: "sources" },
+  { label: "GA4", href: "/data/sources/ga4", mode: "sources" },
   { label: "Health", href: "/data/health", mode: "health" },
   { label: "Batches", href: "/data/batches", mode: "batches" },
   { label: "Quality", href: "/data/quality", mode: "quality" },

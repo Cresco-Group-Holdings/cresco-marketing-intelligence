@@ -3,7 +3,7 @@ import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { DEFAULT_METRIC_DEFINITIONS } from "@/lib/warehouse/metric-registry";
 import { incrementWarehouseCounter } from "@/lib/warehouse/observability";
-import { getStubNormaliser, supportsStubNormaliser } from "@/lib/warehouse/transformation/stub-adapter";
+import { getWarehouseNormaliser, metricSourceForProvider, supportsWarehouseNormaliser } from "@/lib/warehouse/transformation/registry";
 import { ensureTransformationVersion } from "@/lib/warehouse/transformation-version";
 import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
@@ -92,7 +92,7 @@ export const marketingWarehouseNormalisationService = {
       throw new AppError("NOT_FOUND", "Batch was not found.");
     }
 
-    if (!supportsStubNormaliser(batch.provider)) {
+    if (!supportsWarehouseNormaliser(batch.provider)) {
       throw new AppError(
         "INTERNAL_ERROR",
         `Normalisation adapter not available for provider ${batch.provider}.`,
@@ -145,7 +145,7 @@ export const marketingWarehouseNormalisationService = {
       });
     }
 
-    const normaliser = getStubNormaliser(batch.provider);
+    const normaliser = getWarehouseNormaliser(batch.provider);
     const recordContext = {
       organisationId: batch.organisationId,
       projectId: batch.projectId,
@@ -189,6 +189,14 @@ export const marketingWarehouseNormalisationService = {
             return { status: "failed" as const };
           }
 
+          const dimensionIds: {
+            searchQuery?: string;
+            landingPage?: string;
+            geography?: string;
+            device?: string;
+            channel?: string;
+          } = {};
+
           for (const dimension of result.dimensions) {
             if (dimension.entityType === "channel") {
               const channel = await tx.marketingChannel.upsert({
@@ -216,6 +224,7 @@ export const marketingWarehouseNormalisationService = {
                   lastSeenAt: new Date(),
                 },
               });
+              dimensionIds.channel = channel.id;
 
               await ensureLineageRecord(tx, {
                 organisationId: batch.organisationId,
@@ -228,13 +237,122 @@ export const marketingWarehouseNormalisationService = {
                 metadata: { dimensionType: "channel", matchedExisting: true },
               });
             }
+
+            if (dimension.entityType === "search_query") {
+              const query = await tx.marketingSearchQuery.upsert({
+                where: {
+                  brandId_provider_providerQueryId: {
+                    brandId: batch.brandId,
+                    provider: batch.provider,
+                    providerQueryId: dimension.providerId,
+                  },
+                },
+                create: {
+                  organisationId: batch.organisationId,
+                  projectId: batch.projectId,
+                  brandId: batch.brandId,
+                  marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                  provider: batch.provider,
+                  providerQueryId: dimension.providerId,
+                  queryText: dimension.name,
+                  isAnonymized: Boolean(dimension.metadata?.isAnonymized),
+                  providerMetadata: dimension.metadata as Prisma.InputJsonValue,
+                  firstSeenAt: new Date(),
+                  lastSeenAt: new Date(),
+                },
+                update: { queryText: dimension.name, lastSeenAt: new Date() },
+              });
+              dimensionIds.searchQuery = query.id;
+            }
+
+            if (dimension.entityType === "landing_page") {
+              const page = await tx.marketingLandingPage.upsert({
+                where: {
+                  brandId_provider_providerPageId: {
+                    brandId: batch.brandId,
+                    provider: batch.provider,
+                    providerPageId: dimension.providerId,
+                  },
+                },
+                create: {
+                  organisationId: batch.organisationId,
+                  projectId: batch.projectId,
+                  brandId: batch.brandId,
+                  marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                  provider: batch.provider,
+                  providerPageId: dimension.providerId,
+                  url: dimension.name,
+                  path: typeof dimension.metadata?.path === "string" ? dimension.metadata.path : undefined,
+                  providerMetadata: dimension.metadata as Prisma.InputJsonValue,
+                  firstSeenAt: new Date(),
+                  lastSeenAt: new Date(),
+                },
+                update: { url: dimension.name, lastSeenAt: new Date() },
+              });
+              dimensionIds.landingPage = page.id;
+            }
+
+            if (dimension.entityType === "geography") {
+              const geography = await tx.marketingGeography.upsert({
+                where: {
+                  brandId_provider_providerGeographyId: {
+                    brandId: batch.brandId,
+                    provider: batch.provider,
+                    providerGeographyId: dimension.providerId,
+                  },
+                },
+                create: {
+                  organisationId: batch.organisationId,
+                  projectId: batch.projectId,
+                  brandId: batch.brandId,
+                  marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                  provider: batch.provider,
+                  providerGeographyId: dimension.providerId,
+                  countryCode: dimension.name,
+                  providerMetadata: dimension.metadata as Prisma.InputJsonValue,
+                  firstSeenAt: new Date(),
+                  lastSeenAt: new Date(),
+                },
+                update: { lastSeenAt: new Date() },
+              });
+              dimensionIds.geography = geography.id;
+            }
+
+            if (dimension.entityType === "device") {
+              const device = await tx.marketingDevice.upsert({
+                where: {
+                  brandId_provider_providerDeviceId: {
+                    brandId: batch.brandId,
+                    provider: batch.provider,
+                    providerDeviceId: dimension.providerId,
+                  },
+                },
+                create: {
+                  organisationId: batch.organisationId,
+                  projectId: batch.projectId,
+                  brandId: batch.brandId,
+                  marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
+                  provider: batch.provider,
+                  providerDeviceId: dimension.providerId,
+                  deviceCategory: dimension.name,
+                  providerMetadata: dimension.metadata as Prisma.InputJsonValue,
+                  firstSeenAt: new Date(),
+                  lastSeenAt: new Date(),
+                },
+                update: { lastSeenAt: new Date() },
+              });
+              dimensionIds.device = device.id;
+            }
           }
+
+          const metricSource = metricSourceForProvider(batch.provider);
 
           for (const metric of result.metrics) {
             const definition = await tx.marketingMetricDefinition.findFirst({
               where: { brandId: batch.brandId, canonicalKey: metric.metricKey },
             });
-            const idempotencyKey = `metric:${current.id}:${metric.metricKey}:${metric.observedAt.toISOString()}`;
+            const grainSuffix = metric.grain ? `:${metric.grain}` : "";
+            const idempotencyKey = `metric:${current.id}:${metric.metricKey}${grainSuffix}:${metric.observedAt.toISOString()}`;
 
             const observation = await tx.marketingMetricObservation.upsert({
               where: { idempotencyKey },
@@ -245,11 +363,65 @@ export const marketingWarehouseNormalisationService = {
                 marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
                 marketingMetricDefinitionId: definition?.id,
                 provider: batch.provider,
-                source: batch.provider === "MANUAL_IMPORT" ? "MANUAL_IMPORT" : "FIRST_PARTY",
+                source: metricSource,
                 metricKey: metric.metricKey,
                 metricValue: metric.metricValue,
                 observedAt: metric.observedAt,
+                periodGrain: metric.grain,
                 dimensions: metric.dimensions as Prisma.InputJsonValue,
+                marketingSearchQueryId:
+                  dimensionIds.searchQuery ??
+                  (metric.dimensionProviderIds?.searchQuery
+                    ? (
+                        await tx.marketingSearchQuery.findFirst({
+                          where: {
+                            brandId: batch.brandId,
+                            provider: batch.provider,
+                            providerQueryId: metric.dimensionProviderIds.searchQuery,
+                          },
+                        })
+                      )?.id
+                    : undefined),
+                marketingLandingPageId:
+                  dimensionIds.landingPage ??
+                  (metric.dimensionProviderIds?.landingPage
+                    ? (
+                        await tx.marketingLandingPage.findFirst({
+                          where: {
+                            brandId: batch.brandId,
+                            provider: batch.provider,
+                            providerPageId: metric.dimensionProviderIds.landingPage,
+                          },
+                        })
+                      )?.id
+                    : undefined),
+                marketingGeographyId:
+                  dimensionIds.geography ??
+                  (metric.dimensionProviderIds?.geography
+                    ? (
+                        await tx.marketingGeography.findFirst({
+                          where: {
+                            brandId: batch.brandId,
+                            provider: batch.provider,
+                            providerGeographyId: metric.dimensionProviderIds.geography,
+                          },
+                        })
+                      )?.id
+                    : undefined),
+                marketingDeviceId:
+                  dimensionIds.device ??
+                  (metric.dimensionProviderIds?.device
+                    ? (
+                        await tx.marketingDevice.findFirst({
+                          where: {
+                            brandId: batch.brandId,
+                            provider: batch.provider,
+                            providerDeviceId: metric.dimensionProviderIds.device,
+                          },
+                        })
+                      )?.id
+                    : undefined),
+                marketingChannelId: dimensionIds.channel,
                 idempotencyKey,
               },
               update: {
@@ -279,7 +451,7 @@ export const marketingWarehouseNormalisationService = {
                 brandId: batch.brandId,
                 marketingDataSourceAccountId: batch.marketingDataSourceAccountId,
                 provider: batch.provider,
-                source: batch.provider === "MANUAL_IMPORT" ? "MANUAL_IMPORT" : "FIRST_PARTY",
+                source: metricSourceForProvider(batch.provider),
                 providerEventId: event.providerEventId,
                 eventName: event.eventName,
                 occurredAt: event.occurredAt,
