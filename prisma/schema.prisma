@@ -417,6 +417,12 @@ model Organisation {
   trackingApiKeys                TrackingApiKey[]
   trackingInstallations            TrackingInstallation[]
   trackingIngestLogs             TrackingIngestLog[]
+  marketingSearchQueries         MarketingSearchQuery[]
+  marketingLandingPages          MarketingLandingPage[]
+  marketingGeographies           MarketingGeography[]
+  marketingDevices               MarketingDevice[]
+  searchConsoleUrlInspections    SearchConsoleUrlInspection[]
+  searchConsoleSitemaps          SearchConsoleSitemap[]
 
   @@index([status])
   @@index([archivedAt])
@@ -556,6 +562,12 @@ model Project {
   trackingEnvironments           TrackingEnvironment[]
   trackingInstallations            TrackingInstallation[]
   trackingIngestLogs             TrackingIngestLog[]
+  marketingSearchQueries         MarketingSearchQuery[]
+  marketingLandingPages          MarketingLandingPage[]
+  marketingGeographies           MarketingGeography[]
+  marketingDevices               MarketingDevice[]
+  searchConsoleUrlInspections    SearchConsoleUrlInspection[]
+  searchConsoleSitemaps          SearchConsoleSitemap[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -687,6 +699,12 @@ model Brand {
   trackingEnvironments           TrackingEnvironment[]
   trackingInstallations            TrackingInstallation[]
   trackingIngestLogs             TrackingIngestLog[]
+  marketingSearchQueries         MarketingSearchQuery[]
+  marketingLandingPages          MarketingLandingPage[]
+  marketingGeographies           MarketingGeography[]
+  marketingDevices               MarketingDevice[]
+  searchConsoleUrlInspections    SearchConsoleUrlInspection[]
+  searchConsoleSitemaps          SearchConsoleSitemap[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -4000,6 +4018,10 @@ model MarketingDataSourceAccount {
   revenueRecords       MarketingRevenueRecord[]
   costRecords          MarketingCostRecord[]
   manualImportJobs     ManualImportJob[]
+  marketingSearchQueries MarketingSearchQuery[]
+  marketingLandingPages  MarketingLandingPage[]
+  marketingGeographies   MarketingGeography[]
+  marketingDevices       MarketingDevice[]
 
   @@unique([brandId, marketingDataSourceId, externalAccountId])
   @@index([organisationId, brandId])
@@ -4565,6 +4587,10 @@ model MarketingMetricObservation {
   marketingAdGroupId           String?
   marketingAdId                String?
   marketingContentItemId       String?
+  marketingSearchQueryId       String?
+  marketingLandingPageId       String?
+  marketingGeographyId         String?
+  marketingDeviceId            String?
   providerMetadata             Json?
   createdAt                    DateTime              @default(now())
 
@@ -4579,6 +4605,10 @@ model MarketingMetricObservation {
   marketingAdGroup           MarketingAdGroup?           @relation(fields: [marketingAdGroupId], references: [id], onDelete: SetNull)
   marketingAd                MarketingAd?                @relation(fields: [marketingAdId], references: [id], onDelete: SetNull)
   marketingContentItem       MarketingContentItem?       @relation(fields: [marketingContentItemId], references: [id], onDelete: SetNull)
+  marketingSearchQuery         MarketingSearchQuery?       @relation(fields: [marketingSearchQueryId], references: [id], onDelete: SetNull)
+  marketingLandingPage         MarketingLandingPage?       @relation(fields: [marketingLandingPageId], references: [id], onDelete: SetNull)
+  marketingGeography           MarketingGeography?         @relation(fields: [marketingGeographyId], references: [id], onDelete: SetNull)
+  marketingDevice              MarketingDevice?            @relation(fields: [marketingDeviceId], references: [id], onDelete: SetNull)
   corrections                MarketingMetricCorrection[]
 
   @@index([organisationId, brandId, observedAt])
@@ -5216,6 +5246,174 @@ model ManualImportMapping {
   manualImportJob ManualImportJob @relation(fields: [manualImportJobId], references: [id], onDelete: Cascade)
 
   @@unique([manualImportJobId, sourceColumn])
+  @@index([organisationId, brandId])
+}
+
+// ---------------------------------------------------------------------------
+// Search Console SEO dimensions (Task 3.4)
+// ---------------------------------------------------------------------------
+
+model MarketingSearchQuery {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  provider                     MarketingDataProvider
+  providerQueryId              String
+  queryText                    String
+  isAnonymized                 Boolean                  @default(false)
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  metricObservations         MarketingMetricObservation[]
+
+  @@unique([brandId, provider, providerQueryId])
+  @@index([organisationId, brandId])
+  @@index([marketingDataSourceAccountId])
+}
+
+model MarketingLandingPage {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  provider                     MarketingDataProvider
+  providerPageId               String
+  url                          String
+  path                         String?
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  metricObservations         MarketingMetricObservation[]
+
+  @@unique([brandId, provider, providerPageId])
+  @@index([organisationId, brandId])
+  @@index([url])
+}
+
+model MarketingGeography {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  provider                     MarketingDataProvider
+  providerGeographyId          String
+  countryCode                  String
+  countryName                  String?
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  metricObservations         MarketingMetricObservation[]
+
+  @@unique([brandId, provider, providerGeographyId])
+  @@index([organisationId, brandId])
+}
+
+model MarketingDevice {
+  id                           String                   @id @default(cuid())
+  organisationId               String
+  projectId                    String
+  brandId                      String
+  marketingDataSourceAccountId String?
+  provider                     MarketingDataProvider
+  providerDeviceId             String
+  deviceCategory               String
+  status                       MarketingDimensionStatus @default(ACTIVE)
+  providerMetadata             Json?
+  firstSeenAt                  DateTime?
+  lastSeenAt                   DateTime?
+  createdAt                    DateTime                 @default(now())
+  updatedAt                    DateTime                 @updatedAt
+
+  organisation               Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                    Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                      Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  marketingDataSourceAccount MarketingDataSourceAccount? @relation(fields: [marketingDataSourceAccountId], references: [id], onDelete: SetNull)
+  metricObservations         MarketingMetricObservation[]
+
+  @@unique([brandId, provider, providerDeviceId])
+  @@index([organisationId, brandId])
+}
+
+model SearchConsoleUrlInspection {
+  id                 String   @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  connectorAccountId String
+  siteUrl            String
+  inspectionUrl      String
+  indexedState       String?
+  crawlState         String?
+  canonicalUrl       String?
+  robotsTxtState     String?
+  lastCrawlTime      DateTime?
+  mobileUsability    String?
+  richResultsState   String?
+  rawResponse        Json?
+  inspectedAt        DateTime @default(now())
+  inspectedByUserId  String?
+  createdAt          DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, inspectedAt])
+  @@index([connectorAccountId])
+}
+
+model SearchConsoleSitemap {
+  id                 String   @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  connectorAccountId String
+  siteUrl            String
+  sitemapPath        String
+  lastSubmitted      DateTime?
+  lastDownloaded     DateTime?
+  warnings           Int      @default(0)
+  errors             Int      @default(0)
+  discoveredUrls     Int?
+  isPending          Boolean  @default(false)
+  rawResponse        Json?
+  fetchedAt          DateTime @default(now())
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([connectorAccountId, sitemapPath])
   @@index([organisationId, brandId])
 }
 

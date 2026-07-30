@@ -25,11 +25,33 @@ export type ValidationResult =
   | { valid: true; record: RawRecordInput }
   | { valid: false; errors: string[] };
 
+export type NormalisedDimension = {
+  entityType:
+    | "channel"
+    | "account"
+    | "campaign"
+    | "content"
+    | "search_query"
+    | "landing_page"
+    | "geography"
+    | "device";
+  providerId: string;
+  name: string;
+  metadata?: Record<string, unknown>;
+};
+
 export type NormalisedMetric = {
   metricKey: string;
   metricValue: number;
   observedAt: Date;
   dimensions?: Record<string, unknown>;
+  grain?: "query" | "page" | "query_page" | "device" | "country" | "aggregate";
+  dimensionProviderIds?: {
+    searchQuery?: string;
+    landingPage?: string;
+    geography?: string;
+    device?: string;
+  };
 };
 
 export type NormalisedEvent = {
@@ -37,13 +59,6 @@ export type NormalisedEvent = {
   eventName: string;
   occurredAt: Date;
   properties?: Record<string, unknown>;
-};
-
-export type NormalisedDimension = {
-  entityType: "channel" | "account" | "campaign" | "content";
-  providerId: string;
-  name: string;
-  metadata?: Record<string, unknown>;
 };
 
 export type NormalisationResult = {

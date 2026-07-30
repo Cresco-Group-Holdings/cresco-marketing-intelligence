@@ -101,6 +101,15 @@ export const DEFAULT_METRIC_DEFINITIONS: WarehouseMetricDefinition[] = [
     aggregation: "AVG",
     isCumulative: false,
   },
+  {
+    canonicalKey: "avg_position",
+    displayName: "Average position",
+    description: "Average search ranking position",
+    unit: "position",
+    dataType: "DECIMAL",
+    aggregation: "AVG",
+    isCumulative: false,
+  },
 ];
 
 export function metricDefinitionByKey(key: string) {
