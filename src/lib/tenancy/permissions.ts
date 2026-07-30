@@ -67,6 +67,9 @@ export const PERMISSIONS = {
   "marketingData.reprocess": "marketingData.reprocess",
   "marketingData.manageQuality": "marketingData.manageQuality",
   "marketingData.manageConversions": "marketingData.manageConversions",
+  "tracking.read": "tracking.read",
+  "tracking.manage": "tracking.manage",
+  "tracking.viewRaw": "tracking.viewRaw",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -139,6 +142,9 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["marketingData.reprocess"],
     PERMISSIONS["marketingData.manageQuality"],
     PERMISSIONS["marketingData.manageConversions"],
+    PERMISSIONS["tracking.read"],
+    PERMISSIONS["tracking.manage"],
+    PERMISSIONS["tracking.viewRaw"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -186,6 +192,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["marketingData.read"],
     PERMISSIONS["marketingData.runSync"],
     PERMISSIONS["marketingData.manageConversions"],
+    PERMISSIONS["tracking.read"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -209,6 +216,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["marketingData.read"],
     PERMISSIONS["marketingData.export"],
     PERMISSIONS["marketingData.manageQuality"],
+    PERMISSIONS["tracking.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -225,6 +233,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["content.read"],
     PERMISSIONS["leads.read"],
     PERMISSIONS["marketingData.read"],
+    PERMISSIONS["tracking.read"],
     PERMISSIONS["experiments.read"],
   ],
 };

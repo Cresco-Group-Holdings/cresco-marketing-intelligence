@@ -411,6 +411,12 @@ model Organisation {
   aggregateRefreshRuns           AggregateRefreshRun[]
   manualImportJobs               ManualImportJob[]
   manualImportMappings           ManualImportMapping[]
+  trackingProperties             TrackingProperty[]
+  trackingDomains                TrackingDomain[]
+  trackingEnvironments           TrackingEnvironment[]
+  trackingApiKeys                TrackingApiKey[]
+  trackingInstallations            TrackingInstallation[]
+  trackingIngestLogs             TrackingIngestLog[]
 
   @@index([status])
   @@index([archivedAt])
@@ -545,6 +551,11 @@ model Project {
   aggregateRefreshRuns           AggregateRefreshRun[]
   manualImportJobs               ManualImportJob[]
   manualImportMappings           ManualImportMapping[]
+  trackingProperties             TrackingProperty[]
+  trackingDomains                TrackingDomain[]
+  trackingEnvironments           TrackingEnvironment[]
+  trackingInstallations            TrackingInstallation[]
+  trackingIngestLogs             TrackingIngestLog[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -671,6 +682,11 @@ model Brand {
   aggregateRefreshRuns           AggregateRefreshRun[]
   manualImportJobs               ManualImportJob[]
   manualImportMappings           ManualImportMapping[]
+  trackingProperties             TrackingProperty[]
+  trackingDomains                TrackingDomain[]
+  trackingEnvironments           TrackingEnvironment[]
+  trackingInstallations            TrackingInstallation[]
+  trackingIngestLogs             TrackingIngestLog[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -4681,6 +4697,13 @@ model MarketingSession {
   utmContent                   String?
   deviceCategory               String?
   country                      String?
+  exitPage                     String?
+  consentState                 Json?
+  pageViewCount                Int                   @default(0)
+  eventCount                   Int                   @default(0)
+  source                       String?
+  medium                       String?
+  campaign                     String?
   providerMetadata             Json?
   createdAt                    DateTime              @default(now())
   updatedAt                    DateTime              @updatedAt
@@ -5194,4 +5217,210 @@ model ManualImportMapping {
 
   @@unique([manualImportJobId, sourceColumn])
   @@index([organisationId, brandId])
+}
+
+// ---------------------------------------------------------------------------
+// First-party website analytics (Task 3.2)
+// ---------------------------------------------------------------------------
+
+enum TrackingPropertyStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum TrackingDomainVerificationStatus {
+  PENDING
+  VERIFIED
+  FAILED
+}
+
+enum TrackingEnvironmentType {
+  PRODUCTION
+  STAGING
+  DEVELOPMENT
+}
+
+enum TrackingInstallationStatus {
+  PENDING
+  ACTIVE
+  ERROR
+  DISABLED
+}
+
+enum TrackingApiKeyStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum TrackingIngestStatus {
+  ACCEPTED
+  QUARANTINED
+  REJECTED
+}
+
+enum TrackingConsentCategory {
+  ESSENTIAL
+  ANALYTICS
+  MARKETING
+  PERSONALISATION
+}
+
+model TrackingProperty {
+  id                    String                 @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  name                  String
+  publicPropertyId      String                 @unique
+  status                TrackingPropertyStatus @default(ACTIVE)
+  defaultTimezone       String                 @default("UTC")
+  reportingCurrency     String                 @default("GBP")
+  sessionTimeoutMinutes Int                    @default(30)
+  cookielessMode        Boolean                @default(false)
+  sdkVersion            String                 @default("1.0.0")
+  metadata              Json?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+
+  organisation   Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  domains        TrackingDomain[]
+  environments   TrackingEnvironment[]
+  apiKeys        TrackingApiKey[]
+  installations  TrackingInstallation[]
+  ingestLogs     TrackingIngestLog[]
+
+  @@index([organisationId, brandId])
+  @@index([status])
+}
+
+model TrackingDomain {
+  id                 String                         @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  trackingPropertyId String
+  trackingEnvironmentId String?
+  hostname           String
+  allowedOrigin      String
+  environmentType    TrackingEnvironmentType        @default(PRODUCTION)
+  verificationStatus TrackingDomainVerificationStatus @default(PENDING)
+  verificationToken  String?
+  firstSeenAt        DateTime?
+  lastSeenAt         DateTime?
+  createdAt          DateTime                       @default(now())
+  updatedAt          DateTime                       @updatedAt
+
+  organisation        Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project             Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand               Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  trackingProperty    TrackingProperty     @relation(fields: [trackingPropertyId], references: [id], onDelete: Cascade)
+  trackingEnvironment TrackingEnvironment? @relation(fields: [trackingEnvironmentId], references: [id], onDelete: SetNull)
+
+  @@unique([trackingPropertyId, hostname, environmentType])
+  @@index([organisationId, brandId])
+  @@index([allowedOrigin])
+  @@index([verificationStatus])
+}
+
+model TrackingEnvironment {
+  id                 String                  @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  trackingPropertyId String
+  name               String
+  environmentType    TrackingEnvironmentType
+  isDefault          Boolean                 @default(false)
+  metadata           Json?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  organisation       Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project            Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand              Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  trackingProperty   TrackingProperty     @relation(fields: [trackingPropertyId], references: [id], onDelete: Cascade)
+  domains            TrackingDomain[]
+  installations      TrackingInstallation[]
+
+  @@unique([trackingPropertyId, environmentType])
+  @@index([organisationId, brandId])
+}
+
+model TrackingApiKey {
+  id                 String                 @id @default(cuid())
+  organisationId     String
+  trackingPropertyId String
+  name               String
+  keyPrefix          String
+  keyHash            String                 @unique
+  environmentType    TrackingEnvironmentType @default(PRODUCTION)
+  status             TrackingApiKeyStatus   @default(ACTIVE)
+  lastUsedAt         DateTime?
+  expiresAt          DateTime?
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  organisation     Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  trackingProperty TrackingProperty @relation(fields: [trackingPropertyId], references: [id], onDelete: Cascade)
+
+  @@index([trackingPropertyId, status])
+  @@index([keyPrefix])
+}
+
+model TrackingInstallation {
+  id                    String                    @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  trackingPropertyId    String
+  trackingEnvironmentId String?
+  platform              String
+  sdkVersion            String
+  environmentType       TrackingEnvironmentType   @default(PRODUCTION)
+  status                TrackingInstallationStatus @default(PENDING)
+  lastSeenAt            DateTime?
+  lastError             String?
+  metadata              Json?
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  organisation          Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project               Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                 Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  trackingProperty      TrackingProperty      @relation(fields: [trackingPropertyId], references: [id], onDelete: Cascade)
+  trackingEnvironment   TrackingEnvironment?  @relation(fields: [trackingEnvironmentId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, status])
+  @@index([trackingPropertyId])
+}
+
+model TrackingIngestLog {
+  id                 String               @id @default(cuid())
+  organisationId     String
+  projectId          String
+  brandId            String
+  trackingPropertyId String
+  idempotencyKey     String               @unique
+  eventName          String
+  status             TrackingIngestStatus @default(ACCEPTED)
+  origin             String?
+  userAgent          String?
+  quarantineReason   String?
+  clientTimestamp    DateTime?
+  receivedAt         DateTime             @default(now())
+  marketingEventId   String?
+  payloadSummary     Json?
+  createdAt          DateTime             @default(now())
+
+  organisation     Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand            @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  trackingProperty TrackingProperty @relation(fields: [trackingPropertyId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, brandId, receivedAt])
+  @@index([trackingPropertyId, status])
+  @@index([eventName])
 }
