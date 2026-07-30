@@ -301,6 +301,9 @@ model UserProfile {
   advertisingBudgetApprovalsDecided AdvertisingBudgetApproval[] @relation("AdvertisingBudgetApprover")
   advertisingSpendIncidentsResolved AdvertisingSpendIncident[] @relation("AdvertisingSpendIncidentResolver")
   advertisingBudgetPoliciesCreated AdvertisingBudgetPolicy[] @relation("AdvertisingBudgetPolicyCreator")
+  advertisingOptimisationRunsInitiated AdvertisingOptimisationRun[] @relation("AdvertisingOptimisationRunInitiator")
+  advertisingOptimisationApprovalsDecided AdvertisingOptimisationApproval[] @relation("AdvertisingOptimisationApprover")
+  advertisingOptimisationFeedbackSubmitted AdvertisingOptimisationFeedback[] @relation("AdvertisingOptimisationFeedbackUser")
   invitationsSent            Invitation[]              @relation("InvitationsSent")
   invitationsAccepted        Invitation[]              @relation("InvitationsAccepted")
   organisationsCreated       Organisation[]            @relation("OrganisationCreator")
@@ -681,6 +684,7 @@ model Organisation {
   advertisingBudgetAlerts              AdvertisingBudgetAlert[]
   advertisingBudgetChangeRequests      AdvertisingBudgetChangeRequest[]
   advertisingSpendIncidents            AdvertisingSpendIncident[]
+  advertisingOptimisationRuns          AdvertisingOptimisationRun[]
 
   @@index([status])
   @@index([archivedAt])
@@ -903,6 +907,7 @@ model Project {
   advertisingBudgetAlerts    AdvertisingBudgetAlert[]
   advertisingBudgetChangeRequests AdvertisingBudgetChangeRequest[]
   advertisingSpendIncidents  AdvertisingSpendIncident[]
+  advertisingOptimisationRuns AdvertisingOptimisationRun[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1123,6 +1128,7 @@ model Brand {
   advertisingBudgetAlerts        AdvertisingBudgetAlert[]
   advertisingBudgetChangeRequests AdvertisingBudgetChangeRequest[]
   advertisingSpendIncidents      AdvertisingSpendIncident[]
+  advertisingOptimisationRuns    AdvertisingOptimisationRun[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -12612,6 +12618,296 @@ model AdvertisingSpendIncident {
 
   @@index([organisationId, status])
   @@index([incidentType])
+}
+
+// ---------------------------------------------------------------------------
+// Task 5.9 — AI Advertising Optimisation Agent
+// ---------------------------------------------------------------------------
+
+enum AdvertisingOptimisationReviewType {
+  DAILY_OPERATIONAL
+  WEEKLY_OPTIMISATION
+  MONTHLY_PORTFOLIO
+  ON_DEMAND_CAMPAIGN
+}
+
+enum AdvertisingOptimisationRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AdvertisingOptimisationFindingType {
+  HIGH_SPEND_LOW_RETURN
+  TRACKING_FAILURE
+  CREATIVE_FATIGUE
+  AUDIENCE_SATURATION
+  LOW_CTR
+  HIGH_CPC
+  HIGH_CPA
+  LOW_CONVERSION_RATE
+  LANDING_PAGE_MISMATCH
+  STRONG_CAMPAIGN
+  STRONG_CREATIVE
+  BUDGET_CONSTRAINT
+  BUDGET_OVERRUN_RISK
+  INVALID_EXPERIMENT
+  PROVIDER_DATA_STALE
+  ATTRIBUTION_GAP
+  POLICY_RISK
+  OTHER
+}
+
+enum AdvertisingOptimisationRecommendationType {
+  INVESTIGATE_TRACKING
+  PAUSE_FOR_REVIEW
+  REDUCE_BUDGET
+  REQUEST_BUDGET_INCREASE
+  CREATE_NEW_CREATIVE
+  ROTATE_CREATIVE
+  REVISE_AUDIENCE
+  EXCLUDE_LOW_QUALITY_PLACEMENT
+  REVIEW_LANDING_PAGE
+  CREATE_EXPERIMENT
+  CHANGE_SCHEDULE
+  REVIEW_BID_STRATEGY
+  IMPROVE_CONVERSION_TRACKING
+  WAIT_FOR_MORE_DATA
+}
+
+enum AdvertisingOptimisationActionClass {
+  INFORMATION_ONLY
+  CREATE_TASK
+  CREATE_EXPERIMENT
+  CREATE_CREATIVE_REQUEST
+  REQUEST_BUDGET_CHANGE
+  REQUEST_PAUSE
+  REQUEST_RESUME
+  REQUEST_PROVIDER_CHANGE
+}
+
+enum AdvertisingOptimisationConfidenceLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AdvertisingOptimisationSampleSizeState {
+  INSUFFICIENT
+  MARGINAL
+  SUFFICIENT
+}
+
+enum AdvertisingOptimisationDataQualityState {
+  POOR
+  FAIR
+  GOOD
+}
+
+enum AdvertisingOptimisationActionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  BLOCKED
+  DEFERRED
+}
+
+enum AdvertisingOptimisationApprovalDecision {
+  APPROVED
+  REJECTED
+  DEFERRED
+}
+
+enum AdvertisingOptimisationFeedbackStatus {
+  ACCEPTED
+  REJECTED
+  DEFERRED
+  IMPLEMENTED
+  OUTCOME_MEASURED
+  OUTCOME_UNAVAILABLE
+}
+
+enum AdvertisingOptimisationOutcomeStatus {
+  PENDING
+  MEASURED
+  UNAVAILABLE
+}
+
+model AdvertisingOptimisationRun {
+  id                    String                            @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  reviewType            AdvertisingOptimisationReviewType
+  status                AdvertisingOptimisationRunStatus  @default(PENDING)
+  dateRangeStart        DateTime
+  dateRangeEnd          DateTime
+  comparisonPeriodStart DateTime?
+  comparisonPeriodEnd   DateTime?
+  provider              String?
+  accountId             String?
+  campaignId            String?
+  summary               String?
+  guardrailWarnings     Json?
+  initiatedByUserId     String
+  completedAt           DateTime?
+  createdAt             DateTime                          @default(now())
+  updatedAt             DateTime                          @updatedAt
+
+  organisation     Organisation                        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand                               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  initiatedBy      UserProfile                         @relation("AdvertisingOptimisationRunInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+  evidence         AdvertisingOptimisationEvidence?
+  findings         AdvertisingOptimisationFinding[]
+  recommendations  AdvertisingOptimisationRecommendation[]
+
+  @@index([organisationId, brandId, reviewType])
+  @@index([status, createdAt])
+}
+
+model AdvertisingOptimisationEvidence {
+  id                     String   @id @default(cuid())
+  runId                  String   @unique
+  dateRangeStart         DateTime
+  dateRangeEnd           DateTime
+  comparisonPeriodStart  DateTime?
+  comparisonPeriodEnd    DateTime?
+  provider               String?
+  accountId              String?
+  campaignId             String?
+  metrics                Json
+  metricDefinitions      Json
+  currency               String
+  attributionModel       String
+  freshnessHours         Decimal? @db.Decimal(8, 2)
+  qualityWarnings        Json?
+  minimumVolume          Int
+  minimumVolumeMet       Boolean  @default(false)
+  activeExperimentStatus Json?
+  recentMaterialChanges  Json?
+  createdAt              DateTime @default(now())
+
+  run AdvertisingOptimisationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+}
+
+model AdvertisingOptimisationFinding {
+  id                String                             @id @default(cuid())
+  runId             String
+  findingType       AdvertisingOptimisationFindingType
+  severity          String                             @default("INFO")
+  title             String
+  description       String
+  provider          String?
+  accountId         String?
+  campaignId        String?
+  suppressed        Boolean                            @default(false)
+  suppressionReason String?
+  createdAt         DateTime                           @default(now())
+
+  run              AdvertisingOptimisationRun            @relation(fields: [runId], references: [id], onDelete: Cascade)
+  recommendations  AdvertisingOptimisationRecommendation[]
+
+  @@index([runId, findingType])
+}
+
+model AdvertisingOptimisationRecommendation {
+  id                      String                                    @id @default(cuid())
+  runId                   String
+  findingId               String?
+  recommendationType      AdvertisingOptimisationRecommendationType
+  title                   String
+  description             String
+  confidenceLevel         AdvertisingOptimisationConfidenceLevel    @default(MEDIUM)
+  evidenceStrength        String?
+  sampleSizeState         AdvertisingOptimisationSampleSizeState    @default(INSUFFICIENT)
+  dataQualityState        AdvertisingOptimisationDataQualityState   @default(FAIR)
+  alternativeExplanations Json?
+  risk                    String?
+  missingData             Json?
+  budgetImpact            String?
+  requiresApproval        Boolean                                   @default(true)
+  measurementPlan         String?
+  createdAt               DateTime                                  @default(now())
+
+  run             AdvertisingOptimisationRun              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  finding         AdvertisingOptimisationFinding?         @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  actionProposals AdvertisingOptimisationActionProposal[]
+  feedback        AdvertisingOptimisationFeedback[]
+  outcomes        AdvertisingOptimisationOutcome[]
+
+  @@index([runId, recommendationType])
+}
+
+model AdvertisingOptimisationActionProposal {
+  id               String                              @id @default(cuid())
+  recommendationId String
+  actionClass      AdvertisingOptimisationActionClass
+  title            String
+  description      String
+  payload          Json?
+  requiresApproval Boolean                             @default(true)
+  status           AdvertisingOptimisationActionStatus @default(PENDING)
+  blockedReason    String?
+  createdAt        DateTime                            @default(now())
+  updatedAt        DateTime                            @updatedAt
+
+  recommendation AdvertisingOptimisationRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  approvals      AdvertisingOptimisationApproval[]
+  outcomes       AdvertisingOptimisationOutcome[]
+
+  @@index([recommendationId, actionClass])
+  @@index([status])
+}
+
+model AdvertisingOptimisationApproval {
+  id               String                                @id @default(cuid())
+  actionProposalId String
+  approverUserId   String
+  decision         AdvertisingOptimisationApprovalDecision
+  notes            String?
+  approvedAt       DateTime                              @default(now())
+
+  actionProposal AdvertisingOptimisationActionProposal @relation(fields: [actionProposalId], references: [id], onDelete: Cascade)
+  approver       UserProfile                           @relation("AdvertisingOptimisationApprover", fields: [approverUserId], references: [id], onDelete: Restrict)
+
+  @@index([actionProposalId])
+}
+
+model AdvertisingOptimisationOutcome {
+  id               String                             @id @default(cuid())
+  recommendationId String
+  actionProposalId String?
+  outcomeStatus    AdvertisingOptimisationOutcomeStatus @default(PENDING)
+  preMetrics       Json?
+  postMetrics      Json?
+  measuredAt       DateTime?
+  successClaimed   Boolean                            @default(false)
+  notes            String?
+  createdAt        DateTime                           @default(now())
+  updatedAt        DateTime                           @updatedAt
+
+  recommendation AdvertisingOptimisationRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  actionProposal AdvertisingOptimisationActionProposal? @relation(fields: [actionProposalId], references: [id], onDelete: SetNull)
+
+  @@index([recommendationId])
+}
+
+model AdvertisingOptimisationFeedback {
+  id               String                              @id @default(cuid())
+  recommendationId String
+  userId           String
+  status           AdvertisingOptimisationFeedbackStatus
+  userExplanation  String?
+  createdAt        DateTime                            @default(now())
+  updatedAt        DateTime                            @updatedAt
+
+  recommendation AdvertisingOptimisationRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  user           UserProfile                           @relation("AdvertisingOptimisationFeedbackUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([recommendationId, status])
 }
 
 // ---------------------------------------------------------------------------
