@@ -360,6 +360,11 @@ model UserProfile {
   leadCaptureFormsCreated      LeadCaptureForm[]         @relation("LeadCaptureFormCreator")
   leadCaptureFormVersionsApproved LeadCaptureFormVersion[] @relation("LeadCaptureFormVersionApprover")
   leadCaptureSubmissionsReviewed LeadCaptureSubmission[]  @relation("LeadCaptureSubmissionReviewer")
+  crmPipelinesCreated          CrmPipeline[]             @relation("CrmPipelineCreator")
+  crmOpportunitiesOwned        CrmOpportunity[]          @relation("CrmOpportunityOwner")
+  crmOpportunitiesCreated      CrmOpportunity[]          @relation("CrmOpportunityCreator")
+  crmOpportunityApprovalsActed CrmOpportunityApproval[]  @relation("CrmOpportunityApprovalActor")
+  crmOpportunityStageHistoryActed CrmOpportunityStageHistory[] @relation("CrmOpportunityStageActor")
 
   @@index([email])
 }
@@ -713,6 +718,9 @@ model Organisation {
   crmSavedViews                        CrmSavedView[]
   leadCaptureForms                     LeadCaptureForm[]
   leadCaptureSubmissions               LeadCaptureSubmission[]
+  crmPipelines                         CrmPipeline[]
+  crmOpportunities                     CrmOpportunity[]
+  crmOpportunityLossReasons            CrmOpportunityLossReason[]
 
   @@index([status])
   @@index([archivedAt])
@@ -947,6 +955,8 @@ model Project {
   crmSavedViews               CrmSavedView[]
   leadCaptureForms            LeadCaptureForm[]
   leadCaptureSubmissions      LeadCaptureSubmission[]
+  crmPipelines                CrmPipeline[]
+  crmOpportunities            CrmOpportunity[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1179,6 +1189,9 @@ model Brand {
   crmSavedViews                  CrmSavedView[]
   leadCaptureForms               LeadCaptureForm[]
   leadCaptureSubmissions         LeadCaptureSubmission[]
+  crmPipelines                   CrmPipeline[]
+  crmOpportunities               CrmOpportunity[]
+  crmOpportunityLossReasons      CrmOpportunityLossReason[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -13134,6 +13147,7 @@ model CrmPerson {
   contactMethods CrmContactMethod[]
   addresses    CrmAddress[]
   identityLinks CrmIdentityLink[]
+  opportunityContactRoles CrmOpportunityContactRole[]
 
   @@index([organisationId, brandId])
   @@index([authUserId])
@@ -13193,6 +13207,7 @@ model CrmCompany {
   subsidiaries  CrmCompany[]     @relation("CrmCompanyHierarchy")
   domains       CrmCompanyDomain[]
   leads         CrmLead[]
+  opportunities CrmOpportunity[]
   addresses     CrmAddress[]
 
   @@index([organisationId, brandId])
@@ -13253,6 +13268,7 @@ model CrmLead {
   timelineItems  CrmActivityTimelineItem[]
   customFieldValues CrmCustomFieldValue[]
   externalReferences CrmExternalReference[]
+  opportunities      CrmOpportunity[]
 
   @@index([organisationId, brandId, status])
   @@index([ownerUserId])
@@ -14006,6 +14022,312 @@ model LeadCaptureThankYouAction {
   form LeadCaptureForm @relation(fields: [formId], references: [id], onDelete: Cascade)
 
   @@index([formId])
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.3 — Sales Pipeline and Opportunity Management
+// ---------------------------------------------------------------------------
+
+enum CrmPipelineType {
+  GRANTS_SUBSCRIPTION
+  CAPITAL_TERMINAL
+  ENTERPRISE_SALES
+  PARTNERSHIPS
+  MANAGED_MARKETING
+  CUSTOM
+}
+
+enum CrmPipelineStageCategory {
+  OPEN
+  QUALIFICATION
+  DISCOVERY
+  EVALUATION
+  PROPOSAL
+  NEGOTIATION
+  TRIAL
+  WON
+  LOST
+}
+
+enum CrmOpportunityStatus {
+  OPEN
+  WON
+  LOST
+  ARCHIVED
+}
+
+enum CrmOpportunityContactRoleType {
+  DECISION_MAKER
+  CHAMPION
+  INFLUENCER
+  ECONOMIC_BUYER
+  TECHNICAL_EVALUATOR
+  OTHER
+}
+
+enum CrmOpportunityApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum CrmWonEvidenceType {
+  SUBSCRIPTION_CONFIRMED
+  PAYMENT_COMPLETED
+  AGREEMENT_SIGNED
+  AUTHORISED_CONFIRMATION
+}
+
+model CrmPipeline {
+  id               String          @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  name             String
+  slug             String
+  pipelineType     CrmPipelineType @default(CUSTOM)
+  description      String?
+  currentVersionId String?
+  isDefault        Boolean         @default(false)
+  createdByUserId  String
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  archivedAt       DateTime?
+
+  organisation  Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy     UserProfile          @relation("CrmPipelineCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions      CrmPipelineVersion[]
+  opportunities CrmOpportunity[]
+
+  @@unique([brandId, slug])
+  @@index([organisationId, brandId])
+}
+
+model CrmPipelineVersion {
+  id            String   @id @default(cuid())
+  pipelineId    String
+  versionNumber Int
+  label         String?
+  isActive      Boolean  @default(false)
+  publishedAt   DateTime?
+  createdAt     DateTime @default(now())
+
+  pipeline      CrmPipeline       @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  stages        CrmPipelineStage[]
+  opportunities CrmOpportunity[]
+
+  @@unique([pipelineId, versionNumber])
+  @@index([pipelineId, isActive])
+}
+
+model CrmPipelineStage {
+  id                  String                   @id @default(cuid())
+  versionId           String
+  name                String
+  sortOrder           Int                      @default(0)
+  category            CrmPipelineStageCategory
+  probability         Decimal                  @default(0) @db.Decimal(5, 2)
+  entryCriteria       Json?
+  exitCriteria        Json?
+  requiredFields      Json?
+  maxDurationDays     Int?
+  automationEligible  Boolean                  @default(false)
+  requiresApproval    Boolean                  @default(false)
+  isArchived          Boolean                  @default(false)
+  createdAt           DateTime                 @default(now())
+
+  version       CrmPipelineVersion         @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  opportunities CrmOpportunity[]
+  stageHistory  CrmOpportunityStageHistory[]
+
+  @@index([versionId, sortOrder])
+}
+
+model CrmOpportunity {
+  id                    String               @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  pipelineId            String
+  pipelineVersionId     String
+  currentStageId        String
+  leadId                String?
+  companyId             String?
+  ownerUserId           String?
+  name                  String
+  status                CrmOpportunityStatus @default(OPEN)
+  product               String?
+  plan                  String?
+  expectedCloseDate     DateTime?
+  probability           Decimal              @default(0) @db.Decimal(5, 2)
+  currency              String               @default("GBP")
+  campaign              String?
+  attributionJourneyId  String?
+  nextAction            String?
+  notes                 String?
+  lossReasonId          String?
+  lossNotes             String?
+  reEngagementEligible  Boolean              @default(false)
+  wonEvidenceType       CrmWonEvidenceType?
+  wonEvidenceReference  String?
+  stageEnteredAt        DateTime             @default(now())
+  lastActivityAt        DateTime             @default(now())
+  createdByUserId       String
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  archivedAt            DateTime?
+
+  organisation      Organisation                 @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  pipeline          CrmPipeline                  @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
+  pipelineVersion   CrmPipelineVersion           @relation(fields: [pipelineVersionId], references: [id], onDelete: Restrict)
+  currentStage      CrmPipelineStage             @relation(fields: [currentStageId], references: [id], onDelete: Restrict)
+  lead              CrmLead?                     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  company           CrmCompany?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  owner             UserProfile?                 @relation("CrmOpportunityOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy         UserProfile                  @relation("CrmOpportunityCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  lossReason        CrmOpportunityLossReason?    @relation(fields: [lossReasonId], references: [id], onDelete: SetNull)
+  products          CrmOpportunityProduct[]
+  contactRoles      CrmOpportunityContactRole[]
+  values            CrmOpportunityValue[]
+  probabilityHistory CrmOpportunityProbability[]
+  stageHistory      CrmOpportunityStageHistory[]
+  competitors       CrmOpportunityCompetitor[]
+  approvals         CrmOpportunityApproval[]
+
+  @@index([organisationId, brandId, status])
+  @@index([pipelineId, currentStageId])
+  @@index([ownerUserId])
+  @@index([expectedCloseDate])
+  @@index([leadId])
+}
+
+model CrmOpportunityStageHistory {
+  id              String                    @id @default(cuid())
+  opportunityId   String
+  previousStageId String?
+  newStageId      String
+  previousCategory CrmPipelineStageCategory?
+  newCategory     CrmPipelineStageCategory
+  actorUserId     String?
+  reason          String?
+  source          String?
+  createdAt       DateTime                  @default(now())
+
+  opportunity   CrmOpportunity    @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  newStage      CrmPipelineStage  @relation(fields: [newStageId], references: [id], onDelete: Restrict)
+  actor         UserProfile?      @relation("CrmOpportunityStageActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([opportunityId, createdAt])
+}
+
+model CrmOpportunityProduct {
+  id            String   @id @default(cuid())
+  opportunityId String
+  product       String
+  plan          String?
+  quantity      Int      @default(1)
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  opportunity CrmOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+}
+
+model CrmOpportunityContactRole {
+  id            String                        @id @default(cuid())
+  opportunityId String
+  personId      String
+  roleType      CrmOpportunityContactRoleType @default(OTHER)
+  isPrimary     Boolean                       @default(false)
+  createdAt     DateTime                      @default(now())
+
+  opportunity CrmOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  person      CrmPerson      @relation(fields: [personId], references: [id], onDelete: Cascade)
+
+  @@unique([opportunityId, personId, roleType])
+  @@index([opportunityId])
+}
+
+model CrmOpportunityValue {
+  id            String   @id @default(cuid())
+  opportunityId String
+  valueType     String   @default("EXPECTED")
+  amount        Decimal  @db.Decimal(24, 6)
+  currency      String   @default("GBP")
+  isRecurring   Boolean  @default(false)
+  recurringPeriod String?
+  effectiveFrom DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  opportunity CrmOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId, valueType])
+}
+
+model CrmOpportunityProbability {
+  id            String   @id @default(cuid())
+  opportunityId String
+  probability   Decimal  @db.Decimal(5, 2)
+  reason        String?
+  source        String?
+  createdAt     DateTime @default(now())
+
+  opportunity CrmOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId, createdAt])
+}
+
+model CrmOpportunityLossReason {
+  id                    String   @id @default(cuid())
+  organisationId        String
+  brandId               String?
+  label                 String
+  reEngagementDefault   Boolean  @default(false)
+  isActive              Boolean  @default(true)
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+
+  organisation  Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand         Brand?           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  opportunities CrmOpportunity[]
+
+  @@unique([organisationId, label])
+  @@index([organisationId, brandId])
+}
+
+model CrmOpportunityCompetitor {
+  id            String   @id @default(cuid())
+  opportunityId String
+  name          String
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  opportunity CrmOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+
+  @@index([opportunityId])
+}
+
+model CrmOpportunityApproval {
+  id            String                       @id @default(cuid())
+  opportunityId String
+  stageId       String?
+  status        CrmOpportunityApprovalStatus @default(PENDING)
+  requestedByUserId String
+  actorUserId   String?
+  reason        String?
+  notes         String?
+  requestedAt   DateTime                     @default(now())
+  resolvedAt    DateTime?
+
+  opportunity CrmOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  actor       UserProfile?   @relation("CrmOpportunityApprovalActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([opportunityId, status])
 }
 
 // ---------------------------------------------------------------------------
