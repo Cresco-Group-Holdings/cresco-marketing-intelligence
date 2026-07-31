@@ -18,6 +18,7 @@ import type {
   TikTokPublishSettingsInput,
 } from "@/lib/validation/tiktok-publishing";
 import { recordAuditEvent } from "@/server/services/audit-service";
+import { notifyPublishingFailed, notifyPublishingSucceeded } from "@/lib/notifications/publishing-hooks";
 import { socialCredentialService } from "@/server/services/social-credential-service";
 import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities";
 import { isProviderPublishingDisabled } from "@/lib/publishing/config";
@@ -69,6 +70,7 @@ async function failJob(job: PublishingJob, reason: string): Promise<TikTokPublis
     where: { id: job.contentScheduleId },
     data: { status: "FAILED" },
   });
+  await notifyPublishingFailed(job, "TIKTOK", reason).catch(() => undefined);
   return { state: "FAILED", reason };
 }
 
@@ -488,6 +490,7 @@ export const tikTokPublishingService = {
         resourceId: job.id,
         metadata: { provider: "TIKTOK", postId },
       });
+      await notifyPublishingSucceeded(job).catch(() => undefined);
 
       return { state: "PUBLISHED", postId, publishId };
     } catch (error) {

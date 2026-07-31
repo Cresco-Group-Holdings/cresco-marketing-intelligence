@@ -21,6 +21,7 @@ import {
   Target,
   UserPlus,
   Wallet,
+  Wrench,
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -212,6 +213,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/seo",
     icon: Globe,
     description: "Site crawler, issues, and technical audits",
+  },
+  {
+    label: "Operations",
+    href: "/operations",
+    icon: Wrench,
+    description: "Failure recovery and operational alerts",
   },
   {
     label: "AI Agents",

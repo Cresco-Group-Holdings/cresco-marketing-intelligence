@@ -1,6 +1,7 @@
 import { requireAuthenticatedUser } from "@/lib/tenancy/guards";
 import { prisma } from "@/lib/database/prisma";
 import { UserMenu } from "@/components/auth/user-menu";
+import { NotificationBell } from "@/components/notifications/notification-bell";
 import { WorkspaceSelectors } from "@/components/workspace/workspace-selectors";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
 import { APP_NAME } from "@/lib/constants";
@@ -31,6 +32,7 @@ export async function DashboardHeader() {
           <div className="lg:hidden">
             <WorkspaceSelectors />
           </div>
+          <NotificationBell />
           <UserMenu
             email={profile?.email ?? user.email}
             displayName={profile?.displayName}

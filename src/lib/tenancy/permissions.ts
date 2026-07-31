@@ -254,6 +254,10 @@ export const PERMISSIONS = {
   "leadScoring.simulate": "leadScoring.simulate",
   "leadScoring.override": "leadScoring.override",
   "leadScoring.viewAnalytics": "leadScoring.viewAnalytics",
+  "notifications.read": "notifications.read",
+  "notifications.write": "notifications.write",
+  "operations.read": "operations.read",
+  "operations.recover": "operations.recover",
   "auditLogs.read": "auditLogs.read",
 } as const;
 
@@ -517,6 +521,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["lifecycleAgent.run"],
     PERMISSIONS["lifecycleAgent.approve"],
     PERMISSIONS["lifecycleAgent.feedback"],
+    PERMISSIONS["notifications.read"],
+    PERMISSIONS["notifications.write"],
+    PERMISSIONS["operations.read"],
+    PERMISSIONS["operations.recover"],
     PERMISSIONS["auditLogs.read"],
   ],
   MARKETER: [
@@ -701,6 +709,10 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["lifecycleAgent.read"],
     PERMISSIONS["lifecycleAgent.run"],
     PERMISSIONS["lifecycleAgent.feedback"],
+    PERMISSIONS["notifications.read"],
+    PERMISSIONS["notifications.write"],
+    PERMISSIONS["operations.read"],
+    PERMISSIONS["operations.recover"],
   ],
   ANALYST: [
     PERMISSIONS["organisation.read"],
@@ -771,7 +783,8 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["leadScoring.read"],
     PERMISSIONS["leadScoring.simulate"],
     PERMISSIONS["leadScoring.viewAnalytics"],
-    PERMISSIONS["lifecycleAgent.read"],
+    PERMISSIONS["notifications.read"],
+    PERMISSIONS["operations.read"],
     PERMISSIONS["auditLogs.read"],
   ],
   VIEWER: [
@@ -823,7 +836,7 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["automation.read"],
     PERMISSIONS["experiments.read"],
     PERMISSIONS["leadScoring.read"],
-    PERMISSIONS["lifecycleAgent.read"],
+    PERMISSIONS["notifications.read"],
   ],
 };
 

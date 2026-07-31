@@ -394,6 +394,11 @@ model UserProfile {
   lifecycleAgentEvidenceOwned                  LifecycleAgentEvidence[]               @relation("LifecycleAgentEvidenceOwner")
   lifecycleAgentApprovalsDecided               LifecycleAgentApproval[]               @relation("LifecycleAgentApprover")
   lifecycleAgentFeedbackSubmitted              LifecycleAgentFeedback[]               @relation("LifecycleAgentFeedbackUser")
+  notifications                                Notification[]
+  notificationPreferences                      NotificationPreference[]
+  notificationDigests                          NotificationDigest[]
+  operationalAlertsResolved                    OperationalAlert[]                     @relation("OperationalAlertResolver")
+  recoveryActions                              RecoveryAction[]
 
   @@index([email])
 }
@@ -773,6 +778,11 @@ model Organisation {
   leadScoringModels                       LeadScoringModel[]
   leadQualificationModels                 LeadQualificationModel[]
   lifecycleAgentRuns                      LifecycleAgentRun[]
+  notifications                           Notification[]
+  notificationPreferences                 NotificationPreference[]
+  notificationDigests                     NotificationDigest[]
+  operationalAlerts                       OperationalAlert[]
+  recoveryActions                         RecoveryAction[]
 
   @@index([status])
   @@index([archivedAt])
@@ -1017,6 +1027,8 @@ model Project {
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
   lifecycleAgentRuns               LifecycleAgentRun[]
+  notifications                    Notification[]
+  operationalAlerts                OperationalAlert[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1272,6 +1284,9 @@ model Brand {
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
   lifecycleAgentRuns               LifecycleAgentRun[]
+  notifications                    Notification[]
+  notificationPreferences          NotificationPreference[]
+  operationalAlerts                OperationalAlert[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2874,6 +2889,8 @@ model PublishingJob {
   status            ContentScheduleStatus @default(QUEUED)
   attemptCount      Int                   @default(0)
   maxAttempts       Int                   @default(3)
+  nextRetryAt       DateTime?
+  deadLetterAt      DateTime?
 
   providerContainerId String?
   providerStatus      String?
@@ -16784,4 +16801,241 @@ model TrackingIngestLog {
   @@index([organisationId, brandId, receivedAt])
   @@index([trackingPropertyId, status])
   @@index([eventName])
+}
+
+// --- Task 2.15: Notifications and operational failure recovery ---
+
+enum NotificationCategory {
+  CONTENT
+  APPROVAL
+  SCHEDULING
+  PUBLISHING
+  CONNECTION
+  ANALYTICS
+  INBOX
+  LEAD
+  SECURITY
+  SYSTEM
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  SLACK
+  TEAMS
+  PUSH
+  DIGEST_DAILY
+  DIGEST_WEEKLY
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+  SKIPPED
+  SUPPRESSED
+}
+
+enum NotificationDeliveryMode {
+  IMMEDIATE
+  DIGEST_DAILY
+  DIGEST_WEEKLY
+}
+
+enum NotificationPriority {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum OperationalAlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RETRYING
+  RESOLVED
+  DEAD_LETTER
+  CANCELLED
+}
+
+enum OperationalAlertType {
+  PUBLISHING_FAILURE
+  PUBLISHING_PARTIAL
+  CONNECTOR_SYNC_FAILURE
+  ANALYTICS_SYNC_FAILURE
+  TOKEN_REAUTH_REQUIRED
+  RENDER_FAILURE
+  INBOX_ATTENTION
+  LEAD_ARRIVED
+  ASSET_LICENCE_EXPIRY
+  SYSTEM
+}
+
+enum RecoveryActionType {
+  RETRY
+  RECONNECT
+  CANCEL
+  RESOLVE
+  MANUAL_CONFIRM
+}
+
+enum RecoveryActionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+model Notification {
+  id             String               @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  userId         String
+  category       NotificationCategory
+  eventType      String
+  title          String
+  body           String
+  safeBody       String
+  resourceType   String?
+  resourceId     String?
+  actionUrl      String?
+  priority       NotificationPriority @default(NORMAL)
+  idempotencyKey String
+  readAt         DateTime?
+  dismissedAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?               @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  user         UserProfile            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries   NotificationDelivery[]
+
+  @@unique([userId, idempotencyKey])
+  @@index([organisationId, userId, createdAt])
+  @@index([userId, readAt])
+  @@index([category])
+}
+
+model NotificationPreference {
+  id               String                   @id @default(cuid())
+  organisationId   String
+  userId           String
+  brandId          String?
+  category         NotificationCategory
+  channel          NotificationChannel
+  enabled          Boolean                  @default(true)
+  deliveryMode     NotificationDeliveryMode @default(IMMEDIATE)
+  quietHoursStart  String?
+  quietHoursEnd    String?
+  timezone         String?                  @default("UTC")
+  isCriticalLocked Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organisationId, brandId, category, channel])
+  @@index([organisationId, userId])
+}
+
+model NotificationDelivery {
+  id             String                     @id @default(cuid())
+  notificationId String
+  channel        NotificationChannel
+  status         NotificationDeliveryStatus @default(PENDING)
+  digestId       String?
+  externalId     String?
+  errorMessage   String?
+  sentAt         DateTime?
+  createdAt      DateTime                   @default(now())
+
+  notification Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  digest       NotificationDigest? @relation(fields: [digestId], references: [id], onDelete: SetNull)
+
+  @@index([notificationId])
+  @@index([status])
+}
+
+model NotificationDigest {
+  id             String              @id @default(cuid())
+  organisationId String
+  userId         String
+  channel        NotificationChannel
+  periodStart    DateTime
+  periodEnd      DateTime
+  itemCount      Int                 @default(0)
+  sentAt         DateTime?
+  createdAt      DateTime            @default(now())
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         UserProfile            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries   NotificationDelivery[]
+
+  @@index([organisationId, userId, createdAt])
+}
+
+model OperationalAlert {
+  id                String                 @id @default(cuid())
+  organisationId    String
+  projectId         String?
+  brandId           String?
+  alertType         OperationalAlertType
+  category          NotificationCategory
+  status            OperationalAlertStatus @default(OPEN)
+  resourceType      String
+  resourceId        String
+  provider          String?
+  title             String
+  safeErrorMessage  String
+  recommendedAction String?
+  attemptCount      Int                    @default(0)
+  maxAttempts       Int                    @default(3)
+  lastAttemptAt     DateTime?
+  nextRetryAt       DateTime?
+  idempotencyKey    String
+  resolvedAt        DateTime?
+  resolvedByUserId  String?
+  metadata          Json?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  organisation    Organisation     @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand           Brand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  resolvedBy      UserProfile?     @relation("OperationalAlertResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  recoveryActions RecoveryAction[]
+
+  @@unique([organisationId, idempotencyKey])
+  @@index([organisationId, brandId, status])
+  @@index([alertType, status])
+  @@index([resourceType, resourceId])
+}
+
+model RecoveryAction {
+  id                 String               @id @default(cuid())
+  organisationId     String
+  operationalAlertId String?
+  actorUserId        String
+  actionType         RecoveryActionType
+  status             RecoveryActionStatus @default(PENDING)
+  idempotencyKey     String
+  resourceType       String?
+  resourceId         String?
+  result             Json?
+  errorMessage       String?
+  createdAt          DateTime             @default(now())
+  completedAt        DateTime?
+
+  organisation     Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  operationalAlert OperationalAlert? @relation(fields: [operationalAlertId], references: [id], onDelete: SetNull)
+  actor            UserProfile       @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@unique([organisationId, idempotencyKey])
+  @@index([operationalAlertId])
+  @@index([organisationId, status])
 }
