@@ -31,6 +31,7 @@ Each feature directory is a future home for domain-specific UI, hooks, schemas, 
 - `connectors` — external platform integrations
 - `ai` — provider abstraction and governed AI workflows
 - `analytics` — reporting and intelligence pipelines
+- `warehouse` — unified marketing data persistence and query layer (Task 3.1)
 
 Task 1.1 only defines these boundaries. Implementation arrives in later tasks.
 
@@ -90,6 +91,23 @@ All API routes should return the shared envelope defined in `src/lib/api/respons
 ```
 
 Failures return safe user-facing messages with a `requestId` for support correlation.
+
+## Marketing data warehouse (Task 3.1)
+
+Task 3.1 adds a persistence and query layer beneath the existing connector and social analytics stacks. See `docs/MARKETING_DATA_WAREHOUSE.md` for full detail.
+
+| Layer | Location | Responsibility |
+| --- | --- | --- |
+| Source registry | `MarketingDataSource`, `MarketingDataSourceAccount` | Provider catalogue and brand-scoped accounts |
+| Raw ingestion | `RawMarketingBatch`, `RawMarketingRecord` | Durable batch ingest with idempotency and leases |
+| Normaliser | `src/lib/warehouse/normaliser/` | Stub transform from raw records to dimensions and facts |
+| Facts and dimensions | Prisma warehouse models | Cross-source metrics, events, campaigns, channels |
+| Query services | `src/server/services/marketing-data-*` | Brand-scoped reads, aggregates, health, lineage |
+| Operations | `/api/brands/[brandId]/marketing-data/*` | Manual import, batch monitor, quality inbox |
+
+**Active ingest in 3.1:** manual import (`MANUAL_IMPORT`), first-party events, and read-bridge from social analytics (`SOCIAL_BRIDGE`). Live GA4, Google Ads, and other connector sync paths are registry entries only — deferred to Task 3.2+.
+
+The warehouse does not replace `SocialPostMetric`, `ConnectorSync`, or social analytics write paths. Connector architecture (`docs/CONNECTOR_ARCHITECTURE.md`) and social analytics (`docs/SOCIAL_ANALYTICS.md`) remain authoritative for their domains.
 
 ## Request lifecycle
 

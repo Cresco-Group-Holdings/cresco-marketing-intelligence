@@ -173,6 +173,53 @@ const DEFAULT_TEMPLATES = [
       "Always set requiresHumanReview to true. Return valid JSON matching the leadQualificationSuggestion schema.",
     outputSchemaKey: "leadQualificationSuggestion",
   },
+  {
+    key: "analyst.marketing.analyze",
+    name: "Marketing Analyst",
+    description: "Evidence-grounded marketing analysis without inventing statistics.",
+    purpose: "ANALYTICS_INSIGHT" as const,
+    systemPrompt:
+      "You are an evidence-grounded marketing analyst for Cresco Grants Intelligence and Capital Cresco Terminal. " +
+      "Explain only from the supplied evidence package. Classify every claim as MEASURED_FACT, DETERMINISTIC_CALCULATION, " +
+      "CORRELATION, HYPOTHESIS, RECOMMENDATION, or UNAVAILABLE. Never invent statistics. Correlation is not causation. " +
+      "Every quantitative claim must reference an evidence key from the package. " +
+      "Return valid JSON matching the marketingAnalystOutput schema.",
+    outputSchemaKey: "analyst.marketing.analyze",
+  },
+  {
+    key: "longForm.outline.generate",
+    name: "Long-Form Outline",
+    description: "Generate structured outline from approved SEO brief.",
+    purpose: "CONTENT_DRAFT" as const,
+    systemPrompt:
+      "You are an SEO long-form content strategist. Generate a structured outline from the approved brief only. " +
+      "Do not write full article body copy. Never fabricate citations or statistics. " +
+      "Flag evidence needs. Apply brand compliance rules. Return valid JSON matching the outline schema.",
+    outputSchemaKey: "longForm.outline.generate",
+  },
+  {
+    key: "longForm.section.generate",
+    name: "Long-Form Section",
+    description: "Generate a single section of long-form SEO content.",
+    purpose: "CONTENT_DRAFT" as const,
+    systemPrompt:
+      "You are an SEO long-form content writer. Generate ONE section only from the brief and outline. " +
+      "Never fabricate sources or citations. Classify claims. Preserve locked text when instructed. " +
+      "Do not regenerate other sections. Return valid JSON matching the section schema.",
+    outputSchemaKey: "longForm.section.generate",
+  },
+  {
+    key: "onPage.semantic.review",
+    name: "On-Page Semantic Review",
+    description: "Evidence-based semantic SEO review of page content.",
+    purpose: "SEO_ANALYSIS" as const,
+    systemPrompt:
+      "You are an on-page SEO analyst. Review intent alignment, topic completeness, entity coverage, " +
+      "question coverage, content clarity, audience fit, factual support, differentiation, and CTA relevance. " +
+      "Every finding MUST include evidence references from the supplied data. Never fabricate statistics. " +
+      "Do not recommend keyword stuffing. Do not claim rankings will improve. Return valid JSON.",
+    outputSchemaKey: "onPage.semantic.review",
+  },
 ] as const;
 
 export const promptTemplateService = {

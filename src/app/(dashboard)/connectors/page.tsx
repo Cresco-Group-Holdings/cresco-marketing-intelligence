@@ -204,7 +204,25 @@ export default function ConnectorsPage() {
                         >
                           Details
                         </Button>
-                        <Button size="sm" disabled={!item.canConnect || actionLoading}>
+                        <Button
+                          size="sm"
+                          disabled={!item.canConnect || actionLoading}
+                          onClick={() => {
+                            if (item.key === "GOOGLE_ANALYTICS_4") {
+                              window.location.href = "/connectors/google-analytics";
+                            } else if (item.key === "GOOGLE_SEARCH_CONSOLE") {
+                              window.location.href = "/connectors/google-search-console";
+                            } else if (item.key === "GOOGLE_ADS") {
+                              window.location.href = "/connectors/google-ads";
+                            } else if (item.key === "META") {
+                              window.location.href = "/connectors/meta-ads";
+                            } else if (item.key === "LINKEDIN") {
+                              window.location.href = "/connectors/linkedin-ads";
+                            } else if (item.key === "TIKTOK") {
+                              window.location.href = "/connectors/tiktok-ads";
+                            }
+                          }}
+                        >
                           Connect
                         </Button>
                       </div>

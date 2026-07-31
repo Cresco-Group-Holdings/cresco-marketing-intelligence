@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  MarketingChannel,
+  BrandMarketingChannel,
   MarketingObjectiveType,
   OnboardingStepKey,
 } from "@prisma/client";
@@ -54,7 +54,7 @@ type OnboardingState = {
     targetValue: string;
     targetPeriod: string;
   }>;
-  channelPreferences: Array<{ channel: MarketingChannel }>;
+  channelPreferences: Array<{ channel: BrandMarketingChannel }>;
   templateProjects: Array<{
     id: string;
     name: string;
@@ -104,7 +104,7 @@ export function OnboardingWizard() {
   const [mission, setMission] = useState("");
 
   const [objectiveDrafts, setObjectiveDrafts] = useState<ObjectiveDraft[]>([]);
-  const [selectedChannels, setSelectedChannels] = useState<MarketingChannel[]>([]);
+  const [selectedChannels, setSelectedChannels] = useState<BrandMarketingChannel[]>([]);
 
   const step = state?.progress.currentStep ?? OnboardingStepKey.ACCOUNT_PROFILE;
 
@@ -173,7 +173,7 @@ export function OnboardingWizard() {
     setSelectedChannels(
       data.channelPreferences.length > 0
         ? data.channelPreferences.map((preference) => preference.channel)
-        : [MarketingChannel.WEBSITE, MarketingChannel.SEO],
+        : [BrandMarketingChannel.WEBSITE, BrandMarketingChannel.SEO],
     );
   }
 

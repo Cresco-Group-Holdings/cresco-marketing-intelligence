@@ -1,5 +1,6 @@
 import type { ConnectorType } from "@prisma/client";
 import type { ConnectorRegistryEntry } from "@/lib/connectors/types";
+import { isStripeConfigured } from "@/lib/revenue/config";
 
 const CATALOGUE: ConnectorRegistryEntry[] = [
   {
@@ -10,7 +11,7 @@ const CATALOGUE: ConnectorRegistryEntry[] = [
     requiredScopes: ["https://www.googleapis.com/auth/analytics.readonly"],
     optionalScopes: [],
     supportsOAuth: true,
-    platformAvailability: "COMING_SOON",
+    platformAvailability: "AVAILABLE",
     documentationUrl: "https://developers.google.com/analytics",
   },
   {
@@ -21,7 +22,7 @@ const CATALOGUE: ConnectorRegistryEntry[] = [
     requiredScopes: ["https://www.googleapis.com/auth/webmasters.readonly"],
     optionalScopes: [],
     supportsOAuth: true,
-    platformAvailability: "COMING_SOON",
+    platformAvailability: "AVAILABLE",
     documentationUrl: "https://developers.google.com/webmaster-tools",
   },
   {
@@ -32,18 +33,18 @@ const CATALOGUE: ConnectorRegistryEntry[] = [
     requiredScopes: ["https://www.googleapis.com/auth/adwords"],
     optionalScopes: [],
     supportsOAuth: true,
-    platformAvailability: "COMING_SOON",
+    platformAvailability: "AVAILABLE",
     documentationUrl: "https://developers.google.com/google-ads/api",
   },
   {
     key: "META",
-    name: "Meta",
-    description: "Import advertising and page insights from Meta platforms.",
+    name: "Meta Ads",
+    description: "Import advertising performance from Meta (Facebook & Instagram) ad accounts.",
     category: "Advertising",
     requiredScopes: ["ads_read"],
     optionalScopes: ["pages_read_engagement"],
     supportsOAuth: true,
-    platformAvailability: "COMING_SOON",
+    platformAvailability: "AVAILABLE",
     documentationUrl: "https://developers.facebook.com/docs/marketing-apis",
   },
   {
@@ -59,24 +60,24 @@ const CATALOGUE: ConnectorRegistryEntry[] = [
   },
   {
     key: "LINKEDIN",
-    name: "LinkedIn",
-    description: "Import LinkedIn page and advertising performance data.",
-    category: "Social",
-    requiredScopes: ["r_organization_social"],
-    optionalScopes: ["r_ads"],
+    name: "LinkedIn Ads",
+    description: "Import LinkedIn advertising campaign and performance data.",
+    category: "Advertising",
+    requiredScopes: ["r_ads"],
+    optionalScopes: ["r_organization_social"],
     supportsOAuth: true,
-    platformAvailability: "COMING_SOON",
+    platformAvailability: "AVAILABLE",
     documentationUrl: "https://learn.microsoft.com/en-us/linkedin/",
   },
   {
     key: "TIKTOK",
-    name: "TikTok",
-    description: "Import TikTok advertising and organic performance data.",
-    category: "Social",
+    name: "TikTok Ads",
+    description: "Import TikTok advertising performance data.",
+    category: "Advertising",
     requiredScopes: ["user.info.basic"],
-    optionalScopes: ["video.list"],
+    optionalScopes: [],
     supportsOAuth: true,
-    platformAvailability: "COMING_SOON",
+    platformAvailability: "AVAILABLE",
     documentationUrl: "https://developers.tiktok.com/",
   },
   {
@@ -148,12 +149,16 @@ export class ConnectorRegistry {
   }
 
   isConnectable(key: ConnectorType): boolean {
+    if (key === "STRIPE") return isStripeConfigured();
     return this.get(key).platformAvailability === "AVAILABLE";
   }
 
   getConnectDisabledReason(key: ConnectorType): string | null {
+    if (key === "STRIPE" && !isStripeConfigured()) {
+      return "Stripe requires STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET environment variables.";
+    }
     const entry = this.get(key);
-    if (entry.platformAvailability === "AVAILABLE") {
+    if (entry.platformAvailability === "AVAILABLE" || (key === "STRIPE" && isStripeConfigured())) {
       return null;
     }
     return "This integration is not yet available. Connector infrastructure is in place, but provider adapters are coming in a future release.";

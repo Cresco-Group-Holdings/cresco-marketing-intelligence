@@ -1,0 +1,198 @@
+import type { MarketingMetricAggregation, MarketingMetricDataType } from "@prisma/client";
+
+export type WarehouseMetricDefinition = {
+  canonicalKey: string;
+  displayName: string;
+  description: string;
+  unit?: string;
+  dataType: MarketingMetricDataType;
+  aggregation: MarketingMetricAggregation;
+  isCumulative: boolean;
+};
+
+export const DEFAULT_METRIC_DEFINITIONS: WarehouseMetricDefinition[] = [
+  {
+    canonicalKey: "sessions",
+    displayName: "Sessions",
+    description: "Distinct browsing sessions",
+    unit: "count",
+    dataType: "INTEGER",
+    aggregation: "SUM",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "users",
+    displayName: "Users",
+    description: "Distinct users",
+    unit: "count",
+    dataType: "INTEGER",
+    aggregation: "SUM",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "pageviews",
+    displayName: "Page views",
+    description: "Total page views",
+    unit: "count",
+    dataType: "INTEGER",
+    aggregation: "SUM",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "impressions",
+    displayName: "Impressions",
+    description: "Ad or content impressions",
+    unit: "count",
+    dataType: "INTEGER",
+    aggregation: "SUM",
+    isCumulative: true,
+  },
+  {
+    canonicalKey: "clicks",
+    displayName: "Clicks",
+    description: "Link or ad clicks",
+    unit: "count",
+    dataType: "INTEGER",
+    aggregation: "SUM",
+    isCumulative: true,
+  },
+  {
+    canonicalKey: "conversions",
+    displayName: "Conversions",
+    description: "Goal completions",
+    unit: "count",
+    dataType: "INTEGER",
+    aggregation: "SUM",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "revenue",
+    displayName: "Revenue",
+    description: "Attributed revenue",
+    unit: "currency",
+    dataType: "CURRENCY",
+    aggregation: "SUM",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "cost",
+    displayName: "Cost",
+    description: "Media spend",
+    unit: "currency",
+    dataType: "CURRENCY",
+    aggregation: "SUM",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "ctr",
+    displayName: "Click-through rate",
+    description: "Clicks divided by impressions",
+    unit: "percentage",
+    dataType: "PERCENTAGE",
+    aggregation: "AVG",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "engagement_rate",
+    displayName: "Engagement rate",
+    description: "Engagements divided by impressions",
+    unit: "percentage",
+    dataType: "PERCENTAGE",
+    aggregation: "AVG",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "avg_position",
+    displayName: "Average position",
+    description: "Average search ranking position",
+    unit: "position",
+    dataType: "DECIMAL",
+    aggregation: "AVG",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "reach",
+    displayName: "Reach",
+    description: "Unique users reached",
+    unit: "count",
+    dataType: "INTEGER",
+    aggregation: "SUM",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "frequency",
+    displayName: "Frequency",
+    description: "Average impressions per reached user",
+    unit: "ratio",
+    dataType: "DECIMAL",
+    aggregation: "AVG",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "link_clicks",
+    displayName: "Link clicks",
+    description: "Clicks on ad links",
+    unit: "count",
+    dataType: "INTEGER",
+    aggregation: "SUM",
+    isCumulative: true,
+  },
+  {
+    canonicalKey: "cpc",
+    displayName: "Cost per click",
+    description: "Average cost per click",
+    unit: "currency",
+    dataType: "CURRENCY",
+    aggregation: "AVG",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "cpm",
+    displayName: "Cost per mille",
+    description: "Cost per thousand impressions",
+    unit: "currency",
+    dataType: "CURRENCY",
+    aggregation: "AVG",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "video_views",
+    displayName: "Video views",
+    description: "Video ad views",
+    unit: "count",
+    dataType: "INTEGER",
+    aggregation: "SUM",
+    isCumulative: true,
+  },
+  {
+    canonicalKey: "conversion_value",
+    displayName: "Conversion value",
+    description: "Total conversion value reported by provider",
+    unit: "currency",
+    dataType: "CURRENCY",
+    aggregation: "SUM",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "cost_per_conversion",
+    displayName: "Cost per conversion",
+    description: "Average cost per conversion",
+    unit: "currency",
+    dataType: "CURRENCY",
+    aggregation: "AVG",
+    isCumulative: false,
+  },
+  {
+    canonicalKey: "roas",
+    displayName: "ROAS",
+    description: "Provider-reported return on ad spend",
+    unit: "ratio",
+    dataType: "DECIMAL",
+    aggregation: "AVG",
+    isCumulative: false,
+  },
+];
+
+export function metricDefinitionByKey(key: string) {
+  return DEFAULT_METRIC_DEFINITIONS.find((definition) => definition.canonicalKey === key);
+}

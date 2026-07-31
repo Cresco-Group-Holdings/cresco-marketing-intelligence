@@ -1,0 +1,34 @@
+export const FORM_STATUSES = ["DRAFT", "IN_REVIEW", "APPROVED", "ACTIVE", "PAUSED", "ARCHIVED"] as const;
+export const FORM_TYPES = [
+  "CONTACT", "DEMO_REQUEST", "WAITLIST", "NEWSLETTER", "DOWNLOAD", "EVENT_REGISTRATION",
+  "GRANT_INTEREST", "CAPITAL_ANALYSIS_REQUEST", "PARTNERSHIP", "SUPPORT", "CUSTOM",
+] as const;
+export const FIELD_TYPES = [
+  "TEXT", "EMAIL", "PHONE", "TEXTAREA", "NUMBER", "DATE", "SINGLE_SELECT", "MULTI_SELECT",
+  "CHECKBOX", "RADIO", "COUNTRY", "LANGUAGE", "COMPANY", "JOB_TITLE", "URL", "HIDDEN", "CONSENT", "FILE_UPLOAD",
+] as const;
+export const CONSENT_PURPOSES = [
+  "SERVICE_REQUEST", "MARKETING_EMAIL", "MARKETING_PHONE", "PERSONALISED_MARKETING",
+  "ADVERTISING_AUDIENCE", "PARTNER_COMMUNICATIONS",
+] as const;
+export const OPTIONAL_MARKETING_PURPOSES = [
+  "MARKETING_EMAIL", "MARKETING_PHONE", "PERSONALISED_MARKETING", "ADVERTISING_AUDIENCE", "PARTNER_COMMUNICATIONS",
+] as const;
+
+export const FORM_PERMISSIONS = {
+  READ: "forms.read",
+  CREATE: "forms.create",
+  EDIT: "forms.edit",
+  PUBLISH: "forms.publish",
+  ARCHIVE: "forms.archive",
+  VIEW_SUBMISSIONS: "forms.viewSubmissions",
+  MANAGE_ROUTING: "forms.manageRouting",
+  REVIEW_QUARANTINE: "forms.reviewQuarantine",
+} as const;
+
+export const MAX_SUBMISSION_PAYLOAD_BYTES = 64_000;
+export const MAX_FIELD_COUNT = 50;
+export const SUBMISSION_RATE_LIMIT_PER_MINUTE = 20;
+export const SUBMISSION_RATE_LIMIT_PER_HOUR = 100;
+
+export const DANGEROUS_HTML_PATTERN = /<script|javascript:|on\w+\s*=/i;

@@ -1,0 +1,13 @@
+export const DEFAULT_KEYWORD_QUOTA = 100;
+export const MIN_OBSERVATIONS_FOR_VOLATILITY = 3;
+export const LARGE_POSITION_MOVEMENT = 5;
+export const SIGNIFICANT_RANK_LOSS = 10;
+export const RAPID_CLICK_DECLINE_PCT = 0.3;
+export const MIN_IMPRESSIONS_FOR_ALERT = 50;
+export const ALERT_COOLDOWN_HOURS = 24;
+export const PROVIDER_STALE_DAYS = 7;
+export const DECAY_MIN_SIGNALS = 2;
+export const DECAY_MIN_DAYS = 14;
+export const CTR_DECLINE_THRESHOLD = 0.2;
+export const IMPRESSION_DECLINE_THRESHOLD = 0.25;
+export const RANK_DECLINE_THRESHOLD = 3;

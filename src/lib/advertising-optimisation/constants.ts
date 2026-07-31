@@ -1,0 +1,84 @@
+export const REVIEW_TYPES = [
+  "DAILY_OPERATIONAL",
+  "WEEKLY_OPTIMISATION",
+  "MONTHLY_PORTFOLIO",
+  "ON_DEMAND_CAMPAIGN",
+] as const;
+
+export const FINDING_TYPES = [
+  "HIGH_SPEND_LOW_RETURN",
+  "TRACKING_FAILURE",
+  "CREATIVE_FATIGUE",
+  "AUDIENCE_SATURATION",
+  "LOW_CTR",
+  "HIGH_CPC",
+  "HIGH_CPA",
+  "LOW_CONVERSION_RATE",
+  "LANDING_PAGE_MISMATCH",
+  "STRONG_CAMPAIGN",
+  "STRONG_CREATIVE",
+  "BUDGET_CONSTRAINT",
+  "BUDGET_OVERRUN_RISK",
+  "INVALID_EXPERIMENT",
+  "PROVIDER_DATA_STALE",
+  "ATTRIBUTION_GAP",
+  "POLICY_RISK",
+  "OTHER",
+] as const;
+
+export const RECOMMENDATION_TYPES = [
+  "INVESTIGATE_TRACKING",
+  "PAUSE_FOR_REVIEW",
+  "REDUCE_BUDGET",
+  "REQUEST_BUDGET_INCREASE",
+  "CREATE_NEW_CREATIVE",
+  "ROTATE_CREATIVE",
+  "REVISE_AUDIENCE",
+  "EXCLUDE_LOW_QUALITY_PLACEMENT",
+  "REVIEW_LANDING_PAGE",
+  "CREATE_EXPERIMENT",
+  "CHANGE_SCHEDULE",
+  "REVIEW_BID_STRATEGY",
+  "IMPROVE_CONVERSION_TRACKING",
+  "WAIT_FOR_MORE_DATA",
+] as const;
+
+export const ACTION_CLASSES = [
+  "INFORMATION_ONLY",
+  "CREATE_TASK",
+  "CREATE_EXPERIMENT",
+  "CREATE_CREATIVE_REQUEST",
+  "REQUEST_BUDGET_CHANGE",
+  "REQUEST_PAUSE",
+  "REQUEST_RESUME",
+  "REQUEST_PROVIDER_CHANGE",
+] as const;
+
+export const MATERIAL_ACTION_CLASSES = [
+  "REQUEST_BUDGET_CHANGE",
+  "REQUEST_PAUSE",
+  "REQUEST_RESUME",
+  "REQUEST_PROVIDER_CHANGE",
+] as const;
+
+export const FEEDBACK_STATUSES = [
+  "ACCEPTED",
+  "REJECTED",
+  "DEFERRED",
+  "IMPLEMENTED",
+  "OUTCOME_MEASURED",
+  "OUTCOME_UNAVAILABLE",
+] as const;
+
+export const MINIMUM_VOLUME_DEFAULT = 1000;
+export const STALE_DATA_HOURS = 48;
+export const LOW_CTR_THRESHOLD = 0.5;
+export const HIGH_CPC_MULTIPLIER = 2;
+export const HIGH_CPA_MULTIPLIER = 1.5;
+export const LOW_ROAS_THRESHOLD = 1;
+
+export const OPTIMISATION_DISCLAIMER =
+  "Recommendations are evidence-grounded proposals only. No campaign launches, budget increases, or material targeting changes are applied without explicit human approval.";
+
+export const NO_AUTONOMOUS_ACTION_DISCLAIMER =
+  "The optimisation agent must not autonomously launch campaigns, increase budgets, or apply material targeting changes.";

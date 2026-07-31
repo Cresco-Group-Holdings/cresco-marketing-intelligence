@@ -22,7 +22,8 @@ function NavLink({
   const isActive =
     pathname === item.href ||
     (item.href === "/knowledge" && pathname.includes("/knowledge")) ||
-    (item.href === "/assets" && pathname.includes("/assets"));
+    (item.href === "/assets" && pathname.includes("/assets")) ||
+    (item.href === "/advertising" && pathname.startsWith("/advertising"));
 
   return (
     <Link

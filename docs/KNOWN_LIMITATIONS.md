@@ -65,4 +65,54 @@ Publishing scheduler, capability enforcement, provider kill switches, and operat
 
 ## Billing
 
+<<<<<<< HEAD
 - No usage-based billing or subscription management
+=======
+- No usage-based billing or subscription management in Stage 1
+
+## Marketing data warehouse (Task 3.1)
+
+Documented limitations at the end of Task 3.1 warehouse foundation.
+
+### Ingest and connectors
+
+| Limitation | Status | Plan |
+| --- | --- | --- |
+| Live GA4 sync | Not available | Connector adapter; Task 3.2+ |
+| Live Google Ads sync | Not available | Connector adapter; Task 3.2+ |
+| Live Google Search Console sync | Not available | Connector adapter; Task 3.2+ |
+| Connector → warehouse write path | Not wired | Reuse sync engine; Task 3.2+ |
+| Provider normaliser | Stub only | Per-provider mapping; Task 3.2+ |
+| Social ETL into warehouse | Read-bridge only | No migration of existing `SocialPostMetric` rows |
+| Webhook ingest | Schema only | Task 3.2+ |
+
+### Data and query
+
+| Limitation | Status | Plan |
+| --- | --- | --- |
+| Daily aggregates only | By design | Hourly/real-time in later tasks |
+| Probabilistic identity resolution | Not available | Schema only; explicit links in 3.1 |
+| Cross-source attribution | Out of scope | Future growth intelligence task |
+| JSON dimension indexing | Not available | Tenant + date keys only |
+| Social metric registry unification | Parallel registries | `SocialMetricDefinition` → `MarketingMetricDefinition` in 3.2 |
+
+### Operations
+
+| Limitation | Status | Plan |
+| --- | --- | --- |
+| Warehouse scheduler cron | Not deployed | Health API only; cron in 3.2 |
+| Freshness alerting | Not available | Health records only; notifications in 3.2 |
+| Automated FX rate feeds | Not available | Manual/test rates only |
+| AI-assisted import mapping | Not available | Manual column mapping in 3.1 |
+| Raw payload encryption at rest | Not implemented | Policy: no secrets in raw layer |
+
+### Active paths in 3.1
+
+- Manual CSV/TSV/JSON/XLSX import (`docs/MANUAL_IMPORT.md`)
+- First-party event ingestion
+- Social bridge read adapter (`SOCIAL_BRIDGE` provider)
+- Stub normaliser for test fixtures
+- Operations dashboard, health API, quality framework (schema + services)
+
+See `docs/MARKETING_DATA_WAREHOUSE.md` and `docs/TASK_3_1_PREFLIGHT.md` for architecture decisions and deferred debt.
+>>>>>>> origin/cursor/v1-production-readiness-e94c

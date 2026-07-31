@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { MarketingChannel, MarketingObjectiveType, OnboardingStepKey } from "@prisma/client";
+import { BrandMarketingChannel, MarketingObjectiveType, OnboardingStepKey } from "@prisma/client";
 
 const trimmedString = (max: number) => z.string().trim().min(1).max(max);
 const optionalTrimmed = (max: number) => z.string().trim().max(max).optional().or(z.literal(""));
@@ -66,7 +66,7 @@ export const marketingObjectivesStepSchema = z.object({
 });
 
 export const channelPreferencesStepSchema = z.object({
-  channels: z.array(z.nativeEnum(MarketingChannel)).min(1),
+  channels: z.array(z.nativeEnum(BrandMarketingChannel)).min(1),
 });
 
 export const applyTemplateSchema = z.object({
