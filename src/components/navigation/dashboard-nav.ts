@@ -17,6 +17,7 @@ import {
   Megaphone,
   PenSquare,
   Palette,
+  Plug,
   Settings,
   Share2,
   Sprout,
@@ -215,6 +216,12 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/automation",
     icon: Bot,
     description: "Customer journey automations with triggers, conditions, and actions",
+  },
+  {
+    label: "Integrations",
+    href: "/integrations",
+    icon: Plug,
+    description: "Provider connections and external API governance",
   },
   {
     label: "Connectors",
