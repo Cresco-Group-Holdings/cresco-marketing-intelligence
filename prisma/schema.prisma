@@ -179,6 +179,7 @@ enum AIPurpose {
   ADVERTISING_CREATIVE
   ADVERTISING_AUDIENCE
   COMPLIANCE_REVIEW_SUGGEST
+  INBOX_REPLY_SUGGEST
 }
 
 enum AIRequestStatus {
@@ -413,6 +414,12 @@ model UserProfile {
   contentAssignmentsMade                       ContentAssignment[]                    @relation("ContentAssignmentAssigner")
   contentActivitiesAuthored                    ContentActivity[]                      @relation("ContentActivityActor")
   checklistItemsCompleted                      ContentChecklistItem[]                 @relation("ChecklistItemCompleter")
+  socialInboxAssignments                       SocialInboxAssignment[]                @relation("SocialInboxAssignee")
+  socialInboxAssignmentsMade                   SocialInboxAssignment[]                @relation("SocialInboxAssigner")
+  socialInboxStatusChanges                     SocialInboxStatusHistory[]             @relation("SocialInboxStatusChanger")
+  socialInboxReplyDrafts                       SocialInboxReplyDraft[]                @relation("SocialInboxReplyDraftAuthor")
+  socialInboxMessagesSent                      SocialMessage[]                        @relation("SocialMessageSender")
+  socialInboxAssigned                          SocialConversation[]                   @relation("SocialInboxConversationAssignee")
 
   @@index([email])
 }
@@ -806,6 +813,15 @@ model Organisation {
   contentDeadlines                        ContentDeadline[]
   contentChecklists                       ContentChecklist[]
   contentActivities                       ContentActivity[]
+  socialConversations                     SocialConversation[]
+  socialMessages                          SocialMessage[]
+  socialComments                          SocialComment[]
+  socialMentions                          SocialMention[]
+  socialParticipants                      SocialParticipant[]
+  socialInboxAssignments                  SocialInboxAssignment[]
+  socialInboxTags                         SocialInboxTag[]
+  socialInboxStatusHistory                SocialInboxStatusHistory[]
+  socialInboxReplyDrafts                  SocialInboxReplyDraft[]
 
   @@index([status])
   @@index([archivedAt])
@@ -1057,6 +1073,15 @@ model Project {
   contentCampaigns                 ContentCampaign[]
   contentTasks                     ContentTask[]
   contentActivities                ContentActivity[]
+  socialConversations              SocialConversation[]
+  socialMessages                   SocialMessage[]
+  socialComments                   SocialComment[]
+  socialMentions                   SocialMention[]
+  socialParticipants               SocialParticipant[]
+  socialInboxAssignments           SocialInboxAssignment[]
+  socialInboxTags                  SocialInboxTag[]
+  socialInboxStatusHistory         SocialInboxStatusHistory[]
+  socialInboxReplyDrafts           SocialInboxReplyDraft[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1323,6 +1348,15 @@ model Brand {
   contentDeadlines                 ContentDeadline[]
   contentChecklists                ContentChecklist[]
   contentActivities                ContentActivity[]
+  socialConversations              SocialConversation[]
+  socialParticipants               SocialParticipant[]
+  socialComments                   SocialComment[]
+  socialMentions                   SocialMention[]
+  socialMessages                   SocialMessage[]
+  socialInboxTags                  SocialInboxTag[]
+  socialInboxAssignments           SocialInboxAssignment[]
+  socialInboxStatusHistory         SocialInboxStatusHistory[]
+  socialInboxReplyDrafts           SocialInboxReplyDraft[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -2729,6 +2763,11 @@ model SocialAccount {
   contentVariants  ContentVariant[]
   schedules        ContentSchedule[]
   marketingLeads   MarketingLead[]
+  conversations    SocialConversation[]
+  participants     SocialParticipant[]
+  messages         SocialMessage[]
+  comments         SocialComment[]
+  mentions         SocialMention[]
 
   @@unique([socialConnectionId, providerAccountId])
   @@index([organisationId])
@@ -3361,6 +3400,374 @@ model ContentStatusHistory {
   @@index([organisationId])
   @@index([contentItemId])
   @@index([createdAt])
+}
+
+enum SocialConversationStatus {
+  NEW
+  OPEN
+  PENDING
+  RESOLVED
+  SPAM
+  ARCHIVED
+}
+
+enum SocialMessageDirection {
+  INBOUND
+  OUTBOUND
+}
+
+enum SocialConversationType {
+  COMMENT
+  MENTION
+  DIRECT_MESSAGE
+}
+
+enum SocialInboxSyncStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  PARTIAL
+}
+
+enum SocialInboxPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum SocialInboxReplyDraftStatus {
+  DRAFT
+  SENT
+  DISCARDED
+}
+
+enum SocialSafetyFlag {
+  SPAM
+  ABUSIVE_LANGUAGE
+  PERSONAL_DATA
+  THREAT
+  FINANCIAL_ADVICE
+  GRANT_ELIGIBILITY
+  COMPLAINT_REVIEW
+}
+
+model SocialConversation {
+  id                     String                   @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  socialAccountId        String
+  provider               SocialProvider
+  providerConversationId String
+  conversationType       SocialConversationType
+  status                 SocialConversationStatus @default(NEW)
+  priority               SocialInboxPriority      @default(NORMAL)
+  subject                String?
+  summary                String?
+  relatedProviderPostId  String?
+  relatedContentItemId   String?
+  unreadCount            Int                      @default(0)
+  safetyFlags            SocialSafetyFlag[]       @default([])
+  requiresHumanReview    Boolean                  @default(false)
+  assignedToUserId       String?
+  lastMessageAt          DateTime?
+  lastInboundAt          DateTime?
+  providerMetadata       Json?
+  resolvedAt             DateTime?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
+
+  organisation  Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount              @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  assignedTo    UserProfile?               @relation("SocialInboxConversationAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  messages      SocialMessage[]
+  comments      SocialComment[]
+  mentions      SocialMention[]
+  assignments   SocialInboxAssignment[]
+  tags          SocialInboxTag[]
+  statusHistory SocialInboxStatusHistory[]
+  replyDrafts   SocialInboxReplyDraft[]
+
+  @@unique([socialAccountId, providerConversationId])
+  @@index([organisationId, brandId, status])
+  @@index([socialAccountId, lastMessageAt])
+  @@index([assignedToUserId])
+  @@index([conversationType])
+  @@index([unreadCount])
+}
+
+model SocialMessage {
+  id                String                 @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  socialAccountId   String
+  conversationId    String
+  participantId     String?
+  providerMessageId String
+  direction         SocialMessageDirection
+  body              String
+  bodyHtml          String?
+  isDeleted         Boolean                @default(false)
+  isEdited          Boolean                @default(false)
+  providerCreatedAt DateTime
+  providerEditedAt  DateTime?
+  sentByUserId      String?
+  providerMetadata  Json?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  organisation  Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount      @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  conversation  SocialConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  participant   SocialParticipant? @relation(fields: [participantId], references: [id], onDelete: SetNull)
+  sentBy        UserProfile?       @relation("SocialMessageSender", fields: [sentByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([conversationId, providerMessageId])
+  @@index([organisationId, brandId])
+  @@index([conversationId, providerCreatedAt])
+  @@index([direction])
+}
+
+model SocialComment {
+  id                String    @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  socialAccountId   String
+  conversationId    String?
+  participantId     String?
+  providerCommentId String
+  providerPostId    String
+  parentCommentId   String?
+  body              String
+  isHidden          Boolean   @default(false)
+  isDeleted         Boolean   @default(false)
+  providerCreatedAt DateTime
+  providerEditedAt  DateTime?
+  providerMetadata  Json?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organisation  Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount       @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  conversation  SocialConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  participant   SocialParticipant?  @relation(fields: [participantId], references: [id], onDelete: SetNull)
+
+  @@unique([socialAccountId, providerCommentId])
+  @@index([organisationId, brandId])
+  @@index([providerPostId])
+  @@index([conversationId])
+}
+
+model SocialMention {
+  id                String   @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  socialAccountId   String
+  conversationId    String?
+  participantId     String?
+  providerMentionId String
+  providerPostId    String?
+  body              String
+  providerCreatedAt DateTime
+  providerMetadata  Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation  Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount       @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  conversation  SocialConversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  participant   SocialParticipant?  @relation(fields: [participantId], references: [id], onDelete: SetNull)
+
+  @@unique([socialAccountId, providerMentionId])
+  @@index([organisationId, brandId])
+  @@index([conversationId])
+}
+
+model SocialParticipant {
+  id                    String         @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  socialAccountId       String
+  provider              SocialProvider
+  providerParticipantId String
+  displayName           String?
+  username              String?
+  profileUrl            String?
+  avatarUrl             String?
+  providerMetadata      Json?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  organisation  Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  socialAccount SocialAccount   @relation(fields: [socialAccountId], references: [id], onDelete: Cascade)
+  messages      SocialMessage[]
+  comments      SocialComment[]
+  mentions      SocialMention[]
+
+  @@unique([socialAccountId, providerParticipantId])
+  @@index([organisationId, brandId])
+}
+
+model SocialInboxAssignment {
+  id               String   @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  conversationId   String
+  assignedToUserId String
+  assignedByUserId String
+  note             String?
+  createdAt        DateTime @default(now())
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  conversation SocialConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  assignedTo   UserProfile        @relation("SocialInboxAssignee", fields: [assignedToUserId], references: [id], onDelete: Restrict)
+  assignedBy   UserProfile        @relation("SocialInboxAssigner", fields: [assignedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, createdAt])
+  @@index([assignedToUserId])
+}
+
+model SocialInboxTag {
+  id             String   @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  conversationId String
+  tag            String
+  createdAt      DateTime @default(now())
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  conversation SocialConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, tag])
+  @@index([organisationId, brandId, tag])
+}
+
+model SocialInboxStatusHistory {
+  id              String                    @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  conversationId  String
+  fromStatus      SocialConversationStatus?
+  toStatus        SocialConversationStatus
+  changedByUserId String
+  reason          String?
+  createdAt       DateTime                  @default(now())
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  conversation SocialConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  changedBy    UserProfile        @relation("SocialInboxStatusChanger", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, createdAt])
+}
+
+model SocialInboxReplyDraft {
+  id             String                      @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  conversationId String
+  authorUserId   String
+  body           String
+  status         SocialInboxReplyDraftStatus @default(DRAFT)
+  aiGenerated    Boolean                     @default(false)
+  aiRequestId    String?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  conversation SocialConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author       UserProfile        @relation("SocialInboxReplyDraftAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+
+  @@index([conversationId, status])
+  @@index([authorUserId])
+}
+
+model SocialInboxSync {
+  id              String                @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  socialAccountId String
+  provider        SocialProvider
+  status          SocialInboxSyncStatus @default(QUEUED)
+  syncType        String
+  idempotencyKey  String                @unique
+  cursor          Json?
+  attemptCount    Int                   @default(0)
+  maxAttempts     Int                   @default(3)
+  scheduledFor    DateTime?
+  nextRetryAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  itemsProcessed  Int                   @default(0)
+  lastError       String?
+  createdByUserId String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([organisationId, brandId])
+  @@index([socialAccountId, status])
+  @@index([scheduledFor])
+}
+
+model SocialInboxWebhookEvent {
+  id              String         @id @default(cuid())
+  organisationId  String
+  brandId         String
+  socialAccountId String
+  provider        SocialProvider
+  idempotencyKey  String
+  payloadDigest   String
+  status          String         @default("PENDING")
+  processedAt     DateTime?
+  createdAt       DateTime       @default(now())
+
+  @@unique([socialAccountId, idempotencyKey])
+  @@index([organisationId, brandId])
+  @@index([status])
+}
+
+model SocialInboxWebhookSubscription {
+  id                String         @id @default(cuid())
+  organisationId    String
+  brandId           String
+  socialAccountId   String         @unique
+  provider          SocialProvider
+  verifyTokenDigest String
+  secretDigest      String?
+  status            String         @default("ACTIVE")
+  subscribedFields  String[]       @default([])
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@index([organisationId, brandId])
 }
 
 enum GrowthInsightType {

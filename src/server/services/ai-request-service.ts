@@ -15,6 +15,7 @@ import { COMPLIANCE_OUTPUT_SCHEMAS } from "@/lib/ai/compliance-output-schemas";
 import { GROWTH_OUTPUT_SCHEMAS } from "@/lib/ai/growth-output-schemas";
 import { LEADS_OUTPUT_SCHEMAS } from "@/lib/ai/leads-output-schemas";
 import { SOCIAL_REPORT_OUTPUT_SCHEMAS } from "@/lib/ai/social-report-output-schemas";
+import { INBOX_OUTPUT_SCHEMAS } from "@/lib/ai/inbox-output-schemas";
 import {
   AI_MAX_INPUT_CHARACTERS,
   AI_MAX_OUTPUT_TOKENS_DEFAULT,
@@ -58,6 +59,7 @@ const OUTPUT_SCHEMAS = {
   ...ADVERTISING_CREATIVE_OUTPUT_SCHEMAS,
   ...ADVERTISING_AUDIENCE_OUTPUT_SCHEMAS,
   ...COMPLIANCE_OUTPUT_SCHEMAS,
+  ...INBOX_OUTPUT_SCHEMAS,
   "diagnostics.ping": z.object({
     ok: z.boolean(),
     message: z.string(),
