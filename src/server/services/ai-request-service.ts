@@ -11,6 +11,7 @@ import { ADVERTISING_PLAN_OUTPUT_SCHEMAS } from "@/lib/ai/advertising-plan-outpu
 import { ADVERTISING_CREATIVE_OUTPUT_SCHEMAS } from "@/lib/ai/advertising-creative-output-schemas";
 import { ADVERTISING_AUDIENCE_OUTPUT_SCHEMAS } from "@/lib/ai/advertising-audience-output-schemas";
 import { CONTENT_OUTPUT_SCHEMAS } from "@/lib/ai/content-output-schemas";
+import { COMPLIANCE_OUTPUT_SCHEMAS } from "@/lib/ai/compliance-output-schemas";
 import { GROWTH_OUTPUT_SCHEMAS } from "@/lib/ai/growth-output-schemas";
 import { LEADS_OUTPUT_SCHEMAS } from "@/lib/ai/leads-output-schemas";
 import { SOCIAL_REPORT_OUTPUT_SCHEMAS } from "@/lib/ai/social-report-output-schemas";
@@ -56,6 +57,7 @@ const OUTPUT_SCHEMAS = {
   ...ADVERTISING_PLAN_OUTPUT_SCHEMAS,
   ...ADVERTISING_CREATIVE_OUTPUT_SCHEMAS,
   ...ADVERTISING_AUDIENCE_OUTPUT_SCHEMAS,
+  ...COMPLIANCE_OUTPUT_SCHEMAS,
   "diagnostics.ping": z.object({
     ok: z.boolean(),
     message: z.string(),

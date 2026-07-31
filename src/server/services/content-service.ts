@@ -30,6 +30,7 @@ import type {
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { getOrganisationApproverUserIds } from "@/lib/notifications/recipients";
 import { notificationEventService } from "@/server/services/notification-event-service";
+import { complianceAgentService } from "@/server/services/compliance-agent-service";
 import { brandService } from "@/server/services/workspace-service";
 
 type BrandScope = {
@@ -212,7 +213,28 @@ async function persistComplianceChecks(
   scope: BrandScope,
   contentItemId: string,
   item: Awaited<ReturnType<typeof getContentOrThrow>>,
+  context?: TenantContext,
 ) {
+  if (context) {
+    try {
+      const evaluation = await complianceAgentService.evaluate(
+        scope.brandId,
+        scope.organisationId,
+        contentItemId,
+        context,
+      );
+      return evaluation.findings.map((finding) => ({
+        checkType: "PROHIBITED_CLAIM" as const,
+        result: finding.isBlocking ? ("FAIL" as const) : ("WARNING" as const),
+        message: finding.message,
+        blocking: finding.isBlocking,
+        contentVariantId: finding.contentVariantId ?? undefined,
+      }));
+    } catch {
+      // Fall through to legacy deterministic checks when no policy is configured.
+    }
+  }
+
   const prohibitedClaims = await prisma.brandComplianceRule.findMany({
     where: {
       brandId: scope.brandId,
@@ -501,7 +523,7 @@ export const contentService = {
       source: "USER",
     });
 
-    await persistComplianceChecks(scope, contentId, updated);
+    await persistComplianceChecks(scope, contentId, updated, context);
 
     await recordAuditEvent({
       organisationId: scope.organisationId,
@@ -526,7 +548,7 @@ export const contentService = {
     const scope = await resolveBrandScope(brandId, organisationId, context);
     const item = await getContentOrThrow(scope, contentId);
     const settings = await getWorkflowSettings(scope.organisationId);
-    const findings = await persistComplianceChecks(scope, contentId, item);
+    const findings = await persistComplianceChecks(scope, contentId, item, context);
     if (hasBlockingComplianceFailures(findings)) {
       throw new AppError("VALIDATION_ERROR", "Compliance checks must pass before review.");
     }
@@ -612,7 +634,7 @@ export const contentService = {
       ownerUserId: item.ownerUserId,
     });
 
-    const findings = await persistComplianceChecks(scope, contentId, item);
+    const findings = await persistComplianceChecks(scope, contentId, item, context);
     if (hasBlockingComplianceFailures(findings)) {
       throw new AppError("VALIDATION_ERROR", "Compliance checks must pass before approval.");
     }

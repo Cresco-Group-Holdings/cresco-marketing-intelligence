@@ -178,6 +178,7 @@ enum AIPurpose {
   ADVERTISING_PLANNING
   ADVERTISING_CREATIVE
   ADVERTISING_AUDIENCE
+  COMPLIANCE_REVIEW_SUGGEST
 }
 
 enum AIRequestStatus {
@@ -399,6 +400,9 @@ model UserProfile {
   notificationDigests                          NotificationDigest[]
   operationalAlertsResolved                    OperationalAlert[]                     @relation("OperationalAlertResolver")
   recoveryActions                              RecoveryAction[]
+  compliancePoliciesCreated                    CompliancePolicy[]                     @relation("CompliancePolicyCreator")
+  complianceEvaluationsRun                     ComplianceEvaluation[]                 @relation("ComplianceEvaluator")
+  complianceOverridesCreated                   ComplianceOverride[]                   @relation("ComplianceOverrideUser")
 
   @@index([email])
 }
@@ -783,6 +787,9 @@ model Organisation {
   notificationDigests                     NotificationDigest[]
   operationalAlerts                       OperationalAlert[]
   recoveryActions                         RecoveryAction[]
+  compliancePolicies                      CompliancePolicy[]
+  complianceEvaluations                   ComplianceEvaluation[]
+  complianceOverrides                     ComplianceOverride[]
 
   @@index([status])
   @@index([archivedAt])
@@ -1029,6 +1036,8 @@ model Project {
   lifecycleAgentRuns               LifecycleAgentRun[]
   notifications                    Notification[]
   operationalAlerts                OperationalAlert[]
+  compliancePolicies               CompliancePolicy[]
+  complianceEvaluations            ComplianceEvaluation[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1287,6 +1296,8 @@ model Brand {
   notifications                    Notification[]
   notificationPreferences          NotificationPreference[]
   operationalAlerts                OperationalAlert[]
+  compliancePolicies               CompliancePolicy[]
+  complianceEvaluations            ComplianceEvaluation[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -3069,6 +3080,7 @@ model ContentItem {
   seoContentBriefs         SeoContentBrief[]
   longFormDocuments        LongFormContentDocument[]
   advertisingCreativePlans AdvertisingCampaignCreativePlan[]
+  complianceEvaluations    ComplianceEvaluation[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -3121,6 +3133,7 @@ model ContentVariant {
   marketingAds             MarketingAd[]
   paidAdsCreativeMappings  PaidAdsCreativeMapping[]
   advertisingCreativePlans AdvertisingCampaignCreativePlan[]
+  complianceEvaluations    ComplianceEvaluation[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -17038,4 +17051,205 @@ model RecoveryAction {
   @@unique([organisationId, idempotencyKey])
   @@index([operationalAlertId])
   @@index([organisationId, status])
+}
+
+// --- Task 2.17: Social compliance and brand safety ---
+
+enum CompliancePolicyCategory {
+  BRAND
+  FINANCIAL
+  GRANTS
+  PRIVACY
+  COPYRIGHT
+  LICENSING
+  PLATFORM
+  ACCESSIBILITY
+  ADVERTISING
+  AI_DISCLOSURE
+}
+
+enum ComplianceRiskLevel {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  BLOCKING
+}
+
+enum ComplianceEvaluationStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+enum ComplianceFindingSource {
+  DETERMINISTIC
+  AI
+}
+
+enum ComplianceFindingStatus {
+  OPEN
+  OVERRIDDEN
+  DISMISSED
+  RESOLVED
+}
+
+enum ComplianceEvaluationSource {
+  DETERMINISTIC
+  AI
+  COMBINED
+}
+
+model CompliancePolicy {
+  id                   String                   @id @default(cuid())
+  organisationId       String
+  projectId            String?
+  brandId              String?
+  name                 String
+  slug                 String
+  category             CompliancePolicyCategory
+  version              Int                      @default(1)
+  isTemplate           Boolean                  @default(false)
+  templateKey          String?
+  isActive             Boolean                  @default(true)
+  description          String?
+  effectiveFrom        DateTime                 @default(now())
+  effectiveTo          DateTime?
+  supersededByPolicyId String?
+  createdByUserId      String
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  organisation        Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project             Project?               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand               Brand?                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy           UserProfile            @relation("CompliancePolicyCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  rules               ComplianceRule[]
+  requiredDisclaimers RequiredDisclaimer[]
+  evaluations         ComplianceEvaluation[]
+  overrides           ComplianceOverride[]
+
+  @@unique([organisationId, slug, version])
+  @@index([organisationId, brandId, isActive])
+  @@index([templateKey])
+}
+
+model ComplianceRule {
+  id           String                   @id @default(cuid())
+  policyId     String
+  ruleKey      String
+  category     CompliancePolicyCategory
+  title        String
+  description  String?
+  riskLevel    ComplianceRiskLevel      @default(MEDIUM)
+  isBlocking   Boolean                  @default(false)
+  canOverride  Boolean                  @default(true)
+  matchPattern String?
+  ruleConfig   Json?
+  sortOrder    Int                      @default(0)
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+
+  policy   CompliancePolicy    @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  findings ComplianceFinding[]
+
+  @@unique([policyId, ruleKey])
+  @@index([policyId, category])
+}
+
+model RequiredDisclaimer {
+  id                    String   @id @default(cuid())
+  policyId              String
+  disclaimerText        String
+  appliesToCategories   String[] @default([])
+  appliesToContentTypes String[] @default([])
+  isBlocking            Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  policy CompliancePolicy @relation(fields: [policyId], references: [id], onDelete: Cascade)
+
+  @@index([policyId])
+}
+
+model ComplianceEvaluation {
+  id                String                     @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  contentItemId     String
+  contentVariantId  String?
+  policyId          String
+  policyVersion     Int
+  status            ComplianceEvaluationStatus @default(PENDING)
+  source            ComplianceEvaluationSource @default(DETERMINISTIC)
+  evaluatedAt       DateTime?
+  evaluatedByUserId String?
+  createdAt         DateTime                   @default(now())
+
+  organisation   Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem    ContentItem          @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  contentVariant ContentVariant?      @relation(fields: [contentVariantId], references: [id], onDelete: SetNull)
+  policy         CompliancePolicy     @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  evaluator      UserProfile?         @relation("ComplianceEvaluator", fields: [evaluatedByUserId], references: [id], onDelete: SetNull)
+  findings       ComplianceFinding[]
+  overrides      ComplianceOverride[]
+
+  @@index([organisationId, brandId, contentItemId])
+  @@index([contentItemId, createdAt])
+  @@index([policyId])
+}
+
+model ComplianceFinding {
+  id                  String                   @id @default(cuid())
+  evaluationId        String
+  ruleId              String?
+  ruleReference       String?
+  source              ComplianceFindingSource
+  category            CompliancePolicyCategory
+  riskLevel           ComplianceRiskLevel
+  isBlocking          Boolean                  @default(false)
+  status              ComplianceFindingStatus  @default(OPEN)
+  excerpt             String?
+  message             String
+  explanation         String?
+  suggestedCorrection String?
+  contentVariantId    String?
+  metadata            Json?
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+
+  evaluation ComplianceEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  rule       ComplianceRule?      @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  overrides  ComplianceOverride[]
+
+  @@index([evaluationId, status])
+  @@index([riskLevel, isBlocking])
+}
+
+model ComplianceOverride {
+  id               String    @id @default(cuid())
+  organisationId   String
+  evaluationId     String
+  findingId        String
+  policyId         String
+  contentItemId    String
+  contentVariantId String?
+  reason           String
+  userId           String
+  expiresAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  organisation Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  evaluation   ComplianceEvaluation @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+  finding      ComplianceFinding    @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  policy       CompliancePolicy     @relation(fields: [policyId], references: [id], onDelete: Restrict)
+  user         UserProfile          @relation("ComplianceOverrideUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([evaluationId])
+  @@index([findingId])
+  @@index([contentItemId])
 }

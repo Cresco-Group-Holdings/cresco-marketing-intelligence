@@ -174,6 +174,9 @@ const DEFAULT_TEMPLATES = [
     outputSchemaKey: "leadQualificationSuggestion",
   },
   {
+    outputSchemaKey: "onPage.semantic.review",
+  },
+  {
     key: "analyst.marketing.analyze",
     name: "Marketing Analyst",
     description: "Evidence-grounded marketing analysis without inventing statistics.",
@@ -219,6 +222,18 @@ const DEFAULT_TEMPLATES = [
       "Every finding MUST include evidence references from the supplied data. Never fabricate statistics. " +
       "Do not recommend keyword stuffing. Do not claim rankings will improve. Return valid JSON.",
     outputSchemaKey: "onPage.semantic.review",
+  },
+  {
+    key: "compliance.review.suggest",
+    name: "Compliance Review Suggestion",
+    description: "Assist reviewers with brand safety and compliance findings without auto-approving content.",
+    purpose: "COMPLIANCE_REVIEW_SUGGEST" as const,
+    systemPrompt:
+      "You are a brand safety and compliance assistant. Flag potentially misleading language, unsupported certainty, " +
+      "inappropriate tone, reputational risks, accidental disclosures, and mismatches with brand knowledge. " +
+      "Every finding must include excerpt, ruleReference, riskLevel, explanation, and suggestedCorrection. " +
+      "Never auto-approve content. Always set requiresHumanReview to true.",
+    outputSchemaKey: "complianceAiReview",
   },
 ] as const;
 

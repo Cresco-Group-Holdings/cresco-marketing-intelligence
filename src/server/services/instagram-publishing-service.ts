@@ -10,6 +10,7 @@ import { metaCredentialAdapter } from "@/lib/social/meta-credential-adapter";
 import { createObjectStorageProvider } from "@/lib/storage/supabase-storage-provider";
 import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
+import { complianceAgentService } from "@/server/services/compliance-agent-service";
 import { socialCredentialService } from "@/server/services/social-credential-service";
 import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities";
 import { isProviderPublishingDisabled } from "@/lib/publishing/config";
@@ -99,6 +100,14 @@ export const instagramPublishingService = {
     if (!content) {
       throw new AppError("VALIDATION_ERROR", "Only approved content can be published immediately.");
     }
+
+    await complianceAgentService.assertPublishable(
+      brandId,
+      organisationId,
+      contentId,
+      context,
+      input.contentVariantId,
+    );
 
     const variant = content.variants.find((item) => item.id === input.contentVariantId);
     if (

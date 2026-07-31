@@ -1,13 +1,19 @@
 # Known Limitations
 
-Documented limitations across Stage 1 and Stage 2. See `docs/STAGE_2_KNOWN_LIMITATIONS.md` for Stage 2-specific gaps.
+Documented limitations across Stage 1–6 and V1 production readiness. See stage-specific documents for detailed gaps:
+
+- `docs/STAGE_2_KNOWN_LIMITATIONS.md`
+- `docs/STAGE_3_KNOWN_LIMITATIONS.md`
+- `docs/STAGE_4_KNOWN_LIMITATIONS.md`
+- `docs/STAGE_5_KNOWN_LIMITATIONS.md`
+- `docs/V1_KNOWN_LIMITATIONS.md`
 
 ## Stage 2 status (Task 2.20)
 
 Stage 2 Social Media AI is **not ready for unrestricted production launch**. Key blockers:
 - Mock OAuth adapters only in `src/lib/social/bootstrap.ts` — production OAuth not wired on `main`
 - Social inbox and Video Studio not implemented on `main`
-- Notifications, team ops, and reporting on separate PR branches not merged to `main`
+- Notifications, team ops, and compliance agent on separate PR branches not merged to `main`
 
 Publishing scheduler, capability enforcement, provider kill switches, and operational runbooks were added in Task 2.20. See `docs/STAGE_2_PRODUCTION_READINESS.md` for the full audit.
 
@@ -18,8 +24,8 @@ Publishing scheduler, capability enforcement, provider kill switches, and operat
 | Content Studio | Implemented (Stage 2) | AI content generation available |
 | Content Calendar | Implemented (Stage 2) | Scheduling engine operational |
 | Social Media | Partial (Stage 2) | Publishing adapters implemented; OAuth mock only |
-| Analytics dashboards | Partial (Stage 2) | Sync and query APIs; dashboards on separate branch |
-| AI Agents (user-facing) | Coming soon | Built on Secure AI Core |
+| Analytics dashboards | Implemented (Stage 3) | Warehouse and dashboards operational |
+| AI Agents (user-facing) | Implemented (Stage 6) | Lifecycle agent and marketing analyst |
 | Live connector sync | Partial | Analytics scheduler operational; OAuth mock only |
 
 ## Connectors
@@ -65,9 +71,6 @@ Publishing scheduler, capability enforcement, provider kill switches, and operat
 
 ## Billing
 
-<<<<<<< HEAD
-- No usage-based billing or subscription management
-=======
 - No usage-based billing or subscription management in Stage 1
 
 ## Marketing data warehouse (Task 3.1)
@@ -115,4 +118,7 @@ Documented limitations at the end of Task 3.1 warehouse foundation.
 - Operations dashboard, health API, quality framework (schema + services)
 
 See `docs/MARKETING_DATA_WAREHOUSE.md` and `docs/TASK_3_1_PREFLIGHT.md` for architecture decisions and deferred debt.
->>>>>>> origin/cursor/v1-production-readiness-e94c
+
+## V1 Production Restrictions
+
+See `docs/V1_KNOWN_LIMITATIONS.md` for the complete V1 beta restriction inventory including billing, provider, CRM, email, and security limitations.
