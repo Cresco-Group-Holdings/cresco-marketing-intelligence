@@ -13359,8 +13359,8 @@ model CrmLead {
   marketingAutomationEnrollments MarketingAutomationEnrollment[]
   leadScoreSnapshots             LeadScoreSnapshot[]
   leadQualificationResults       LeadQualificationResult[]
-  lifecycleAgentFindings         LifecycleAgentFinding[]     @relation("LifecycleAgentFindingLead")
-  lifecycleAgentEvidence         LifecycleAgentEvidence[]    @relation("LifecycleAgentEvidenceLead")
+  lifecycleAgentFindings         LifecycleAgentFinding[]         @relation("LifecycleAgentFindingLead")
+  lifecycleAgentEvidence         LifecycleAgentEvidence[]        @relation("LifecycleAgentEvidenceLead")
 
   @@index([organisationId, brandId, status])
   @@index([ownerUserId])
@@ -14272,28 +14272,28 @@ model CrmOpportunity {
   updatedAt            DateTime             @updatedAt
   archivedAt           DateTime?
 
-  organisation       Organisation                 @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project            Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand              Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  pipeline           CrmPipeline                  @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
-  pipelineVersion    CrmPipelineVersion           @relation(fields: [pipelineVersionId], references: [id], onDelete: Restrict)
-  currentStage       CrmPipelineStage             @relation(fields: [currentStageId], references: [id], onDelete: Restrict)
-  lead               CrmLead?                     @relation(fields: [leadId], references: [id], onDelete: SetNull)
-  company            CrmCompany?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  owner              UserProfile?                 @relation("CrmOpportunityOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
-  createdBy          UserProfile                  @relation("CrmOpportunityCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  lossReason         CrmOpportunityLossReason?    @relation(fields: [lossReasonId], references: [id], onDelete: SetNull)
-  products           CrmOpportunityProduct[]
-  contactRoles       CrmOpportunityContactRole[]
-  values             CrmOpportunityValue[]
-  probabilityHistory CrmOpportunityProbability[]
-  stageHistory       CrmOpportunityStageHistory[]
-  competitors        CrmOpportunityCompetitor[]
-  approvals          CrmOpportunityApproval[]
-  tasks              CrmTask[]
-  activities         CrmActivity[]
-  lifecycleAgentFindings LifecycleAgentFinding[] @relation("LifecycleAgentFindingOpportunity")
-  lifecycleAgentEvidence LifecycleAgentEvidence[] @relation("LifecycleAgentEvidenceOpportunity")
+  organisation           Organisation                 @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                Project                      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                  Brand                        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  pipeline               CrmPipeline                  @relation(fields: [pipelineId], references: [id], onDelete: Restrict)
+  pipelineVersion        CrmPipelineVersion           @relation(fields: [pipelineVersionId], references: [id], onDelete: Restrict)
+  currentStage           CrmPipelineStage             @relation(fields: [currentStageId], references: [id], onDelete: Restrict)
+  lead                   CrmLead?                     @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  company                CrmCompany?                  @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  owner                  UserProfile?                 @relation("CrmOpportunityOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  createdBy              UserProfile                  @relation("CrmOpportunityCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  lossReason             CrmOpportunityLossReason?    @relation(fields: [lossReasonId], references: [id], onDelete: SetNull)
+  products               CrmOpportunityProduct[]
+  contactRoles           CrmOpportunityContactRole[]
+  values                 CrmOpportunityValue[]
+  probabilityHistory     CrmOpportunityProbability[]
+  stageHistory           CrmOpportunityStageHistory[]
+  competitors            CrmOpportunityCompetitor[]
+  approvals              CrmOpportunityApproval[]
+  tasks                  CrmTask[]
+  activities             CrmActivity[]
+  lifecycleAgentFindings LifecycleAgentFinding[]      @relation("LifecycleAgentFindingOpportunity")
+  lifecycleAgentEvidence LifecycleAgentEvidence[]     @relation("LifecycleAgentEvidenceOpportunity")
 
   @@index([organisationId, brandId, status])
   @@index([pipelineId, currentStageId])
@@ -16063,16 +16063,16 @@ model LeadScoringModel {
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 
-  organisation         Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project              Project                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand                Brand                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  createdBy            UserProfile                 @relation("LeadScoringModelCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  updatedBy            UserProfile?                @relation("LeadScoringModelUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
-  activeVersion        LeadScoringModelVersion?    @relation("LeadScoringModelActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
-  versions             LeadScoringModelVersion[]
-  snapshots            LeadScoreSnapshot[]
-  qualificationModels  LeadQualificationModel[]
-  simulations          LeadScoringSimulation[]
+  organisation        Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project             Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand               Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy           UserProfile               @relation("LeadScoringModelCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy           UserProfile?              @relation("LeadScoringModelUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  activeVersion       LeadScoringModelVersion?  @relation("LeadScoringModelActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions            LeadScoringModelVersion[]
+  snapshots           LeadScoreSnapshot[]
+  qualificationModels LeadQualificationModel[]
+  simulations         LeadScoringSimulation[]
 
   @@index([organisationId, brandId, status])
 }
@@ -16087,22 +16087,22 @@ model LeadScoringModelVersion {
   notes          String?
   createdAt      DateTime               @default(now())
 
-  model        LeadScoringModel        @relation(fields: [modelId], references: [id], onDelete: Cascade)
-  activeFor    LeadScoringModel[]      @relation("LeadScoringModelActiveVersion")
-  ruleGroups   LeadScoringRuleGroup[]
-  snapshots    LeadScoreSnapshot[]
-  simulations  LeadScoringSimulation[]
+  model       LeadScoringModel        @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  activeFor   LeadScoringModel[]      @relation("LeadScoringModelActiveVersion")
+  ruleGroups  LeadScoringRuleGroup[]
+  snapshots   LeadScoreSnapshot[]
+  simulations LeadScoringSimulation[]
 
   @@unique([modelId, versionNumber])
 }
 
 model LeadScoringRuleGroup {
-  id                   String       @id @default(cuid())
+  id                   String        @id @default(cuid())
   versionId            String
   name                 String
   scoreType            LeadScoreType
   maxGroupContribution Float?
-  sortOrder            Int          @default(0)
+  sortOrder            Int           @default(0)
 
   version LeadScoringModelVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
   rules   LeadScoringRule[]
@@ -16126,33 +16126,33 @@ model LeadScoringRule {
   isActive          Boolean                   @default(true)
   allowDecay        Boolean                   @default(true)
 
-  group          LeadScoringRuleGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  contributions  LeadScoreContribution[]
+  group         LeadScoringRuleGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  contributions LeadScoreContribution[]
 
   @@index([groupId])
 }
 
 model LeadScoreSnapshot {
-  id                     String                         @id @default(cuid())
-  leadId                 String
-  modelId                String
-  versionId              String
-  fitScore               Float?
-  engagementScore        Float?
-  intentScore            Float?
-  relationshipScore      Float?
-  productReadinessScore  Float?
-  riskScore              Float?
-  combinedScore          Float?
-  qualificationStatus    LeadScoringQualificationStatus @default(UNREVIEWED)
-  calculatedAt           DateTime                       @default(now())
+  id                    String                         @id @default(cuid())
+  leadId                String
+  modelId               String
+  versionId             String
+  fitScore              Float?
+  engagementScore       Float?
+  intentScore           Float?
+  relationshipScore     Float?
+  productReadinessScore Float?
+  riskScore             Float?
+  combinedScore         Float?
+  qualificationStatus   LeadScoringQualificationStatus @default(UNREVIEWED)
+  calculatedAt          DateTime                       @default(now())
 
-  lead                  CrmLead                  @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  model                 LeadScoringModel         @relation(fields: [modelId], references: [id], onDelete: Cascade)
-  version               LeadScoringModelVersion  @relation(fields: [versionId], references: [id], onDelete: Cascade)
-  contributions         LeadScoreContribution[]
-  qualificationResults  LeadQualificationResult[]
-  outcomes              LeadScoringOutcome[]
+  lead                 CrmLead                   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  model                LeadScoringModel          @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  version              LeadScoringModelVersion   @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  contributions        LeadScoreContribution[]
+  qualificationResults LeadQualificationResult[]
+  outcomes             LeadScoringOutcome[]
 
   @@index([leadId, calculatedAt])
   @@index([modelId, versionId])
@@ -16189,11 +16189,11 @@ model LeadQualificationModel {
   createdAt       DateTime               @default(now())
   updatedAt       DateTime               @updatedAt
 
-  organisation  Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project       Project                        @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand         Brand                          @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  scoringModel  LeadScoringModel?              @relation(fields: [scoringModelId], references: [id], onDelete: SetNull)
-  activeVersion LeadQualificationModelVersion? @relation("LeadQualificationModelActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  organisation  Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand                           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  scoringModel  LeadScoringModel?               @relation(fields: [scoringModelId], references: [id], onDelete: SetNull)
+  activeVersion LeadQualificationModelVersion?  @relation("LeadQualificationModelActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
   versions      LeadQualificationModelVersion[]
   results       LeadQualificationResult[]
 
@@ -16209,8 +16209,8 @@ model LeadQualificationModelVersion {
   stateMappings        Json?
   createdAt            DateTime               @default(now())
 
-  qualificationModel LeadQualificationModel  @relation(fields: [qualificationModelId], references: [id], onDelete: Cascade)
-  activeFor          LeadQualificationModel[] @relation("LeadQualificationModelActiveVersion")
+  qualificationModel LeadQualificationModel    @relation(fields: [qualificationModelId], references: [id], onDelete: Cascade)
+  activeFor          LeadQualificationModel[]  @relation("LeadQualificationModelActiveVersion")
   results            LeadQualificationResult[]
 
   @@unique([qualificationModelId, versionNumber])
@@ -16385,24 +16385,24 @@ enum LifecycleAgentFeedbackStatus {
 }
 
 model LifecycleAgentRun {
-  id                String                     @id @default(cuid())
+  id                String                   @id @default(cuid())
   organisationId    String
   projectId         String
   brandId           String
   reviewType        LifecycleAgentReviewType
-  status            LifecycleAgentRunStatus    @default(PENDING)
+  status            LifecycleAgentRunStatus  @default(PENDING)
   dateRangeStart    DateTime
   dateRangeEnd      DateTime
   initiatedByUserId String
   summary           String?
   limitations       Json?
-  createdAt         DateTime                   @default(now())
-  updatedAt         DateTime                   @updatedAt
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
-  organisation    Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project         Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand           Brand                           @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  initiatedBy     UserProfile                     @relation("LifecycleAgentRunInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+  organisation    Organisation                   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  initiatedBy     UserProfile                    @relation("LifecycleAgentRunInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
   findings        LifecycleAgentFinding[]
   recommendations LifecycleAgentRecommendation[]
   evidence        LifecycleAgentEvidence[]
@@ -16412,20 +16412,20 @@ model LifecycleAgentRun {
 }
 
 model LifecycleAgentFinding {
-  id             String                    @id @default(cuid())
-  runId          String
-  findingType    LifecycleAgentFindingType
-  severity       String                    @default("INFO")
-  title          String
-  description    String
-  crmRecordType  String?
-  crmRecordId    String?
-  crmLeadId      String?
+  id               String                    @id @default(cuid())
+  runId            String
+  findingType      LifecycleAgentFindingType
+  severity         String                    @default("INFO")
+  title            String
+  description      String
+  crmRecordType    String?
+  crmRecordId      String?
+  crmLeadId        String?
   crmOpportunityId String?
-  priorityScore  Float?
-  dataConfidence Float?
-  limitations    Json?
-  createdAt      DateTime                  @default(now())
+  priorityScore    Float?
+  dataConfidence   Float?
+  limitations      Json?
+  createdAt        DateTime                  @default(now())
 
   run             LifecycleAgentRun              @relation(fields: [runId], references: [id], onDelete: Cascade)
   crmLead         CrmLead?                       @relation("LifecycleAgentFindingLead", fields: [crmLeadId], references: [id], onDelete: SetNull)
@@ -16451,8 +16451,8 @@ model LifecycleAgentRecommendation {
   requiresApproval   Boolean                          @default(true)
   createdAt          DateTime                         @default(now())
 
-  run             LifecycleAgentRun               @relation(fields: [runId], references: [id], onDelete: Cascade)
-  finding         LifecycleAgentFinding?          @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  run             LifecycleAgentRun              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  finding         LifecycleAgentFinding?         @relation(fields: [findingId], references: [id], onDelete: SetNull)
   drafts          LifecycleAgentDraft[]
   actionProposals LifecycleAgentActionProposal[]
   feedback        LifecycleAgentFeedback[]
@@ -16462,7 +16462,7 @@ model LifecycleAgentRecommendation {
 }
 
 model LifecycleAgentEvidence {
-  id                      String    @id @default(cuid())
+  id                      String   @id @default(cuid())
   runId                   String
   findingId               String?
   crmRecordType           String?
@@ -16482,13 +16482,13 @@ model LifecycleAgentEvidence {
   sourceFreshness         Json?
   missingInfo             Json?
   alternativeExplanations Json?
-  createdAt               DateTime  @default(now())
+  createdAt               DateTime @default(now())
 
-  run            LifecycleAgentRun    @relation(fields: [runId], references: [id], onDelete: Cascade)
+  run            LifecycleAgentRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
   finding        LifecycleAgentFinding? @relation(fields: [findingId], references: [id], onDelete: SetNull)
-  owner          UserProfile?         @relation("LifecycleAgentEvidenceOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
-  crmLead        CrmLead?             @relation("LifecycleAgentEvidenceLead", fields: [crmLeadId], references: [id], onDelete: SetNull)
-  crmOpportunity CrmOpportunity?      @relation("LifecycleAgentEvidenceOpportunity", fields: [crmOpportunityId], references: [id], onDelete: SetNull)
+  owner          UserProfile?           @relation("LifecycleAgentEvidenceOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  crmLead        CrmLead?               @relation("LifecycleAgentEvidenceLead", fields: [crmLeadId], references: [id], onDelete: SetNull)
+  crmOpportunity CrmOpportunity?        @relation("LifecycleAgentEvidenceOpportunity", fields: [crmOpportunityId], references: [id], onDelete: SetNull)
 
   @@index([runId])
   @@index([findingId])
@@ -16516,14 +16516,14 @@ model LifecycleAgentDraft {
 }
 
 model LifecycleAgentActionProposal {
-  id               String                     @id @default(cuid())
+  id               String                       @id @default(cuid())
   recommendationId String
   actionType       LifecycleAgentActionType
   payload          Json?
   status           LifecycleAgentApprovalStatus @default(PENDING)
-  requiresApproval Boolean                    @default(true)
-  createdAt        DateTime                   @default(now())
-  updatedAt        DateTime                   @updatedAt
+  requiresApproval Boolean                      @default(true)
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
 
   recommendation LifecycleAgentRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
   approvals      LifecycleAgentApproval[]
