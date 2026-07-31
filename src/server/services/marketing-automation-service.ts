@@ -689,11 +689,15 @@ export const marketingAutomationService = {
       branchLabel: e.label,
     }));
 
-    const exitRules = (template.graph.exitRules ?? []).map((r) => ({
-      exitReason: r.type,
-      evaluateBeforeMessaging: true,
-      config: (r.config ?? {}) as Prisma.InputJsonValue,
-    }));
+    const exitRules = (template.graph.exitRules ?? [])
+      .map((r) => ({
+        exitReason: r.exitReason ?? r.type,
+        evaluateBeforeMessaging: r.evaluateBeforeMessaging ?? true,
+        config: (r.config ?? {}) as Prisma.InputJsonValue,
+      }))
+      .filter((r): r is { exitReason: string; evaluateBeforeMessaging: boolean; config: Prisma.InputJsonValue } =>
+        Boolean(r.exitReason),
+      );
 
     await this.saveGraph(
       automation.id,

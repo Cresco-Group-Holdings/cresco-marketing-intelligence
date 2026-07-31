@@ -1,4 +1,4 @@
-import type { CrmFollowUpRuleTrigger, CrmTaskTypeCode, Prisma } from "@prisma/client";
+import type { CrmFollowUpRuleTrigger, CrmTaskStatus, CrmTaskTypeCode, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { generateFollowUpProposal } from "@/lib/crm-tasks/ai-assistant";
 import {
@@ -13,7 +13,8 @@ import type { TenantContext } from "@/lib/tenancy/context";
 import { brandService } from "@/server/services/workspace-service";
 import { crmTaskService } from "@/server/services/crm-task-service";
 
-const ACTIVE_TASK_FILTER = { status: { in: ["OPEN", "IN_PROGRESS", "OVERDUE", "DEFERRED"] as const } };
+const ACTIVE_TASK_STATUSES: CrmTaskStatus[] = ["OPEN", "IN_PROGRESS", "OVERDUE", "DEFERRED"];
+const ACTIVE_TASK_FILTER = { status: { in: ACTIVE_TASK_STATUSES } };
 
 export const crmFollowUpService = {
   async listRules(brandId: string, organisationId: string, context: TenantContext) {
@@ -158,7 +159,7 @@ export const crmFollowUpService = {
           description: candidate.description,
           recommendedTaskType: candidate.recommendedTaskType,
           recommendedDueAt: computeDueAt(rule?.dueOffsetHours ?? candidate.dueOffsetHours),
-          aiEvidence: candidate.evidence,
+          aiEvidence: candidate.evidence as Prisma.InputJsonValue,
           aiGrounded: true,
           autoSendBlocked: true,
         },
@@ -261,7 +262,7 @@ export const crmFollowUpService = {
           .join("\n"),
         recommendedTaskType: proposal.recommendedTaskType,
         recommendedDueAt: proposal.recommendedDueAt,
-        aiEvidence: proposal.aiEvidence,
+        aiEvidence: proposal.aiEvidence as Prisma.InputJsonValue,
         aiGrounded: proposal.aiGrounded,
         autoSendBlocked: true,
       },
