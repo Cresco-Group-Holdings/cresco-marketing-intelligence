@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { apiFetch } from "@/lib/api/client";
+import { LifecycleRecommendationPanel } from "@/components/crm/assistant-view";
 
 export type PipelinesViewMode =
   | "pipelines"
@@ -45,6 +46,8 @@ export function PipelinesView({ mode, pipelineId, opportunityId }: Props) {
   const [expectedValue, setExpectedValue] = useState("");
   const [evidenceRef, setEvidenceRef] = useState("");
   const [lossReasonId, setLossReasonId] = useState("");
+  const [oppTasks, setOppTasks] = useState<Array<Record<string, unknown>>>([]);
+  const [nextActionTitle, setNextActionTitle] = useState("");
 
   const loadData = useCallback(async () => {
     if (!base || !organisationId) return;
@@ -66,8 +69,13 @@ export function PipelinesView({ mode, pipelineId, opportunityId }: Props) {
         const pRes = await apiFetch<{ pipelines: Array<Record<string, unknown>> }>(`${base}?organisationId=${organisationId}&resource=pipelines`);
         setPipelines(pRes.pipelines);
       } else if (mode === "opportunityDetail" && opportunityId) {
-        const res = await apiFetch<{ opportunity: Record<string, unknown> }>(`${base}?organisationId=${organisationId}&opportunityId=${opportunityId}`);
+        const [res, tasksRes] = await Promise.all([
+          apiFetch<{ opportunity: Record<string, unknown> }>(`${base}?organisationId=${organisationId}&opportunityId=${opportunityId}`),
+          apiFetch<{ tasks: Array<Record<string, unknown>> }>(`/api/brands/${brandId}/crm/tasks?organisationId=${organisationId}&opportunityId=${opportunityId}`),
+        ]);
         setOpportunity(res.opportunity);
+        setOppTasks(tasksRes.tasks);
+        setNextActionTitle(String(res.opportunity.nextAction ?? ""));
       } else if (mode === "forecast") {
         const res = await apiFetch<{ forecast: Record<string, unknown> }>(`${base}?organisationId=${organisationId}&view=forecast`);
         setForecast(res.forecast);
@@ -211,6 +219,25 @@ export function PipelinesView({ mode, pipelineId, opportunityId }: Props) {
             </CardContent>
           </Card>
           <Card>
+            <CardHeader><CardTitle>Next action</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {opportunity.nextAction ? <p className="text-sm">{String(opportunity.nextAction)}</p> : <p className="text-sm text-muted-foreground">No next action set.</p>}
+              <Input label="Create task" value={nextActionTitle} onChange={(e) => setNextActionTitle(e.target.value)} placeholder="Send proposal follow-up" />
+              <Button variant="outline" className="w-full" onClick={async () => {
+                if (!brandId || !organisationId || !nextActionTitle) return;
+                await apiFetch(`/api/brands/${brandId}/crm/tasks?organisationId=${organisationId}`, {
+                  method: "POST",
+                  body: JSON.stringify({ action: "createTask", title: nextActionTitle, taskTypeCode: "FOLLOW_UP", opportunityId }),
+                });
+                setNextActionTitle("");
+                await loadData();
+              }}>Set next action task</Button>
+              {oppTasks.map((t) => (
+                <p key={String(t.id)} className="text-sm text-muted-foreground">{String(t.title)} — {String(t.displayStatus ?? t.status)}</p>
+              ))}
+            </CardContent>
+          </Card>
+          <Card>
             <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
             <CardContent className="space-y-2">
               <Input label="Won evidence ref" value={evidenceRef} onChange={(e) => setEvidenceRef(e.target.value)} />
@@ -219,6 +246,7 @@ export function PipelinesView({ mode, pipelineId, opportunityId }: Props) {
               <Button variant="outline" className="w-full" onClick={() => postAction({ action: "markLost", opportunityId, lossReasonId })}>Mark lost</Button>
             </CardContent>
           </Card>
+          <LifecycleRecommendationPanel opportunityId={opportunityId} compact />
         </div>
       )}
 

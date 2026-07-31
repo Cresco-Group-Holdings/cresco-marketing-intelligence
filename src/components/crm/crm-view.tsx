@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { apiFetch } from "@/lib/api/client";
+import { LifecycleRecommendationPanel } from "@/components/crm/assistant-view";
+import { LeadScoreExplanationPanel } from "@/components/crm/scoring-view";
 
 export type CrmViewMode =
   | "overview"
@@ -35,6 +37,9 @@ function CrmNav({ active }: { active: CrmViewMode }) {
     { mode: "overview", label: "Pipelines", href: "/crm/pipelines" },
     { mode: "overview", label: "Opportunities", href: "/crm/opportunities" },
     { mode: "overview", label: "Forecast", href: "/crm/forecast" },
+    { mode: "overview", label: "Tasks", href: "/crm/tasks" },
+    { mode: "overview", label: "Activities", href: "/crm/activities" },
+    { mode: "overview", label: "Follow-ups", href: "/crm/follow-ups" },
   ];
   return (
     <nav className="flex flex-wrap gap-2 border-b pb-3 mb-6">
@@ -73,6 +78,8 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
   const [company, setCompany] = useState<Record<string, unknown> | null>(null);
   const [duplicates, setDuplicates] = useState<Array<Record<string, unknown>>>([]);
   const [fields, setFields] = useState<Array<Record<string, unknown>>>([]);
+  const [leadTasks, setLeadTasks] = useState<Array<Record<string, unknown>>>([]);
+  const [newTaskTitle, setNewTaskTitle] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -89,6 +96,9 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
   const [mergeSourceId, setMergeSourceId] = useState("");
   const [mergeDestId, setMergeDestId] = useState("");
   const [mergePreview, setMergePreview] = useState<Record<string, unknown> | null>(null);
+  const [leadScore, setLeadScore] = useState<Record<string, unknown> | null>(null);
+  const [leadQualification, setLeadQualification] = useState<Record<string, unknown> | null>(null);
+  const [leadScoreOverride, setLeadScoreOverride] = useState<Record<string, unknown> | null>(null);
 
   const loadData = useCallback(async () => {
     if (!base || !organisationId) return;
@@ -106,10 +116,29 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
         );
         setLeads(res.leads);
       } else if (mode === "leadDetail" && leadId) {
-        const res = await apiFetch<{ lead: Record<string, unknown> }>(
-          `${base}?organisationId=${organisationId}&leadId=${leadId}`,
-        );
-        setLead(res.lead);
+        const scoringBase = `/api/brands/${brandId}/crm/scoring`;
+        const [leadRes, tasksRes, scoreRes] = await Promise.all([
+          apiFetch<{ lead: Record<string, unknown> }>(
+            `${base}?organisationId=${organisationId}&leadId=${leadId}`,
+          ),
+          apiFetch<{ tasks: Array<Record<string, unknown>> }>(
+            `/api/brands/${brandId}/crm/tasks?organisationId=${organisationId}&leadId=${leadId}`,
+          ),
+          apiFetch<{
+            score?: Record<string, unknown>;
+            qualification?: Record<string, unknown>;
+            override?: Record<string, unknown>;
+          }>(`${scoringBase}?organisationId=${organisationId}&leadId=${leadId}`).catch(() => ({
+            score: undefined,
+            qualification: undefined,
+            override: undefined,
+          })),
+        ]);
+        setLead(leadRes.lead);
+        setLeadTasks(tasksRes.tasks);
+        setLeadScore(scoreRes.score ?? null);
+        setLeadQualification(scoreRes.qualification ?? null);
+        setLeadScoreOverride(scoreRes.override ?? null);
       } else if (mode === "contacts") {
         const res = await apiFetch<{ contacts: Array<Record<string, unknown>> }>(
           `${base}?organisationId=${organisationId}&view=contacts`,
@@ -146,7 +175,51 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [base, organisationId, mode, leadId, contactId, companyId, statusFilter]);
+  }, [base, organisationId, mode, leadId, contactId, companyId, statusFilter, brandId]);
+
+  async function scoreLeadAction() {
+    if (!brandId || !organisationId || !leadId) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await apiFetch<{
+        score?: Record<string, unknown>;
+        qualification?: Record<string, unknown>;
+      }>(`/api/brands/${brandId}/crm/scoring?organisationId=${organisationId}`, {
+        method: "POST",
+        body: JSON.stringify({ action: "scoreLead", leadId }),
+      });
+      if (res.score) setLeadScore(res.score);
+      if (res.qualification) setLeadQualification(res.qualification);
+      setMessage("Score updated.");
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Scoring failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function applyScoreOverride(status: string, reason: string) {
+    if (!brandId || !organisationId || !leadId) return;
+    setLoading(true);
+    setMessage(null);
+    try {
+      const res = await apiFetch<{
+        qualification?: Record<string, unknown>;
+        override?: Record<string, unknown>;
+      }>(`/api/brands/${brandId}/crm/scoring?organisationId=${organisationId}`, {
+        method: "POST",
+        body: JSON.stringify({ action: "applyOverride", leadId, status, reason }),
+      });
+      if (res.qualification) setLeadQualification(res.qualification);
+      if (res.override) setLeadScoreOverride(res.override);
+      setMessage("Override applied.");
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Override failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     loadData();
@@ -271,15 +344,44 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
                   <p key={String(item.id)} className="text-sm text-muted-foreground">{String(item.title)} — {new Date(String(item.occurredAt ?? item.createdAt)).toLocaleString()}</p>
                 ))}
               </div>
+              <div>
+                <h3 className="text-sm font-medium mb-2">Tasks</h3>
+                {leadTasks.map((t) => (
+                  <p key={String(t.id)} className="text-sm">{String(t.title)} — {String(t.displayStatus ?? t.status)}</p>
+                ))}
+                {leadTasks.length === 0 ? <p className="text-sm text-muted-foreground">No open tasks.</p> : null}
+              </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full" onClick={() => postAction({ action: "updateStatus", leadId, status: "CONTACTED", reason: "Manual update" })}>Mark contacted</Button>
-              <Button variant="outline" className="w-full" onClick={() => postAction({ action: "updateStatus", leadId, status: "QUALIFIED", reason: "Manual qualification" })}>Mark qualified</Button>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <LeadScoreExplanationPanel
+              score={leadScore}
+              qualification={leadQualification}
+              override={leadScoreOverride}
+              loading={loading && !leadScore && !leadQualification}
+              onScoreLead={scoreLeadAction}
+              onOverride={applyScoreOverride}
+              compact
+            />
+            <LifecycleRecommendationPanel leadId={leadId} compact />
+            <Card>
+              <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
+              <CardContent className="space-y-2">
+                <Input label="New task" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder="Follow up call" />
+                <Button variant="outline" className="w-full" onClick={async () => {
+                  if (!brandId || !organisationId || !newTaskTitle) return;
+                  await apiFetch(`/api/brands/${brandId}/crm/tasks?organisationId=${organisationId}`, {
+                    method: "POST",
+                    body: JSON.stringify({ action: "createTask", title: newTaskTitle, taskTypeCode: "FOLLOW_UP", leadId }),
+                  });
+                  setNewTaskTitle("");
+                  await loadData();
+                }}>Create follow-up task</Button>
+                <Button variant="outline" className="w-full" onClick={() => postAction({ action: "updateStatus", leadId, status: "CONTACTED", reason: "Manual update" })}>Mark contacted</Button>
+                <Button variant="outline" className="w-full" onClick={() => postAction({ action: "updateStatus", leadId, status: "QUALIFIED", reason: "Manual qualification" })}>Mark qualified</Button>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
