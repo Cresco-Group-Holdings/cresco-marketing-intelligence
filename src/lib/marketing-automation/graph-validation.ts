@@ -23,7 +23,12 @@ export type AutomationEdge = {
 export type AutomationGraph = {
   nodes: AutomationNode[];
   edges: AutomationEdge[];
-  exitRules?: Array<{ type: string; config?: Record<string, unknown> }>;
+  exitRules?: Array<{
+    type?: string;
+    config?: Record<string, unknown>;
+    exitReason?: string;
+    evaluateBeforeMessaging?: boolean;
+  }>;
 };
 
 export type GraphValidationResult = {

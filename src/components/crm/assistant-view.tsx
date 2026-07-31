@@ -542,7 +542,7 @@ export function AssistantView({ mode }: AssistantViewProps) {
     };
   }, [runs]);
 
-  const allDrafts = useMemo(() => {
+  const allDrafts = useMemo((): Array<Record<string, unknown>> => {
     return recommendations.flatMap((rec) =>
       ((rec.drafts as Array<Record<string, unknown>>) ?? []).map((draft) => ({
         ...normalizeDraft(draft),

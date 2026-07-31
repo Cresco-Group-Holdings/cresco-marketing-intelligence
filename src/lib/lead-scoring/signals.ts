@@ -14,6 +14,16 @@ import {
   type SignalCategory,
 } from "./constants";
 
+export type {
+  EngagementSignal,
+  FitSignal,
+  NegativeSignal,
+  ProhibitedAttribute,
+  RuleOperator,
+  ScoringSignal,
+  SignalCategory,
+} from "./constants";
+
 export type LeadSnapshot = CrmLeadSnapshot & {
   companySize?: string;
   industry?: string;
@@ -348,5 +358,3 @@ export function resolveSignalValue(
 export function getSignalsByCategory(category: SignalCategory): SignalDefinition[] {
   return Object.values(SIGNAL_DEFINITIONS).filter((def) => def.category === category);
 }
-
-export type { RuleOperator };
