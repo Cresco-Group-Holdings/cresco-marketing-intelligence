@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bot,
   CalendarDays,
+  ClipboardList,
   Contact,
   Database,
   FileInput,
@@ -110,6 +111,18 @@ export const dashboardNavigation: NavigationItem[] = [
     href: "/content",
     icon: PenSquare,
     description: "Draft and manage marketing content",
+  },
+  {
+    label: "Campaigns",
+    href: "/campaigns",
+    icon: Megaphone,
+    description: "Plan and coordinate content campaigns",
+  },
+  {
+    label: "Tasks",
+    href: "/tasks",
+    icon: ClipboardList,
+    description: "Team tasks, deadlines, and assignments",
   },
   {
     label: "Visual Studio",

@@ -39,6 +39,7 @@ export const contentVariantInputSchema = z.object({
 export const contentCreateSchema = z.object({
   title: trimmed(300),
   objectiveId: z.string().optional(),
+  contentCampaignId: z.string().optional(),
   campaignName: optionalTrimmed(200),
   contentPillar: optionalTrimmed(200),
   contentType: z.nativeEnum(ContentType),
