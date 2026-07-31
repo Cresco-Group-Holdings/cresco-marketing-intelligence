@@ -39,8 +39,37 @@ type LeadScoreExplanationPanelProps = {
 };
 
 function qualificationBadgeVariant(status: string): "default" | "muted" {
-  if (status === "HOT" || status === "QUALIFIED") return "default";
+  if (
+    status === "SALES_QUALIFIED" ||
+    status === "MARKETING_QUALIFIED" ||
+    status === "CUSTOMER"
+  ) {
+    return "default";
+  }
   return "muted";
+}
+
+function qualificationStatusDescription(status: string): string {
+  switch (status) {
+    case "UNREVIEWED":
+      return "Not yet scored";
+    case "LOW_PRIORITY":
+      return "Low fit or engagement";
+    case "MARKETING_QUALIFIED":
+      return "Meets marketing qualification threshold";
+    case "SALES_REVIEW_REQUIRED":
+      return "Requires sales review before outreach";
+    case "SALES_QUALIFIED":
+      return "Strong fit, ready for sales outreach";
+    case "NOT_QUALIFIED":
+      return "Excluded from active pipeline";
+    case "CUSTOMER":
+      return "Existing customer";
+    case "MANUAL_OVERRIDE":
+      return "Manually overridden by a user";
+    default:
+      return "";
+  }
 }
 
 export function LeadScoreExplanationPanel({
@@ -52,7 +81,7 @@ export function LeadScoreExplanationPanel({
   onScoreLead,
   compact,
 }: LeadScoreExplanationPanelProps) {
-  const [overrideStatus, setOverrideStatus] = useState("QUALIFIED");
+  const [overrideStatus, setOverrideStatus] = useState("SALES_QUALIFIED");
   const [overrideReason, setOverrideReason] = useState("");
 
   const breakdown = score?.breakdown as Record<string, Record<string, unknown>> | undefined;
@@ -175,7 +204,7 @@ export function LeadScoreExplanationPanel({
               label="Override status"
               value={overrideStatus}
               onChange={(e) => setOverrideStatus(e.target.value)}
-              placeholder="QUALIFIED"
+              placeholder="SALES_QUALIFIED"
               hint={`Options: ${QUALIFICATION_STATUSES.join(", ")}`}
             />
             <Input
@@ -227,7 +256,7 @@ export function ScoringView({ mode, modelId }: ScoringViewProps) {
   );
   const [simulationModelId, setSimulationModelId] = useState("");
   const [leadId, setLeadId] = useState("");
-  const [overrideStatus, setOverrideStatus] = useState("QUALIFIED");
+  const [overrideStatus, setOverrideStatus] = useState("SALES_QUALIFIED");
   const [overrideReason, setOverrideReason] = useState("");
   const [scoreResult, setScoreResult] = useState<Record<string, unknown> | null>(null);
   const [qualificationResult, setQualificationResult] = useState<Record<string, unknown> | null>(null);
@@ -720,7 +749,9 @@ export function ScoringView({ mode, modelId }: ScoringViewProps) {
                 </div>
               ) : (
                 <div className="grid gap-2 md:grid-cols-2">
-                  {QUALIFICATION_STATUSES.filter((s) => !["UNASSESSED", "NEEDS_INFO"].includes(s)).map((status) => (
+                  {QUALIFICATION_STATUSES.filter(
+                    (s) => !["UNREVIEWED", "MANUAL_OVERRIDE", "CUSTOMER"].includes(s),
+                  ).map((status) => (
                     <div key={status} className="flex justify-between text-sm border-b py-2">
                       <Badge variant="muted">{status}</Badge>
                     </div>
@@ -742,13 +773,7 @@ export function ScoringView({ mode, modelId }: ScoringViewProps) {
                 <div key={status} className="flex items-center gap-2 text-sm">
                   <Badge variant={qualificationBadgeVariant(status)}>{status}</Badge>
                   <span className="text-muted-foreground">
-                    {status === "NEEDS_INFO" && "Required fields missing"}
-                    {status === "COLD" && "Low fit or engagement"}
-                    {status === "WARM" && "Moderate interest"}
-                    {status === "HOT" && "Strong interest, ready for outreach"}
-                    {status === "QUALIFIED" && "Meets qualification threshold"}
-                    {status === "DISQUALIFIED" && "Excluded from active pipeline"}
-                    {status === "UNASSESSED" && "Not yet scored"}
+                    {qualificationStatusDescription(status)}
                   </span>
                 </div>
               ))}
@@ -762,7 +787,7 @@ export function ScoringView({ mode, modelId }: ScoringViewProps) {
                 Overrides apply from the lead detail page. Sales can set qualification status with a documented reason.
               </p>
               <Input label="Lead ID" value={leadId} onChange={(e) => setLeadId(e.target.value)} />
-              <Input label="Override status" value={overrideStatus} onChange={(e) => setOverrideStatus(e.target.value)} placeholder="QUALIFIED" />
+              <Input label="Override status" value={overrideStatus} onChange={(e) => setOverrideStatus(e.target.value)} placeholder="SALES_QUALIFIED" />
               <Input label="Reason" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="Sales confirmed fit" />
               <Button
                 onClick={() => postAction({

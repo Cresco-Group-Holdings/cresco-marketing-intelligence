@@ -390,6 +390,10 @@ model UserProfile {
   leadScoringModelsUpdated                     LeadScoringModel[]                     @relation("LeadScoringModelUpdater")
   leadQualificationOverridesMade               LeadQualificationOverride[]            @relation("LeadQualificationOverrideActor")
   leadScoringSimulationsApproved               LeadScoringSimulation[]                @relation("LeadScoringSimulationApprover")
+  lifecycleAgentRunsInitiated                  LifecycleAgentRun[]                    @relation("LifecycleAgentRunInitiator")
+  lifecycleAgentEvidenceOwned                  LifecycleAgentEvidence[]               @relation("LifecycleAgentEvidenceOwner")
+  lifecycleAgentApprovalsDecided               LifecycleAgentApproval[]               @relation("LifecycleAgentApprover")
+  lifecycleAgentFeedbackSubmitted              LifecycleAgentFeedback[]               @relation("LifecycleAgentFeedbackUser")
 
   @@index([email])
 }
@@ -768,6 +772,7 @@ model Organisation {
   marketingAutomations                    MarketingAutomation[]
   leadScoringModels                       LeadScoringModel[]
   leadQualificationModels                 LeadQualificationModel[]
+  lifecycleAgentRuns                      LifecycleAgentRun[]
 
   @@index([status])
   @@index([archivedAt])
@@ -1011,6 +1016,7 @@ model Project {
   marketingAutomations             MarketingAutomation[]
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
+  lifecycleAgentRuns               LifecycleAgentRun[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1265,6 +1271,7 @@ model Brand {
   marketingAutomations             MarketingAutomation[]
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
+  lifecycleAgentRuns               LifecycleAgentRun[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -13352,6 +13359,8 @@ model CrmLead {
   marketingAutomationEnrollments MarketingAutomationEnrollment[]
   leadScoreSnapshots             LeadScoreSnapshot[]
   leadQualificationResults       LeadQualificationResult[]
+  lifecycleAgentFindings         LifecycleAgentFinding[]     @relation("LifecycleAgentFindingLead")
+  lifecycleAgentEvidence         LifecycleAgentEvidence[]    @relation("LifecycleAgentEvidenceLead")
 
   @@index([organisationId, brandId, status])
   @@index([ownerUserId])
@@ -14283,6 +14292,8 @@ model CrmOpportunity {
   approvals          CrmOpportunityApproval[]
   tasks              CrmTask[]
   activities         CrmActivity[]
+  lifecycleAgentFindings LifecycleAgentFinding[] @relation("LifecycleAgentFindingOpportunity")
+  lifecycleAgentEvidence LifecycleAgentEvidence[] @relation("LifecycleAgentEvidenceOpportunity")
 
   @@index([organisationId, brandId, status])
   @@index([pipelineId, currentStageId])
@@ -16274,6 +16285,298 @@ model LeadScoringOutcome {
   snapshot LeadScoreSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
 
   @@index([snapshotId, recordedAt])
+}
+
+// ---------------------------------------------------------------------------
+// Task 6.9 — Lifecycle Agent
+// ---------------------------------------------------------------------------
+
+enum LifecycleAgentRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum LifecycleAgentReviewType {
+  DAILY_SALES_BRIEF
+  WEEKLY_PIPELINE_REVIEW
+  TRIAL_RISK_REVIEW
+  RENEWAL_REVIEW
+  LIFECYCLE_HEALTH_SUMMARY
+  ON_DEMAND
+}
+
+enum LifecycleAgentFindingType {
+  NEW_HIGH_PRIORITY_LEAD
+  LEAD_WITHOUT_OWNER
+  LEAD_WITHOUT_FOLLOW_UP
+  STALE_LEAD
+  QUALIFICATION_DATA_MISSING
+  OPPORTUNITY_STALLED
+  NO_NEXT_ACTION
+  TRIAL_NOT_ACTIVATED
+  TRIAL_ENDING
+  PAYMENT_FAILED
+  CUSTOMER_INACTIVE
+  RENEWAL_APPROACHING
+  CROSS_SELL_OPPORTUNITY
+  CHURN_RISK_SIGNAL
+  DATA_QUALITY_ISSUE
+  CONSENT_RESTRICTION
+  OTHER
+}
+
+enum LifecycleAgentRecommendationType {
+  ASSIGN_OWNER
+  CREATE_TASK
+  REQUEST_QUALIFICATION_INFO
+  PREPARE_CALL
+  DRAFT_FOLLOW_UP
+  BOOK_DEMO
+  REVIEW_OPPORTUNITY
+  EXTEND_NURTURE
+  END_AUTOMATION
+  INVESTIGATE_PAYMENT
+  PREPARE_RENEWAL_OUTREACH
+  CREATE_CS_TASK
+  REVIEW_CROSS_SELL
+  MARK_MANUAL_REVIEW
+}
+
+enum LifecycleAgentDraftType {
+  EMAIL
+  LINKEDIN_RESPONSE
+  MEETING_CONFIRMATION
+  POST_DEMO_FOLLOW_UP
+  TRIAL_REMINDER
+  PAYMENT_REMINDER
+  RENEWAL_NOTE
+  REENGAGEMENT_MESSAGE
+}
+
+enum LifecycleAgentActionType {
+  CREATE_TASK
+  ASSIGN_OWNER_REQUEST
+  CREATE_MESSAGE_DRAFT
+  CREATE_MEETING_PREPARATION
+  CREATE_NURTURE_ENROLLMENT_REQUEST
+  CREATE_PIPELINE_REVIEW
+  CREATE_RENEWAL_TASK
+  CREATE_DATA_FIX
+  DISMISS_FINDING
+}
+
+enum LifecycleAgentApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum LifecycleAgentFeedbackStatus {
+  ACCEPTED
+  REJECTED
+  EDITED
+  DEFERRED
+  ACTION_COMPLETED
+  OUTCOME_MEASURED
+  OUTCOME_UNKNOWN
+}
+
+model LifecycleAgentRun {
+  id                String                     @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  reviewType        LifecycleAgentReviewType
+  status            LifecycleAgentRunStatus    @default(PENDING)
+  dateRangeStart    DateTime
+  dateRangeEnd      DateTime
+  initiatedByUserId String
+  summary           String?
+  limitations       Json?
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  organisation    Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project                         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand                           @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  initiatedBy     UserProfile                     @relation("LifecycleAgentRunInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+  findings        LifecycleAgentFinding[]
+  recommendations LifecycleAgentRecommendation[]
+  evidence        LifecycleAgentEvidence[]
+
+  @@index([organisationId, brandId, reviewType])
+  @@index([status, createdAt])
+}
+
+model LifecycleAgentFinding {
+  id             String                    @id @default(cuid())
+  runId          String
+  findingType    LifecycleAgentFindingType
+  severity       String                    @default("INFO")
+  title          String
+  description    String
+  crmRecordType  String?
+  crmRecordId    String?
+  crmLeadId      String?
+  crmOpportunityId String?
+  priorityScore  Float?
+  dataConfidence Float?
+  limitations    Json?
+  createdAt      DateTime                  @default(now())
+
+  run             LifecycleAgentRun              @relation(fields: [runId], references: [id], onDelete: Cascade)
+  crmLead         CrmLead?                       @relation("LifecycleAgentFindingLead", fields: [crmLeadId], references: [id], onDelete: SetNull)
+  crmOpportunity  CrmOpportunity?                @relation("LifecycleAgentFindingOpportunity", fields: [crmOpportunityId], references: [id], onDelete: SetNull)
+  recommendations LifecycleAgentRecommendation[]
+  evidence        LifecycleAgentEvidence[]
+
+  @@index([runId, findingType])
+  @@index([crmRecordType, crmRecordId])
+  @@index([crmLeadId])
+  @@index([crmOpportunityId])
+}
+
+model LifecycleAgentRecommendation {
+  id                 String                           @id @default(cuid())
+  runId              String
+  findingId          String?
+  recommendationType LifecycleAgentRecommendationType
+  title              String
+  description        String
+  priorityScore      Float?
+  rationale          String?
+  requiresApproval   Boolean                          @default(true)
+  createdAt          DateTime                         @default(now())
+
+  run             LifecycleAgentRun               @relation(fields: [runId], references: [id], onDelete: Cascade)
+  finding         LifecycleAgentFinding?          @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  drafts          LifecycleAgentDraft[]
+  actionProposals LifecycleAgentActionProposal[]
+  feedback        LifecycleAgentFeedback[]
+  outcomes        LifecycleAgentOutcome[]
+
+  @@index([runId, recommendationType])
+}
+
+model LifecycleAgentEvidence {
+  id                      String    @id @default(cuid())
+  runId                   String
+  findingId               String?
+  crmRecordType           String?
+  crmRecordId             String?
+  crmLeadId               String?
+  crmOpportunityId        String?
+  dateRangeStart          DateTime
+  dateRangeEnd            DateTime
+  lifecycle               String?
+  ownerUserId             String?
+  activities              Json?
+  productEvents           Json?
+  scoreSnapshot           Json?
+  opportunityStage        String?
+  subscriptionState       String?
+  consent                 Json?
+  sourceFreshness         Json?
+  missingInfo             Json?
+  alternativeExplanations Json?
+  createdAt               DateTime  @default(now())
+
+  run            LifecycleAgentRun    @relation(fields: [runId], references: [id], onDelete: Cascade)
+  finding        LifecycleAgentFinding? @relation(fields: [findingId], references: [id], onDelete: SetNull)
+  owner          UserProfile?         @relation("LifecycleAgentEvidenceOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
+  crmLead        CrmLead?             @relation("LifecycleAgentEvidenceLead", fields: [crmLeadId], references: [id], onDelete: SetNull)
+  crmOpportunity CrmOpportunity?      @relation("LifecycleAgentEvidenceOpportunity", fields: [crmOpportunityId], references: [id], onDelete: SetNull)
+
+  @@index([runId])
+  @@index([findingId])
+  @@index([crmRecordType, crmRecordId])
+  @@index([crmLeadId])
+  @@index([crmOpportunityId])
+}
+
+model LifecycleAgentDraft {
+  id               String                  @id @default(cuid())
+  recommendationId String
+  draftType        LifecycleAgentDraftType
+  subject          String?
+  body             String
+  toneProfile      String?
+  consentEligible  Boolean                 @default(false)
+  safetyWarnings   Json?
+  approvedAt       DateTime?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  recommendation LifecycleAgentRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+
+  @@index([recommendationId, draftType])
+}
+
+model LifecycleAgentActionProposal {
+  id               String                     @id @default(cuid())
+  recommendationId String
+  actionType       LifecycleAgentActionType
+  payload          Json?
+  status           LifecycleAgentApprovalStatus @default(PENDING)
+  requiresApproval Boolean                    @default(true)
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  recommendation LifecycleAgentRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  approvals      LifecycleAgentApproval[]
+  outcomes       LifecycleAgentOutcome[]
+
+  @@index([recommendationId, actionType])
+  @@index([status])
+}
+
+model LifecycleAgentApproval {
+  id               String                       @id @default(cuid())
+  actionProposalId String
+  status           LifecycleAgentApprovalStatus
+  approverUserId   String
+  notes            String?
+  createdAt        DateTime                     @default(now())
+
+  actionProposal LifecycleAgentActionProposal @relation(fields: [actionProposalId], references: [id], onDelete: Cascade)
+  approver       UserProfile                  @relation("LifecycleAgentApprover", fields: [approverUserId], references: [id], onDelete: Restrict)
+
+  @@index([actionProposalId])
+}
+
+model LifecycleAgentFeedback {
+  id               String                       @id @default(cuid())
+  recommendationId String
+  status           LifecycleAgentFeedbackStatus
+  reason           String?
+  userId           String
+  createdAt        DateTime                     @default(now())
+  updatedAt        DateTime                     @updatedAt
+
+  recommendation LifecycleAgentRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  user           UserProfile                  @relation("LifecycleAgentFeedbackUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([recommendationId, status])
+}
+
+model LifecycleAgentOutcome {
+  id               String    @id @default(cuid())
+  recommendationId String
+  actionProposalId String?
+  outcomeType      String
+  outcomeValue     String?
+  measuredAt       DateTime?
+  metadata         Json?
+  createdAt        DateTime  @default(now())
+
+  recommendation LifecycleAgentRecommendation  @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  actionProposal LifecycleAgentActionProposal? @relation(fields: [actionProposalId], references: [id], onDelete: SetNull)
+
+  @@index([recommendationId])
+  @@index([actionProposalId])
 }
 
 // ---------------------------------------------------------------------------

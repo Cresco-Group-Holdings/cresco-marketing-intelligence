@@ -178,6 +178,12 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Qualification thresholds and status mapping",
   },
   {
+    label: "Sales Assistant",
+    href: "/crm/assistant",
+    icon: Bot,
+    description: "Evidence-grounded lifecycle recommendations and draft previews",
+  },
+  {
     label: "Forms",
     href: "/forms",
     icon: FileInput,

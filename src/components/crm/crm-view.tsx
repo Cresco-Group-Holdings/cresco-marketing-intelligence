@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { apiFetch } from "@/lib/api/client";
+import { LifecycleRecommendationPanel } from "@/components/crm/assistant-view";
 import { LeadScoreExplanationPanel } from "@/components/crm/scoring-view";
 
 export type CrmViewMode =
@@ -362,6 +363,7 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
               onOverride={applyScoreOverride}
               compact
             />
+            <LifecycleRecommendationPanel leadId={leadId} compact />
             <Card>
               <CardHeader><CardTitle>Actions</CardTitle></CardHeader>
               <CardContent className="space-y-2">

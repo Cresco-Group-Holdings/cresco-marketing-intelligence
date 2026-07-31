@@ -454,8 +454,8 @@ export const leadScoringService = {
             cappedContribution: evidence.cappedPoints,
             evidence: {
               signal: evidence.signal,
-              actualValue: evidence.actualValue,
-              expectedValue: evidence.expectedValue,
+              actualValue: evidence.actualValue as Prisma.InputJsonValue,
+              expectedValue: evidence.expectedValue as Prisma.InputJsonValue,
               operator: evidence.operator,
               label: evidence.label,
             },

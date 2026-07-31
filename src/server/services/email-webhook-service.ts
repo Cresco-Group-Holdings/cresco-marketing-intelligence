@@ -50,7 +50,7 @@ export const emailWebhookService = {
       });
       if (existing) continue;
 
-      let message = event.providerMessageId
+      const message = event.providerMessageId
         ? await prisma.emailMessage.findFirst({ where: { providerMessageId: event.providerMessageId, organisationId } })
         : null;
 
