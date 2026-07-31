@@ -112,6 +112,7 @@ export function EmailView({ mode }: Props) {
           {tab.label}
         </Link>
       ))}
+      <Link href="/email/campaigns" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted">Campaigns</Link>
     </nav>
   );
 
