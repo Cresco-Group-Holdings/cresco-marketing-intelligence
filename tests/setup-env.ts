@@ -16,8 +16,9 @@ env.DIRECT_URL = "postgresql://test:test@localhost:5432/test";
 env["SUPABASE_SERVICE_ROLE_KEY"] = testServerSecrets.supabaseServiceRole;
 env.APP_URL = "http://localhost:3000";
 env.ENCRYPTION_KEY = "0123456789abcdef0123456789abcdef";
-env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
-env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "test-anon-key";
+env.NEXT_PUBLIC_SUPABASE_URL = "https://tests-project.supabase.co";
+env.NEXT_PUBLIC_SUPABASE_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSJ9.anonkey-for-unit-tests";
 env.META_APP_ID = "test-meta-app-id";
 env.META_APP_SECRET = "test-meta-app-secret";
 env.GOOGLE_CLIENT_ID = "test-google-client-id";

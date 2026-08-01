@@ -1,10 +1,17 @@
 import type { User } from "@supabase/supabase-js";
 import type { Prisma } from "@prisma/client";
 import { resolveAppUrl } from "@/lib/environment/app-url";
+import {
+  assertSignupAuthConfiguration,
+  isAntiEnumerationSignupResponse,
+  mapSignupAuthError,
+  type SignUpOutcome,
+} from "@/lib/auth/signup-errors";
 import { AUTH_AUDIT_ACTIONS, AUTH_CALLBACK_PATH } from "@/lib/auth/constants";
 import {
   ensureUserProfile,
   extractProviderMetadata,
+  reconcileUserProfile,
   type ProvisionedUser,
 } from "@/lib/auth/provisioning";
 import { resolvePostAuthRedirectPath } from "@/lib/auth/post-auth";
@@ -165,31 +172,57 @@ export const authService = {
     firstName?: string;
     lastName?: string;
     displayName?: string;
-  }) {
+  }): Promise<SignUpOutcome> {
+    assertSignupAuthConfiguration();
+
     const supabase = await createSupabaseServerClient();
     const displayName =
       input.displayName ??
       ([input.firstName, input.lastName].filter(Boolean).join(" ").trim() || undefined);
 
-    const { data, error } = await supabase.auth.signUp({
-      email: input.email,
-      password: input.password,
-      options: {
-        emailRedirectTo: buildCallbackUrl("/dashboard"),
-        data: {
-          first_name: input.firstName,
-          last_name: input.lastName,
-          full_name: displayName,
+    let data;
+    try {
+      const result = await supabase.auth.signUp({
+        email: input.email,
+        password: input.password,
+        options: {
+          emailRedirectTo: buildCallbackUrl("/dashboard"),
+          data: {
+            first_name: input.firstName,
+            last_name: input.lastName,
+            full_name: displayName,
+          },
         },
-      },
-    });
+      });
 
-    if (error) {
-      throw error;
+      if (result.error) {
+        throw result.error;
+      }
+
+      data = result.data;
+    } catch (error) {
+      throw mapSignupAuthError(error, "supabase_signup");
     }
 
-    if (data.user?.email) {
-      const provisioned = await ensureUserProfile({
+    if (!data.user) {
+      throw mapSignupAuthError(new Error("Supabase signup returned no user."), "supabase_signup");
+    }
+
+    if (isAntiEnumerationSignupResponse(data.user)) {
+      return {
+        stage: "completed",
+        userCreated: false,
+        emailVerificationRequired: false,
+        antiEnumeration: true,
+      };
+    }
+
+    if (!data.user.email) {
+      throw mapSignupAuthError(new Error("Supabase signup returned a user without an email."), "supabase_signup");
+    }
+
+    try {
+      const provisioned = await reconcileUserProfile({
         authUserId: data.user.id,
         email: data.user.email,
         displayName,
@@ -206,9 +239,17 @@ export const authService = {
           metadata: { provider: "email" },
         });
       }
+    } catch (error) {
+      throw mapSignupAuthError(error, "profile_provisioning");
     }
 
-    return data;
+    return {
+      stage: "completed",
+      userCreated: true,
+      emailVerificationRequired: !data.session,
+      antiEnumeration: false,
+      authUserId: data.user.id,
+    };
   },
 
   async signInWithPassword(email: string, password: string) {
