@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         logSignupCatch("signup route", requestId, error);
         const appError =
-          error instanceof AppError ? error : mapSignupAuthError(error, "supabase_signup");
+          error instanceof AppError ? error : mapSignupAuthError(error, "supabase_signup", requestId);
         logSignupTrace("EXIT signup route", requestId, {
           status: appError.status,
           code: appError.code,
