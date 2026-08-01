@@ -7,6 +7,9 @@ export type AppErrorCode =
   | "ORGANISATION_MEMBERSHIP_REQUIRED"
   | "INSUFFICIENT_ROLE"
   | "RATE_LIMITED"
+  | "AUTH_CONFIGURATION_ERROR"
+  | "AUTH_PROVIDER_UNAVAILABLE"
+  | "PROFILE_PROVISIONING_FAILED"
   | "INTERNAL_ERROR";
 
 export class AppError extends Error {
@@ -42,6 +45,10 @@ function mapCodeToStatus(code: AppErrorCode): number {
       return 400;
     case "RATE_LIMITED":
       return 429;
+    case "AUTH_CONFIGURATION_ERROR":
+    case "AUTH_PROVIDER_UNAVAILABLE":
+    case "PROFILE_PROVISIONING_FAILED":
+      return 503;
     default:
       return 500;
   }

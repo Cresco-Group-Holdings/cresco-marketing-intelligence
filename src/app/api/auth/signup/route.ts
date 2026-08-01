@@ -6,17 +6,22 @@ import {
   requireJsonContentType,
 } from "@/lib/api/public-auth-handler";
 import { parseBody, jsonBody } from "@/lib/api/handler";
-import { GENERIC_SIGNUP_SUCCESS } from "@/lib/auth/constants";
+import { AppError } from "@/lib/errors";
+import {
+  getGenericSignupSuccessMessage,
+  mapSignupAuthError,
+} from "@/lib/auth/signup-errors";
 import { getSupabaseConfigMetadata } from "@/lib/environment/supabase";
 import { logger } from "@/lib/logging";
 import { signupSchema } from "@/lib/validation/auth";
 import { authService } from "@/server/services/auth-service";
 
-function logSignupFailure(error: unknown, requestId: string): void {
+function logSignupFailure(error: unknown, requestId: string, stage: string): void {
   const metadata = getSupabaseConfigMetadata();
 
   logger.warn("auth.signup.failed", {
     requestId,
+    stage,
     supabaseHostSuffix: metadata.hostSuffix,
     supabaseUsesRuntimeServerVars: metadata.usesRuntimeServerVars,
     errorName: error instanceof Error ? error.name : "unknown",
@@ -34,18 +39,24 @@ export async function POST(request: NextRequest) {
       const body = parseBody(signupSchema, await jsonBody(request));
 
       try {
-        await authService.signUp(body);
-      } catch (error) {
-        logSignupFailure(error, requestId);
-        // Prevent account enumeration — always return the same success response.
-      }
+        const outcome = await authService.signUp(body);
 
-      return apiSuccess(
-        {
-          message: GENERIC_SIGNUP_SUCCESS,
-        },
-        { requestId },
-      );
+        return apiSuccess(
+          {
+            message: getGenericSignupSuccessMessage(),
+            emailVerificationRequired: outcome.emailVerificationRequired,
+            userCreated: outcome.userCreated,
+            antiEnumeration: outcome.antiEnumeration,
+          },
+          { requestId },
+        );
+      } catch (error) {
+        const appError =
+          error instanceof AppError ? error : mapSignupAuthError(error, "supabase_signup");
+
+        logSignupFailure(appError, requestId, appError.code);
+        throw appError;
+      }
     },
     { rateLimitAction: "signup" },
   );

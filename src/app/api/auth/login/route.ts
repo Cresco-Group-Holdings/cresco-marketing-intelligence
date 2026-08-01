@@ -16,6 +16,27 @@ import {
 import { resolveSafeRedirectPath } from "@/lib/security/redirects";
 import { enforceAuthRateLimit } from "@/lib/security/auth-rate-limit";
 
+function mapLoginProvisioningError(error: unknown): AppError {
+  const prismaCode =
+    error && typeof error === "object" && "code" in error
+      ? String((error as { code?: string }).code)
+      : undefined;
+
+  if (prismaCode?.startsWith("P10")) {
+    return new AppError(
+      "AUTH_PROVIDER_UNAVAILABLE",
+      "Authentication services are temporarily unavailable.",
+      { status: 503, expose: true, cause: error },
+    );
+  }
+
+  return new AppError(
+    "PROFILE_PROVISIONING_FAILED",
+    "Your account exists, but profile setup is still pending. Please try again shortly.",
+    { status: 503, expose: true, cause: error },
+  );
+}
+
 export async function POST(request: NextRequest) {
   return withPublicAuthHandler(
     request,
@@ -34,10 +55,15 @@ export async function POST(request: NextRequest) {
         throw new AppError("UNAUTHORIZED", GENERIC_LOGIN_ERROR);
       }
 
-      const provisioned = await authService.provisionFromAuthUser(data.user, {
-        requestId,
-        ipAddress,
-      });
+      let provisioned;
+      try {
+        provisioned = await authService.provisionFromAuthUser(data.user, {
+          requestId,
+          ipAddress,
+        });
+      } catch (provisioningError) {
+        throw mapLoginProvisioningError(provisioningError);
+      }
 
       await authService.recordLoginSucceeded(provisioned.userProfileId, { requestId, ipAddress }, {
         provider: "email",

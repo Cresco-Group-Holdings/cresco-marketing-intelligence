@@ -36,6 +36,8 @@ const serverEnvSchema = z.object({
   EMAIL_EMERGENCY_SHUTDOWN: optionalNonEmptyString,
   SUPABASE_URL: optionalNonEmptyString,
   SUPABASE_ANON_KEY: optionalNonEmptyString,
+  PRODUCTION_AUTH_DATABASE_DIAGNOSTICS_ENABLED: optionalNonEmptyString,
+  PRODUCTION_DIAGNOSTICS_TOKEN: optionalNonEmptyString,
 });
 
 const clientEnvSchema = z.object({

@@ -24,12 +24,18 @@ export function SignupForm() {
     setLoading(true);
 
     try {
-      const result = await apiFetch<{ message: string }>("/api/auth/signup", {
+      const result = await apiFetch<{
+        message: string;
+        emailVerificationRequired?: boolean;
+        userCreated?: boolean;
+      }>("/api/auth/signup", {
         method: "POST",
         body: JSON.stringify({ email, password, firstName, lastName }),
       });
       setMessage(result.message);
-      router.push("/verify-email");
+      if (result.userCreated !== false) {
+        router.push("/verify-email");
+      }
     } catch (submitError) {
       const fallback = "The registration service is temporarily unavailable.";
       if (submitError instanceof Error) {
