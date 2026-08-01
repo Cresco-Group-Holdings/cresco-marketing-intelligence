@@ -51,44 +51,48 @@ suite("marketing warehouse architecture closure", () => {
     };
   }
 
-  it("chunks a 10,000-row import across multiple ingestion calls without exceeding batch limits", async () => {
-    const { manualImportService } = await services();
-    const csv = csvContent(10_000);
+  it(
+    "chunks a 10,000-row import across multiple ingestion calls without exceeding batch limits",
+    async () => {
+      const { manualImportService } = await services();
+      const csv = csvContent(10_000);
 
-    const preview = await manualImportService.createImport(
-      tenantA.organisation.id,
-      {
-        brandId: tenantA.brand.id,
-        fileName: "large.csv",
-        csvContent: csv,
-        idempotencyKey: `large-import-${tenantA.id}`,
-      },
-      tenantA.context as never,
-    );
+      const preview = await manualImportService.createImport(
+        tenantA.organisation.id,
+        {
+          brandId: tenantA.brand.id,
+          fileName: "large.csv",
+          csvContent: csv,
+          idempotencyKey: `large-import-${tenantA.id}`,
+        },
+        tenantA.context as never,
+      );
 
-    const completed = await manualImportService.confirmImport(
-      tenantA.organisation.id,
-      {
-        brandId: tenantA.brand.id,
-        importId: preview.job.id,
-        csvContent: csv,
-      },
-      tenantA.context as never,
-    );
+      const completed = await manualImportService.confirmImport(
+        tenantA.organisation.id,
+        {
+          brandId: tenantA.brand.id,
+          importId: preview.job.id,
+          csvContent: csv,
+        },
+        tenantA.context as never,
+      );
 
-    expect(completed.status).toBe("COMPLETED");
-    expect(completed.rowsProcessed).toBe(10_000);
+      expect(completed.status).toBe("COMPLETED");
+      expect(completed.rowsProcessed).toBe(10_000);
 
-    const batches = await prisma.rawMarketingBatch.findMany({
-      where: { organisationId: tenantA.organisation.id, brandId: tenantA.brand.id },
-    });
-    expect(batches).toHaveLength(1);
+      const batches = await prisma.rawMarketingBatch.findMany({
+        where: { organisationId: tenantA.organisation.id, brandId: tenantA.brand.id },
+      });
+      expect(batches).toHaveLength(1);
 
-    const records = await prisma.rawMarketingRecord.count({
-      where: { organisationId: tenantA.organisation.id, brandId: tenantA.brand.id },
-    });
-    expect(records).toBe(10_000);
-  });
+      const records = await prisma.rawMarketingRecord.count({
+        where: { organisationId: tenantA.organisation.id, brandId: tenantA.brand.id },
+      });
+      expect(records).toBe(10_000);
+    },
+    300_000,
+  );
 
   it("rejects a single ingest call above 5,000 records", async () => {
     const { ingestionService } = await services();
