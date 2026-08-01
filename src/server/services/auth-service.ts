@@ -1,6 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import type { Prisma } from "@prisma/client";
-import { getServerEnv } from "@/lib/environment";
+import { resolveAppUrl } from "@/lib/environment/app-url";
 import { AUTH_AUDIT_ACTIONS, AUTH_CALLBACK_PATH } from "@/lib/auth/constants";
 import {
   ensureUserProfile,
@@ -20,8 +20,7 @@ type AuditContext = {
 };
 
 function buildCallbackUrl(redirect?: string): string {
-  const { APP_URL } = getServerEnv();
-  const callback = new URL(AUTH_CALLBACK_PATH, APP_URL);
+  const callback = new URL(AUTH_CALLBACK_PATH, resolveAppUrl());
 
   if (redirect) {
     callback.searchParams.set("redirect", resolveSafeRedirectPath(redirect, "/dashboard"));

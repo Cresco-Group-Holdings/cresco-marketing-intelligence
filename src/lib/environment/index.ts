@@ -34,6 +34,8 @@ const serverEnvSchema = z.object({
   PROVIDER_LIVE_CALLS_ENABLED: optionalNonEmptyString,
   RESEND_PROVIDER_ENABLED: optionalNonEmptyString,
   EMAIL_EMERGENCY_SHUTDOWN: optionalNonEmptyString,
+  SUPABASE_URL: optionalNonEmptyString,
+  SUPABASE_ANON_KEY: optionalNonEmptyString,
 });
 
 const clientEnvSchema = z.object({

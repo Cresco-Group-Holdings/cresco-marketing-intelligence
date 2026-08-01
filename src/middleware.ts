@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { isAuthRoute, isProtectedRoute } from "@/lib/auth/routes";
+import { getSupabaseServerConfig, readSupabaseServerConfigFromProcessEnv } from "@/lib/environment/supabase";
 import { applySecurityHeaders } from "@/lib/security/headers";
 import { resolveSafeRedirectPath } from "@/lib/security/redirects";
 
@@ -15,15 +16,23 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  let supabaseConfig: { url: string; anonKey: string } | null = null;
+  try {
+    supabaseConfig = getSupabaseServerConfig();
+  } catch {
+    const fallback = readSupabaseServerConfigFromProcessEnv();
+    if (fallback.url && fallback.anonKey) {
+      supabaseConfig = fallback;
+    }
+  }
+
   const { pathname } = request.nextUrl;
 
   if (isTestAuthEnabled() && isProtectedRoute(pathname)) {
     return applySecurityHeaders(response);
   }
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!supabaseConfig) {
     if (isProtectedRoute(pathname)) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = "/login";
@@ -34,7 +43,7 @@ export async function middleware(request: NextRequest) {
     return applySecurityHeaders(response);
   }
 
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+  const supabase = createServerClient(supabaseConfig.url, supabaseConfig.anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();
