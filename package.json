@@ -4,7 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+<<<<<<< HEAD
     "build": "NODE_OPTIONS=--max-old-space-size=8192 prisma generate && NODE_OPTIONS=--max-old-space-size=8192 next build --turbopack",
+=======
+    "build": "prisma generate && NODE_OPTIONS=--max-old-space-size=8192 next build --turbopack",
+>>>>>>> origin/main
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
