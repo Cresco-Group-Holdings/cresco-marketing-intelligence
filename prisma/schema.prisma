@@ -420,6 +420,8 @@ model UserProfile {
   socialInboxReplyDrafts                       SocialInboxReplyDraft[]                @relation("SocialInboxReplyDraftAuthor")
   socialInboxMessagesSent                      SocialMessage[]                        @relation("SocialMessageSender")
   socialInboxAssigned                          SocialConversation[]                   @relation("SocialInboxConversationAssignee")
+  providerConnectionsCreated                   ProviderConnection[]                   @relation("ProviderConnectionCreator")
+  providerAuditEvents                          ProviderAuditEvent[]                   @relation("ProviderAuditActor")
 
   @@index([email])
 }
@@ -822,6 +824,9 @@ model Organisation {
   socialInboxTags                         SocialInboxTag[]
   socialInboxStatusHistory                SocialInboxStatusHistory[]
   socialInboxReplyDrafts                  SocialInboxReplyDraft[]
+  providerConnections                     ProviderConnection[]
+  providerAuditEvents                     ProviderAuditEvent[]
+  providerFeatureFlags                    ProviderFeatureFlag[]
 
   @@index([status])
   @@index([archivedAt])
@@ -1082,6 +1087,7 @@ model Project {
   socialInboxTags                  SocialInboxTag[]
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
+  providerConnections              ProviderConnection[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1357,6 +1363,7 @@ model Brand {
   socialInboxAssignments           SocialInboxAssignment[]
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
+  providerConnections              ProviderConnection[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -17973,4 +17980,392 @@ model ComplianceOverride {
   @@index([evaluationId])
   @@index([findingId])
   @@index([contentItemId])
+}
+
+// --- Task 7.1: Provider Integration Foundation ---
+
+enum ProviderAuthType {
+  OAUTH2_AUTHORIZATION_CODE
+  OAUTH2_PKCE
+  API_KEY
+  BASIC_AUTH
+  BEARER_TOKEN
+  SERVICE_ACCOUNT
+  SMTP_CREDENTIALS
+  AWS_SIGNATURE
+  WEBHOOK_ONLY
+  INTERNAL
+  NONE
+}
+
+enum ProviderCategory {
+  SOCIAL
+  ANALYTICS
+  ADVERTISING
+  EMAIL
+  PAYMENTS
+  SEO
+  DATA
+  INTERNAL
+}
+
+enum ProviderConnectionStatus {
+  DRAFT
+  PENDING_AUTHORIZATION
+  CONNECTED
+  DEGRADED
+  REAUTH_REQUIRED
+  RATE_LIMITED
+  SUSPENDED
+  DISABLED
+  REVOKED
+  ERROR
+}
+
+enum ProviderEnvironment {
+  SANDBOX
+  STAGING
+  PRODUCTION
+}
+
+enum ProviderCapabilityType {
+  PUBLISHING
+  ANALYTICS_PULL
+  ANALYTICS_PUSH
+  ADVERTISING_MANAGE
+  ADVERTISING_REPORT
+  EMAIL_SEND
+  EMAIL_WEBHOOK
+  PAYMENT_SYNC
+  SEARCH_RANK
+  WEBHOOK_INGEST
+  OAUTH_CONNECT
+  DATA_IMPORT
+  CRAWL
+}
+
+enum ProviderApiVersionStatus {
+  CURRENT
+  DEPRECATED
+  SUNSET
+}
+
+enum ProviderWebhookEventStatus {
+  RECEIVED
+  VERIFIED
+  PROCESSING
+  PROCESSED
+  REJECTED
+  DEAD_LETTER
+  DUPLICATE
+}
+
+enum ProviderSyncRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ProviderHealthStatus {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+  UNKNOWN
+}
+
+enum ProviderAuditAction {
+  CONNECTION_CREATED
+  AUTHORIZATION_STARTED
+  AUTHORIZATION_COMPLETED
+  AUTHORIZATION_FAILED
+  CREDENTIAL_REFRESHED
+  CREDENTIAL_REVOKED
+  CONNECTION_TESTED
+  CONNECTION_DEGRADED
+  CONNECTION_RESTORED
+  WEBHOOK_RECEIVED
+  WEBHOOK_REJECTED
+  SYNC_STARTED
+  SYNC_COMPLETED
+  SYNC_FAILED
+  RATE_LIMIT_REACHED
+  PROVIDER_DISABLED
+  CONFIGURATION_CHANGED
+}
+
+enum ProviderCredentialType {
+  OAUTH_ACCESS_TOKEN
+  OAUTH_REFRESH_TOKEN
+  API_KEY
+  CLIENT_SECRET
+  WEBHOOK_SIGNING_SECRET
+  SMTP_PASSWORD
+  SERVICE_ACCOUNT_KEY
+  BEARER_TOKEN
+  BASIC_AUTH
+}
+
+enum ProviderCircuitState {
+  CLOSED
+  OPEN
+  HALF_OPEN
+}
+
+model ProviderConnection {
+  id                String                   @id @default(cuid())
+  organisationId    String
+  projectId         String?
+  brandId           String?
+  userId            String?
+  providerKey       String
+  providerVersion   String                   @default("1.0")
+  displayName       String?
+  category          ProviderCategory
+  authType          ProviderAuthType
+  environment       ProviderEnvironment      @default(PRODUCTION)
+  status            ProviderConnectionStatus @default(DRAFT)
+  configuration     Json?
+  grantedScopes     String[]                 @default([])
+  externalAccountId String?
+  externalLabel     String?
+  tokenExpiresAt    DateTime?
+  lastHealthCheckAt DateTime?
+  lastSuccessfulAt  DateTime?
+  lastErrorAt       DateTime?
+  lastErrorCode     String?
+  lastErrorMessage  String?
+  createdByUserId   String?
+  connectedAt       DateTime?
+  disconnectedAt    DateTime?
+  revokedAt         DateTime?
+  metadata          Json?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  organisation     Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project?                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand?                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy        UserProfile?              @relation("ProviderConnectionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  credentials      ProviderCredential[]
+  oauthStates      ProviderOAuthState[]
+  webhookEndpoints ProviderWebhookEndpoint[]
+  webhookEvents    ProviderWebhookEvent[]
+  syncCursors      ProviderSyncCursor[]
+  syncRuns         ProviderSyncRun[]
+  rateLimitStates  ProviderRateLimitState[]
+  healthStates     ProviderHealthState[]
+  auditEvents      ProviderAuditEvent[]
+
+  @@index([organisationId, providerKey])
+  @@index([organisationId, status])
+  @@index([brandId, providerKey])
+  @@index([projectId])
+  @@index([providerKey, status])
+}
+
+model ProviderCredential {
+  id             String                 @id @default(cuid())
+  organisationId String
+  connectionId   String
+  credentialType ProviderCredentialType
+  encryptedValue String
+  keyVersion     Int                    @default(1)
+  fingerprint    String?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, credentialType])
+  @@index([connectionId, credentialType])
+  @@index([organisationId])
+}
+
+model ProviderOAuthState {
+  id             String    @id @default(cuid())
+  organisationId String
+  connectionId   String?
+  providerKey    String
+  state          String    @unique
+  codeVerifier   String?
+  nonce          String?
+  scopes         String[]  @default([])
+  redirectUri    String
+  returnUrl      String?
+  signedPayload  String
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  connection ProviderConnection? @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, providerKey])
+  @@index([expiresAt])
+}
+
+model ProviderWebhookEndpoint {
+  id             String    @id @default(cuid())
+  organisationId String
+  connectionId   String
+  providerKey    String
+  externalId     String?
+  url            String
+  secretDigest   String?
+  isActive       Boolean   @default(true)
+  lastReceivedAt DateTime?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  connection ProviderConnection     @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  events     ProviderWebhookEvent[]
+
+  @@index([connectionId])
+  @@index([organisationId, providerKey])
+}
+
+model ProviderWebhookEvent {
+  id              String                     @id @default(cuid())
+  organisationId  String
+  connectionId    String?
+  endpointId      String?
+  providerKey     String
+  externalEventId String?
+  eventType       String?
+  status          ProviderWebhookEventStatus @default(RECEIVED)
+  payloadDigest   String?
+  errorCode       String?
+  errorMessage    String?
+  receivedAt      DateTime                   @default(now())
+  processedAt     DateTime?
+  retryCount      Int                        @default(0)
+  metadata        Json?
+
+  connection ProviderConnection?      @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  endpoint   ProviderWebhookEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
+
+  @@unique([providerKey, externalEventId])
+  @@index([organisationId, status])
+  @@index([connectionId, receivedAt])
+}
+
+model ProviderSyncCursor {
+  id             String   @id @default(cuid())
+  organisationId String
+  connectionId   String
+  resourceType   String
+  cursorValue    String
+  metadata       Json?
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, resourceType])
+  @@index([organisationId])
+}
+
+model ProviderSyncRun {
+  id               String                @id @default(cuid())
+  organisationId   String
+  connectionId     String
+  resourceType     String?
+  status           ProviderSyncRunStatus @default(PENDING)
+  startedAt        DateTime?
+  completedAt      DateTime?
+  recordsProcessed Int                   @default(0)
+  errorCode        String?
+  errorMessage     String?
+  correlationId    String?
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, status])
+  @@index([organisationId, createdAt])
+}
+
+model ProviderRateLimitState {
+  id             String    @id @default(cuid())
+  organisationId String
+  connectionId   String
+  windowKey      String
+  requestCount   Int       @default(0)
+  windowStart    DateTime
+  windowEnd      DateTime
+  limitReachedAt DateTime?
+  metadata       Json?
+  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime  @default(now())
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, windowKey])
+  @@index([organisationId])
+}
+
+model ProviderHealthState {
+  id                  String               @id @default(cuid())
+  organisationId      String
+  connectionId        String
+  status              ProviderHealthStatus @default(UNKNOWN)
+  lastCheckedAt       DateTime?
+  lastHealthyAt       DateTime?
+  consecutiveFailures Int                  @default(0)
+  circuitState        ProviderCircuitState @default(CLOSED)
+  errorCode           String?
+  errorMessage        String?
+  metadata            Json?
+  updatedAt           DateTime             @updatedAt
+  createdAt           DateTime             @default(now())
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId])
+  @@index([organisationId, status])
+}
+
+model ProviderAuditEvent {
+  id             String              @id @default(cuid())
+  organisationId String
+  connectionId   String?
+  providerKey    String
+  action         ProviderAuditAction
+  actorUserId    String?
+  requestId      String?
+  result         String
+  errorCode      String?
+  metadata       Json?
+  createdAt      DateTime            @default(now())
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  connection   ProviderConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+  actor        UserProfile?        @relation("ProviderAuditActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, createdAt])
+  @@index([connectionId, action])
+  @@index([providerKey, action])
+}
+
+model ProviderFeatureFlag {
+  id             String   @id @default(cuid())
+  organisationId String
+  providerKey    String
+  flagKey        String
+  enabled        Boolean  @default(false)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, providerKey, flagKey])
+  @@index([organisationId, providerKey])
 }

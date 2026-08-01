@@ -25,6 +25,13 @@ const serverEnvSchema = z.object({
   LINKEDIN_CLIENT_SECRET: optionalNonEmptyString,
   X_CLIENT_ID: optionalNonEmptyString,
   X_CLIENT_SECRET: optionalNonEmptyString,
+  PROVIDER_ENCRYPTION_KEY: optionalNonEmptyString,
+  PROVIDER_ENCRYPTION_KEY_VERSION: optionalNonEmptyString,
+  OAUTH_STATE_SIGNING_KEY: optionalNonEmptyString,
+  OAUTH_CALLBACK_BASE_URL: optionalNonEmptyString,
+  WEBHOOK_BASE_URL: optionalNonEmptyString,
+  PROVIDER_CONNECTORS_ENABLED: optionalNonEmptyString,
+  PROVIDER_LIVE_CALLS_ENABLED: optionalNonEmptyString,
 });
 
 const clientEnvSchema = z.object({
