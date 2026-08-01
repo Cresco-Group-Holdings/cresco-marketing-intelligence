@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { AppError } from "@/lib/errors";
-import { getServerEnv } from "@/lib/environment";
+import { resolveAllowedOrigins } from "@/lib/environment/app-url";
 
 export function assertSameOrigin(request: NextRequest): void {
   const origin = request.headers.get("origin");
@@ -8,10 +8,9 @@ export function assertSameOrigin(request: NextRequest): void {
     return;
   }
 
-  const { APP_URL } = getServerEnv();
-  const allowedOrigin = new URL(APP_URL).origin;
+  const allowedOrigins = resolveAllowedOrigins();
 
-  if (origin !== allowedOrigin) {
+  if (!allowedOrigins.includes(origin)) {
     throw new AppError("FORBIDDEN", "Invalid request origin.");
   }
 }
