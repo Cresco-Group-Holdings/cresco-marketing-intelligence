@@ -1,0 +1,83 @@
+name: Production Database Migrate
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type MIGRATE_PRODUCTION to confirm"
+        required: true
+        type: string
+
+concurrency:
+  group: production-database-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate-production:
+    name: Apply Prisma migrations to production
+    runs-on: ubuntu-latest
+    environment: production
+    if: ${{ github.event.inputs.confirmation == 'MIGRATE_PRODUCTION' }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify production database secret is configured
+        env:
+          PRODUCTION_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+        run: |
+          if [ -z "$PRODUCTION_DIRECT_URL" ]; then
+            echo "PRODUCTION_DIRECT_URL is not configured in the production environment."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Check migration status (before deploy)
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+        run: npx prisma migrate status
+
+      - name: Deploy migrations
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+        run: npx prisma migrate deploy
+
+      - name: Check migration status (after deploy)
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+        run: npx prisma migrate status
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Verify migration and representative tables
+        env:
+          DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+        run: node scripts/verify-production-migration.mjs
+
+  reject-invalid-confirmation:
+    name: Reject invalid confirmation phrase
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirmation != 'MIGRATE_PRODUCTION' }}
+    steps:
+      - name: Fail workflow
+        run: |
+          echo "Confirmation phrase did not match. Expected exactly: MIGRATE_PRODUCTION"
+          exit 1
