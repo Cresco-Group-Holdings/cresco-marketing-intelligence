@@ -5,6 +5,40 @@ export type ApiEnvelope<T> = {
   error: { code: string; message: string; requestId: string } | null;
 };
 
+const SERVICE_UNAVAILABLE_MESSAGE = "The service is temporarily unavailable.";
+
+function isJsonContentType(contentType: string | null): boolean {
+  if (!contentType) {
+    return false;
+  }
+  const mediaType = contentType.split(";")[0]?.trim().toLowerCase();
+  return mediaType === "application/json" || mediaType.endsWith("+json");
+}
+
+async function parseApiResponse<T>(response: Response): Promise<ApiEnvelope<T>> {
+  const contentType = response.headers.get("content-type");
+
+  if (!isJsonContentType(contentType)) {
+    console.error("API response was not JSON.", {
+      status: response.status,
+      contentType,
+      path: response.url,
+    });
+    throw new Error(SERVICE_UNAVAILABLE_MESSAGE);
+  }
+
+  try {
+    return (await response.json()) as ApiEnvelope<T>;
+  } catch {
+    console.error("API response JSON parsing failed.", {
+      status: response.status,
+      contentType,
+      path: response.url,
+    });
+    throw new Error(SERVICE_UNAVAILABLE_MESSAGE);
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   options?: RequestInit & {
@@ -26,7 +60,7 @@ export async function apiFetch<T>(
     headers,
   });
 
-  const body = (await response.json()) as ApiEnvelope<T>;
+  const body = await parseApiResponse<T>(response);
   if (!body.success || !body.data) {
     throw new Error(body.error?.message ?? "Request failed.");
   }
@@ -56,7 +90,7 @@ export async function apiUpload<T>(
     headers,
   });
 
-  const body = (await response.json()) as ApiEnvelope<T>;
+  const body = await parseApiResponse<T>(response);
   if (!body.success || !body.data) {
     throw new Error(body.error?.message ?? "Upload failed.");
   }

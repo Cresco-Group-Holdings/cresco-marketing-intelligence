@@ -9,7 +9,7 @@ import { AppError } from "@/lib/errors";
 import { ensureSocialAdaptersRegistered } from "@/lib/social/bootstrap";
 import { socialConnectionService } from "@/server/services/social-connection-service";
 
-type Params = { params: Promise<{ brandId: string; provider: string }> };
+type Params = { params: Promise<{ brandId: string; connectionId: string }> };
 
 function parseProvider(value: string): SocialProvider {
   if (!(value in SocialProvider)) {
@@ -20,7 +20,7 @@ function parseProvider(value: string): SocialProvider {
 
 export async function POST(request: NextRequest, { params }: Params) {
   ensureSocialAdaptersRegistered();
-  const { brandId, provider: providerParam } = await params;
+  const { brandId, connectionId: providerParam } = await params;
   const organisationId = requireOrganisationId(request);
   const provider = parseProvider(providerParam);
 
