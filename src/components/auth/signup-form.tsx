@@ -31,7 +31,16 @@ export function SignupForm() {
       setMessage(result.message);
       router.push("/verify-email");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Sign up failed.");
+      const fallback = "The registration service is temporarily unavailable.";
+      if (submitError instanceof Error) {
+        setError(
+          submitError.message === "The service is temporarily unavailable."
+            ? fallback
+            : submitError.message,
+        );
+      } else {
+        setError(fallback);
+      }
     } finally {
       setLoading(false);
     }
