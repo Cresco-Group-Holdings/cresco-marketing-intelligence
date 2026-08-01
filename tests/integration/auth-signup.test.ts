@@ -98,7 +98,13 @@ describe("POST /api/auth/signup", () => {
       expect.objectContaining({
         authUserId: "auth-user-1",
         email: "new.user@example.com",
+        firstName: "New",
+        lastName: "User",
+        displayName: "New User",
       }),
+      expect.stringMatching(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+      ),
     );
   });
 

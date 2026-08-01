@@ -19,6 +19,7 @@ import { createSupabaseServerClient } from "@/lib/auth/supabase-server";
 import { createSupabaseServiceClient } from "@/lib/auth/supabase-service";
 import { getOAuthProvider } from "@/lib/auth/providers";
 import { resolveSafeRedirectPath } from "@/lib/security/redirects";
+import { logSignupCatch, logSignupTrace } from "@/lib/auth/signup-trace";
 import { securityAuditService } from "@/server/services/security-audit-service";
 
 type AuditContext = {
@@ -166,22 +167,36 @@ export const authService = {
     });
   },
 
-  async signUp(input: {
-    email: string;
-    password: string;
-    firstName?: string;
-    lastName?: string;
-    displayName?: string;
-  }): Promise<SignUpOutcome> {
-    assertSignupAuthConfiguration();
+  async signUp(
+    input: {
+      email: string;
+      password: string;
+      firstName?: string;
+      lastName?: string;
+      displayName?: string;
+    },
+    options?: { requestId?: string },
+  ): Promise<SignUpOutcome> {
+    const requestId = options?.requestId;
+    if (requestId) {
+      logSignupTrace("ENTER auth service signUp", requestId);
+    }
 
-    const supabase = await createSupabaseServerClient();
+    assertSignupAuthConfiguration(requestId);
+
+    const supabase = await createSupabaseServerClient(requestId);
     const displayName =
       input.displayName ??
       ([input.firstName, input.lastName].filter(Boolean).join(" ").trim() || undefined);
 
     let data;
     try {
+      if (requestId) {
+        logSignupTrace("ENTER supabase.auth.signUp", requestId, {
+          emailRedirectHost: new URL(buildCallbackUrl("/dashboard")).host,
+        });
+      }
+
       const result = await supabase.auth.signUp({
         email: input.email,
         password: input.password,
@@ -195,20 +210,43 @@ export const authService = {
         },
       });
 
+      if (requestId) {
+        logSignupTrace("SUPABASE RESPONSE", requestId, {
+          hasError: Boolean(result.error),
+          hasUser: Boolean(result.data.user),
+          hasSession: Boolean(result.data.session),
+          identitiesCount: result.data.user?.identities?.length ?? 0,
+          errorName: result.error?.name,
+          errorCode: result.error?.code,
+          errorStatus: result.error?.status,
+          errorMessage: result.error?.message,
+        });
+      }
+
       if (result.error) {
         throw result.error;
       }
 
       data = result.data;
     } catch (error) {
-      throw mapSignupAuthError(error, "supabase_signup");
+      if (requestId) {
+        logSignupCatch("supabase.auth.signUp", requestId, error);
+      }
+      throw mapSignupAuthError(error, "supabase_signup", requestId);
     }
 
     if (!data.user) {
-      throw mapSignupAuthError(new Error("Supabase signup returned no user."), "supabase_signup");
+      const noUserError = new Error("Supabase signup returned no user.");
+      if (requestId) {
+        logSignupCatch("supabase.auth.signUp.no_user", requestId, noUserError);
+      }
+      throw mapSignupAuthError(noUserError, "supabase_signup", requestId);
     }
 
     if (isAntiEnumerationSignupResponse(data.user)) {
+      if (requestId) {
+        logSignupTrace("EXIT auth service signUp anti-enumeration", requestId);
+      }
       return {
         stage: "completed",
         userCreated: false,
@@ -218,17 +256,34 @@ export const authService = {
     }
 
     if (!data.user.email) {
-      throw mapSignupAuthError(new Error("Supabase signup returned a user without an email."), "supabase_signup");
+      const noEmailError = new Error("Supabase signup returned a user without an email.");
+      if (requestId) {
+        logSignupCatch("supabase.auth.signUp.no_email", requestId, noEmailError);
+      }
+      throw mapSignupAuthError(noEmailError, "supabase_signup", requestId);
     }
 
     try {
-      const provisioned = await reconcileUserProfile({
-        authUserId: data.user.id,
-        email: data.user.email,
-        displayName,
-        firstName: input.firstName,
-        lastName: input.lastName,
-      });
+      if (requestId) {
+        logSignupTrace("ENTER ensureUserProfile", requestId);
+      }
+
+      const provisioned = await reconcileUserProfile(
+        {
+          authUserId: data.user.id,
+          email: data.user.email,
+          displayName,
+          firstName: input.firstName,
+          lastName: input.lastName,
+        },
+        requestId,
+      );
+
+      if (requestId) {
+        logSignupTrace("EXIT ensureUserProfile", requestId, {
+          created: provisioned.created,
+        });
+      }
 
       if (provisioned.created) {
         await securityAuditService.record({
@@ -240,7 +295,14 @@ export const authService = {
         });
       }
     } catch (error) {
-      throw mapSignupAuthError(error, "profile_provisioning");
+      if (requestId) {
+        logSignupCatch("ensureUserProfile", requestId, error);
+      }
+      throw mapSignupAuthError(error, "profile_provisioning", requestId);
+    }
+
+    if (requestId) {
+      logSignupTrace("EXIT auth service signUp", requestId, { userCreated: true });
     }
 
     return {

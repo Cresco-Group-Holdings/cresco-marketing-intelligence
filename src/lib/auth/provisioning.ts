@@ -1,5 +1,6 @@
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
+import { logSignupCatch, logSignupTrace } from "@/lib/auth/signup-trace";
 import type { UserProfile } from "@prisma/client";
 
 export type ProvisionedUser = {
@@ -34,14 +35,17 @@ function buildCreateData(input: {
   };
 }
 
-export async function ensureUserProfile(input: {
-  authUserId: string;
-  email: string;
-  displayName?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  avatarUrl?: string | null;
-}): Promise<ProvisionedUser> {
+export async function ensureUserProfile(
+  input: {
+    authUserId: string;
+    email: string;
+    displayName?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    avatarUrl?: string | null;
+  },
+  requestId?: string,
+): Promise<ProvisionedUser> {
   const email = input.email.trim().toLowerCase();
   const metadata: ProviderMetadata = {
     displayName: input.displayName,
@@ -50,53 +54,83 @@ export async function ensureUserProfile(input: {
     avatarUrl: input.avatarUrl,
   };
 
-  const existing = await prisma.userProfile.findUnique({
-    where: { authUserId: input.authUserId },
-  });
+  try {
+    if (requestId) {
+      logSignupTrace("ENTER Prisma userProfile.findUnique", requestId);
+    }
 
-  if (!existing) {
-    const profile = await prisma.userProfile.create({
-      data: buildCreateData({
+    const existing = await prisma.userProfile.findUnique({
+      where: { authUserId: input.authUserId },
+    });
+
+    if (!existing) {
+      if (requestId) {
+        logSignupTrace("ENTER Prisma userProfile.create", requestId);
+      }
+
+      const profile = await prisma.userProfile.create({
+        data: buildCreateData({
+          authUserId: input.authUserId,
+          email,
+          metadata,
+        }),
+      });
+
+      if (requestId) {
+        logSignupTrace("EXIT Prisma userProfile.create", requestId);
+      }
+
+      return {
         authUserId: input.authUserId,
         email,
-        metadata,
-      }),
+        userProfileId: profile.id,
+        profile,
+        created: true,
+      };
+    }
+
+    if (requestId) {
+      logSignupTrace("ENTER Prisma userProfile.update", requestId);
+    }
+
+    const profile = await prisma.userProfile.update({
+      where: { authUserId: input.authUserId },
+      data: {
+        email,
+      },
     });
+
+    if (requestId) {
+      logSignupTrace("EXIT Prisma userProfile.update", requestId);
+    }
 
     return {
       authUserId: input.authUserId,
       email,
       userProfileId: profile.id,
       profile,
-      created: true,
+      created: false,
     };
+  } catch (error) {
+    if (requestId) {
+      logSignupCatch("Prisma userProfile", requestId, error);
+    }
+    throw error;
   }
-
-  const profile = await prisma.userProfile.update({
-    where: { authUserId: input.authUserId },
-    data: {
-      email,
-    },
-  });
-
-  return {
-    authUserId: input.authUserId,
-    email,
-    userProfileId: profile.id,
-    profile,
-    created: false,
-  };
 }
 
-export async function reconcileUserProfile(input: {
-  authUserId: string;
-  email: string;
-  displayName?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  avatarUrl?: string | null;
-}): Promise<ProvisionedUser> {
-  return ensureUserProfile(input);
+export async function reconcileUserProfile(
+  input: {
+    authUserId: string;
+    email: string;
+    displayName?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+    avatarUrl?: string | null;
+  },
+  requestId?: string,
+): Promise<ProvisionedUser> {
+  return ensureUserProfile(input, requestId);
 }
 
 export function extractProviderMetadata(
