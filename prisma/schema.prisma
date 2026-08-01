@@ -18035,7 +18035,13 @@ enum ProviderCapabilityType {
   ADVERTISING_MANAGE
   ADVERTISING_REPORT
   EMAIL_SEND
+  EMAIL_BATCH_SEND
+  EMAIL_DELIVERY_EVENTS
+  EMAIL_DOMAIN_STATUS
   EMAIL_WEBHOOK
+  WEBHOOK_RECEIVE
+  CONNECTION_TEST
+  HEALTH_CHECK
   PAYMENT_SYNC
   SEARCH_RANK
   WEBHOOK_INGEST
@@ -18093,6 +18099,11 @@ enum ProviderAuditAction {
   RATE_LIMIT_REACHED
   PROVIDER_DISABLED
   CONFIGURATION_CHANGED
+  EMAIL_SEND_ATTEMPTED
+  EMAIL_SEND_ACCEPTED
+  EMAIL_SEND_REJECTED
+  EMAIL_SEND_SIMULATED
+  SUPPRESSION_APPLIED
 }
 
 enum ProviderCredentialType {
@@ -18111,6 +18122,15 @@ enum ProviderCircuitState {
   CLOSED
   OPEN
   HALF_OPEN
+}
+
+enum ProviderOutboundSendStatus {
+  PENDING
+  SUBMITTING
+  ACCEPTED
+  FAILED
+  SIMULATED
+  DUPLICATE
 }
 
 model ProviderConnection {
@@ -18157,6 +18177,7 @@ model ProviderConnection {
   rateLimitStates  ProviderRateLimitState[]
   healthStates     ProviderHealthState[]
   auditEvents      ProviderAuditEvent[]
+  outboundSends    ProviderOutboundSend[]
 
   @@index([organisationId, providerKey])
   @@index([organisationId, status])
@@ -18368,4 +18389,32 @@ model ProviderFeatureFlag {
 
   @@unique([organisationId, providerKey, flagKey])
   @@index([organisationId, providerKey])
+}
+
+model ProviderOutboundSend {
+  id                String                   @id @default(cuid())
+  organisationId    String
+  brandId           String?
+  connectionId      String
+  providerKey       String
+  idempotencyKey    String
+  messageType       String?
+  status            ProviderOutboundSendStatus @default(PENDING)
+  providerMessageId String?
+  safeErrorCode     String?
+  requestId         String?
+  approvalId        String?
+  campaignId        String?
+  recipientId       String?
+  sentAt            DateTime?
+  metadata          Json?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, connectionId, idempotencyKey])
+  @@index([organisationId, providerKey])
+  @@index([connectionId, status])
+  @@index([providerMessageId])
 }

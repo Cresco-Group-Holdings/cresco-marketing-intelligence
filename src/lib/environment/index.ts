@@ -32,6 +32,8 @@ const serverEnvSchema = z.object({
   WEBHOOK_BASE_URL: optionalNonEmptyString,
   PROVIDER_CONNECTORS_ENABLED: optionalNonEmptyString,
   PROVIDER_LIVE_CALLS_ENABLED: optionalNonEmptyString,
+  RESEND_PROVIDER_ENABLED: optionalNonEmptyString,
+  EMAIL_EMERGENCY_SHUTDOWN: optionalNonEmptyString,
 });
 
 const clientEnvSchema = z.object({

@@ -5,6 +5,7 @@ import {
   withProviderConnectionsRead,
 } from "@/lib/api/providers-handler";
 import { listProviderDefinitions } from "@/lib/providers/registry";
+import { isResendProviderEnabled } from "@/lib/providers/resend-config";
 
 export async function GET(request: NextRequest) {
   const organisationId = requireOrganisationId(request);
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
       category: definition.category,
       authType: definition.authType,
       capabilities: definition.capabilities,
-      enabled: definition.enabled,
+      enabled: definition.key === "resend" ? isResendProviderEnabled() : definition.enabled,
       webhookSupport: definition.webhookSupport,
       documentationUrl: definition.documentationUrl,
     }));

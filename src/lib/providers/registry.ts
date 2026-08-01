@@ -66,7 +66,8 @@ export function getProviderFeatureFlags(providerKey: string): Record<string, boo
   return getProviderDefinition(providerKey)?.featureFlags ?? {};
 }
 
-export function resolveProviderAdapter(_providerKey: string, _capability?: ProviderCapabilityType): null {
-  // Live adapters are registered in Task 7.2+. Foundation returns null for disabled providers.
-  return null;
-}
+export {
+  resolveProviderAdapter,
+  resolveWebhookAdapter,
+  resetProviderAdapterCacheForTests,
+} from "@/lib/providers/adapter-registry";
