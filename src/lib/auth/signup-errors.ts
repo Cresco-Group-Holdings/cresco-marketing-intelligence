@@ -1,5 +1,6 @@
 import { AuthError } from "@supabase/supabase-js";
 import { AppError } from "@/lib/errors";
+import { logSignupCatch, logSignupTrace } from "@/lib/auth/signup-trace";
 import { getSupabaseServerConfig } from "@/lib/environment/supabase";
 
 export type SignUpStage =
@@ -31,7 +32,11 @@ function isPlaceholderValue(value: string): boolean {
   );
 }
 
-export function assertSignupAuthConfiguration(): void {
+export function assertSignupAuthConfiguration(requestId?: string): void {
+  if (requestId) {
+    logSignupTrace("ENTER assertSignupAuthConfiguration", requestId);
+  }
+
   try {
     const { url, anonKey } = getSupabaseServerConfig();
     const parsed = new URL(url);
@@ -59,7 +64,14 @@ export function assertSignupAuthConfiguration(): void {
         { status: 503, expose: true },
       );
     }
+
+    if (requestId) {
+      logSignupTrace("EXIT assertSignupAuthConfiguration", requestId);
+    }
   } catch (error) {
+    if (requestId) {
+      logSignupCatch("assertSignupAuthConfiguration", requestId, error);
+    }
     if (error instanceof AppError) {
       throw error;
     }
@@ -86,7 +98,15 @@ function asAuthLikeError(
   return null;
 }
 
-export function mapSignupAuthError(error: unknown, stage: SignUpStage): AppError {
+export function mapSignupAuthError(
+  error: unknown,
+  stage: SignUpStage,
+  requestId?: string,
+): AppError {
+  if (requestId) {
+    logSignupCatch(`mapSignupAuthError:${stage}`, requestId, error);
+  }
+
   if (error instanceof AppError) {
     return error;
   }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRequestId, apiSuccess, handleApiError } from "@/lib/api/response";
 import { AppError } from "@/lib/errors";
+import { logSignupCatch } from "@/lib/auth/signup-trace";
 import { assertSameOrigin } from "@/lib/security/csrf";
 import { enforceAuthRateLimit } from "@/lib/security/auth-rate-limit";
 import { getClientIpAddress } from "@/lib/auth/request";
@@ -35,6 +36,9 @@ export async function withPublicAuthHandler(
 
     return await handler({ request, requestId, ipAddress });
   } catch (error) {
+    if (request.nextUrl.pathname.includes("/api/auth/signup")) {
+      logSignupCatch("withPublicAuthHandler", requestId, error);
+    }
     return handleApiError(error, requestId);
   }
 }

@@ -1,5 +1,4 @@
 import { NextRequest } from "next/server";
-import { AuthError } from "@supabase/supabase-js";
 import {
   withPublicAuthHandler,
   apiSuccess,
@@ -11,36 +10,34 @@ import {
   getGenericSignupSuccessMessage,
   mapSignupAuthError,
 } from "@/lib/auth/signup-errors";
-import { getSupabaseConfigMetadata } from "@/lib/environment/supabase";
-import { logger } from "@/lib/logging";
+import {
+  logSignupCatch,
+  logSignupRuntimeEnv,
+  logSignupTrace,
+} from "@/lib/auth/signup-trace";
 import { signupSchema } from "@/lib/validation/auth";
 import { authService } from "@/server/services/auth-service";
-
-function logSignupFailure(error: unknown, requestId: string, stage: string): void {
-  const metadata = getSupabaseConfigMetadata();
-
-  logger.warn("auth.signup.failed", {
-    requestId,
-    stage,
-    supabaseHostSuffix: metadata.hostSuffix,
-    supabaseUsesRuntimeServerVars: metadata.usesRuntimeServerVars,
-    errorName: error instanceof Error ? error.name : "unknown",
-    errorCode: error instanceof AuthError ? error.code : undefined,
-    errorStatus: error instanceof AuthError ? error.status : undefined,
-    errorMessage: error instanceof Error ? error.message : "unknown",
-  });
-}
 
 export async function POST(request: NextRequest) {
   return withPublicAuthHandler(
     request,
     async ({ request, requestId }) => {
-      requireJsonContentType(request);
-      const body = parseBody(signupSchema, await jsonBody(request));
+      logSignupTrace("ENTER signup route", requestId);
+      logSignupRuntimeEnv(requestId);
 
       try {
-        const outcome = await authService.signUp(body);
+        requireJsonContentType(request);
+        const body = parseBody(signupSchema, await jsonBody(request));
 
+        logSignupTrace("ENTER authService.signUp", requestId);
+        const outcome = await authService.signUp(body, { requestId });
+        logSignupTrace("EXIT authService.signUp", requestId, {
+          stage: outcome.stage,
+          userCreated: outcome.userCreated,
+          antiEnumeration: outcome.antiEnumeration,
+        });
+
+        logSignupTrace("EXIT signup route", requestId, { status: 200 });
         return apiSuccess(
           {
             message: getGenericSignupSuccessMessage(),
@@ -51,10 +48,13 @@ export async function POST(request: NextRequest) {
           { requestId },
         );
       } catch (error) {
+        logSignupCatch("signup route", requestId, error);
         const appError =
           error instanceof AppError ? error : mapSignupAuthError(error, "supabase_signup");
-
-        logSignupFailure(appError, requestId, appError.code);
+        logSignupTrace("EXIT signup route", requestId, {
+          status: appError.status,
+          code: appError.code,
+        });
         throw appError;
       }
     },
