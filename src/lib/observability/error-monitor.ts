@@ -1,5 +1,5 @@
 import { logger } from "@/lib/logging";
-import { toSafeErrorMessage } from "@/lib/errors";
+import { serializeErrorForServerLog } from "@/lib/observability/error-serialization";
 
 export type ErrorMonitorContext = {
   requestId?: string;
@@ -16,10 +16,23 @@ export interface ErrorMonitor {
 
 class ConsoleErrorMonitor implements ErrorMonitor {
   captureException(error: unknown, context?: ErrorMonitorContext): void {
-    logger.error("error.monitor.exception", {
-      message: toSafeErrorMessage(error),
-      ...(context ?? {}),
-    });
+    const { error: serializedError } = serializeErrorForServerLog(error);
+
+    console.error(
+      JSON.stringify({
+        channel: "error.monitor.exception",
+        level: "error",
+        message: "error.monitor.exception",
+        timestamp: new Date().toISOString(),
+        requestId: context?.requestId,
+        organisationId: context?.organisationId,
+        userId: context?.userId,
+        component: context?.component,
+        metadata: context?.metadata,
+        error: serializedError,
+        cause: serializedError.cause,
+      }),
+    );
   }
 
   captureMessage(message: string, context?: ErrorMonitorContext): void {
