@@ -88,6 +88,17 @@ export async function ensureUserProfile(input: {
   };
 }
 
+export async function reconcileUserProfile(input: {
+  authUserId: string;
+  email: string;
+  displayName?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  avatarUrl?: string | null;
+}): Promise<ProvisionedUser> {
+  return ensureUserProfile(input);
+}
+
 export function extractProviderMetadata(
   userMetadata: Record<string, unknown> | null | undefined,
 ): ProviderMetadata {
