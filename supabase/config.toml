@@ -1,0 +1,15 @@
+# Supabase project configuration (config-as-code).
+#
+# Email templates in this file are used for:
+# - Local development: `supabase start` reads content_path HTML files
+# - Hosted production: `supabase config push` (CLI >= 2.26 with email content support)
+#   or `node scripts/deploy-supabase-auth-email-templates.mjs` (Management API)
+#
+# project_id is the Supabase project ref (subdomain of *.supabase.co).
+# Override for other environments via [remotes.<name>] blocks when using branching.
+
+project_id = "dlvioewjekcylavxyfwk"
+
+[auth.email.template.confirmation]
+subject = "Confirm your email address"
+content_path = "./supabase/templates/confirm-signup.html"
