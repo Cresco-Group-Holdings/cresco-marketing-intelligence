@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createRequestId } from "@/lib/api/response";
 import { AUTH_ERROR_PATH } from "@/lib/auth/constants";
+import {
+  completeAuthCallbackSession,
+  parseAuthCallbackParams,
+  type AuthCallbackErrorCode,
+} from "@/lib/auth/callback-exchange";
 import { authService } from "@/server/services/auth-service";
 import { createSupabaseServerClient } from "@/lib/auth/supabase-server";
 import { getClientIpAddress } from "@/lib/auth/request";
@@ -8,46 +13,43 @@ import { resolveSafeRedirectPath } from "@/lib/security/redirects";
 import { resolveAuthenticatedRedirect } from "@/lib/auth/post-auth";
 import { logger } from "@/lib/logging";
 
+function redirectToAuthError(origin: string, code: AuthCallbackErrorCode | "missing_user" | "provisioning_failed") {
+  const errorUrl = new URL(AUTH_ERROR_PATH, origin);
+  errorUrl.searchParams.set("code", code);
+  return NextResponse.redirect(errorUrl);
+}
+
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const requestId = createRequestId();
   const ipAddress = getClientIpAddress(request);
-  const code = requestUrl.searchParams.get("code");
-  const error = requestUrl.searchParams.get("error");
-  const errorDescription = requestUrl.searchParams.get("error_description");
-  const requestedRedirect = requestUrl.searchParams.get("redirect");
-  const type = requestUrl.searchParams.get("type");
+  const params = parseAuthCallbackParams(requestUrl);
 
-  if (error) {
+  if (params.providerError) {
     logger.warn("auth.callback.oauth_error", {
       requestId,
-      error,
-      errorDescription,
+      error: params.providerError,
+      hasErrorDescription: Boolean(params.providerErrorDescription),
+      queryParamNames: params.queryParamNames,
     });
 
-    const errorUrl = new URL(AUTH_ERROR_PATH, requestUrl.origin);
-    errorUrl.searchParams.set("code", "oauth_failed");
-    return NextResponse.redirect(errorUrl);
-  }
-
-  if (!code) {
-    const errorUrl = new URL(AUTH_ERROR_PATH, requestUrl.origin);
-    errorUrl.searchParams.set("code", "missing_code");
-    return NextResponse.redirect(errorUrl);
+    return redirectToAuthError(requestUrl.origin, "oauth_failed");
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+  const { error: sessionError } = await completeAuthCallbackSession(supabase, params);
 
-  if (exchangeError) {
-    logger.warn("auth.callback.exchange_failed", {
+  if (sessionError) {
+    logger.warn("auth.callback.session_failed", {
       requestId,
-      message: exchangeError.message,
+      errorCode: sessionError,
+      hasCode: Boolean(params.code),
+      hasTokenHash: Boolean(params.tokenHash),
+      confirmationType: params.type,
+      queryParamNames: params.queryParamNames,
     });
 
-    const errorUrl = new URL(AUTH_ERROR_PATH, requestUrl.origin);
-    errorUrl.searchParams.set("code", "invalid_callback");
-    return NextResponse.redirect(errorUrl);
+    return redirectToAuthError(requestUrl.origin, sessionError);
   }
 
   const {
@@ -55,12 +57,25 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user?.email) {
-    const errorUrl = new URL(AUTH_ERROR_PATH, requestUrl.origin);
-    errorUrl.searchParams.set("code", "missing_user");
-    return NextResponse.redirect(errorUrl);
+    return redirectToAuthError(requestUrl.origin, "missing_user");
   }
 
-  const provisioned = await authService.provisionFromAuthUser(user, { requestId, ipAddress });
+  let provisioned;
+  try {
+    provisioned = await authService.provisionFromAuthUser(user, { requestId, ipAddress });
+  } catch (error) {
+    logger.warn("auth.callback.provisioning_failed", {
+      requestId,
+      queryParamNames: params.queryParamNames,
+      confirmationType: params.type,
+      cause:
+        error instanceof Error
+          ? { name: error.name, message: error.message }
+          : "unknown",
+    });
+
+    return redirectToAuthError(requestUrl.origin, "provisioning_failed");
+  }
 
   const provider = user.app_metadata?.provider;
   if (provider && provider !== "email") {
@@ -70,7 +85,13 @@ export async function GET(request: Request) {
     });
   }
 
-  if (type === "signup" || user.email_confirmed_at) {
+  const isEmailConfirmation =
+    Boolean(params.tokenHash) ||
+    params.type === "signup" ||
+    params.type === "email" ||
+    params.type === "magiclink";
+
+  if (isEmailConfirmation || user.email_confirmed_at) {
     await authService.recordEmailVerified(provisioned.userProfileId, { requestId, ipAddress });
   }
 
@@ -81,7 +102,7 @@ export async function GET(request: Request) {
   );
 
   const redirectPath = resolveAuthenticatedRedirect(
-    requestedRedirect,
+    params.requestedRedirect,
     provisioned.redirectPath,
   );
 

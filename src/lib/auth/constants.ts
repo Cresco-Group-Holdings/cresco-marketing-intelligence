@@ -14,6 +14,11 @@ export const AUTH_RATE_LIMIT_MESSAGE =
 
 export const AUTH_CALLBACK_PATH = "/auth/callback";
 
+/**
+ * Supabase PKCE/SSR email confirmations must use token_hash in the signup template:
+ * {{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email&redirect=/dashboard
+ * Default {{ .ConfirmationURL }} links return ?code= and fail without the signup browser's PKCE verifier.
+ */
 export const AUTH_ERROR_PATH = "/auth/error";
 
 export const AUTH_AUDIT_ACTIONS = {
