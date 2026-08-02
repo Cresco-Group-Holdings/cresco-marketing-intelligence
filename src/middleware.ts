@@ -4,15 +4,19 @@ import { isAuthRoute, isProtectedRoute } from "@/lib/auth/routes";
 import { getSupabaseServerConfig, readSupabaseServerConfigFromProcessEnv } from "@/lib/environment/supabase";
 import { applySecurityHeaders } from "@/lib/security/headers";
 import { resolveSafeRedirectPath } from "@/lib/security/redirects";
+import { createRequestHeadersWithPathname } from "@/lib/middleware/pathname";
 
 function isTestAuthEnabled(): boolean {
   return process.env.ALLOW_TEST_AUTH === "true" && Boolean(process.env.TEST_AUTH_USER_ID);
 }
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const requestHeaders = createRequestHeadersWithPathname(request);
+
   let response = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: requestHeaders,
     },
   });
 
@@ -25,8 +29,6 @@ export async function middleware(request: NextRequest) {
       supabaseConfig = fallback;
     }
   }
-
-  const { pathname } = request.nextUrl;
 
   if (isTestAuthEnabled() && isProtectedRoute(pathname)) {
     return applySecurityHeaders(response);
@@ -53,7 +55,9 @@ export async function middleware(request: NextRequest) {
           request.cookies.set(name, value);
         });
         response = NextResponse.next({
-          request,
+          request: {
+            headers: requestHeaders,
+          },
         });
         cookiesToSet.forEach(({ name, value, options }) => {
           response.cookies.set(name, value, options);
@@ -81,8 +85,6 @@ export async function middleware(request: NextRequest) {
     redirectUrl.search = "";
     return applySecurityHeaders(NextResponse.redirect(redirectUrl));
   }
-
-  response.headers.set("x-pathname", pathname);
 
   return applySecurityHeaders(response);
 }

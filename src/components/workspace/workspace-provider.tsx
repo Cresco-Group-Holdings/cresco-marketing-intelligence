@@ -2,6 +2,10 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api/client";
+import {
+  resolveClientOnboardingStatus,
+  type ClientOnboardingStatus,
+} from "@/lib/onboarding/status";
 
 export type WorkspaceState = {
   organisations: Array<{ id: string; name: string; slug: string }>;
@@ -14,11 +18,16 @@ export type WorkspaceState = {
     onboardingCompletedAt: string | null;
     onboardingStep: string | null;
   };
+  onboarding?: {
+    status: "complete" | "incomplete";
+    completedAt: string | null;
+  };
 };
 
 type WorkspaceContextValue = WorkspaceState & {
   loading: boolean;
   error: string | null;
+  onboardingStatus: ClientOnboardingStatus;
   refresh: () => Promise<void>;
   setOrganisation: (organisationId: string) => Promise<void>;
   setProject: (projectId: string) => Promise<void>;
@@ -77,6 +86,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       },
       loading,
       error,
+      onboardingStatus: resolveClientOnboardingStatus({
+        loading,
+        error,
+        onboardingCompletedAt:
+          state?.onboarding?.completedAt ?? state?.preference.onboardingCompletedAt ?? null,
+        serverStatus: state?.onboarding?.status ?? null,
+      }),
       refresh,
       setOrganisation: async (organisationId: string) =>
         updateWorkspace({ currentOrganisationId: organisationId, currentProjectId: null, currentBrandId: null }),

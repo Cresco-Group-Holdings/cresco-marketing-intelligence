@@ -15,6 +15,7 @@ import {
 } from "@/lib/onboarding/constants";
 import { CRESCO_INTERNAL_TEMPLATE, getOnboardingTemplate } from "@/lib/onboarding/cresco-template";
 import { MARKETING_OBJECTIVE_LABELS } from "@/lib/onboarding/marketing";
+import { resolveOnboardingStatus } from "@/lib/onboarding/status";
 import { slugFromName } from "@/lib/utils/slug";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import {
@@ -601,6 +602,37 @@ export const onboardingService = {
 
   async complete(userProfileId: string, requestId?: string) {
     const progress = await ensureProgress(userProfileId);
+    const existingStatus = await resolveOnboardingStatus(userProfileId);
+
+    if (existingStatus.status === "complete") {
+      const { organisationId, projectId, brandId } = progress;
+      if (organisationId && projectId && brandId) {
+        const completedAt = existingStatus.completedAt ?? new Date();
+        await prisma.workspacePreference.upsert({
+          where: { userId: userProfileId },
+          update: {
+            currentOrganisationId: organisationId,
+            currentProjectId: projectId,
+            currentBrandId: brandId,
+            onboardingCompletedAt: completedAt,
+            onboardingStep: null,
+          },
+          create: {
+            userId: userProfileId,
+            currentOrganisationId: organisationId,
+            currentProjectId: projectId,
+            currentBrandId: brandId,
+            onboardingCompletedAt: completedAt,
+            onboardingStep: null,
+          },
+        });
+      }
+
+      return prisma.onboardingProgress.findUniqueOrThrow({
+        where: { userId: userProfileId },
+      });
+    }
+
     const { organisationId, projectId, brandId } = progress;
 
     if (!organisationId || !projectId || !brandId) {
@@ -609,36 +641,52 @@ export const onboardingService = {
 
     await assertOnboardingScope(userProfileId, organisationId, projectId, brandId);
 
-    const updated = await prisma.onboardingProgress.update({
-      where: { userId: userProfileId },
-      data: {
-        completedSteps: ONBOARDING_STEPS,
-        currentStep: OnboardingStepKey.REVIEW,
-        completedAt: new Date(),
-      },
-    });
+    const completedAt = new Date();
 
-    await workspaceService.updateWorkspace(
-      userProfileId,
-      {
-        currentOrganisationId: organisationId,
-        currentProjectId: projectId,
-        currentBrandId: brandId,
-        completeOnboarding: true,
-        onboardingStep: null,
-      },
-      requestId,
-    );
+    const updated = await prisma.$transaction(async (tx) => {
+      const progressUpdated = await tx.onboardingProgress.update({
+        where: { userId: userProfileId },
+        data: {
+          completedSteps: ONBOARDING_STEPS,
+          currentStep: OnboardingStepKey.REVIEW,
+          completedAt,
+        },
+      });
 
-    await recordAuditEvent({
-      organisationId,
-      projectId,
-      actorUserId: userProfileId,
-      action: "onboarding.completed",
-      resourceType: "onboarding_progress",
-      resourceId: updated.id,
-      requestId,
-      metadata: { templateKey: progress.templateKey },
+      await tx.workspacePreference.upsert({
+        where: { userId: userProfileId },
+        update: {
+          currentOrganisationId: organisationId,
+          currentProjectId: projectId,
+          currentBrandId: brandId,
+          onboardingCompletedAt: completedAt,
+          onboardingStep: null,
+        },
+        create: {
+          userId: userProfileId,
+          currentOrganisationId: organisationId,
+          currentProjectId: projectId,
+          currentBrandId: brandId,
+          onboardingCompletedAt: completedAt,
+          onboardingStep: null,
+        },
+      });
+
+      await recordAuditEvent(
+        {
+          organisationId,
+          projectId,
+          actorUserId: userProfileId,
+          action: "onboarding.completed",
+          resourceType: "onboarding_progress",
+          resourceId: progressUpdated.id,
+          requestId,
+          metadata: { templateKey: progress.templateKey },
+        },
+        tx,
+      );
+
+      return progressUpdated;
     });
 
     return updated;
