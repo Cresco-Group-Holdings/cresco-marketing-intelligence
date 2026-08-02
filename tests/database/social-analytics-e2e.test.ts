@@ -1,4 +1,4 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import {
   createTenant,
@@ -10,6 +10,9 @@ import {
 } from "./helpers/analytics-fixtures";
 
 const suite = databaseSuiteEnabled ? describe : describe.skip;
+
+/** Sync and query assertions share a fixed July window so measuredAt is never tied to wall clock. */
+const FIXED_SUITE_NOW = new Date("2026-07-15T12:00:00.000Z");
 
 const INSIGHTS = /graph\.facebook\.com.*insights/;
 const MEDIA = /graph\.facebook\.com.*\/media\?/;
@@ -44,10 +47,16 @@ suite("social analytics against a real database", () => {
   let tenant: Tenant;
 
   beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(FIXED_SUITE_NOW);
     vi.unstubAllGlobals();
     vi.resetModules();
     await resetDatabase();
     tenant = await createTenant({ analyticsTimezone: "Europe/London" });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   afterAll(async () => {
