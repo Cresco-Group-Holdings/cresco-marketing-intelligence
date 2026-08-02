@@ -51,13 +51,19 @@ describe("production-database-migrate workflow", () => {
 
     for (const command of [
       "npx prisma validate",
-      "npx prisma migrate status",
       "npx prisma migrate deploy",
+      "npx prisma migrate status",
       "npx prisma generate",
       "node scripts/verify-production-migration.mjs",
     ]) {
       expect(stepsSection).toContain(command);
     }
+
+    expect(stepsSection).not.toContain("Check migration status (before deploy)");
+    expect(stepsSection).toContain("Report migration status (after deploy)");
+    expect(stepsSection.indexOf("npx prisma migrate deploy")).toBeLessThan(
+      stepsSection.indexOf("npx prisma migrate status"),
+    );
 
     expect(stepsSection).not.toMatch(
       /^\s+PRODUCTION_DIRECT_URL: \$\{\{ secrets\.PRODUCTION_DIRECT_URL \}\}/m,
