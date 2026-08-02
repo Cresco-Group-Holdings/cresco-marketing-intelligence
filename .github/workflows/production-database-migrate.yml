@@ -19,6 +19,7 @@ jobs:
     environment: production
     if: ${{ github.event.inputs.confirmation == 'MIGRATE_PRODUCTION' }}
     env:
+      PRODUCTION_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
       DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
       DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
     steps:
@@ -33,12 +34,18 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Verify production database secret is configured
-        env:
-          PRODUCTION_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+      - name: Verify production database env for Prisma
         run: |
-          if [ -z "$PRODUCTION_DIRECT_URL" ]; then
+          if [ -z "${PRODUCTION_DIRECT_URL:-}" ]; then
             echo "PRODUCTION_DIRECT_URL is not configured in the production environment."
+            exit 1
+          fi
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL is not set. Map secrets.PRODUCTION_DIRECT_URL at the migrate-production job env level."
+            exit 1
+          fi
+          if [ -z "${DIRECT_URL:-}" ]; then
+            echo "DIRECT_URL is not set. Map secrets.PRODUCTION_DIRECT_URL at the migrate-production job env level."
             exit 1
           fi
 
