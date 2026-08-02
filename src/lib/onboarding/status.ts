@@ -39,10 +39,18 @@ export function isOnboardingCompleteSnapshot(snapshot: OnboardingStatusSnapshot)
   return snapshot.status === "complete";
 }
 
+export function serializeOnboardingStatus(snapshot: OnboardingStatusSnapshot) {
+  return {
+    status: snapshot.status,
+    completedAt: snapshot.completedAt?.toISOString() ?? null,
+  };
+}
+
 export function resolveClientOnboardingStatus(input: {
   loading: boolean;
   error: string | null;
   onboardingCompletedAt: string | null;
+  serverStatus?: OnboardingCompletionStatus | null;
 }): ClientOnboardingStatus {
   if (input.loading) {
     return "loading";
@@ -52,8 +60,12 @@ export function resolveClientOnboardingStatus(input: {
     return "error";
   }
 
-  if (input.onboardingCompletedAt) {
+  if (input.serverStatus === "complete" || input.onboardingCompletedAt) {
     return "complete";
+  }
+
+  if (input.serverStatus === "incomplete") {
+    return "incomplete";
   }
 
   return "incomplete";

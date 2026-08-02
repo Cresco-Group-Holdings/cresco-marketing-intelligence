@@ -285,10 +285,14 @@ describe("onboarding service resilience", () => {
     vi.mocked(prisma.onboardingProgress.findUnique).mockResolvedValue({
       completedAt,
     } as never);
+    vi.mocked(prisma.workspacePreference.upsert).mockResolvedValue({
+      onboardingCompletedAt: completedAt,
+    } as never);
 
     const progress = await onboardingService.complete(userProfileId, "request-2");
 
     expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.workspacePreference.upsert).toHaveBeenCalled();
     expect(progress.completedAt).toEqual(completedAt);
   });
 });

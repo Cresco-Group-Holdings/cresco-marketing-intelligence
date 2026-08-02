@@ -18,6 +18,10 @@ export type WorkspaceState = {
     onboardingCompletedAt: string | null;
     onboardingStep: string | null;
   };
+  onboarding?: {
+    status: "complete" | "incomplete";
+    completedAt: string | null;
+  };
 };
 
 type WorkspaceContextValue = WorkspaceState & {
@@ -85,7 +89,9 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       onboardingStatus: resolveClientOnboardingStatus({
         loading,
         error,
-        onboardingCompletedAt: state?.preference.onboardingCompletedAt ?? null,
+        onboardingCompletedAt:
+          state?.onboarding?.completedAt ?? state?.preference.onboardingCompletedAt ?? null,
+        serverStatus: state?.onboarding?.status ?? null,
       }),
       refresh,
       setOrganisation: async (organisationId: string) =>

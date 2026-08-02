@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { resolveOnboardingStatus } from "@/lib/onboarding/status";
+import { resolveOnboardingStatus, serializeOnboardingStatus } from "@/lib/onboarding/status";
 
 vi.mock("@/lib/database/prisma", () => ({
   prisma: {
@@ -54,6 +54,33 @@ describe("resolveOnboardingStatus", () => {
     } as never);
 
     await expect(resolveOnboardingStatus("profile-1")).resolves.toEqual({
+      status: "incomplete",
+      completedAt: null,
+    });
+  });
+});
+
+describe("serializeOnboardingStatus", () => {
+  it("serializes complete status with ISO timestamp", () => {
+    const completedAt = new Date("2026-08-02T12:00:00.000Z");
+    expect(
+      serializeOnboardingStatus({
+        status: "complete",
+        completedAt,
+      }),
+    ).toEqual({
+      status: "complete",
+      completedAt: "2026-08-02T12:00:00.000Z",
+    });
+  });
+
+  it("serializes incomplete status without timestamp", () => {
+    expect(
+      serializeOnboardingStatus({
+        status: "incomplete",
+        completedAt: null,
+      }),
+    ).toEqual({
       status: "incomplete",
       completedAt: null,
     });

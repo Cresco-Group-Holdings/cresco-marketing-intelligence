@@ -42,8 +42,20 @@ describe("resolveClientOnboardingStatus", () => {
         loading: false,
         error: null,
         onboardingCompletedAt: null,
+        serverStatus: "incomplete",
       }),
     ).toBe("incomplete");
+  });
+
+  it("returns complete when server status is complete even if preference timestamp is missing", () => {
+    expect(
+      resolveClientOnboardingStatus({
+        loading: false,
+        error: null,
+        onboardingCompletedAt: null,
+        serverStatus: "complete",
+      }),
+    ).toBe("complete");
   });
 });
 

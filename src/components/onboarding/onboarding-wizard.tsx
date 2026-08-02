@@ -26,6 +26,7 @@ import {
   calculateBrandProfileCompleteness,
   hasEssentialBrandProfileFields,
 } from "@/lib/brand-profile/completeness";
+import type { WorkspaceState } from "@/components/workspace/workspace-provider";
 
 type OnboardingState = {
   progress: {
@@ -63,6 +64,13 @@ type OnboardingState = {
   }>;
 };
 
+type OnboardingApiResponse = OnboardingState & {
+  onboarding?: {
+    status: "complete" | "incomplete";
+    completedAt: string | null;
+  };
+};
+
 type OnboardingCompletionResponse = {
   progress: { completedAt: string | null };
   state: OnboardingState & {
@@ -72,6 +80,10 @@ type OnboardingCompletionResponse = {
       currentProjectId: string | null;
       currentBrandId: string | null;
     };
+  };
+  onboarding: {
+    status: "complete" | "incomplete";
+    completedAt: string | null;
   };
 };
 
@@ -129,7 +141,14 @@ export function OnboardingWizard() {
     setLoadTimedOut(false);
     setError(null);
     try {
-      const data = await apiFetch<OnboardingState>("/api/onboarding");
+      const data = await apiFetch<OnboardingApiResponse>("/api/onboarding");
+
+      if (data.onboarding?.status === "complete") {
+        router.refresh();
+        await router.replace("/dashboard");
+        return;
+      }
+
       hydrateFromState(data);
       setState(data);
     } catch (loadError) {
@@ -282,13 +301,22 @@ export function OnboardingWizard() {
         body: JSON.stringify({ step: OnboardingStepKey.REVIEW, action: "save" }),
       });
 
-      const completedAt =
-        result.state.workspace.onboardingCompletedAt ?? result.progress.completedAt;
-
-      if (!completedAt) {
+      if (result.onboarding.status !== "complete" || !result.onboarding.completedAt) {
         throw new Error("Onboarding completion was not confirmed by the server. Please try again.");
       }
 
+      const workspace = await apiFetch<WorkspaceState>("/api/workspace");
+      if (workspace.onboarding?.status !== "complete") {
+        throw new Error(
+          "Workspace onboarding status was not saved. Please try again before leaving this page.",
+        );
+      }
+
+      if (!workspace.preference.currentOrganisationId) {
+        throw new Error("Workspace context was not created. Please try again.");
+      }
+
+      router.refresh();
       await router.replace("/dashboard");
       router.refresh();
     } catch (completeError) {

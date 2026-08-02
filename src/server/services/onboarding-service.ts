@@ -605,6 +605,29 @@ export const onboardingService = {
     const existingStatus = await resolveOnboardingStatus(userProfileId);
 
     if (existingStatus.status === "complete") {
+      const { organisationId, projectId, brandId } = progress;
+      if (organisationId && projectId && brandId) {
+        const completedAt = existingStatus.completedAt ?? new Date();
+        await prisma.workspacePreference.upsert({
+          where: { userId: userProfileId },
+          update: {
+            currentOrganisationId: organisationId,
+            currentProjectId: projectId,
+            currentBrandId: brandId,
+            onboardingCompletedAt: completedAt,
+            onboardingStep: null,
+          },
+          create: {
+            userId: userProfileId,
+            currentOrganisationId: organisationId,
+            currentProjectId: projectId,
+            currentBrandId: brandId,
+            onboardingCompletedAt: completedAt,
+            onboardingStep: null,
+          },
+        });
+      }
+
       return prisma.onboardingProgress.findUniqueOrThrow({
         where: { userId: userProfileId },
       });

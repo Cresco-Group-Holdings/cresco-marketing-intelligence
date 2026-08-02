@@ -21,7 +21,7 @@ import {
 } from "@/lib/validation/onboarding";
 import { onboardingService } from "@/server/services/onboarding-service";
 import { CRESCO_INTERNAL_TEMPLATE } from "@/lib/onboarding/cresco-template";
-import { resolveOnboardingStatus } from "@/lib/onboarding/status";
+import { resolveOnboardingStatus, serializeOnboardingStatus } from "@/lib/onboarding/status";
 
 export async function GET(request: NextRequest) {
   return withApiHandler(request, async ({ requestId, user }) => {
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     return apiSuccess(
       {
         ...state,
-        onboarding,
+        onboarding: serializeOnboardingStatus(onboarding),
         templates: [CRESCO_INTERNAL_TEMPLATE],
       },
       { requestId },
@@ -110,7 +110,14 @@ export async function PUT(request: NextRequest) {
 
     const state = await onboardingService.getState(user.userProfileId);
     const onboarding = await resolveOnboardingStatus(user.userProfileId);
-    return apiSuccess({ progress, state, onboarding }, { requestId });
+    return apiSuccess(
+      {
+        progress,
+        state,
+        onboarding: serializeOnboardingStatus(onboarding),
+      },
+      { requestId },
+    );
   });
 }
 
