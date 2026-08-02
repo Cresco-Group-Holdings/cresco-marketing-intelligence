@@ -55,7 +55,7 @@ describe("cresco internal template", () => {
     expect(CRESCO_INTERNAL_TEMPLATE.organisation.slug).toBe("cresco-group");
     expect(CRESCO_INTERNAL_TEMPLATE.projects).toHaveLength(2);
     expect(CRESCO_INTERNAL_TEMPLATE.projects.map((project) => project.slug)).toEqual([
-      "cresco-grants-intelligence",
+      "cresco-marketing-intelligence",
       "capital-cresco-terminal",
     ]);
   });

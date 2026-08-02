@@ -63,6 +63,20 @@ type OnboardingState = {
   }>;
 };
 
+type OnboardingCompletionResponse = {
+  progress: { completedAt: string | null };
+  state: OnboardingState & {
+    workspace: {
+      onboardingCompletedAt: string | null;
+      currentOrganisationId: string | null;
+      currentProjectId: string | null;
+      currentBrandId: string | null;
+    };
+  };
+};
+
+const LOAD_TIMEOUT_MS = 30_000;
+
 type ObjectiveDraft = {
   objectiveType: MarketingObjectiveType;
   description: string;
@@ -75,7 +89,9 @@ type ObjectiveDraft = {
 export function OnboardingWizard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [state, setState] = useState<OnboardingState | null>(null);
 
@@ -110,6 +126,7 @@ export function OnboardingWizard() {
 
   async function loadState() {
     setLoading(true);
+    setLoadTimedOut(false);
     setError(null);
     try {
       const data = await apiFetch<OnboardingState>("/api/onboarding");
@@ -121,6 +138,21 @@ export function OnboardingWizard() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    if (!loading) {
+      setLoadTimedOut(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setLoadTimedOut(true);
+    }, LOAD_TIMEOUT_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [loading]);
 
   function hydrateFromState(data: OnboardingState) {
     if (data.profile) {
@@ -241,18 +273,30 @@ export function OnboardingWizard() {
   }
 
   async function completeOnboarding() {
+    setCompleting(true);
     setSaving(true);
     setError(null);
     try {
-      await apiFetch("/api/onboarding", {
+      const result = await apiFetch<OnboardingCompletionResponse>("/api/onboarding", {
         method: "PUT",
         body: JSON.stringify({ step: OnboardingStepKey.REVIEW, action: "save" }),
       });
-      router.push("/dashboard");
+
+      const completedAt =
+        result.state.workspace.onboardingCompletedAt ?? result.progress.completedAt;
+
+      if (!completedAt) {
+        throw new Error("Onboarding completion was not confirmed by the server. Please try again.");
+      }
+
+      await router.replace("/dashboard");
       router.refresh();
     } catch (completeError) {
-      setError(completeError instanceof Error ? completeError.message : "Unable to complete onboarding.");
+      setError(
+        completeError instanceof Error ? completeError.message : "Unable to complete onboarding.",
+      );
     } finally {
+      setCompleting(false);
       setSaving(false);
     }
   }
@@ -276,8 +320,34 @@ export function OnboardingWizard() {
     valueProposition,
   });
 
-  if (loading || !state) {
-    return <p className="text-sm text-slate-600">Loading onboarding...</p>;
+  if (loading && !state) {
+    return (
+      <div className="space-y-3 text-sm text-slate-600">
+        <p>Loading onboarding...</p>
+        {loadTimedOut ? (
+          <p className="text-amber-700">
+            This is taking longer than expected. Check your connection or try again.
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (!state) {
+    return (
+      <div className="space-y-4 rounded-lg border border-red-200 bg-red-50 px-4 py-4 text-sm text-red-700">
+        <p className="font-medium">We couldn&apos;t load your onboarding status.</p>
+        <p>{error ?? "An unexpected error occurred while loading onboarding."}</p>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => void loadState()}>
+            Try again
+          </Button>
+          <Button variant="outline" onClick={() => void router.replace("/dashboard")}>
+            Return to dashboard
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -712,8 +782,11 @@ export function OnboardingWizard() {
               <Button variant="secondary" disabled={saving} onClick={() => void saveStep(step, {}, "back")}>
                 Back
               </Button>
-              <Button disabled={saving} onClick={() => void completeOnboarding()}>
-                Complete onboarding
+              <Button
+                disabled={saving || completing}
+                onClick={() => void completeOnboarding()}
+              >
+                {completing ? "Completing onboarding…" : "Complete onboarding"}
               </Button>
             </div>
           </CardContent>

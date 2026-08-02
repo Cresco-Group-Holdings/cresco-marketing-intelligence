@@ -1,10 +1,8 @@
 import { redirect } from "next/navigation";
 import { requireAuthenticatedUser } from "@/lib/tenancy/guards";
-import {
-  hasSuspendedMembershipOnly,
-  resolvePostAuthRedirectPath,
-} from "@/lib/auth/post-auth";
-import { isOnboardingRoute } from "@/lib/auth/routes";
+import { hasSuspendedMembershipOnly } from "@/lib/auth/post-auth";
+import { resolveOnboardingRouteDecision } from "@/lib/onboarding/redirect-policy";
+import { resolveOnboardingStatus } from "@/lib/onboarding/status";
 
 type DashboardAuthGateProps = {
   pathname: string;
@@ -18,10 +16,18 @@ export async function DashboardAuthGate({ pathname, children }: DashboardAuthGat
     redirect("/auth/error?code=membership_suspended");
   }
 
-  const postAuthPath = await resolvePostAuthRedirectPath(user.userProfileId);
+  const onboarding = await resolveOnboardingStatus(user.userProfileId);
+  const decision = resolveOnboardingRouteDecision({
+    pathname,
+    status: onboarding.status,
+  });
 
-  if (postAuthPath === "/onboarding" && !isOnboardingRoute(pathname)) {
+  if (decision === "redirect-onboarding") {
     redirect("/onboarding");
+  }
+
+  if (decision === "redirect-dashboard") {
+    redirect("/dashboard");
   }
 
   return children;

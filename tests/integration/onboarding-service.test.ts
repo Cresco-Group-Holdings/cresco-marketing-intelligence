@@ -23,6 +23,7 @@ vi.mock("@/lib/database/prisma", () => ({
       upsert: vi.fn(),
       update: vi.fn(),
       findUnique: vi.fn(),
+      findUniqueOrThrow: vi.fn(),
     },
     userProfile: {
       findUnique: vi.fn(),
@@ -58,16 +59,29 @@ vi.mock("@/lib/database/prisma", () => ({
       upsert: vi.fn(),
       findUnique: vi.fn(),
     },
-    $transaction: vi.fn((callback: (tx: unknown) => Promise<unknown>) => callback({
-      marketingObjective: {
-        deleteMany: vi.fn(),
-        upsert: vi.fn(),
-      },
-      brandChannelPreference: {
-        deleteMany: vi.fn(),
-        upsert: vi.fn(),
-      },
-    })),
+    $transaction: vi.fn((callback: (tx: unknown) => Promise<unknown>) =>
+      callback({
+        onboardingProgress: {
+          update: vi.fn((args: { data: unknown }) => {
+            currentProgress = applyOnboardingProgressUpdate(currentProgress, args.data as never);
+            return createOnboardingProgressDelegate(currentProgress);
+          }),
+        },
+        workspacePreference: {
+          upsert: vi.fn().mockResolvedValue({
+            onboardingCompletedAt: new Date("2026-08-02T00:00:00.000Z"),
+          }),
+        },
+        marketingObjective: {
+          deleteMany: vi.fn(),
+          upsert: vi.fn(),
+        },
+        brandChannelPreference: {
+          deleteMany: vi.fn(),
+          upsert: vi.fn(),
+        },
+      }),
+    ),
   },
 }));
 
@@ -153,6 +167,13 @@ describe("onboarding service resilience", () => {
     });
     vi.mocked(prisma.userProfile.update).mockResolvedValue(createMockOnboardingProgress().user);
     vi.mocked(prisma.organisationMembership.findFirst).mockResolvedValue(createMockMembership());
+    vi.mocked(prisma.workspacePreference.findUnique).mockResolvedValue(null);
+    vi.mocked(prisma.onboardingProgress.findUnique).mockResolvedValue({
+      completedAt: null,
+    } as never);
+    vi.mocked(prisma.onboardingProgress.findUniqueOrThrow).mockImplementation(() =>
+      createOnboardingProgressDelegate(currentProgress),
+    );
   });
 
   it("saves account profile and advances to organisation", async () => {
@@ -232,5 +253,42 @@ describe("onboarding service resilience", () => {
     });
 
     expect(progress.currentStep).toBe(OnboardingStepKey.REVIEW);
+  });
+
+  it("completes onboarding atomically and sets workspace context", async () => {
+    currentProgress = createMockOnboardingProgress({
+      organisationId,
+      projectId,
+      brandId,
+      currentStep: OnboardingStepKey.REVIEW,
+    });
+
+    const progress = await onboardingService.complete(userProfileId, "request-1");
+
+    expect(prisma.$transaction).toHaveBeenCalled();
+    expect(progress.completedAt).toBeInstanceOf(Date);
+    expect(workspaceService.updateWorkspace).not.toHaveBeenCalled();
+  });
+
+  it("returns existing progress when completion is requested again", async () => {
+    const completedAt = new Date("2026-08-02T00:00:00.000Z");
+    currentProgress = createMockOnboardingProgress({
+      organisationId,
+      projectId,
+      brandId,
+      completedAt,
+      currentStep: OnboardingStepKey.REVIEW,
+    });
+    vi.mocked(prisma.workspacePreference.findUnique).mockResolvedValue({
+      onboardingCompletedAt: completedAt,
+    } as never);
+    vi.mocked(prisma.onboardingProgress.findUnique).mockResolvedValue({
+      completedAt,
+    } as never);
+
+    const progress = await onboardingService.complete(userProfileId, "request-2");
+
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(progress.completedAt).toEqual(completedAt);
   });
 });

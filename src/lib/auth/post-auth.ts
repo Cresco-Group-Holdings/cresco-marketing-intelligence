@@ -1,5 +1,6 @@
 import { MembershipStatus } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
+import { resolveOnboardingStatus } from "@/lib/onboarding/status";
 import { resolveSafeRedirectPath } from "@/lib/security/redirects";
 
 const AUTH_ROUTE_PATHS = new Set([
@@ -52,7 +53,8 @@ export async function resolvePostAuthRedirectPath(userProfileId: string): Promis
     return "/auth/error?code=membership_suspended";
   }
 
-  if (await hasActiveOrganisationMembership(userProfileId)) {
+  const onboarding = await resolveOnboardingStatus(userProfileId);
+  if (onboarding.status === "complete") {
     return "/dashboard";
   }
 

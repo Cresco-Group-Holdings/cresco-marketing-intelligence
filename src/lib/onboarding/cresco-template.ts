@@ -34,11 +34,11 @@ export const CRESCO_INTERNAL_TEMPLATE: CrescoInternalTemplate = {
   },
   projects: [
     {
-      name: "Cresco Grants Intelligence",
-      slug: "cresco-grants-intelligence",
-      brandName: "Cresco Grants Intelligence",
-      brandSlug: "cresco-grants-intelligence",
-      description: "Grant discovery and intelligence for growth teams.",
+      name: "Cresco Marketing Intelligence",
+      slug: "cresco-marketing-intelligence",
+      brandName: "Cresco Marketing Intelligence",
+      brandSlug: "cresco-marketing-intelligence",
+      description: "Marketing intelligence and growth analytics for Cresco teams.",
     },
     {
       name: "Capital Cresco Terminal",

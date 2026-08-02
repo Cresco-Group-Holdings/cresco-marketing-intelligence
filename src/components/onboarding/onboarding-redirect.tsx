@@ -3,25 +3,28 @@
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
+import { resolveOnboardingRouteDecision } from "@/lib/onboarding/redirect-policy";
 
 export function OnboardingRedirect() {
   const router = useRouter();
   const pathname = usePathname();
-  const { organisations, preference, loading } = useWorkspace();
+  const { onboardingStatus } = useWorkspace();
 
   useEffect(() => {
-    if (loading || pathname.startsWith("/onboarding")) {
+    const decision = resolveOnboardingRouteDecision({
+      pathname,
+      status: onboardingStatus,
+    });
+
+    if (decision === "redirect-onboarding") {
+      router.replace("/onboarding");
       return;
     }
 
-    const needsOnboarding =
-      !preference.onboardingCompletedAt &&
-      (organisations.length === 0 || !preference.currentOrganisationId);
-
-    if (needsOnboarding) {
-      router.replace("/onboarding");
+    if (decision === "redirect-dashboard") {
+      router.replace("/dashboard");
     }
-  }, [loading, organisations.length, pathname, preference, router]);
+  }, [onboardingStatus, pathname, router]);
 
   return null;
 }
