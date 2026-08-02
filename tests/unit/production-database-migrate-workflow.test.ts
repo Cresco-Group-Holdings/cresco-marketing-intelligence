@@ -26,17 +26,22 @@ describe("production-database-migrate workflow", () => {
     const jobBlock = extractMigrateJobBlock(readWorkflow());
 
     expect(jobBlock).toMatch(
-      /env:\s*\n\s*DATABASE_URL: \$\{\{ secrets\.PRODUCTION_DIRECT_URL \}\}\s*\n\s*DIRECT_URL: \$\{\{ secrets\.PRODUCTION_DIRECT_URL \}\}/,
+      /env:\s*\n\s*PRODUCTION_DIRECT_URL: \$\{\{ secrets\.PRODUCTION_DIRECT_URL \}\}\s*\n\s*DATABASE_URL: \$\{\{ secrets\.PRODUCTION_DIRECT_URL \}\}\s*\n\s*DIRECT_URL: \$\{\{ secrets\.PRODUCTION_DIRECT_URL \}\}/,
     );
   });
 
   it("keeps the missing production secret guard", () => {
     const workflow = readWorkflow();
 
-    expect(workflow).toContain("Verify production database secret is configured");
-    expect(workflow).toContain('if [ -z "$PRODUCTION_DIRECT_URL" ]; then');
+    expect(workflow).toContain("Verify production database env for Prisma");
+    expect(workflow).toContain('if [ -z "${PRODUCTION_DIRECT_URL:-}" ]; then');
+    expect(workflow).toContain('if [ -z "${DATABASE_URL:-}" ]; then');
+    expect(workflow).toContain('if [ -z "${DIRECT_URL:-}" ]; then');
     expect(workflow).toContain(
       "PRODUCTION_DIRECT_URL is not configured in the production environment.",
+    );
+    expect(workflow).toContain(
+      "DIRECT_URL is not set. Map secrets.PRODUCTION_DIRECT_URL at the migrate-production job env level.",
     );
   });
 
@@ -54,6 +59,9 @@ describe("production-database-migrate workflow", () => {
       expect(stepsSection).toContain(command);
     }
 
+    expect(stepsSection).not.toMatch(
+      /^\s+PRODUCTION_DIRECT_URL: \$\{\{ secrets\.PRODUCTION_DIRECT_URL \}\}/m,
+    );
     expect(stepsSection).not.toMatch(
       /^\s+DATABASE_URL: \$\{\{ secrets\.PRODUCTION_DIRECT_URL \}\}/m,
     );
