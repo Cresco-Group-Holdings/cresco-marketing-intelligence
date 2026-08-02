@@ -17,9 +17,34 @@ const ERROR_MESSAGES: Record<string, { title: string; description: string }> = {
     title: "Invalid authentication response",
     description: "The sign-in response was incomplete. Start sign-in again from the login page.",
   },
+  missing_confirmation: {
+    title: "Invalid authentication response",
+    description:
+      "The confirmation link was incomplete. Request a new verification email and open the latest link once.",
+  },
   invalid_callback: {
     title: "Authentication link expired",
     description: "This sign-in link is no longer valid. Request a new sign-in or reset email.",
+  },
+  callback_expired: {
+    title: "Confirmation link expired",
+    description:
+      "This verification link has expired. Request a new confirmation email from the sign-in page and use the newest link.",
+  },
+  callback_used: {
+    title: "Confirmation link already used",
+    description:
+      "This verification link has already been used. Sign in with your email and password, or request a new confirmation email.",
+  },
+  callback_pkce_verifier: {
+    title: "Open the link on the same device",
+    description:
+      "This confirmation link must be opened in the same browser where you signed up, or you need a link generated for server-side verification. Request a new confirmation email and use the latest link.",
+  },
+  provisioning_failed: {
+    title: "Account setup is still pending",
+    description:
+      "Your email was confirmed, but profile setup could not be completed. Try signing in again in a moment.",
   },
   missing_user: {
     title: "Account could not be loaded",
