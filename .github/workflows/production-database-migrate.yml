@@ -55,13 +55,10 @@ jobs:
       - name: Validate Prisma schema
         run: npx prisma validate
 
-      - name: Check migration status (before deploy)
-        run: npx prisma migrate status
-
       - name: Deploy migrations
         run: npx prisma migrate deploy
 
-      - name: Check migration status (after deploy)
+      - name: Report migration status (after deploy)
         run: npx prisma migrate status
 
       - name: Generate Prisma client
