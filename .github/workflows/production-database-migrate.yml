@@ -18,6 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     if: ${{ github.event.inputs.confirmation == 'MIGRATE_PRODUCTION' }}
+    env:
+      DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+      DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -46,30 +49,18 @@ jobs:
         run: npx prisma validate
 
       - name: Check migration status (before deploy)
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
-          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
         run: npx prisma migrate status
 
       - name: Deploy migrations
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
-          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
         run: npx prisma migrate deploy
 
       - name: Check migration status (after deploy)
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
-          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
         run: npx prisma migrate status
 
       - name: Generate Prisma client
         run: npx prisma generate
 
       - name: Verify migration and representative tables
-        env:
-          DATABASE_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
-          DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
         run: node scripts/verify-production-migration.mjs
 
   reject-invalid-confirmation:
