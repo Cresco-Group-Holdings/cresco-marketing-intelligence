@@ -2,27 +2,35 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
-const WORKFLOWS = [
-  "publishing-scheduler.yml",
-  "social-analytics-scheduler.yml",
-];
+const WORKFLOW_DIR = path.join(process.cwd(), ".github", "workflows");
 
 describe("production scheduler workflows", () => {
-  for (const filename of WORKFLOWS) {
-    const workflowPath = path.join(process.cwd(), ".github", "workflows", filename);
+  it("publishing-scheduler.yml uses production environment and curl-based manual fallback", () => {
+    const workflow = readFileSync(
+      path.join(WORKFLOW_DIR, "publishing-scheduler.yml"),
+      "utf8",
+    );
 
-    it(`${filename} uses the production environment for secrets`, () => {
-      const workflow = readFileSync(workflowPath, "utf8");
+    expect(workflow).toContain("environment: production");
+    expect(workflow).toMatch(/permissions:\s*\n\s*contents: read/);
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).not.toMatch(/^\s+schedule:/m);
+    expect(workflow).toContain("curl --fail-with-body");
+    expect(workflow).toContain("must be configured in the production environment");
+    expect(workflow).toContain("exit 1");
+  });
 
-      expect(workflow).toContain("environment: production");
-      expect(workflow).toMatch(/permissions:\s*\n\s*contents: read/);
-    });
+  it("social-analytics-scheduler.yml uses production environment and graceful skip", () => {
+    const workflow = readFileSync(
+      path.join(WORKFLOW_DIR, "social-analytics-scheduler.yml"),
+      "utf8",
+    );
 
-    it(`${filename} skips gracefully when scheduler secrets are missing`, () => {
-      const workflow = readFileSync(workflowPath, "utf8");
-
-      expect(workflow).toContain("Skipping scheduler run");
-      expect(workflow).toContain("exit 0");
-    });
-  }
+    expect(workflow).toContain("environment: production");
+    expect(workflow).toMatch(/permissions:\s*\n\s*contents: read/);
+    expect(workflow).toContain("Skipping scheduler run");
+    expect(workflow).toContain("exit 0");
+    expect(workflow).toContain("curl --fail-with-body");
+    expect(workflow).toContain("timeout-minutes: 2");
+  });
 });

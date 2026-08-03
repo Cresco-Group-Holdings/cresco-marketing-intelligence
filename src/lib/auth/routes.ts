@@ -56,7 +56,23 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
+  if (isWorkerApiRoute(pathname)) {
+    return false;
+  }
+
   return true;
+}
+
+const WORKER_API_PREFIXES = [
+  "/api/publishing-scheduler/",
+  "/api/publishing-jobs/",
+  "/api/social-analytics-sync/",
+  "/api/seo-crawl/",
+  "/api/notifications/digest/",
+] as const;
+
+export function isWorkerApiRoute(pathname: string): boolean {
+  return WORKER_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 export function isSettingsAccountRoute(pathname: string): boolean {

@@ -16,17 +16,14 @@ permissions:
 
 concurrency:
   group: social-analytics-scheduler
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   scheduler:
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
       - name: Enqueue and drain social analytics syncs
         env:
           APP_URL: ${{ secrets.APP_URL }}
@@ -37,4 +34,12 @@ jobs:
             echo "::warning::APP_URL and PUBLISHING_WORKER_TOKEN are not configured in the production environment. Skipping scheduler run."
             exit 0
           fi
-          node scripts/run-social-analytics-scheduler.mjs
+          base_url="${APP_URL%/}/api/social-analytics-sync/schedule"
+          if [ -n "${SOCIAL_ANALYTICS_WORKER_BATCH:-}" ]; then
+            url="${base_url}?limit=${SOCIAL_ANALYTICS_WORKER_BATCH}"
+          else
+            url="${base_url}"
+          fi
+          curl --fail-with-body -sS -X POST "$url" \
+            -H "authorization: Bearer ${PUBLISHING_WORKER_TOKEN}" \
+            -H "content-type: application/json"

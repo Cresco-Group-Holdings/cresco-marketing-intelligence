@@ -1,9 +1,14 @@
-name: Publishing Scheduler
+# Emergency manual fallback — NOT the production scheduler
+#
+# Production publishing is scheduled by Vercel Cron (vercel.json).
+# Do NOT add a `schedule` trigger — high-frequency GHA crons exhaust the
+# included Actions minute quota (~2,880 runs/month at 5-minute intervals).
+#
+# See docs/PUBLISHING_SCHEDULER.md for architecture, auth, and operations.
+
+name: Publishing Scheduler (manual fallback only)
 
 on:
-  schedule:
-    # Every five minutes — publishing is time-sensitive.
-    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       limit:
@@ -15,26 +20,31 @@ permissions:
   contents: read
 
 concurrency:
-  group: publishing-scheduler
-  cancel-in-progress: false
+  group: publishing-scheduler-manual
+  cancel-in-progress: true
 
 jobs:
   scheduler:
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Enqueue and drain due publishing jobs
+      - name: Emergency drain of due publishing jobs
         env:
           APP_URL: ${{ secrets.APP_URL }}
           PUBLISHING_WORKER_TOKEN: ${{ secrets.PUBLISHING_WORKER_TOKEN }}
           PUBLISHING_WORKER_BATCH: ${{ github.event.inputs.limit || '10' }}
         run: |
           if [ -z "${APP_URL:-}" ] || [ -z "${PUBLISHING_WORKER_TOKEN:-}" ]; then
-            echo "::warning::APP_URL and PUBLISHING_WORKER_TOKEN are not configured in the production environment. Skipping scheduler run."
-            exit 0
+            echo "APP_URL and PUBLISHING_WORKER_TOKEN must be configured in the production environment."
+            exit 1
           fi
-          node scripts/run-publishing-scheduler.mjs
+          base_url="${APP_URL%/}/api/publishing-scheduler/process-due"
+          if [ -n "${PUBLISHING_WORKER_BATCH:-}" ]; then
+            url="${base_url}?limit=${PUBLISHING_WORKER_BATCH}"
+          else
+            url="${base_url}"
+          fi
+          curl --fail-with-body -sS -X POST "$url" \
+            -H "authorization: Bearer ${PUBLISHING_WORKER_TOKEN}" \
+            -H "content-type: application/json"
