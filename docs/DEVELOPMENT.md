@@ -10,7 +10,7 @@
 ## Installation
 
 ```bash
-git clone https://github.com/romanpavlenkolondon-glitch/cresco-marketing-intelligence.git
+git clone https://github.com/Cresco-Group-Holdings/cresco-marketing-intelligence.git
 cd cresco-marketing-intelligence
 npm install
 cp .env.example .env

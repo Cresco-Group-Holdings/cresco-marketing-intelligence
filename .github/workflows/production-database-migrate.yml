@@ -1,5 +1,8 @@
 name: Production Database Migrate
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:

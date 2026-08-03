@@ -11,6 +11,9 @@ on:
         required: false
         default: "10"
 
+permissions:
+  contents: read
+
 concurrency:
   group: social-analytics-scheduler
   cancel-in-progress: true
@@ -18,6 +21,7 @@ concurrency:
 jobs:
   scheduler:
     runs-on: ubuntu-latest
+    environment: production
     timeout-minutes: 2
     steps:
       - name: Enqueue and drain social analytics syncs
@@ -27,8 +31,8 @@ jobs:
           SOCIAL_ANALYTICS_WORKER_BATCH: ${{ github.event.inputs.limit || '10' }}
         run: |
           if [ -z "${APP_URL:-}" ] || [ -z "${PUBLISHING_WORKER_TOKEN:-}" ]; then
-            echo "APP_URL and PUBLISHING_WORKER_TOKEN must be configured."
-            exit 1
+            echo "::warning::APP_URL and PUBLISHING_WORKER_TOKEN are not configured in the production environment. Skipping scheduler run."
+            exit 0
           fi
           base_url="${APP_URL%/}/api/social-analytics-sync/schedule"
           if [ -n "${SOCIAL_ANALYTICS_WORKER_BATCH:-}" ]; then
