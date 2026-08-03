@@ -7,7 +7,7 @@ import {
 } from "@/lib/api/handler";
 import { resolveOnboardingStatus, serializeOnboardingStatus } from "@/lib/onboarding/status";
 import { workspaceUpdateSchema } from "@/lib/validation/workspace";
-import { workspaceService } from "@/server/services";
+import { workspaceService } from "@/server/services/workspace-service";
 
 async function withOnboardingStatus(userProfileId: string) {
   const [workspace, onboarding] = await Promise.all([
