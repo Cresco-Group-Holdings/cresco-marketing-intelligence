@@ -3,9 +3,29 @@ name: Pull Request CI
 on:
   pull_request:
     branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".github/ISSUE_TEMPLATE/**"
+  workflow_dispatch:
+    inputs:
+      run_database_tests:
+        description: Run database integration tests
+        type: boolean
+        default: false
+      run_build:
+        description: Run production build
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  pull-requests: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -18,7 +38,38 @@ env:
   ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
 
 jobs:
-  lint:
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      app: ${{ steps.filter.outputs.app }}
+      prisma: ${{ steps.filter.outputs.prisma }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            app:
+              - "src/**"
+              - "tests/**"
+              - "public/**"
+              - "package.json"
+              - "package-lock.json"
+              - "tsconfig*.json"
+              - "next.config.ts"
+              - "postcss.config.*"
+              - "eslint.config.*"
+              - "prisma/**"
+              - "scripts/**"
+              - ".github/workflows/**"
+            prisma:
+              - "prisma/**"
+
+  quality:
+    name: Lint, typecheck, and validation
+    needs: changes
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,52 +79,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
       - run: npm run typecheck
-
-  prisma-validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
       - run: npm run validate:prisma
-
-  migration-validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
       - run: npm run validate:migrations
-
-  route-validate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
       - run: npm run validate:routes
+      - run: npm run audit:secrets
 
-  unit-tests:
+  test:
+    name: Unit and integration tests
+    needs: quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -83,19 +97,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run test:unit
-
-  integration-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
       - run: npm run test:integration
 
   database-tests:
+    name: Database tests
+    needs: changes
+    if: |
+      (github.event_name == 'workflow_dispatch' && inputs.run_database_tests) ||
+      needs.changes.outputs.prisma == 'true' ||
+      contains(github.event.pull_request.labels.*.name, 'run-database-tests')
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -126,6 +136,24 @@ jobs:
       - run: npm run test:database
 
   build:
+    name: Production build
+    needs: [quality, test]
+    if: |
+      always() &&
+      needs.quality.result == 'success' &&
+      needs.test.result == 'success' &&
+      (
+        (github.event_name == 'workflow_dispatch' && inputs.run_build) ||
+        (
+          github.event_name == 'pull_request' &&
+          github.event.pull_request.draft == false &&
+          (
+            github.event.action == 'ready_for_review' ||
+            contains(github.event.pull_request.labels.*.name, 'ci/build') ||
+            contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+          )
+        )
+      )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -135,26 +163,3 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-
-  dependency-audit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run audit:deps
-        continue-on-error: true
-
-  secret-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-      - run: npm ci
-      - run: npm run audit:secrets

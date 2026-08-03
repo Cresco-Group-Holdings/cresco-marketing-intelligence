@@ -11,6 +11,9 @@ on:
         required: false
         default: "10"
 
+permissions:
+  contents: read
+
 concurrency:
   group: social-analytics-scheduler
   cancel-in-progress: false
@@ -18,6 +21,7 @@ concurrency:
 jobs:
   scheduler:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -28,4 +32,9 @@ jobs:
           APP_URL: ${{ secrets.APP_URL }}
           PUBLISHING_WORKER_TOKEN: ${{ secrets.PUBLISHING_WORKER_TOKEN }}
           SOCIAL_ANALYTICS_WORKER_BATCH: ${{ github.event.inputs.limit || '10' }}
-        run: node scripts/run-social-analytics-scheduler.mjs
+        run: |
+          if [ -z "${APP_URL:-}" ] || [ -z "${PUBLISHING_WORKER_TOKEN:-}" ]; then
+            echo "::warning::APP_URL and PUBLISHING_WORKER_TOKEN are not configured in the production environment. Skipping scheduler run."
+            exit 0
+          fi
+          node scripts/run-social-analytics-scheduler.mjs

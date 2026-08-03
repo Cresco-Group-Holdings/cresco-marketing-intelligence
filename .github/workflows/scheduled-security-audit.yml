@@ -5,9 +5,16 @@ on:
     - cron: "0 5 * * 1"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 concurrency:
   group: security-audit-${{ github.ref }}
   cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cresco_marketing?schema=public
+  DIRECT_URL: postgresql://postgres:postgres@localhost:5432/cresco_marketing?schema=public
 
 jobs:
   security-audit:
