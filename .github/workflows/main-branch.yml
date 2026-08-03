@@ -1,27 +1,15 @@
-name: Pull Request CI
+name: Main Branch CI
 
 on:
-  pull_request:
+  push:
     branches: [main]
-    types: [opened, synchronize, reopened, ready_for_review, labeled]
     paths-ignore:
       - "**/*.md"
       - "docs/**"
       - "LICENSE"
-      - ".github/ISSUE_TEMPLATE/**"
-  workflow_dispatch:
-    inputs:
-      run_database_tests:
-        description: Run database integration tests
-        type: boolean
-        default: false
-      run_build:
-        description: Run production build
-        type: boolean
-        default: true
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -38,7 +26,6 @@ jobs:
     name: Detect changed paths
     runs-on: ubuntu-latest
     outputs:
-      app: ${{ steps.filter.outputs.app }}
       prisma: ${{ steps.filter.outputs.prisma }}
     steps:
       - uses: actions/checkout@v4
@@ -46,26 +33,11 @@ jobs:
         id: filter
         with:
           filters: |
-            app:
-              - "src/**"
-              - "tests/**"
-              - "public/**"
-              - "package.json"
-              - "package-lock.json"
-              - "tsconfig*.json"
-              - "next.config.ts"
-              - "postcss.config.*"
-              - "eslint.config.*"
-              - "prisma/**"
-              - "scripts/**"
-              - ".github/workflows/**"
             prisma:
               - "prisma/**"
 
   quality:
     name: Lint, typecheck, and validation
-    needs: changes
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.app == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -98,10 +70,7 @@ jobs:
   database-tests:
     name: Database tests
     needs: changes
-    if: |
-      (github.event_name == 'workflow_dispatch' && inputs.run_database_tests) ||
-      needs.changes.outputs.prisma == 'true' ||
-      contains(github.event.pull_request.labels.*.name, 'run-database-tests')
+    if: needs.changes.outputs.prisma == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -133,23 +102,7 @@ jobs:
 
   build:
     name: Production build
-    needs: [quality, test]
-    if: |
-      always() &&
-      needs.quality.result == 'success' &&
-      needs.test.result == 'success' &&
-      (
-        (github.event_name == 'workflow_dispatch' && inputs.run_build) ||
-        (
-          github.event_name == 'pull_request' &&
-          github.event.pull_request.draft == false &&
-          (
-            github.event.action == 'ready_for_review' ||
-            contains(github.event.pull_request.labels.*.name, 'ci/build') ||
-            contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
-          )
-        )
-      )
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

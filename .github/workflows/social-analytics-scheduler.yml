@@ -13,19 +13,29 @@ on:
 
 concurrency:
   group: social-analytics-scheduler
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   scheduler:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
       - name: Enqueue and drain social analytics syncs
         env:
           APP_URL: ${{ secrets.APP_URL }}
           PUBLISHING_WORKER_TOKEN: ${{ secrets.PUBLISHING_WORKER_TOKEN }}
           SOCIAL_ANALYTICS_WORKER_BATCH: ${{ github.event.inputs.limit || '10' }}
-        run: node scripts/run-social-analytics-scheduler.mjs
+        run: |
+          if [ -z "${APP_URL:-}" ] || [ -z "${PUBLISHING_WORKER_TOKEN:-}" ]; then
+            echo "APP_URL and PUBLISHING_WORKER_TOKEN must be configured."
+            exit 1
+          fi
+          base_url="${APP_URL%/}/api/social-analytics-sync/schedule"
+          if [ -n "${SOCIAL_ANALYTICS_WORKER_BATCH:-}" ]; then
+            url="${base_url}?limit=${SOCIAL_ANALYTICS_WORKER_BATCH}"
+          else
+            url="${base_url}"
+          fi
+          curl --fail-with-body -sS -X POST "$url" \
+            -H "authorization: Bearer ${PUBLISHING_WORKER_TOKEN}" \
+            -H "content-type: application/json"

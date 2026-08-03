@@ -2,15 +2,20 @@ name: Playwright E2E
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * 1"
+  pull_request:
+    types: [labeled, synchronize, opened, reopened]
+    branches: [main]
 
 concurrency:
-  group: playwright-e2e-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
   smoke:
+    name: Playwright smoke tests
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'run-e2e')
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cresco_marketing?schema=public

@@ -2,8 +2,8 @@ name: Publishing Scheduler
 
 on:
   schedule:
-    # Every five minutes — publishing is time-sensitive.
-    - cron: "*/5 * * * *"
+    # Every 15 minutes. For tighter SLA, use Vercel Cron or another host cron instead of GHA.
+    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       limit:
@@ -13,19 +13,29 @@ on:
 
 concurrency:
   group: publishing-scheduler
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   scheduler:
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
       - name: Enqueue and drain due publishing jobs
         env:
           APP_URL: ${{ secrets.APP_URL }}
           PUBLISHING_WORKER_TOKEN: ${{ secrets.PUBLISHING_WORKER_TOKEN }}
           PUBLISHING_WORKER_BATCH: ${{ github.event.inputs.limit || '10' }}
-        run: node scripts/run-publishing-scheduler.mjs
+        run: |
+          if [ -z "${APP_URL:-}" ] || [ -z "${PUBLISHING_WORKER_TOKEN:-}" ]; then
+            echo "APP_URL and PUBLISHING_WORKER_TOKEN must be configured."
+            exit 1
+          fi
+          base_url="${APP_URL%/}/api/publishing-scheduler/process-due"
+          if [ -n "${PUBLISHING_WORKER_BATCH:-}" ]; then
+            url="${base_url}?limit=${PUBLISHING_WORKER_BATCH}"
+          else
+            url="${base_url}"
+          fi
+          curl --fail-with-body -sS -X POST "$url" \
+            -H "authorization: Bearer ${PUBLISHING_WORKER_TOKEN}" \
+            -H "content-type: application/json"
