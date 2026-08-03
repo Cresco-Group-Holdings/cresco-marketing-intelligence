@@ -26,7 +26,8 @@ These may be omitted during local development. The environment module reports wh
 | `GOOGLE_CLIENT_SECRET` | Server only | Google OAuth |
 | `META_APP_ID` | Server only | Meta OAuth |
 | `META_APP_SECRET` | Server only | Meta OAuth |
-| `PUBLISHING_WORKER_TOKEN` | Server only | Bearer token for the publishing worker endpoint. The endpoint rejects every request when unset. |
+| `PUBLISHING_WORKER_TOKEN` | Server only | Bearer token for publishing worker and manual scheduler invocations. The endpoint rejects every request when unset. |
+| `CRON_SECRET` | Server only | Vercel Cron bearer secret. Vercel injects `Authorization: Bearer <CRON_SECRET>` on cron requests when set. Required for production publishing schedule. |
 | `TIKTOK_CLIENT_KEY` | Server only | TikTok OAuth |
 | `TIKTOK_CLIENT_SECRET` | Server only | TikTok OAuth |
 | `LINKEDIN_CLIENT_ID` | Server only | LinkedIn OAuth |

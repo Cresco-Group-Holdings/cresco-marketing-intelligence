@@ -1,9 +1,14 @@
-name: Publishing Scheduler
+# Emergency manual fallback — NOT the production scheduler
+#
+# Production publishing is scheduled by Vercel Cron (vercel.json).
+# Do NOT add a `schedule` trigger — high-frequency GHA crons exhaust the
+# included Actions minute quota (~2,880 runs/month at 5-minute intervals).
+#
+# See docs/PUBLISHING_SCHEDULER.md for architecture, auth, and operations.
+
+name: Publishing Scheduler (manual fallback only)
 
 on:
-  schedule:
-    # Every 15 minutes. For tighter SLA, use Vercel Cron or another host cron instead of GHA.
-    - cron: "*/15 * * * *"
   workflow_dispatch:
     inputs:
       limit:
@@ -12,7 +17,7 @@ on:
         default: "10"
 
 concurrency:
-  group: publishing-scheduler
+  group: publishing-scheduler-manual
   cancel-in-progress: true
 
 jobs:
@@ -20,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - name: Enqueue and drain due publishing jobs
+      - name: Emergency drain of due publishing jobs
         env:
           APP_URL: ${{ secrets.APP_URL }}
           PUBLISHING_WORKER_TOKEN: ${{ secrets.PUBLISHING_WORKER_TOKEN }}

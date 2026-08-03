@@ -34,9 +34,10 @@ PUBLISHING_SCHEDULER_ENABLED=false
 ## Investigation steps
 
 ### 1. Check scheduler health
-- Verify GitHub Action `Publishing Scheduler` is running (`.github/workflows/publishing-scheduler.yml`)
-- Confirm `APP_URL` and `PUBLISHING_WORKER_TOKEN` secrets are set
-- Manually trigger: `workflow_dispatch` with optional limit
+- Verify **Vercel Cron** is configured (`vercel.json` → `/api/publishing-scheduler/process-due`, every 5 minutes)
+- Confirm `CRON_SECRET` is set in Vercel (cron auth) and `PUBLISHING_WORKER_TOKEN` for manual runs
+- See `docs/PUBLISHING_SCHEDULER.md` for full operations
+- Emergency only: GitHub Actions **Publishing Scheduler (manual fallback only)** via `workflow_dispatch` — not the production scheduler
 
 ### 2. Check recent logs
 Search for:
