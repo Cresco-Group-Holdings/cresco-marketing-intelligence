@@ -6,7 +6,7 @@ This workflow does **not** use Prisma Cloud, Prisma Postgres, Accelerate, Data P
 
 ## Prerequisites
 
-- GitHub admin access to `romanpavlenkolondon-glitch/cresco-marketing-intelligence`
+- GitHub admin access to `Cresco-Group-Holdings/cresco-marketing-intelligence`
 - Supabase production **direct/session** PostgreSQL connection string (port `5432` or supported Supabase pooler direct port)
 - Permission to approve the protected `production` GitHub Environment
 
