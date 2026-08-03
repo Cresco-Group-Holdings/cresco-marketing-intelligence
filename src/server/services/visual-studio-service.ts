@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import path from "node:path";
 import * as archiver from "archiver";
 import PDFDocument from "pdfkit";
-import sharp from "sharp";
+import { loadSharp } from "@/lib/images/sharp-loader";
 import { Prisma, type VisualOutputType } from "@prisma/client";
 import { getImageGenerationProvider } from "@/lib/ai/image-providers";
 import { prisma } from "@/lib/database/prisma";
@@ -150,7 +150,7 @@ async function renderPage(
       return `<text x="${p.x ?? 80}" y="${p.y ?? 160}" fill="${p.colour ?? "#fff"}" font-family="Arial, sans-serif" font-size="${p.fontSize ?? 48}" font-weight="700">${escapeXml(p.text ?? "")}</text>`;
     })
     .join("")}</svg>`;
-  const renderer = sharp(Buffer.from(svg));
+  const renderer = (await loadSharp())(Buffer.from(svg));
   if (format === "jpeg") return renderer.jpeg().toBuffer();
   if (format === "webp") return renderer.webp().toBuffer();
   return renderer.png().toBuffer();

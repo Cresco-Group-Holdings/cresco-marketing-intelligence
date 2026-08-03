@@ -1,7 +1,7 @@
 import path from "node:path";
 import FileType from "file-type";
-import sharp from "sharp";
 import { AppError } from "@/lib/errors";
+import { loadSharp } from "@/lib/images/sharp-loader";
 import {
   MARKETING_ASSET_ALLOWED_EXTENSIONS,
   MARKETING_ASSET_ALLOWED_MIME_TYPES,
@@ -93,6 +93,7 @@ export async function processMarketingAssetUpload(
     const sanitized = sanitizeSvgContent(buffer.toString("utf8"));
     processedBuffer = Buffer.from(sanitized, "utf8");
   } else if (assetType === "IMAGE") {
+    const sharp = await loadSharp();
     const image = sharp(processedBuffer, { failOn: "error" });
     const metadata = await image.metadata();
     width = metadata.width ?? null;
