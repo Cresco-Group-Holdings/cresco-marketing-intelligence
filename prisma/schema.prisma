@@ -356,6 +356,9 @@ model UserProfile {
   crmLeadAssignmentsMade                       CrmLeadAssignment[]                    @relation("CrmLeadAssigner")
   crmLifecycleHistoryActed                     CrmLeadLifecycleHistory[]              @relation("CrmLifecycleHistoryActor")
   crmStatusHistoryActed                        CrmLeadStatusHistory[]                 @relation("CrmStatusHistoryActor")
+  crmQualificationAssessmentsAuthored          CrmQualificationAssessment[]           @relation("CrmQualificationAssessor")
+  crmConsentRecordsRecorded                    CrmConsentRecord[]                     @relation("CrmConsentRecorder")
+  crmLeadManualScoresAuthored                  CrmLeadManualScore[]                   @relation("CrmLeadManualScorer")
   crmIdentityLinksConfirmed                    CrmIdentityLink[]                      @relation("CrmIdentityLinkConfirmer")
   crmDuplicatesReviewed                        CrmDuplicateCandidate[]                @relation("CrmDuplicateReviewer")
   crmTimelineItemsActed                        CrmActivityTimelineItem[]              @relation("CrmTimelineActor")
@@ -769,6 +772,9 @@ model Organisation {
   crmCompanies                            CrmCompany[]
   crmLeads                                CrmLead[]
   crmLeadSources                          CrmLeadSource[]
+  crmQualificationAssessments             CrmQualificationAssessment[]
+  crmConsentRecords                       CrmConsentRecord[]
+  crmLeadManualScores                     CrmLeadManualScore[]
   crmCustomFieldDefinitions               CrmCustomFieldDefinition[]
   crmImportJobs                           CrmImportJob[]
   crmExportJobs                           CrmExportJob[]
@@ -1055,6 +1061,9 @@ model Project {
   crmCompanies                     CrmCompany[]
   crmLeads                         CrmLead[]
   crmLeadSources                   CrmLeadSource[]
+  crmQualificationAssessments      CrmQualificationAssessment[]
+  crmConsentRecords                CrmConsentRecord[]
+  crmLeadManualScores              CrmLeadManualScore[]
   crmCustomFieldDefinitions        CrmCustomFieldDefinition[]
   crmImportJobs                    CrmImportJob[]
   crmExportJobs                    CrmExportJob[]
@@ -1314,6 +1323,9 @@ model Brand {
   crmCompanies                     CrmCompany[]
   crmLeads                         CrmLead[]
   crmLeadSources                   CrmLeadSource[]
+  crmQualificationAssessments      CrmQualificationAssessment[]
+  crmConsentRecords                CrmConsentRecord[]
+  crmLeadManualScores              CrmLeadManualScore[]
   crmCustomFieldDefinitions        CrmCustomFieldDefinition[]
   crmImportJobs                    CrmImportJob[]
   crmExportJobs                    CrmExportJob[]
@@ -13825,11 +13837,38 @@ enum CrmLeadStatus {
   QUALIFIED
   UNQUALIFIED
   NURTURING
+  OPPORTUNITY
   OPPORTUNITY_CREATED
+  WON
   CUSTOMER
   LOST
   SUPPRESSED
   ARCHIVED
+}
+
+enum CrmRetentionStatus {
+  ACTIVE
+  SUPPRESSED
+  DELETION_REQUESTED
+  ANONYMISED
+  ARCHIVED
+}
+
+enum CrmConsentBasis {
+  CONSENT
+  LEGITIMATE_INTEREST
+  CONTRACT
+  LEGAL_OBLIGATION
+  VITAL_INTEREST
+  PUBLIC_TASK
+  OTHER
+}
+
+enum CrmConsentRecordStatus {
+  GRANTED
+  DENIED
+  WITHDRAWN
+  UNKNOWN
 }
 
 enum CrmLifecycleStage {
@@ -14088,6 +14127,10 @@ model CrmLead {
   country                String?
   timezone               String?
   marketingLeadId        String?
+  retentionStatus        CrmRetentionStatus    @default(ACTIVE)
+  lawfulBasis            CrmConsentBasis?
+  anonymisedAt           DateTime?
+  deletionRequestedAt    DateTime?
   firstSeenAt            DateTime?
   lastActivityAt         DateTime?
   createdByUserId        String
@@ -14117,6 +14160,9 @@ model CrmLead {
   marketingAutomationEnrollments MarketingAutomationEnrollment[]
   leadScoreSnapshots             LeadScoreSnapshot[]
   leadQualificationResults       LeadQualificationResult[]
+  qualificationAssessments       CrmQualificationAssessment[]
+  consentRecords                 CrmConsentRecord[]
+  manualScores                   CrmLeadManualScore[]
   lifecycleAgentFindings         LifecycleAgentFinding[]         @relation("LifecycleAgentFindingLead")
   lifecycleAgentEvidence         LifecycleAgentEvidence[]        @relation("LifecycleAgentEvidenceLead")
 
@@ -14214,6 +14260,83 @@ model CrmLeadStatusHistory {
   actor UserProfile? @relation("CrmStatusHistoryActor", fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([leadId, createdAt])
+}
+
+model CrmQualificationAssessment {
+  id             String                @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  leadId         String
+  assessorUserId String
+  outcome        CrmQualificationState
+  criteria       Json?
+  notes          String?
+  metadata       Json?
+  assessedAt     DateTime              @default(now())
+  createdAt      DateTime              @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  lead         CrmLead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  assessor     UserProfile  @relation("CrmQualificationAssessor", fields: [assessorUserId], references: [id], onDelete: Restrict)
+
+  @@index([leadId, assessedAt])
+  @@index([organisationId, brandId])
+}
+
+model CrmConsentRecord {
+  id               String                 @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  leadId           String
+  channel          String
+  status           CrmConsentRecordStatus @default(UNKNOWN)
+  lawfulBasis      CrmConsentBasis?
+  marketingOptIn   Boolean                @default(false)
+  suppressed       Boolean                @default(false)
+  contactEligible  Boolean                @default(true)
+  notes            String?
+  recordedByUserId String?
+  recordedAt       DateTime               @default(now())
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  lead         CrmLead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  recordedBy   UserProfile? @relation("CrmConsentRecorder", fields: [recordedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([leadId, recordedAt])
+  @@index([organisationId, brandId])
+}
+
+model CrmLeadManualScore {
+  id             String    @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  leadId         String
+  score          Int
+  maxScore       Int       @default(100)
+  rationale      String?
+  criteria       Json?
+  scoredByUserId String
+  scoredAt       DateTime  @default(now())
+  supersededAt   DateTime?
+  createdAt      DateTime  @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  lead         CrmLead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  scoredBy     UserProfile  @relation("CrmLeadManualScorer", fields: [scoredByUserId], references: [id], onDelete: Restrict)
+
+  @@index([leadId, scoredAt])
+  @@index([organisationId, brandId])
 }
 
 model CrmLeadTag {
