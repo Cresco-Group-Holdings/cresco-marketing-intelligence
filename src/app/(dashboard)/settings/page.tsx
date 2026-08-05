@@ -11,6 +11,7 @@ const settingsLinks = [
   { href: "/settings/members", title: "Members", description: "View members, roles, and membership status." },
   { href: "/settings/invitations", title: "Invitations", description: "Invite teammates and manage pending invitations." },
   { href: "/settings/audit-log", title: "Audit log", description: "Review security-relevant workspace events." },
+  { href: "/settings/billing", title: "Billing", description: "Subscription, usage limits, invoices, and plan upgrades." },
   { href: "/settings/notifications", title: "Notifications", description: "Delivery channels, digests, and quiet hours." },
 ];
 

@@ -298,6 +298,8 @@ export const PERMISSIONS = {
   "providerDefinitions.read": "providerDefinitions.read",
   "providerDefinitions.admin": "providerDefinitions.admin",
   "auditLogs.read": "auditLogs.read",
+  "billing.read": "billing.read",
+  "billing.manage": "billing.manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -604,6 +606,8 @@ const ROLE_PERMISSIONS: Record<OrganisationRole, Permission[]> = {
     PERMISSIONS["providerConnections.manageCredentials"],
     PERMISSIONS["providerDefinitions.read"],
     PERMISSIONS["auditLogs.read"],
+    PERMISSIONS["billing.read"],
+    PERMISSIONS["billing.manage"],
   ],
   MARKETER: [
     PERMISSIONS["organisation.read"],

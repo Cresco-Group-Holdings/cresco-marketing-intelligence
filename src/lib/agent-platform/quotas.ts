@@ -4,8 +4,11 @@ import {
   AGENT_DEFAULT_DAILY_RUN_LIMIT,
   AGENT_DEFAULT_DAILY_TOKEN_LIMIT,
 } from "@/lib/agent-platform/constants";
+import { ENTITLEMENT_KEYS } from "@/lib/billing/entitlements";
 import { AppError } from "@/lib/errors";
 import { Prisma } from "@prisma/client";
+import { entitlementService } from "@/server/services/entitlement-service";
+import { usageMeteringService } from "@/server/services/usage-metering-service";
 
 function startOfUtcDay(): Date {
   const now = new Date();
@@ -43,6 +46,13 @@ async function maybeResetQuota(quota: Awaited<ReturnType<typeof getOrCreateQuota
 }
 
 export async function assertAgentRunQuota(organisationId: string) {
+  await entitlementService.assert({
+    workspaceId: organisationId,
+    organisationId,
+    entitlement: ENTITLEMENT_KEYS.AI_AGENT_RUNS_DAILY,
+    requestedAmount: 1,
+  });
+
   const quota = await maybeResetQuota(await getOrCreateQuota(organisationId));
 
   if (quota.runsToday >= quota.dailyRunLimit) {
@@ -66,7 +76,7 @@ export async function recordAgentQuotaUsage(
     throw new AppError("RATE_LIMITED", "Agent daily cost quota exceeded for this organisation.");
   }
 
-  return prisma.agentPlatformQuota.update({
+  const updated = await prisma.agentPlatformQuota.update({
     where: { id: quota.id },
     data: {
       runsToday: { increment: 1 },
@@ -74,6 +84,16 @@ export async function recordAgentQuotaUsage(
       costTodayUsd: nextCost,
     },
   });
+
+  await usageMeteringService.recordUsage({
+    organisationId,
+    meterKey: "ai.tokens",
+    amount: usage.tokens,
+    idempotencyKey: `agent-run-${Date.now()}-${quota.runsToday}`,
+    period: "DAILY",
+  });
+
+  return updated;
 }
 
 export async function getAgentQuotaSummary(organisationId: string) {
