@@ -406,7 +406,12 @@ model UserProfile {
   complianceOverridesCreated                   ComplianceOverride[]                   @relation("ComplianceOverrideUser")
   contentCampaignsOwned                        ContentCampaign[]                      @relation("ContentCampaignOwner")
   contentCampaignsCreated                      ContentCampaign[]                      @relation("ContentCampaignCreator")
+  contentCampaignMemberships                   ContentCampaignMember[]
+  campaignsOwned                               Campaign[]                             @relation("CampaignOwner")
+  campaignsCreated                             Campaign[]                             @relation("CampaignCreator")
   campaignMemberships                          CampaignMember[]
+  campaignMembersAdded                         CampaignMember[]                       @relation("CampaignMemberAdder")
+  campaignActivitiesAuthored                   CampaignActivity[]                     @relation("CampaignActivityActor")
   contentTasksAssigned                         ContentTask[]                          @relation("ContentTaskAssignee")
   contentTasksOwned                            ContentTask[]                          @relation("ContentTaskOwner")
   contentTasksCreated                          ContentTask[]                          @relation("ContentTaskCreator")
@@ -810,6 +815,10 @@ model Organisation {
   complianceEvaluations                   ComplianceEvaluation[]
   complianceOverrides                     ComplianceOverride[]
   contentCampaigns                        ContentCampaign[]
+  campaigns                               Campaign[]
+  campaignChannels                        CampaignChannel[]
+  campaignKpis                            CampaignKpi[]
+  campaignActivities                      CampaignActivity[]
   contentTasks                            ContentTask[]
   contentAssignments                      ContentAssignment[]
   contentDeadlines                        ContentDeadline[]
@@ -1076,6 +1085,8 @@ model Project {
   compliancePolicies               CompliancePolicy[]
   complianceEvaluations            ComplianceEvaluation[]
   contentCampaigns                 ContentCampaign[]
+  campaigns                        Campaign[]
+  campaignActivities               CampaignActivity[]
   contentTasks                     ContentTask[]
   contentActivities                ContentActivity[]
   socialConversations              SocialConversation[]
@@ -1349,6 +1360,8 @@ model Brand {
   compliancePolicies               CompliancePolicy[]
   complianceEvaluations            ComplianceEvaluation[]
   contentCampaigns                 ContentCampaign[]
+  campaigns                        Campaign[]
+  campaignActivities               CampaignActivity[]
   contentTasks                     ContentTask[]
   contentAssignments               ContentAssignment[]
   contentDeadlines                 ContentDeadline[]
@@ -1543,6 +1556,7 @@ model BrandAudience {
   advertisingAudiencePlans AdvertisingCampaignAudiencePlan[]
   advertisingAudiences     AdvertisingAudience[]
   contentCampaigns         ContentCampaign[]
+  campaigns                Campaign[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -7380,6 +7394,227 @@ enum ContentTaskStatus {
   CANCELLED
 }
 
+enum CampaignStatus {
+  DRAFT
+  PLANNED
+  READY
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum CampaignLifecycleStage {
+  INTAKE
+  PLANNING
+  EXECUTION
+  OPTIMIZATION
+  WRAP_UP
+  CLOSED
+}
+
+enum CampaignObjective {
+  BRAND_AWARENESS
+  LEAD_GENERATION
+  WEBSITE_TRAFFIC
+  ENGAGEMENT
+  CONVERSIONS
+  RETENTION
+}
+
+enum CampaignBudgetType {
+  TOTAL
+  DAILY
+  MONTHLY
+  LIFETIME
+}
+
+enum CampaignChannelType {
+  ORGANIC_SOCIAL
+  PAID_SOCIAL
+  EMAIL
+  SEO
+  PAID_SEARCH
+  DISPLAY
+  EVENTS
+  PARTNERSHIPS
+  OTHER
+}
+
+enum CampaignChannelStatus {
+  PLANNED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignMemberRole {
+  OWNER
+  MANAGER
+  CONTRIBUTOR
+  VIEWER
+}
+
+enum CampaignKpiSourceType {
+  MANUAL
+  WAREHOUSE
+  CONNECTOR
+  CALCULATED
+}
+
+enum CampaignActivityType {
+  CREATED
+  UPDATED
+  STATUS_TRANSITION
+  LIFECYCLE_CHANGED
+  CHANNEL_ADDED
+  CHANNEL_UPDATED
+  CHANNEL_REMOVED
+  KPI_ADDED
+  KPI_UPDATED
+  KPI_REMOVED
+  MEMBER_ADDED
+  MEMBER_UPDATED
+  MEMBER_REMOVED
+  ARCHIVED
+  RESTORED
+}
+
+model Campaign {
+  id                     String                 @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  name                   String
+  description            String?
+  status                 CampaignStatus         @default(DRAFT)
+  lifecycleStage         CampaignLifecycleStage @default(INTAKE)
+  primaryObjective       CampaignObjective?
+  timezone               String                 @default("UTC")
+  startAt                DateTime?
+  endAt                  DateTime?
+  budgetType             CampaignBudgetType?
+  budgetAmount           Decimal?               @db.Decimal(18, 4)
+  budgetCurrency         String?
+  strategyNarrative      String?
+  strategyTargetOutcomes String[]               @default([])
+  audienceDescription    String?
+  audienceSegments       String[]               @default([])
+  targetAudienceId       String?
+  ownerUserId            String
+  createdByUserId        String
+  version                Int                    @default(1)
+  archivedAt             DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  organisation   Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  owner          UserProfile       @relation("CampaignOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy      UserProfile       @relation("CampaignCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  targetAudience BrandAudience?    @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
+  channels       CampaignChannel[]
+  kpis           CampaignKpi[]
+  members        CampaignMember[]
+  activities     CampaignActivity[]
+
+  @@index([organisationId, brandId, status])
+  @@index([organisationId, archivedAt])
+  @@index([ownerUserId])
+  @@index([startAt, endAt])
+  @@index([projectId])
+}
+
+model CampaignChannel {
+  id             String                @id @default(cuid())
+  organisationId String
+  campaignId     String
+  channelType    CampaignChannelType
+  status         CampaignChannelStatus @default(PLANNED)
+  name           String?
+  provider       String?
+  budgetAmount   Decimal?              @db.Decimal(18, 4)
+  budgetCurrency String?
+  notes          String?
+  startAt        DateTime?
+  endAt          DateTime?
+  externalRef    String?
+  metadata       Json?
+  sortOrder      Int                   @default(0)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  campaign     Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, channelType])
+  @@index([organisationId])
+}
+
+model CampaignKpi {
+  id             String                @id @default(cuid())
+  organisationId String
+  campaignId     String
+  name           String
+  metricKey      String?
+  targetValue    Decimal?              @db.Decimal(18, 4)
+  currentValue   Decimal?              @db.Decimal(18, 4)
+  unit           String?
+  sourceType     CampaignKpiSourceType @default(MANUAL)
+  sourceRef      String?
+  sortOrder      Int                   @default(0)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  campaign     Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, sortOrder])
+  @@index([organisationId])
+}
+
+model CampaignMember {
+  id            String             @id @default(cuid())
+  campaignId    String
+  userId        String
+  role          CampaignMemberRole @default(CONTRIBUTOR)
+  addedByUserId String
+  addedAt       DateTime           @default(now())
+  removedAt     DateTime?
+
+  campaign Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addedBy  UserProfile @relation("CampaignMemberAdder", fields: [addedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([campaignId, userId])
+  @@index([userId])
+}
+
+model CampaignActivity {
+  id             String               @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  campaignId     String
+  activityType   CampaignActivityType
+  actorUserId    String
+  summary        String
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign     Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  actor        UserProfile  @relation("CampaignActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, brandId, createdAt])
+  @@index([campaignId, createdAt])
+}
+
 enum ContentCampaignStatus {
   PLANNED
   ACTIVE
@@ -7456,7 +7691,7 @@ model ContentCampaign {
   targetAudience     BrandAudience?      @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
   offer              BrandOffer?         @relation(fields: [offerId], references: [id], onDelete: SetNull)
   marketingObjective MarketingObjective? @relation(fields: [marketingObjectiveId], references: [id], onDelete: SetNull)
-  members            CampaignMember[]
+  members            ContentCampaignMember[]
   contentItems       ContentItem[]
   tasks              ContentTask[]
   assignments        ContentAssignment[]
@@ -7470,7 +7705,7 @@ model ContentCampaign {
   @@index([startDate, endDate])
 }
 
-model CampaignMember {
+model ContentCampaignMember {
   id         String    @id @default(cuid())
   campaignId String
   userId     String
