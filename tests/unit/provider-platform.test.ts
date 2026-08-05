@@ -38,6 +38,8 @@ describe("provider integration platform", () => {
       expect(listProviderCapabilities("mock-advertising")).toEqual([
         "AD_ACCOUNTS_READ",
         "AD_CAMPAIGNS_READ",
+        "AD_CAMPAIGNS_WRITE",
+        "AD_CREATIVES_WRITE",
         "AD_INSIGHTS_READ",
       ]);
       expect(providerSupportsCapability("mock-crm", "CRM_CONTACTS_READ")).toBe(true);
