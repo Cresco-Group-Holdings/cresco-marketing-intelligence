@@ -106,17 +106,24 @@ export function classifyKey(value: string | undefined): KeyClassification {
   };
 }
 
+function readEnv(key: string): string | undefined {
+  const value = process.env[key]?.trim();
+  return value || undefined;
+}
+
 export function classifyProductionEnvironment(): {
   isProductionReady: boolean;
   blockers: string[];
 } {
   const blockers: string[] = [];
 
-  const supabasePublicUrl = classifyUrl(process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const supabaseServerUrl = classifyUrl(process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL);
-  const databaseUrl = classifyUrl(process.env.DATABASE_URL, { database: true });
-  const directUrl = classifyUrl(process.env.DIRECT_URL, { database: true });
-  const appUrl = classifyUrl(process.env.APP_URL);
+  const supabasePublicUrl = classifyUrl(readEnv("NEXT_PUBLIC_SUPABASE_URL"));
+  const supabaseServerUrl = classifyUrl(
+    readEnv("SUPABASE_URL") ?? readEnv("NEXT_PUBLIC_SUPABASE_URL"),
+  );
+  const databaseUrl = classifyUrl(readEnv("DATABASE_URL"), { database: true });
+  const directUrl = classifyUrl(readEnv("DIRECT_URL"), { database: true });
+  const appUrl = classifyUrl(readEnv("APP_URL"));
 
   if (supabasePublicUrl.classification !== "supabase-production") {
     blockers.push("NEXT_PUBLIC_SUPABASE_URL is not a production Supabase host.");
@@ -139,9 +146,9 @@ export function classifyProductionEnvironment(): {
   }
 
   const anonKey = classifyKey(
-    process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    readEnv("SUPABASE_ANON_KEY") ?? readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
   );
-  const serviceRoleKey = classifyKey(process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const serviceRoleKey = classifyKey(readEnv("SUPABASE_SERVICE_ROLE_KEY"));
 
   if (anonKey.looksPlaceholder) {
     blockers.push("Supabase anon key is missing or looks like a placeholder.");
@@ -154,8 +161,8 @@ export function classifyProductionEnvironment(): {
   if (
     serviceRoleKey.present &&
     anonKey.present &&
-    process.env.SUPABASE_SERVICE_ROLE_KEY ===
-      (process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
+    readEnv("SUPABASE_SERVICE_ROLE_KEY") ===
+      (readEnv("SUPABASE_ANON_KEY") ?? readEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY"))
   ) {
     blockers.push("Service-role key must not equal the anon key.");
   }

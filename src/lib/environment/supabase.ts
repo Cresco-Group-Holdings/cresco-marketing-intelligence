@@ -14,10 +14,11 @@ function formatZodError(error: z.ZodError): string {
 }
 
 export function readSupabaseServerConfigFromProcessEnv(): SupabaseServerConfig {
-  return {
-    url: process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "",
-    anonKey: process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-  };
+  const url = process.env.SUPABASE_URL?.trim() || process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() || "";
+  const anonKey =
+    process.env.SUPABASE_ANON_KEY?.trim() || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() || "";
+
+  return { url, anonKey };
 }
 
 export function getSupabaseServerConfig(): SupabaseServerConfig {

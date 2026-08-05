@@ -7,9 +7,9 @@ import {
 import { resetEnvCacheForTests } from "@/lib/environment";
 
 const TEST_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSJ9.anonkey-for-unit-tests";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSJ9.production-config-key-value-here";
 const TEST_SERVICE_ROLE_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSJ9.service-role-for-unit-tests";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSJ9.service-role-production-key-value";
 
 const baseEnv = {
   DATABASE_URL: "postgresql://postgres:postgres@localhost:5432/test",
@@ -43,8 +43,10 @@ describe("production environment classification", () => {
         "postgresql://postgres.pooler.supabase.com:6543/postgres?pgbouncer=true",
       DIRECT_URL: "postgresql://postgres.supabase.co:5432/postgres",
       APP_URL: "https://cresco-marketing-intelligence.vercel.app",
-      NEXT_PUBLIC_SUPABASE_URL: "https://tests-project.supabase.co",
+      NEXT_PUBLIC_SUPABASE_URL: "https://abcdefghijklmnop.supabase.co",
       NEXT_PUBLIC_SUPABASE_ANON_KEY: TEST_ANON_KEY,
+      SUPABASE_URL: "",
+      SUPABASE_ANON_KEY: "",
       SUPABASE_SERVICE_ROLE_KEY: TEST_SERVICE_ROLE_KEY,
     });
 
