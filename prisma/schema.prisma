@@ -432,6 +432,8 @@ model UserProfile {
   socialInboxMessagesSent                      SocialMessage[]                        @relation("SocialMessageSender")
   socialInboxAssigned                          SocialConversation[]                   @relation("SocialInboxConversationAssignee")
   providerConnectionsCreated                   ProviderConnection[]                   @relation("ProviderConnectionCreator")
+  providerCredentialsRevoked                   ProviderCredential[]                   @relation("ProviderCredentialRevoker")
+  oauthTransactionsInitiated                   OAuthTransaction[]                     @relation("OAuthTransactionInitiator")
   providerAuditEvents                          ProviderAuditEvent[]                   @relation("ProviderAuditActor")
 
   @@index([email])
@@ -852,6 +854,7 @@ model Organisation {
   socialInboxStatusHistory                SocialInboxStatusHistory[]
   socialInboxReplyDrafts                  SocialInboxReplyDraft[]
   providerConnections                     ProviderConnection[]
+  oauthTransactions                       OAuthTransaction[]
   providerAuditEvents                     ProviderAuditEvent[]
   providerFeatureFlags                    ProviderFeatureFlag[]
 
@@ -18342,14 +18345,19 @@ enum ProviderCategory {
 
 enum ProviderConnectionStatus {
   DRAFT
+  PENDING
   PENDING_AUTHORIZATION
   CONNECTED
   DEGRADED
+  ACTION_REQUIRED
   REAUTH_REQUIRED
+  EXPIRED
+  RECONNECTED
   RATE_LIMITED
   SUSPENDED
   DISABLED
   REVOKED
+  ARCHIVED
   ERROR
 }
 
@@ -18435,6 +18443,10 @@ enum ProviderAuditAction {
   EMAIL_SEND_REJECTED
   EMAIL_SEND_SIMULATED
   SUPPRESSION_APPLIED
+  CREDENTIAL_STORED
+  CREDENTIAL_ACCESSED
+  CONNECTION_STATUS_CHANGED
+  CREDENTIAL_ROTATED
 }
 
 enum ProviderCredentialType {
@@ -18509,6 +18521,9 @@ model ProviderConnection {
   healthStates     ProviderHealthState[]
   auditEvents      ProviderAuditEvent[]
   outboundSends    ProviderOutboundSend[]
+  oauthTransactions OAuthTransaction[]
+  discoveredAccounts ProviderConnectionAccount[]
+  scopeRecords     ProviderConnectionScopeRecord[]
 
   @@index([organisationId, providerKey])
   @@index([organisationId, status])
@@ -18527,11 +18542,15 @@ model ProviderCredential {
   fingerprint    String?
   expiresAt      DateTime?
   revokedAt      DateTime?
+  revokedByUserId String?
+  rotatedAt      DateTime?
+  rotationVersion Int                    @default(1)
   metadata       Json?
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
 
   connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  revokedBy  UserProfile?       @relation("ProviderCredentialRevoker", fields: [revokedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([connectionId, credentialType])
   @@index([connectionId, credentialType])
@@ -19218,4 +19237,80 @@ model AgentPlatformQuota {
   updatedAt         DateTime @updatedAt
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+}
+
+// ---------------------------------------------------------------------------
+// Stage 12 — OAuth, Credentials and Connection Management
+// ---------------------------------------------------------------------------
+
+enum ProviderConnectionAccountStatus {
+  DISCOVERED
+  SELECTED
+  DISABLED
+  ARCHIVED
+}
+
+model OAuthTransaction {
+  id                    String    @id @default(cuid())
+  workspaceId           String
+  organisationId        String
+  providerKey           String
+  connectionId          String?
+  initiatedByUserId     String
+  encryptedState        String
+  stateDigest           String    @unique
+  codeVerifierReference String?
+  requestedScopes       String[]  @default([])
+  returnPath            String?
+  redirectUri           String
+  expiresAt             DateTime
+  consumedAt            DateTime?
+  createdAt             DateTime  @default(now())
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  connection   ProviderConnection? @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  initiatedBy  UserProfile         @relation("OAuthTransactionInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, providerKey, createdAt])
+  @@index([expiresAt])
+  @@index([connectionId])
+}
+
+model ProviderConnectionAccount {
+  id                String                          @id @default(cuid())
+  organisationId    String
+  connectionId      String
+  providerKey       String
+  externalAccountId String
+  accountType       String
+  displayName       String
+  status            ProviderConnectionAccountStatus @default(DISCOVERED)
+  metadata          Json?
+  selectedAt        DateTime?
+  createdAt         DateTime                        @default(now())
+  updatedAt         DateTime                        @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalAccountId, accountType])
+  @@index([organisationId, providerKey])
+  @@index([connectionId, status])
+}
+
+model ProviderConnectionScopeRecord {
+  id              String   @id @default(cuid())
+  organisationId  String
+  connectionId    String
+  requestedScopes String[] @default([])
+  grantedScopes   String[] @default([])
+  missingScopes   String[] @default([])
+  optionalScopes  String[] @default([])
+  capabilityMap   Json?
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId])
+  @@index([organisationId])
 }
