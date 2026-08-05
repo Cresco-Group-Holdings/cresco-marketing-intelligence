@@ -427,6 +427,13 @@ model UserProfile {
   socialInboxAssigned                          SocialConversation[]                   @relation("SocialInboxConversationAssignee")
   providerConnectionsCreated                   ProviderConnection[]                   @relation("ProviderConnectionCreator")
   providerAuditEvents                          ProviderAuditEvent[]                   @relation("ProviderAuditActor")
+  knowledgeEntriesCreated                      KnowledgeEntry[]                       @relation("KnowledgeEntryCreator")
+  knowledgeEntriesApproved                     KnowledgeEntry[]                       @relation("KnowledgeEntryApprover")
+  knowledgeEntryVersionsChanged                KnowledgeEntryVersion[]                @relation("KnowledgeEntryVersionChanger")
+  knowledgeDocumentsUploaded                   KnowledgeDocument[]                    @relation("KnowledgeDocumentUploader")
+  knowledgeDocumentVersionsUploaded            KnowledgeDocumentVersion[]             @relation("KnowledgeDocumentVersionUploader")
+  knowledgeRelationshipsCreated                KnowledgeRelationship[]                @relation("KnowledgeRelationshipCreator")
+  knowledgeActivities                            KnowledgeActivity[]                    @relation("KnowledgeActivityActor")
 
   @@index([email])
 }
@@ -836,6 +843,14 @@ model Organisation {
   providerConnections                     ProviderConnection[]
   providerAuditEvents                     ProviderAuditEvent[]
   providerFeatureFlags                    ProviderFeatureFlag[]
+  knowledgeBases                          KnowledgeBase[]
+  knowledgeEntries                        KnowledgeEntry[]
+  knowledgeEntryVersions                  KnowledgeEntryVersion[]
+  knowledgeDocuments                      KnowledgeDocument[]
+  knowledgeDocumentVersions               KnowledgeDocumentVersion[]
+  knowledgeTags                           KnowledgeTag[]
+  knowledgeRelationships                  KnowledgeRelationship[]
+  knowledgeActivities                     KnowledgeActivity[]
 
   @@index([status])
   @@index([archivedAt])
@@ -1099,6 +1114,9 @@ model Project {
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
   providerConnections              ProviderConnection[]
+  knowledgeBases                   KnowledgeBase[]
+  knowledgeEntries                 KnowledgeEntry[]
+  knowledgeDocuments               KnowledgeDocument[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1377,6 +1395,9 @@ model Brand {
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
   providerConnections              ProviderConnection[]
+  knowledgeBases                   KnowledgeBase[]
+  knowledgeEntries                 KnowledgeEntry[]
+  knowledgeDocuments               KnowledgeDocument[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -7699,6 +7720,7 @@ model ContentCampaign {
   checklists         ContentChecklist[]
   activities         ContentActivity[]
   experiments        GrowthExperiment[]
+  knowledgeEntries   KnowledgeEntry[]
 
   @@index([organisationId, brandId, status])
   @@index([ownerUserId])
@@ -18749,4 +18771,298 @@ model ProviderOutboundSend {
   @@index([organisationId, providerKey])
   @@index([connectionId, status])
   @@index([providerMessageId])
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge Base and Brand Intelligence Core (Stage 2)
+// ---------------------------------------------------------------------------
+
+enum KnowledgeBaseStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum KnowledgeEntryType {
+  BRAND_GUIDELINE
+  TONE_OF_VOICE
+  PRODUCT
+  SERVICE
+  AUDIENCE
+  PERSONA
+  ICP
+  COMPETITOR
+  FAQ
+  CASE_STUDY
+  APPROVED_CLAIM
+  PROHIBITED_CLAIM
+  POLICY
+  CAMPAIGN_CONTEXT
+  SALES_MATERIAL
+  GENERAL
+}
+
+enum KnowledgeEntryStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum KnowledgeEntrySourceType {
+  MANUAL
+  DOCUMENT
+  URL
+  IMPORT
+  SYSTEM
+}
+
+enum KnowledgeRelationshipType {
+  RELATED
+  CONFLICTS_WITH
+  SUPERSEDES
+  DERIVED_FROM
+}
+
+enum KnowledgeDocumentStatus {
+  PROCESSING
+  READY
+  QUARANTINED
+  REJECTED
+  ARCHIVED
+}
+
+enum KnowledgeActivityAction {
+  CREATED
+  UPDATED
+  SUBMITTED_FOR_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+  RESTORED
+  VERSION_CREATED
+  DOCUMENT_UPLOADED
+  TAG_ADDED
+  TAG_REMOVED
+  RELATIONSHIP_ADDED
+  RELATIONSHIP_REMOVED
+}
+
+model KnowledgeBase {
+  id             String              @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String?
+  name           String
+  description    String?
+  status         KnowledgeBaseStatus @default(ACTIVE)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  entries      KnowledgeEntry[]
+  documents    KnowledgeDocument[]
+  tags         KnowledgeTag[]
+  activities   KnowledgeActivity[]
+
+  @@index([organisationId, brandId, status])
+  @@index([projectId])
+}
+
+model KnowledgeEntry {
+  id               String                   @id @default(cuid())
+  knowledgeBaseId  String
+  organisationId   String
+  projectId        String
+  brandId          String?
+  campaignId       String?
+
+  type             KnowledgeEntryType
+  title            String
+  summary          String?
+  content          String
+
+  status           KnowledgeEntryStatus     @default(DRAFT)
+  sourceType       KnowledgeEntrySourceType @default(MANUAL)
+  sourceReference  String?
+
+  confidence       Decimal?                 @db.Decimal(5, 4)
+  validFrom        DateTime?
+  validUntil       DateTime?
+
+  version          Int                      @default(1)
+  createdByUserId  String
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  archivedAt       DateTime?
+
+  knowledgeBase    KnowledgeBase            @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  organisation     Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand?                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign         ContentCampaign?         @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdBy        UserProfile              @relation("KnowledgeEntryCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approvedBy       UserProfile?             @relation("KnowledgeEntryApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  versions         KnowledgeEntryVersion[]
+  entryTags        KnowledgeEntryTag[]
+  relationshipsFrom KnowledgeRelationship[] @relation("KnowledgeRelationshipSource")
+  relationshipsTo   KnowledgeRelationship[] @relation("KnowledgeRelationshipTarget")
+  activities       KnowledgeActivity[]
+  linkedDocuments  KnowledgeDocument[]
+
+  @@index([knowledgeBaseId, status])
+  @@index([organisationId, brandId, type, status])
+  @@index([campaignId])
+  @@index([validFrom, validUntil])
+}
+
+model KnowledgeEntryVersion {
+  id              String               @id @default(cuid())
+  entryId         String
+  organisationId  String
+  version         Int
+  title           String
+  summary         String?
+  content         String
+  type            KnowledgeEntryType
+  status          KnowledgeEntryStatus
+  validFrom       DateTime?
+  validUntil      DateTime?
+  changedByUserId String
+  changeNote      String?
+  createdAt       DateTime             @default(now())
+
+  entry         KnowledgeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  organisation  Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  changedBy     UserProfile    @relation("KnowledgeEntryVersionChanger", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([entryId, version])
+  @@index([entryId, createdAt])
+}
+
+model KnowledgeDocument {
+  id               String                  @id @default(cuid())
+  knowledgeBaseId  String
+  organisationId   String
+  projectId        String
+  brandId          String?
+  entryId          String?
+
+  title            String
+  filename         String
+  mimeType         String
+  fileSizeBytes    Int
+  storageKey       String
+  status           KnowledgeDocumentStatus @default(PROCESSING)
+  currentVersion   Int                     @default(1)
+  uploadedByUserId String
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  archivedAt       DateTime?
+
+  knowledgeBase KnowledgeBase             @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  organisation  Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand?                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  entry         KnowledgeEntry?           @relation(fields: [entryId], references: [id], onDelete: SetNull)
+  uploadedBy    UserProfile               @relation("KnowledgeDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  versions      KnowledgeDocumentVersion[]
+
+  @@index([knowledgeBaseId, status])
+  @@index([organisationId, brandId])
+  @@index([entryId])
+}
+
+model KnowledgeDocumentVersion {
+  id             String   @id @default(cuid())
+  documentId     String
+  organisationId String
+  version        Int
+  filename       String
+  mimeType       String
+  fileSizeBytes  Int
+  storageKey     String
+  extractedText  String?
+  uploadedByUserId String
+  createdAt      DateTime @default(now())
+
+  document     KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  uploadedBy   UserProfile       @relation("KnowledgeDocumentVersionUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([documentId, version])
+  @@index([documentId])
+}
+
+model KnowledgeTag {
+  id              String   @id @default(cuid())
+  knowledgeBaseId String
+  organisationId  String
+  name            String
+  colour          String?
+  createdAt       DateTime @default(now())
+
+  knowledgeBase KnowledgeBase       @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  organisation  Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  entryTags     KnowledgeEntryTag[]
+
+  @@unique([knowledgeBaseId, name])
+  @@index([organisationId])
+}
+
+model KnowledgeEntryTag {
+  id        String   @id @default(cuid())
+  entryId   String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  entry KnowledgeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  tag   KnowledgeTag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, tagId])
+  @@index([tagId])
+}
+
+model KnowledgeRelationship {
+  id               String                    @id @default(cuid())
+  organisationId   String
+  sourceEntryId    String
+  targetEntryId    String
+  relationshipType KnowledgeRelationshipType
+  note             String?
+  createdByUserId  String
+  createdAt        DateTime                  @default(now())
+
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  sourceEntry  KnowledgeEntry @relation("KnowledgeRelationshipSource", fields: [sourceEntryId], references: [id], onDelete: Cascade)
+  targetEntry  KnowledgeEntry @relation("KnowledgeRelationshipTarget", fields: [targetEntryId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile    @relation("KnowledgeRelationshipCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceEntryId, targetEntryId, relationshipType])
+  @@index([targetEntryId])
+}
+
+model KnowledgeActivity {
+  id             String                  @id @default(cuid())
+  organisationId String
+  knowledgeBaseId String
+  entryId        String?
+  documentId     String?
+  actorUserId    String
+  action         KnowledgeActivityAction
+  metadata       Json?
+  createdAt      DateTime                @default(now())
+
+  organisation  Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  knowledgeBase KnowledgeBase   @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  entry         KnowledgeEntry? @relation(fields: [entryId], references: [id], onDelete: SetNull)
+  actor         UserProfile     @relation("KnowledgeActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([knowledgeBaseId, createdAt])
+  @@index([entryId, createdAt])
+  @@index([organisationId, createdAt])
 }
