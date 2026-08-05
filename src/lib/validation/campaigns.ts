@@ -107,7 +107,7 @@ export const campaignChannelCreateSchema = z.object({
   startAt: z.string().datetime().optional().nullable(),
   endAt: z.string().datetime().optional().nullable(),
   externalRef: optionalTrimmed(200),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   sortOrder: z.number().int().min(0).optional(),
 });
 
