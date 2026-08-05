@@ -180,6 +180,7 @@ enum AIPurpose {
   ADVERTISING_AUDIENCE
   COMPLIANCE_REVIEW_SUGGEST
   INBOX_REPLY_SUGGEST
+  AGENT_ORCHESTRATION
 }
 
 enum AIRequestStatus {
@@ -393,6 +394,9 @@ model UserProfile {
   leadQualificationOverridesMade               LeadQualificationOverride[]            @relation("LeadQualificationOverrideActor")
   leadScoringSimulationsApproved               LeadScoringSimulation[]                @relation("LeadScoringSimulationApprover")
   lifecycleAgentRunsInitiated                  LifecycleAgentRun[]                    @relation("LifecycleAgentRunInitiator")
+  agentPlatformRunsInitiated                   AgentPlatformRun[]                     @relation("AgentPlatformRunInitiator")
+  agentPlatformApprovalsRequested              AgentPlatformApproval[]                @relation("AgentPlatformApprovalRequester")
+  agentPlatformApprovalsDecided                AgentPlatformApproval[]                @relation("AgentPlatformApprovalDecider")
   lifecycleAgentEvidenceOwned                  LifecycleAgentEvidence[]               @relation("LifecycleAgentEvidenceOwner")
   lifecycleAgentApprovalsDecided               LifecycleAgentApproval[]               @relation("LifecycleAgentApprover")
   lifecycleAgentFeedbackSubmitted              LifecycleAgentFeedback[]               @relation("LifecycleAgentFeedbackUser")
@@ -822,6 +826,17 @@ model Organisation {
   campaignKpis                            CampaignKpi[]
   campaignActivities                      CampaignActivity[]
   calendarEvents                          CalendarEvent[]
+  analyticsDataSources                    AnalyticsDataSource[]
+  analyticsMetricDefinitions              AnalyticsMetricDefinition[]
+  analyticsDimensionDefinitions           AnalyticsDimensionDefinition[]
+  analyticsFacts                          AnalyticsFact[]
+  analyticsImportBatches                  AnalyticsImportBatch[]
+  analyticsAttributionModels              AnalyticsAttributionModel[]
+  analyticsGoals                          AnalyticsGoal[]
+  analyticsSnapshots                      AnalyticsSnapshot[]
+  agentPlatformRuns                     AgentPlatformRun[]
+  agentPlatformApprovals                AgentPlatformApproval[]
+  agentPlatformQuotas                   AgentPlatformQuota?
   contentTasks                            ContentTask[]
   contentAssignments                      ContentAssignment[]
   contentDeadlines                        ContentDeadline[]
@@ -1091,6 +1106,10 @@ model Project {
   campaigns                        Campaign[]
   campaignActivities               CampaignActivity[]
   calendarEvents                   CalendarEvent[]
+  analyticsFacts                   AnalyticsFact[]
+  analyticsGoals                   AnalyticsGoal[]
+  analyticsSnapshots               AnalyticsSnapshot[]
+  agentPlatformRuns                AgentPlatformRun[]
   contentTasks                     ContentTask[]
   contentActivities                ContentActivity[]
   socialConversations              SocialConversation[]
@@ -1367,6 +1386,10 @@ model Brand {
   campaigns                        Campaign[]
   campaignActivities               CampaignActivity[]
   calendarEvents                   CalendarEvent[]
+  analyticsFacts                   AnalyticsFact[]
+  analyticsGoals                   AnalyticsGoal[]
+  analyticsSnapshots               AnalyticsSnapshot[]
+  agentPlatformRuns                AgentPlatformRun[]
   contentTasks                     ContentTask[]
   contentAssignments               ContentAssignment[]
   contentDeadlines                 ContentDeadline[]
@@ -7527,6 +7550,10 @@ model Campaign {
   members        CampaignMember[]
   activities     CampaignActivity[]
   calendarEvents CalendarEvent[]
+  analyticsFacts AnalyticsFact[]
+  analyticsGoals AnalyticsGoal[]
+  analyticsSnapshots AnalyticsSnapshot[]
+  agentPlatformRuns  AgentPlatformRun[]
 
   @@index([organisationId, brandId, status])
   @@index([organisationId, archivedAt])
@@ -18721,4 +18748,474 @@ model ProviderOutboundSend {
   @@index([organisationId, providerKey])
   @@index([connectionId, status])
   @@index([providerMessageId])
+}
+
+// ---------------------------------------------------------------------------
+// Stage 7 — Canonical Analytics Data Model and Performance Core
+// Provider-independent measurement layer (no external connectors yet).
+// ---------------------------------------------------------------------------
+
+enum AnalyticsDataSourceKind {
+  MANUAL_IMPORT
+  INTERNAL
+  CONNECTOR
+}
+
+enum AnalyticsDataSourceStatus {
+  ACTIVE
+  INACTIVE
+  DEPRECATED
+}
+
+enum AnalyticsMetricKind {
+  BASE
+  DERIVED
+}
+
+enum AnalyticsMetricDataType {
+  INTEGER
+  DECIMAL
+  PERCENTAGE
+  CURRENCY
+  RATIO
+}
+
+enum AnalyticsGranularity {
+  HOUR
+  DAY
+  WEEK
+  MONTH
+  TOTAL
+}
+
+enum AnalyticsImportBatchStatus {
+  PENDING
+  VALIDATING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+enum AnalyticsAttributionModelType {
+  FIRST_TOUCH
+  LAST_TOUCH
+  LINEAR
+  POSITION_BASED
+  TIME_DECAY
+}
+
+enum AnalyticsGoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum AnalyticsSnapshotStatus {
+  DRAFT
+  FINALIZED
+}
+
+model AnalyticsDataSource {
+  id             String                    @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  name           String
+  description    String?
+  kind           AnalyticsDataSourceKind   @default(MANUAL_IMPORT)
+  status         AnalyticsDataSourceStatus @default(ACTIVE)
+  providerKey    String?
+  lastImportAt   DateTime?
+  metadata       Json?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  facts        AnalyticsFact[]
+  importBatches AnalyticsImportBatch[]
+
+  @@index([organisationId, status])
+  @@index([workspaceId])
+}
+
+model AnalyticsMetricDefinition {
+  id             String                  @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  metricKey      String
+  displayName    String
+  description    String?
+  kind           AnalyticsMetricKind     @default(BASE)
+  dataType       AnalyticsMetricDataType
+  unit           String?
+  isCumulative   Boolean                 @default(false)
+  formulaKey     String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, metricKey])
+  @@index([workspaceId])
+}
+
+model AnalyticsDimensionDefinition {
+  id             String   @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  dimensionKey   String
+  displayName    String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, dimensionKey])
+  @@index([workspaceId])
+}
+
+model AnalyticsImportBatch {
+  id             String                     @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  dataSourceId   String
+  status         AnalyticsImportBatchStatus @default(PENDING)
+  fileName       String?
+  rowCount       Int                        @default(0)
+  acceptedCount  Int                        @default(0)
+  rejectedCount  Int                        @default(0)
+  duplicateCount Int                        @default(0)
+  errors         Json?
+  warnings       Json?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdByUserId String?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  dataSource   AnalyticsDataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  facts        AnalyticsFact[]
+
+  @@index([organisationId, status])
+  @@index([dataSourceId, createdAt])
+  @@index([workspaceId])
+}
+
+model AnalyticsFact {
+  id               String               @id @default(cuid())
+  organisationId   String
+  workspaceId      String
+  projectId        String?
+  brandId          String?
+  campaignId       String?
+  channel          String?
+  provider         String?
+  dataSourceId     String?
+  metricKey        String
+  value            Decimal              @db.Decimal(24, 8)
+  currency         String?
+  occurredAt       DateTime
+  granularity      AnalyticsGranularity @default(DAY)
+  dimensions       Json                 @default("{}")
+  sourceBatchId    String?
+  dedupeFingerprint String
+  createdAt        DateTime             @default(now())
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?                @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign     Campaign?             @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  dataSource   AnalyticsDataSource?  @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
+  sourceBatch  AnalyticsImportBatch? @relation(fields: [sourceBatchId], references: [id], onDelete: SetNull)
+
+  @@unique([organisationId, dedupeFingerprint])
+  @@index([organisationId, metricKey, occurredAt])
+  @@index([organisationId, campaignId, occurredAt])
+  @@index([organisationId, channel, occurredAt])
+  @@index([organisationId, brandId, occurredAt])
+  @@index([workspaceId, occurredAt])
+  @@index([sourceBatchId])
+}
+
+model AnalyticsAttributionModel {
+  id             String                      @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  name           String
+  modelType      AnalyticsAttributionModelType
+  isDefault      Boolean                     @default(false)
+  config         Json?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, isDefault])
+  @@index([workspaceId])
+}
+
+model AnalyticsGoal {
+  id             String              @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  projectId      String?
+  brandId        String?
+  campaignId     String?
+  name           String
+  metricKey      String
+  targetValue    Decimal             @db.Decimal(24, 8)
+  currency       String?
+  status         AnalyticsGoalStatus @default(ACTIVE)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, status])
+  @@index([campaignId])
+  @@index([workspaceId])
+}
+
+model AnalyticsSnapshot {
+  id             String                  @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  projectId      String?
+  brandId        String?
+  campaignId     String?
+  name           String
+  status         AnalyticsSnapshotStatus @default(DRAFT)
+  periodFrom     DateTime
+  periodTo       DateTime
+  payload        Json
+  createdByUserId String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, createdAt])
+  @@index([workspaceId, periodFrom, periodTo])
+}
+
+// ---------------------------------------------------------------------------
+// Stage 10 — AI Agent Foundation (provider-independent orchestration)
+// ---------------------------------------------------------------------------
+
+enum AgentPlatformRunStatus {
+  PENDING
+  RUNNING
+  AWAITING_APPROVAL
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AgentPlatformStepType {
+  CONTEXT_BUILD
+  SAFETY_CHECK
+  QUOTA_CHECK
+  TOOL_CALL
+  MODEL_CALL
+  REDACTION
+  EVALUATION
+  PROPOSAL
+}
+
+enum AgentPlatformStepStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum AgentPlatformToolRiskLevel {
+  READ_ONLY
+  DRAFT
+  HIGH_IMPACT
+}
+
+enum AgentPlatformActionStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+  EXECUTED
+  CANCELLED
+}
+
+enum AgentPlatformApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum AgentPlatformEvaluationResult {
+  PASSED
+  FAILED
+  WARNING
+}
+
+model AgentPlatformRun {
+  id                  String                 @id @default(cuid())
+  organisationId      String
+  projectId           String?
+  brandId             String?
+  campaignId          String?
+  agentKey            String
+  status              AgentPlatformRunStatus @default(PENDING)
+  initiatedByUserId   String
+  userInput           String
+  contextSnapshot     Json?
+  summary             String?
+  limitations         Json?
+  promptTokens        Int                    @default(0)
+  completionTokens    Int                    @default(0)
+  totalTokens         Int                    @default(0)
+  estimatedCostUsd    Decimal?               @db.Decimal(12, 6)
+  aiRequestId         String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  completedAt         DateTime?
+
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project?                  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand          Brand?                    @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign       Campaign?                 @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  initiatedBy    UserProfile               @relation("AgentPlatformRunInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+  steps          AgentPlatformRunStep[]
+  toolCalls      AgentPlatformToolCall[]
+  proposedActions AgentPlatformProposedAction[]
+  evaluations    AgentPlatformEvaluation[]
+  approvals      AgentPlatformApproval[]
+
+  @@index([organisationId, agentKey, createdAt])
+  @@index([organisationId, status])
+  @@index([initiatedByUserId])
+}
+
+model AgentPlatformRunStep {
+  id           String                  @id @default(cuid())
+  runId        String
+  stepIndex    Int
+  stepType     AgentPlatformStepType
+  status       AgentPlatformStepStatus @default(PENDING)
+  title        String
+  inputDigest  String?
+  outputDigest String?
+  metadata     Json?
+  latencyMs    Int?
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime                @default(now())
+
+  run       AgentPlatformRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+  toolCalls AgentPlatformToolCall[]
+
+  @@index([runId, stepIndex])
+}
+
+model AgentPlatformToolCall {
+  id               String                     @id @default(cuid())
+  runId            String
+  stepId           String?
+  toolKey          String
+  riskLevel        AgentPlatformToolRiskLevel
+  status           AgentPlatformStepStatus    @default(PENDING)
+  input            Json
+  output           Json?
+  errorMessage     String?
+  requiresApproval Boolean                    @default(false)
+  createdAt        DateTime                   @default(now())
+  completedAt      DateTime?
+
+  run  AgentPlatformRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  step AgentPlatformRunStep? @relation(fields: [stepId], references: [id], onDelete: SetNull)
+
+  @@index([runId, toolKey])
+}
+
+model AgentPlatformProposedAction {
+  id               String                     @id @default(cuid())
+  runId            String
+  actionKey        String
+  title            String
+  description      String
+  payload          Json
+  riskLevel        AgentPlatformToolRiskLevel
+  status           AgentPlatformActionStatus  @default(PROPOSED)
+  requiresApproval Boolean                    @default(true)
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  run       AgentPlatformRun          @relation(fields: [runId], references: [id], onDelete: Cascade)
+  approvals AgentPlatformApproval[]
+
+  @@index([runId, status])
+}
+
+model AgentPlatformApproval {
+  id                String                      @id @default(cuid())
+  organisationId    String
+  runId             String
+  proposedActionId  String?
+  status            AgentPlatformApprovalStatus @default(PENDING)
+  requestedByUserId String
+  decidedByUserId   String?
+  comment           String?
+  decidedAt         DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  organisation   Organisation                 @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  run            AgentPlatformRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
+  proposedAction AgentPlatformProposedAction? @relation(fields: [proposedActionId], references: [id], onDelete: SetNull)
+  requestedBy    UserProfile                  @relation("AgentPlatformApprovalRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  decidedBy      UserProfile?                 @relation("AgentPlatformApprovalDecider", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, status])
+  @@index([runId])
+}
+
+model AgentPlatformEvaluation {
+  id            String                        @id @default(cuid())
+  runId         String
+  criterionKey  String
+  result        AgentPlatformEvaluationResult
+  score         Float?
+  notes         String?
+  metadata      Json?
+  createdAt     DateTime                      @default(now())
+
+  run AgentPlatformRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, criterionKey])
+}
+
+model AgentPlatformQuota {
+  id                String   @id @default(cuid())
+  organisationId    String   @unique
+  dailyRunLimit     Int      @default(100)
+  dailyTokenLimit   Int      @default(500000)
+  dailyCostLimitUsd Decimal  @default(25) @db.Decimal(12, 4)
+  runsToday         Int      @default(0)
+  tokensToday       Int      @default(0)
+  costTodayUsd      Decimal  @default(0) @db.Decimal(12, 6)
+  resetAt           DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 }
