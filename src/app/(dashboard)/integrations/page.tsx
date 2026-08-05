@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { Plug, ShieldCheck, AlertCircle } from "lucide-react";
 import { ResendConnectionPanel } from "@/components/integrations/resend-connection-panel";
+import { OAuthConnectionPanel } from "@/components/integrations/oauth-connection-panel";
+import { isStage12OAuthProvider } from "@/lib/integrations/oauth/provider-definitions";
 
 type ProviderDefinitionView = {
   key: string;
@@ -10,6 +12,7 @@ type ProviderDefinitionView = {
   category: string;
   capabilities: string[];
   enabled: boolean;
+  authType: string;
 };
 
 type ProviderConnectionView = {
@@ -27,9 +30,22 @@ export default function IntegrationsPage() {
   const [definitions, setDefinitions] = useState<ProviderDefinitionView[]>([]);
   const [connections, setConnections] = useState<ProviderConnectionView[]>([]);
   const [loading, setLoading] = useState(true);
+  const [banner, setBanner] = useState<string | null>(null);
 
   useEffect(() => {
     void loadConnections();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("integration") === "success") {
+      const missing = params.get("missingScopes");
+      setBanner(
+        missing
+          ? `Connected, but additional scopes are required: ${missing}`
+          : "Provider connected successfully.",
+      );
+    }
   }, []);
 
   async function loadConnections() {
@@ -65,9 +81,13 @@ export default function IntegrationsPage() {
       <div>
         <h1 className="text-2xl font-semibold">Integrations</h1>
         <p className="text-sm text-muted-foreground">
-          Connect external providers securely. Live provider calls are disabled until explicitly enabled.
+          Connect external providers securely. Credentials are encrypted and never exposed to the browser after submission.
         </p>
       </div>
+
+      {banner ? (
+        <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm text-green-900">{banner}</div>
+      ) : null}
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {definitions.map((definition) => {
@@ -78,6 +98,19 @@ export default function IntegrationsPage() {
                 key={definition.key}
                 connection={connection}
                 onConnected={() => {
+                  void loadConnections();
+                }}
+              />
+            );
+          }
+          if (isStage12OAuthProvider(definition.key) && definition.enabled) {
+            return (
+              <OAuthConnectionPanel
+                key={definition.key}
+                providerKey={definition.key}
+                displayName={definition.displayName}
+                connection={connection}
+                onUpdated={() => {
                   void loadConnections();
                 }}
               />

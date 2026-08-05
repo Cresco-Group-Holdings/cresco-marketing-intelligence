@@ -25,7 +25,7 @@ const prismaMock = vi.hoisted(() => ({
     update: vi.fn(),
     count: vi.fn(),
   },
-  campaignMember: { createMany: vi.fn() },
+  contentCampaignMember: { createMany: vi.fn() },
   contentTask: {
     findMany: vi.fn(),
     findFirst: vi.fn(),
