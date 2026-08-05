@@ -126,6 +126,30 @@ export function createMockAdvertisingAdapter(): PlatformProviderAdapter {
           ];
           return { success: true, data: { metrics } as TOutput };
         }
+        case "createDraftCampaign":
+        case "createAdGroup":
+        case "createAdDraft":
+        case "uploadCreative":
+          return {
+            success: true,
+            data: {
+              externalPublicationId: `mock-ad-${crypto.randomUUID()}`,
+              status: "DRAFT",
+            } as TOutput,
+          };
+        case "pauseCampaign":
+        case "resumeCampaign":
+          return { success: true, data: { status: operation.operation === "pauseCampaign" ? "PAUSED" : "ACTIVE" } as TOutput };
+        case "updateBudget": {
+          const budgetInput = operation.input as { dryRun?: boolean; proposedBudget?: number };
+          if (budgetInput.dryRun) {
+            return { success: true, data: { validated: true, proposedBudget: budgetInput.proposedBudget } as TOutput };
+          }
+          return {
+            success: true,
+            data: { externalPublicationId: `mock-budget-${Date.now()}`, appliedBudget: budgetInput.proposedBudget } as TOutput,
+          };
+        }
         default:
           return {
             success: false,

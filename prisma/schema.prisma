@@ -422,6 +422,9 @@ model UserProfile {
   socialInboxAssigned                          SocialConversation[]                   @relation("SocialInboxConversationAssignee")
   providerConnectionsCreated                   ProviderConnection[]                   @relation("ProviderConnectionCreator")
   providerAuditEvents                          ProviderAuditEvent[]                   @relation("ProviderAuditActor")
+  publicationsRequested                        Publication[]                        @relation("PublicationRequester")
+  publicationsApproved                         Publication[]                        @relation("PublicationApprover")
+  publicationBudgetChangesApproved             PublicationBudgetChange[]            @relation("PublicationBudgetApprover")
 
   @@index([email])
 }
@@ -827,6 +830,7 @@ model Organisation {
   providerConnections                     ProviderConnection[]
   providerAuditEvents                     ProviderAuditEvent[]
   providerFeatureFlags                    ProviderFeatureFlag[]
+  publications                            Publication[]
 
   @@index([status])
   @@index([archivedAt])
@@ -1088,6 +1092,7 @@ model Project {
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
   providerConnections              ProviderConnection[]
+  publications                     Publication[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1364,6 +1369,7 @@ model Brand {
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
   providerConnections              ProviderConnection[]
+  publications                     Publication[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -3014,6 +3020,150 @@ model PublishingAttempt {
   @@unique([publishingJobId, attemptNumber])
 }
 
+enum PublicationStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  QUEUED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  PARTIALLY_PUBLISHED
+  FAILED
+  CANCELLED
+  REMOVED
+}
+
+enum PublicationOperationType {
+  SOCIAL_PUBLISH_POST
+  SOCIAL_SCHEDULE_POST
+  SOCIAL_PUBLISH_IMAGE
+  SOCIAL_PUBLISH_VIDEO
+  SOCIAL_PUBLISH_MULTI_ASSET
+  SOCIAL_CANCEL_SCHEDULED
+  SOCIAL_GET_STATUS
+  AD_CREATE_DRAFT_CAMPAIGN
+  AD_CREATE_AD_GROUP
+  AD_CREATE_AD_DRAFT
+  AD_UPLOAD_CREATIVE
+  AD_PAUSE
+  AD_RESUME
+  AD_UPDATE_BUDGET
+  EMAIL_CREATE_DRAFT
+  EMAIL_CREATE_CONTENT
+  EMAIL_SELECT_AUDIENCE
+  EMAIL_SCHEDULE
+  EMAIL_CANCEL
+  EMAIL_GET_STATUS
+  CALENDAR_CREATE_EVENT
+  CALENDAR_UPDATE_EVENT
+}
+
+enum PublicationAttemptStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  UNKNOWN
+  CANCELLED
+}
+
+/// Unified outbound publication record — all provider write operations flow through this model.
+model Publication {
+  id                    String                   @id @default(cuid())
+  organisationId        String
+  projectId             String
+  brandId               String
+  campaignId            String?
+  contentItemId         String
+  contentVariantId      String?
+  connectionId          String
+  providerKey           String
+  externalAccountId     String
+  destinationType       String
+  destinationId         String
+  operationType         PublicationOperationType
+  status                PublicationStatus        @default(DRAFT)
+  scheduledFor          DateTime?
+  timezone              String                   @default("UTC")
+  idempotencyKey        String
+  externalPublicationId String?
+  dryRun                Boolean                  @default(false)
+  validationResult      Json?
+  providerPayload       Json?
+  approvedByUserId      String?
+  approvedAt            DateTime?
+  requestedByUserId     String
+  lastErrorCode         String?
+  lastErrorMessage      String?
+  providerPermalink     String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  cancelledAt           DateTime?
+  publishedAt           DateTime?
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem         @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  connection   ProviderConnection  @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  approvedBy   UserProfile?        @relation("PublicationApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  requestedBy  UserProfile         @relation("PublicationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  attempts     PublicationAttempt[]
+  budgetChanges PublicationBudgetChange[]
+
+  @@unique([organisationId, brandId, idempotencyKey])
+  @@index([organisationId, brandId, status, updatedAt])
+  @@index([connectionId, status])
+  @@index([contentItemId])
+  @@index([scheduledFor])
+  @@index([status, scheduledFor])
+}
+
+model PublicationAttempt {
+  id                    String                   @id @default(cuid())
+  publicationId         String
+  attemptNumber         Int
+  status                PublicationAttemptStatus @default(PENDING)
+  dryRun                Boolean                  @default(false)
+  providerResponse      Json?
+  errorCode             String?
+  errorMessageSafe      String?
+  requestId             String?
+  startedAt             DateTime?
+  completedAt           DateTime?
+  createdAt             DateTime                 @default(now())
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@unique([publicationId, attemptNumber])
+  @@index([publicationId, createdAt])
+}
+
+/// Immutable record of provider-side budget changes linked to a publication operation.
+model PublicationBudgetChange {
+  id                 String   @id @default(cuid())
+  publicationId      String
+  organisationId     String
+  brandId            String
+  providerKey        String
+  externalCampaignId String
+  currency           String
+  currentBudget      Decimal  @db.Decimal(18, 4)
+  proposedBudget     Decimal  @db.Decimal(18, 4)
+  percentageChange   Decimal  @db.Decimal(8, 4)
+  requiresApproval   Boolean  @default(false)
+  approvedByUserId   String?
+  approvedAt         DateTime?
+  createdAt          DateTime @default(now())
+
+  publication Publication  @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  approvedBy  UserProfile? @relation("PublicationBudgetApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([publicationId])
+  @@index([organisationId, brandId])
+}
+
 model SchedulingConflict {
   id                String          @id @default(cuid())
   contentScheduleId String
@@ -3162,6 +3312,7 @@ model ContentItem {
   contentDeadlines         ContentDeadline[]
   contentChecklists        ContentChecklist[]
   contentActivities        ContentActivity[]
+  publications             Publication[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -18212,6 +18363,7 @@ model ProviderConnection {
   healthStates     ProviderHealthState[]
   auditEvents      ProviderAuditEvent[]
   outboundSends    ProviderOutboundSend[]
+  publications     Publication[]
 
   @@index([organisationId, providerKey])
   @@index([organisationId, status])

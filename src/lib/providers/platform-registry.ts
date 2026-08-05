@@ -5,6 +5,7 @@ import type { PlatformProviderAdapter } from "@/lib/providers/platform-adapter";
 import { getProviderDefinition } from "@/lib/providers/registry";
 import { createMockAdvertisingAdapter } from "@/server/providers/mock-advertising/mock-advertising-adapter";
 import { createMockCrmAdapter } from "@/server/providers/mock-crm/mock-crm-adapter";
+import { createMockSocialAdapter } from "@/server/providers/mock-social/mock-social-adapter";
 
 const adapterCache = new Map<string, PlatformProviderAdapter>();
 
@@ -18,7 +19,7 @@ export function resolvePlatformAdapter(input: {
   capability?: CanonicalProviderCapability;
 }): PlatformProviderAdapter {
   const definition = getProviderDefinition(input.providerKey);
-  if (!definition && !["mock-advertising", "mock-crm"].includes(input.providerKey)) {
+  if (!definition && !["mock-advertising", "mock-crm", "mock-social"].includes(input.providerKey)) {
     throw new ProviderGatewayError({
       code: PROVIDER_ERROR_CODES.PROVIDER_NOT_FOUND,
       safeMessage: "Provider is not registered.",
@@ -42,6 +43,8 @@ export function resolvePlatformAdapter(input: {
     adapter = createMockAdvertisingAdapter();
   } else if (input.providerKey === "mock-crm") {
     adapter = createMockCrmAdapter();
+  } else if (input.providerKey === "mock-social") {
+    adapter = createMockSocialAdapter();
   }
 
   if (!adapter) {
