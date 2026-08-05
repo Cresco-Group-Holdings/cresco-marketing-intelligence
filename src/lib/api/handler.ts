@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { createRequestId, apiSuccess, handleApiError } from "@/lib/api/response";
+import { apiSuccess, handleApiError } from "@/lib/api/response";
 import { AppError } from "@/lib/errors";
 import { ensureUserProfile, extractProviderMetadata } from "@/lib/auth/provisioning";
 import { createSupabaseServerClient } from "@/lib/auth/supabase-server";
@@ -10,6 +10,11 @@ import {
   type AuthenticatedUser,
 } from "@/lib/tenancy/guards";
 import { runWithTenantContext, type TenantContext } from "@/lib/tenancy/context";
+import {
+  assertMutatingRequestSecurity,
+  resolveRequestId,
+  withRequestIdHeader,
+} from "@/lib/security/api-security";
 
 export type ApiHandlerContext = {
   request: NextRequest;
@@ -81,10 +86,11 @@ export async function withApiHandler(
     permission?: Permission;
   },
 ): Promise<NextResponse> {
-  const requestId = createRequestId();
+  const requestId = resolveRequestId(request);
 
   try {
     const user = await resolveApiUser();
+    assertMutatingRequestSecurity(request, user.userId);
 
     let tenant: TenantContext | undefined;
     if (options?.organisationId) {
@@ -97,14 +103,16 @@ export async function withApiHandler(
         throw new AppError("FORBIDDEN", "You do not have permission for this action.");
       }
 
-      return await runWithTenantContext(tenant, () =>
+      const response = await runWithTenantContext(tenant, () =>
         handler({ request, requestId, user, tenant }),
       );
+      return withRequestIdHeader(response, requestId);
     }
 
-    return await handler({ request, requestId, user, tenant });
+    const response = await handler({ request, requestId, user, tenant });
+    return withRequestIdHeader(response, requestId);
   } catch (error) {
-    return handleApiError(error, requestId);
+    return withRequestIdHeader(handleApiError(error, requestId), requestId);
   }
 }
 

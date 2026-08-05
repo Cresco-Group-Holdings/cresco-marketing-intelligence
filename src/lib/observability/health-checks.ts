@@ -143,11 +143,58 @@ function checkAdvertisingPlatformStatus(): HealthCheckResult {
   };
 }
 
+async function checkJobDlqHealth(): Promise<HealthCheckResult> {
+  try {
+    const deadLetter = await prisma.operationalAlert.count({ where: { status: "DEAD_LETTER" } });
+    const failedBilling = await prisma.billingEvent.count({ where: { status: "FAILED" } });
+
+    if (deadLetter > 50 || failedBilling > 10) {
+      return {
+        name: "job_dlq",
+        status: "warn",
+        message: `Elevated failure queue: ${deadLetter} operational DLQ, ${failedBilling} billing failures.`,
+      };
+    }
+
+    return {
+      name: "job_dlq",
+      status: "pass",
+      message: `Failure queues within bounds (DLQ: ${deadLetter}, billing: ${failedBilling}).`,
+    };
+  } catch {
+    return {
+      name: "job_dlq",
+      status: "fail",
+      message: "Unable to query failure queues.",
+    };
+  }
+}
+
+function checkBillingProvider(): HealthCheckResult {
+  const configured = Boolean(
+    process.env.STRIPE_BILLING_SECRET_KEY ?? process.env.STRIPE_SECRET_KEY,
+  );
+  if (process.env.NODE_ENV === "production" && !configured) {
+    return {
+      name: "billing_provider",
+      status: "warn",
+      message: "Stripe billing is not configured in production.",
+    };
+  }
+  return {
+    name: "billing_provider",
+    status: "pass",
+    message: configured ? "Stripe billing configured." : "Stripe billing in mock mode.",
+  };
+}
+
 export async function runReadinessChecks(): Promise<ReadinessReport> {
   const checks = await Promise.all([
     checkDatabaseConnectivity(),
     Promise.resolve(checkEnvironmentConfiguration()),
     Promise.resolve(checkJobSystem()),
+    checkJobDlqHealth(),
+    Promise.resolve(checkBillingProvider()),
     Promise.resolve(checkConnectorDiagnostics()),
     Promise.resolve(checkSeoEngineStatus()),
     Promise.resolve(checkAdvertisingPlatformStatus()),

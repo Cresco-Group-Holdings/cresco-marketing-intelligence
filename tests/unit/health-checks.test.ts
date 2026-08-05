@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const prismaMock = vi.hoisted(() => ({
   $queryRaw: vi.fn(),
+  operationalAlert: { count: vi.fn().mockResolvedValue(0) },
+  billingEvent: { count: vi.fn().mockResolvedValue(0) },
 }));
 
 vi.mock("@/lib/database/prisma", () => ({ prisma: prismaMock }));
