@@ -425,6 +425,15 @@ model UserProfile {
   publicationsRequested                        Publication[]                        @relation("PublicationRequester")
   publicationsApproved                         Publication[]                        @relation("PublicationApprover")
   publicationBudgetChangesApproved             PublicationBudgetChange[]            @relation("PublicationBudgetApprover")
+  inboxItemsReceived                           InboxItem[]                          @relation("InboxItemRecipient")
+  inboxItemsAssigned                           InboxItem[]                          @relation("InboxItemAssignee")
+  commentThreadsResolved                       CommentThread[]                      @relation("CommentThreadResolver")
+  collaborationCommentsAuthored                CollaborationComment[]               @relation("CollaborationCommentAuthor")
+  mentionsReceived                             UserMention[]                        @relation("UserMentionRecipient")
+  mentionsAuthored                             UserMention[]                        @relation("UserMentionAuthor")
+  announcementsCreated                         Announcement[]                       @relation("AnnouncementCreator")
+  announcementDismissals                       AnnouncementDismissal[]
+  digestSubscriptions                          DigestSubscription[]
 
   @@index([email])
 }
@@ -807,6 +816,12 @@ model Organisation {
   notifications                           Notification[]
   notificationPreferences                 NotificationPreference[]
   notificationDigests                     NotificationDigest[]
+  inboxItems                              InboxItem[]
+  commentThreads                          CommentThread[]
+  collaborationComments                   CollaborationComment[]
+  userMentions                            UserMention[]
+  announcements                           Announcement[]
+  digestSubscriptions                     DigestSubscription[]
   operationalAlerts                       OperationalAlert[]
   recoveryActions                         RecoveryAction[]
   compliancePolicies                      CompliancePolicy[]
@@ -1076,6 +1091,7 @@ model Project {
   leadQualificationModels          LeadQualificationModel[]
   lifecycleAgentRuns               LifecycleAgentRun[]
   notifications                    Notification[]
+  commentThreads                   CommentThread[]
   operationalAlerts                OperationalAlert[]
   compliancePolicies               CompliancePolicy[]
   complianceEvaluations            ComplianceEvaluation[]
@@ -1350,6 +1366,7 @@ model Brand {
   lifecycleAgentRuns               LifecycleAgentRun[]
   notifications                    Notification[]
   notificationPreferences          NotificationPreference[]
+  commentThreads                   CommentThread[]
   operationalAlerts                OperationalAlert[]
   compliancePolicies               CompliancePolicy[]
   complianceEvaluations            ComplianceEvaluation[]
@@ -17796,6 +17813,7 @@ model Notification {
   idempotencyKey String
   readAt         DateTime?
   dismissedAt    DateTime?
+  expiresAt      DateTime?
   metadata       Json?
   createdAt      DateTime             @default(now())
 
@@ -17804,6 +17822,7 @@ model Notification {
   brand        Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
   user         UserProfile            @relation(fields: [userId], references: [id], onDelete: Cascade)
   deliveries   NotificationDelivery[]
+  inboxItem    InboxItem?
 
   @@unique([userId, idempotencyKey])
   @@index([organisationId, userId, createdAt])
@@ -17869,6 +17888,198 @@ model NotificationDigest {
   deliveries   NotificationDelivery[]
 
   @@index([organisationId, userId, createdAt])
+}
+
+enum InboxSection {
+  ALL
+  ASSIGNED
+  APPROVALS
+  MENTIONS
+  CAMPAIGNS
+  PUBLISHING
+  INTEGRATIONS
+  CRM
+  AI
+  SYSTEM
+}
+
+enum InboxItemStatus {
+  UNREAD
+  READ
+  DISMISSED
+  ARCHIVED
+}
+
+/// Unified inbox row for cross-module collaboration items.
+model InboxItem {
+  id               String            @id @default(cuid())
+  organisationId   String
+  userId           String
+  section          InboxSection
+  category         NotificationCategory
+  title            String
+  message          String
+  priority         NotificationPriority @default(NORMAL)
+  sourceEntityType String?
+  sourceEntityId   String?
+  actionUrl        String?
+  notificationId   String?           @unique
+  assignedToUserId String?
+  status           InboxItemStatus   @default(UNREAD)
+  idempotencyKey   String
+  readAt           DateTime?
+  dismissedAt      DateTime?
+  archivedAt       DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         UserProfile   @relation("InboxItemRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  assignee     UserProfile?  @relation("InboxItemAssignee", fields: [assignedToUserId], references: [id], onDelete: SetNull)
+  notification Notification? @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, idempotencyKey])
+  @@index([organisationId, userId, status, createdAt])
+  @@index([organisationId, userId, section, status])
+  @@index([assignedToUserId, status])
+}
+
+enum CommentThreadStatus {
+  OPEN
+  RESOLVED
+}
+
+/// Reusable comment thread for campaigns, content, tasks, CRM, experiments, AI recommendations.
+model CommentThread {
+  id               String              @id @default(cuid())
+  organisationId   String
+  projectId        String?
+  brandId          String?
+  resourceType     String
+  resourceId       String
+  status           CommentThreadStatus @default(OPEN)
+  resolvedByUserId String?
+  resolvedAt       DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?               @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?                 @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  resolvedBy   UserProfile?           @relation("CommentThreadResolver", fields: [resolvedByUserId], references: [id], onDelete: SetNull)
+  comments     CollaborationComment[]
+
+  @@unique([organisationId, resourceType, resourceId])
+  @@index([organisationId, brandId])
+  @@index([resourceType, resourceId])
+}
+
+model CollaborationComment {
+  id             String    @id @default(cuid())
+  organisationId String
+  threadId       String
+  authorUserId   String
+  body           String
+  sanitizedBody  String
+  editHistory    Json?
+  attachmentRefs String[]  @default([])
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  thread       CommentThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  author       UserProfile   @relation("CollaborationCommentAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+  mentions     UserMention[]
+
+  @@index([threadId, createdAt])
+  @@index([organisationId, authorUserId])
+}
+
+model UserMention {
+  id                String    @id @default(cuid())
+  organisationId    String
+  commentId         String
+  mentionedUserId   String
+  mentionedByUserId String
+  readAt            DateTime?
+  createdAt         DateTime  @default(now())
+
+  organisation  Organisation         @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  comment       CollaborationComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  mentionedUser UserProfile          @relation("UserMentionRecipient", fields: [mentionedUserId], references: [id], onDelete: Cascade)
+  mentionedBy   UserProfile          @relation("UserMentionAuthor", fields: [mentionedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([commentId, mentionedUserId])
+  @@index([organisationId, mentionedUserId, readAt])
+}
+
+enum AnnouncementPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model Announcement {
+  id             String               @id @default(cuid())
+  organisationId String?
+  title          String
+  body           String
+  sanitizedBody  String
+  priority       AnnouncementPriority @default(NORMAL)
+  actionUrl      String?
+  startsAt       DateTime             @default(now())
+  endsAt         DateTime?
+  dismissible    Boolean              @default(true)
+  createdByUserId String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  organisation Organisation? @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile?  @relation("AnnouncementCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  dismissals   AnnouncementDismissal[]
+
+  @@index([organisationId, startsAt, endsAt])
+}
+
+model AnnouncementDismissal {
+  id             String   @id @default(cuid())
+  announcementId String
+  userId         String
+  dismissedAt    DateTime @default(now())
+
+  announcement Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([announcementId, userId])
+}
+
+enum DigestFrequency {
+  DAILY
+  WEEKLY
+}
+
+model DigestSubscription {
+  id                    String          @id @default(cuid())
+  organisationId        String
+  userId                String
+  frequency             DigestFrequency @default(DAILY)
+  timezone              String          @default("UTC")
+  includeOverdue        Boolean         @default(true)
+  includeApprovals      Boolean         @default(true)
+  includeConnections    Boolean         @default(true)
+  includeCampaignAlerts Boolean         @default(true)
+  enabled               Boolean         @default(true)
+  lastSentAt            DateTime?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  user         UserProfile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, userId, frequency])
+  @@index([organisationId, userId])
 }
 
 model OperationalAlert {

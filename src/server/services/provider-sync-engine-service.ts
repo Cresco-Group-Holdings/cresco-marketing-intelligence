@@ -4,6 +4,8 @@ import { PROVIDER_ERROR_CODES, ProviderGatewayError } from "@/lib/providers/erro
 import { calculateRetryDelay, classifyProviderError } from "@/lib/providers/execution-policy";
 import { providerGateway } from "@/server/services/provider-gateway-service";
 import { providerAuditService } from "@/server/services/provider-audit-service";
+import { notificationEventService } from "@/server/services/notification-event-service";
+import { getOrganisationNotifierUserIds } from "@/lib/notifications/recipients";
 import type { TenantContext } from "@/lib/tenancy/context";
 import { AppError } from "@/lib/errors";
 import type { ProviderSyncRunStatus } from "@prisma/client";
@@ -219,6 +221,23 @@ export const providerSyncEngineService = {
         requestId: syncRun.correlationId ?? undefined,
         result: "failure",
       });
+
+      const connection = await prisma.providerConnection.findFirst({
+        where: { id: syncRun.connectionId, organisationId },
+        select: { providerKey: true, brandId: true },
+      });
+      const recipientUserIds = await getOrganisationNotifierUserIds(organisationId);
+      await notificationEventService
+        .syncFailed({
+          organisationId,
+          brandId: connection?.brandId ?? undefined,
+          connectionId: syncRun.connectionId,
+          provider: connection?.providerKey ?? "provider",
+          safeError: error instanceof Error ? error.message.slice(0, 500) : "Sync failed",
+          recipientUserIds,
+          idempotencyKey: `sync-failed:${syncRun.id}`,
+        })
+        .catch(() => undefined);
 
       return updated;
     }

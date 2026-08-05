@@ -4,6 +4,7 @@ import { operationToCapability } from "@/lib/publishing/outbound-operations";
 import { canRetryPublication } from "@/lib/publishing/publication-governance";
 import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
+import { notificationEventService } from "@/server/services/notification-event-service";
 import { providerGateway } from "@/server/services/provider-gateway-service";
 import { providerAuditService } from "@/server/services/provider-audit-service";
 
@@ -135,6 +136,19 @@ export const publicationExecutionService = {
           },
         });
 
+        if (!options?.dryRun && !result.retryable) {
+          await notificationEventService
+            .publicationFailed({
+              organisationId,
+              brandId,
+              publicationId,
+              safeError: result.errorMessageSafe ?? "Publication failed.",
+              recipientUserIds: [context.userProfileId],
+              idempotencyKey: `pub-failed:${publication.idempotencyKey}`,
+            })
+            .catch(() => undefined);
+        }
+
         throw new AppError("VALIDATION_ERROR", result.errorMessageSafe ?? "Publication failed.");
       }
 
@@ -185,6 +199,16 @@ export const publicationExecutionService = {
         requestId: options?.requestId,
         metadata: { externalPublicationId: externalId },
       });
+
+      if (!options?.dryRun) {
+        await notificationEventService.publicationSucceeded({
+          organisationId,
+          brandId,
+          publicationId,
+          recipientUserIds: [context.userProfileId],
+          idempotencyKey: `pub-success:${publication.idempotencyKey}`,
+        });
+      }
 
       return { success: true, data, attemptId: attempt.id, dryRun: options?.dryRun };
     } catch (error) {

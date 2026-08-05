@@ -175,6 +175,31 @@ export const notificationEventService = {
     });
   },
 
+  async contentScheduled(input: {
+    organisationId: string;
+    projectId: string;
+    brandId: string;
+    contentId: string;
+    scheduleId: string;
+    scheduledFor: Date;
+    recipientUserIds: string[];
+    idempotencyKey: string;
+  }) {
+    return notificationService.emit({
+      organisationId: input.organisationId,
+      projectId: input.projectId,
+      brandId: input.brandId,
+      eventType: NOTIFICATION_EVENT_TYPES.CONTENT_SCHEDULED,
+      title: "Content scheduled",
+      body: `Content is scheduled for ${input.scheduledFor.toISOString()}.`,
+      resourceType: "ContentSchedule",
+      resourceId: input.scheduleId,
+      actionPath: `/content/${input.contentId}`,
+      recipientUserIds: input.recipientUserIds,
+      idempotencyKey: input.idempotencyKey,
+    });
+  },
+
   async newQualifiedLead(input: {
     organisationId: string;
     projectId: string;
@@ -193,6 +218,97 @@ export const notificationEventService = {
       resourceType: "MarketingLead",
       resourceId: input.leadId,
       actionPath: `/leads/${input.leadId}`,
+      recipientUserIds: input.recipientUserIds,
+      idempotencyKey: input.idempotencyKey,
+    });
+  },
+
+  async syncFailed(input: {
+    organisationId: string;
+    brandId?: string;
+    connectionId: string;
+    provider: string;
+    safeError: string;
+    recipientUserIds: string[];
+    idempotencyKey: string;
+  }) {
+    return notificationService.emit({
+      organisationId: input.organisationId,
+      brandId: input.brandId,
+      eventType: NOTIFICATION_EVENT_TYPES.SYNC_FAILED,
+      title: "Synchronisation failed",
+      body: input.safeError,
+      resourceType: "ProviderConnection",
+      resourceId: input.connectionId,
+      actionPath: `/integrations/${input.connectionId}`,
+      recipientUserIds: input.recipientUserIds,
+      idempotencyKey: input.idempotencyKey,
+      priority: "HIGH",
+    });
+  },
+
+  async publicationSucceeded(input: {
+    organisationId: string;
+    brandId: string;
+    publicationId: string;
+    recipientUserIds: string[];
+    idempotencyKey: string;
+  }) {
+    return notificationService.emit({
+      organisationId: input.organisationId,
+      brandId: input.brandId,
+      eventType: NOTIFICATION_EVENT_TYPES.PUBLICATION_SUCCEEDED,
+      title: "Publication succeeded",
+      body: "Your outbound publication completed successfully.",
+      resourceType: "Publication",
+      resourceId: input.publicationId,
+      actionPath: `/publishing`,
+      recipientUserIds: input.recipientUserIds,
+      idempotencyKey: input.idempotencyKey,
+    });
+  },
+
+  async publicationFailed(input: {
+    organisationId: string;
+    brandId: string;
+    publicationId: string;
+    safeError: string;
+    recipientUserIds: string[];
+    idempotencyKey: string;
+  }) {
+    return notificationService.emit({
+      organisationId: input.organisationId,
+      brandId: input.brandId,
+      eventType: NOTIFICATION_EVENT_TYPES.PUBLICATION_FAILED,
+      title: "Publication failed",
+      body: input.safeError,
+      resourceType: "Publication",
+      resourceId: input.publicationId,
+      actionPath: `/publishing`,
+      recipientUserIds: input.recipientUserIds,
+      idempotencyKey: input.idempotencyKey,
+      priority: "HIGH",
+    });
+  },
+
+  async aiRecommendation(input: {
+    organisationId: string;
+    brandId: string;
+    recommendationId: string;
+    title: string;
+    body: string;
+    recipientUserIds: string[];
+    idempotencyKey: string;
+  }) {
+    return notificationService.emit({
+      organisationId: input.organisationId,
+      brandId: input.brandId,
+      eventType: NOTIFICATION_EVENT_TYPES.AI_RECOMMENDATION,
+      title: input.title,
+      body: input.body,
+      resourceType: "GrowthRecommendation",
+      resourceId: input.recommendationId,
+      actionPath: `/growth`,
       recipientUserIds: input.recipientUserIds,
       idempotencyKey: input.idempotencyKey,
     });
