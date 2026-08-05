@@ -11,6 +11,7 @@ import {
   Unplug,
 } from "lucide-react";
 import { isStage12OAuthProvider } from "@/lib/integrations/oauth/provider-definitions";
+import { ProviderSyncPanel } from "@/components/integrations/provider-sync-panel";
 
 type OAuthConnectionPanelProps = {
   providerKey: string;
@@ -261,6 +262,14 @@ export function OAuthConnectionPanel({
       ) : null}
 
       {error ? <p className="text-xs text-red-600">{error}</p> : null}
+
+      {connection && (connection.status === "CONNECTED" || connection.status === "RECONNECTED") ? (
+        <ProviderSyncPanel
+          connectionId={connection.id}
+          providerKey={providerKey}
+          connectionStatus={connection.status}
+        />
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         {!connection || connection.status === "REVOKED" ? (

@@ -855,6 +855,7 @@ model Organisation {
   socialInboxReplyDrafts                  SocialInboxReplyDraft[]
   providerConnections                     ProviderConnection[]
   oauthTransactions                       OAuthTransaction[]
+  externalResourceMappings                ExternalResourceMapping[]
   providerAuditEvents                     ProviderAuditEvent[]
   providerFeatureFlags                    ProviderFeatureFlag[]
 
@@ -18409,8 +18410,43 @@ enum ProviderSyncRunStatus {
   PENDING
   RUNNING
   COMPLETED
+  PARTIAL
   FAILED
   CANCELLED
+}
+
+enum ProviderSyncSchedule {
+  MANUAL
+  HOURLY
+  EVERY_6_HOURS
+  DAILY
+  WEEKLY
+  CUSTOM
+}
+
+enum ProviderSyncMode {
+  FULL
+  INCREMENTAL
+  BACKFILL
+  MANUAL
+  SCHEDULED
+  WEBHOOK
+  RETRY
+}
+
+enum ProviderCampaignMappingPolicy {
+  EXTERNAL_ONLY
+  LINKED_TO_INTERNAL
+  IMPORTED_AS_INTERNAL
+  IGNORED
+  ARCHIVED_EXTERNALLY
+}
+
+enum ProviderSyncFailureStatus {
+  PENDING_RETRY
+  RETRYING
+  RESOLVED
+  ABANDONED
 }
 
 enum ProviderHealthStatus {
@@ -18517,6 +18553,9 @@ model ProviderConnection {
   webhookEvents    ProviderWebhookEvent[]
   syncCursors      ProviderSyncCursor[]
   syncRuns         ProviderSyncRun[]
+  syncPolicy       ProviderSyncPolicy?
+  syncFailures     ProviderSyncFailure[]
+  externalResourceMappings ExternalResourceMapping[]
   rateLimitStates  ProviderRateLimitState[]
   healthStates     ProviderHealthState[]
   auditEvents      ProviderAuditEvent[]
@@ -18646,10 +18685,17 @@ model ProviderSyncRun {
   organisationId   String
   connectionId     String
   resourceType     String?
+  syncMode         ProviderSyncMode?
   status           ProviderSyncRunStatus @default(PENDING)
   startedAt        DateTime?
   completedAt      DateTime?
   recordsProcessed Int                   @default(0)
+  recordsFailed    Int                   @default(0)
+  partialFailure   Boolean               @default(false)
+  resourceTypes    String[]              @default([])
+  triggeredByUserId String?
+  dateRangeStart   DateTime?
+  dateRangeEnd     DateTime?
   errorCode        String?
   errorMessage     String?
   correlationId    String?
@@ -18658,6 +18704,7 @@ model ProviderSyncRun {
   updatedAt        DateTime              @updatedAt
 
   connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  failures   ProviderSyncFailure[]
 
   @@index([connectionId, status])
   @@index([organisationId, createdAt])
@@ -19313,4 +19360,75 @@ model ProviderConnectionScopeRecord {
 
   @@unique([connectionId])
   @@index([organisationId])
+}
+
+model ExternalResourceMapping {
+  id                   String                         @id @default(cuid())
+  workspaceId          String
+  organisationId       String
+  connectionId         String
+  providerKey          String
+  externalResourceType String
+  externalResourceId   String
+  internalResourceType String
+  internalResourceId   String
+  mappingPolicy        ProviderCampaignMappingPolicy?
+  sourceUpdatedAt      DateTime?
+  lastSyncedAt         DateTime
+  checksum             String?
+  metadata             Json?
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  connection   ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalResourceType, externalResourceId])
+  @@index([organisationId, providerKey])
+  @@index([internalResourceType, internalResourceId])
+  @@index([connectionId, externalResourceType])
+}
+
+model ProviderSyncPolicy {
+  id                    String               @id @default(cuid())
+  organisationId        String
+  connectionId          String               @unique
+  schedule              ProviderSyncSchedule @default(MANUAL)
+  customIntervalMinutes Int?
+  resourceTypes         String[]             @default([])
+  backfillDays          Int                  @default(90)
+  timezone              String               @default("UTC")
+  enabled               Boolean              @default(true)
+  lastScheduledAt       DateTime?
+  metadata              Json?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+}
+
+model ProviderSyncFailure {
+  id                 String                    @id @default(cuid())
+  organisationId     String
+  connectionId       String
+  syncRunId          String
+  resourceType       String
+  externalResourceId String?
+  pageCursor         String?
+  errorCode          String?
+  errorMessage       String
+  status             ProviderSyncFailureStatus @default(PENDING_RETRY)
+  retryCount         Int                       @default(0)
+  resolvedAt         DateTime?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  syncRun    ProviderSyncRun    @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, status])
+  @@index([syncRunId])
+  @@index([organisationId, createdAt])
 }
