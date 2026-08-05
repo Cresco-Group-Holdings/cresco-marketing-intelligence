@@ -5,6 +5,8 @@ export * from "@/server/services/security-audit-service";
 export * from "@/server/services/onboarding-service";
 export * from "@/server/services/brand-knowledge-service";
 export * from "@/server/services/marketing-asset-service";
+export * from "@/server/services/digital-asset-service";
+export * from "@/server/services/digital-asset-processing-service";
 export * from "@/server/services/ai-request-service";
 export * from "@/server/services/ai-usage-recorder";
 export * from "@/server/services/prompt-template-service";
