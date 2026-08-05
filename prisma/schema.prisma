@@ -324,6 +324,11 @@ model UserProfile {
   contentItemsCreated                          ContentItem[]                          @relation("ContentItemCreator")
   contentItemsApproved                         ContentItem[]                          @relation("ContentItemApprover")
   contentRevisionsEdited                       ContentRevision[]                      @relation("ContentRevisionEditor")
+  contentVersionsCreated                       ContentVersion[]                       @relation("ContentVersionCreator")
+  contentReviewsRequested                      ContentReview[]                        @relation("ContentReviewRequester")
+  contentReviewsDecided                        ContentReview[]                        @relation("ContentReviewReviewer")
+  contentTemplatesCreated                      ContentTemplate[]                      @relation("ContentTemplateCreator")
+  contentKnowledgeReferencesCreated            ContentKnowledgeReference[]            @relation("ContentKnowledgeReferenceCreator")
   contentApprovalsRequested                    ContentApproval[]                      @relation("ContentApprovalRequester")
   contentApprovalsDecided                      ContentApproval[]                      @relation("ContentApprovalDecider")
   contentCommentsAuthored                      ContentComment[]                       @relation("ContentCommentAuthor")
@@ -496,6 +501,10 @@ model Organisation {
   contentVariants                         ContentVariant[]
   contentAssets                           ContentAsset[]
   contentRevisions                        ContentRevision[]
+  contentVersions                         ContentVersion[]
+  contentReviews                          ContentReview[]
+  contentTemplates                        ContentTemplate[]
+  contentKnowledgeReferences              ContentKnowledgeReference[]
   contentApprovals                        ContentApproval[]
   contentComments                         ContentComment[]
   contentProvenanceRecords                ContentProvenance[]
@@ -895,6 +904,10 @@ model Project {
   contentVariants                  ContentVariant[]
   contentAssets                    ContentAsset[]
   contentRevisions                 ContentRevision[]
+  contentVersions                  ContentVersion[]
+  contentReviews                   ContentReview[]
+  contentTemplates                 ContentTemplate[]
+  contentKnowledgeReferences       ContentKnowledgeReference[]
   contentApprovals                 ContentApproval[]
   contentComments                  ContentComment[]
   contentProvenanceRecords         ContentProvenance[]
@@ -1146,6 +1159,10 @@ model Brand {
   contentVariants                  ContentVariant[]
   contentAssets                    ContentAsset[]
   contentRevisions                 ContentRevision[]
+  contentVersions                  ContentVersion[]
+  contentReviews                   ContentReview[]
+  contentTemplates                 ContentTemplate[]
+  contentKnowledgeReferences       ContentKnowledgeReference[]
   contentApprovals                 ContentApproval[]
   contentComments                  ContentComment[]
   contentProvenanceRecords         ContentProvenance[]
@@ -2861,11 +2878,13 @@ enum ContentType {
 
 enum ContentStatus {
   IDEA
+  BRIEF
   DRAFT
   AI_GENERATED
   IN_REVIEW
   CHANGES_REQUESTED
   APPROVED
+  READY
   SCHEDULED
   PUBLISHING
   PUBLISHED
@@ -2873,6 +2892,38 @@ enum ContentStatus {
   FAILED
   CANCELLED
   ARCHIVED
+}
+
+enum ContentStudioType {
+  SOCIAL_POST
+  AD_COPY
+  EMAIL
+  BLOG_ARTICLE
+  LANDING_PAGE
+  VIDEO_SCRIPT
+  IMAGE_BRIEF
+  PRESS_RELEASE
+  CASE_STUDY
+  SALES_COPY
+  SEO_CONTENT
+  OTHER
+}
+
+enum ContentReviewStatus {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum ContentKnowledgeReferenceType {
+  AUDIENCE
+  PERSONA
+  OFFER
+  MESSAGING
+  VOICE
+  COMPLIANCE_RULE
+  REFERENCE
+  CUSTOM
 }
 
 enum ContentScheduleStatus {
@@ -3084,6 +3135,12 @@ enum ContentComplianceCheckType {
   EXCESSIVE_TEXT_LENGTH
   UNAPPROVED_MUSIC
   MISSING_CONSENT
+  MISSING_BRAND_CONTEXT
+  MISSING_CTA
+  UNSUPPORTED_STATEMENT
+  TONE_OF_VOICE_WARNING
+  MISSING_CAMPAIGN
+  MISSING_CHANNEL_VARIANT
 }
 
 enum ContentComplianceResult {
@@ -3104,7 +3161,7 @@ model OrganisationContentSettings {
 }
 
 model ContentItem {
-  id                String          @id @default(cuid())
+  id                String             @id @default(cuid())
   organisationId    String
   projectId         String
   brandId           String
@@ -3114,18 +3171,27 @@ model ContentItem {
   campaignName      String?
   contentPillar     String?
   contentType       ContentType
+  studioType        ContentStudioType?
   primaryMessage    String?
+  contentBody       String?
+  audienceSummary   String?
+  studioObjective   String?
   targetAudienceId  String?
   primaryCTA        String?
   destinationUrl    String?
-  status            ContentStatus   @default(IDEA)
-  priority          ContentPriority @default(NORMAL)
+  primaryChannel    BrandMarketingChannel?
+  status            ContentStatus      @default(IDEA)
+  priority          ContentPriority    @default(NORMAL)
   ownerUserId       String
   createdByUserId   String
   approvedByUserId  String?
   approvedAt        DateTime?
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @updatedAt
+  dueAt             DateTime?
+  scheduledFor      DateTime?
+  timezone          String?
+  version           Int                @default(1)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   archivedAt        DateTime?
 
   organisation             Organisation                      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -3139,8 +3205,11 @@ model ContentItem {
   variants                 ContentVariant[]
   assets                   ContentAsset[]
   revisions                ContentRevision[]
+  versions                 ContentVersion[]
+  reviews                  ContentReview[]
   approvals                ContentApproval[]
   comments                 ContentComment[]
+  knowledgeReferences      ContentKnowledgeReference[]
   provenance               ContentProvenance?
   complianceChecks         ContentComplianceCheck[]
   statusHistory            ContentStatusHistory[]
@@ -3168,37 +3237,42 @@ model ContentItem {
   @@index([brandId])
   @@index([contentCampaignId])
   @@index([status])
+  @@index([studioType])
   @@index([ownerUserId])
   @@index([createdByUserId])
   @@index([archivedAt])
+  @@index([scheduledFor])
+  @@index([dueAt])
   @@index([createdAt])
 }
 
 model ContentVariant {
-  id               String         @id @default(cuid())
+  id               String                  @id @default(cuid())
   organisationId   String
   projectId        String
   brandId          String
   contentItemId    String
-  provider         SocialProvider
+  provider         SocialProvider?
+  marketingChannel BrandMarketingChannel?
   socialAccountId  String?
   format           ContentType
   caption          String?
+  channelBody      String?
   headline         String?
   description      String?
-  hashtags         String[]       @default([])
-  mentions         String[]       @default([])
+  hashtags         String[]                @default([])
+  mentions         String[]                @default([])
   destinationUrl   String?
   firstComment     String?
   altText          String?
   thumbnailAssetId String?
   durationSeconds  Int?
   aspectRatio      String?
-  status           ContentStatus  @default(DRAFT)
+  status           ContentStatus           @default(DRAFT)
   validationErrors Json?
   providerMetadata Json?
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
 
   organisation             Organisation                      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project                  Project                           @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -3222,6 +3296,7 @@ model ContentVariant {
   @@index([brandId])
   @@index([contentItemId])
   @@index([provider])
+  @@index([marketingChannel])
   @@index([status])
 }
 
@@ -3326,6 +3401,114 @@ model ContentComment {
   @@index([contentItemId])
   @@index([contentVariantId])
   @@index([status])
+}
+
+model ContentVersion {
+  id              String   @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  contentItemId   String
+  versionNumber   Int
+  snapshot        Json
+  changeSummary   String?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile  @relation("ContentVersionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([contentItemId, versionNumber])
+  @@index([organisationId])
+  @@index([contentItemId])
+  @@index([createdAt])
+}
+
+model ContentReview {
+  id                String              @id @default(cuid())
+  organisationId    String
+  projectId         String
+  brandId           String
+  contentItemId     String
+  contentVersion    Int
+  reviewerUserId    String?
+  requestedByUserId String
+  status            ContentReviewStatus @default(PENDING)
+  feedback          String?
+  decidedAt         DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  reviewer     UserProfile? @relation("ContentReviewReviewer", fields: [reviewerUserId], references: [id], onDelete: SetNull)
+  requestedBy  UserProfile  @relation("ContentReviewRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([contentItemId])
+  @@index([status])
+  @@index([reviewerUserId])
+}
+
+model ContentTemplate {
+  id                      String                  @id @default(cuid())
+  organisationId          String
+  projectId               String
+  brandId                 String
+  name                    String
+  studioType              ContentStudioType
+  primaryChannel          BrandMarketingChannel?
+  titleTemplate           String?
+  objectiveTemplate       String?
+  audienceSummaryTemplate String?
+  contentBodyTemplate     String?
+  callToActionTemplate    String?
+  variantTemplates        Json?
+  isActive                Boolean                 @default(true)
+  createdByUserId         String
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  archivedAt              DateTime?
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile  @relation("ContentTemplateCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([brandId])
+  @@index([studioType])
+  @@index([isActive])
+  @@index([archivedAt])
+}
+
+model ContentKnowledgeReference {
+  id              String                        @id @default(cuid())
+  organisationId  String
+  projectId       String
+  brandId         String
+  contentItemId   String
+  referenceType   ContentKnowledgeReferenceType
+  referenceId     String?
+  label           String
+  excerpt         String?
+  createdByUserId String
+  createdAt       DateTime                      @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem  ContentItem  @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile  @relation("ContentKnowledgeReferenceCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([contentItemId])
+  @@index([referenceType])
 }
 
 model ContentProvenance {
@@ -7424,6 +7607,10 @@ enum ContentActivityType {
   DEADLINE_SET
   TASK_UPDATED
   CAMPAIGN_UPDATED
+  VERSION_CREATED
+  REVIEW_SUBMITTED
+  COMPLIANCE_CHECKED
+  TEMPLATE_APPLIED
 }
 
 model ContentCampaign {
