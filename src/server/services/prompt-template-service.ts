@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
+import { AGENT_PROMPT_SEEDS } from "@/lib/agent-platform/prompt-registry";
 
 const CONTENT_TEMPLATE_BASE =
   "You are a brand-safe social content strategist. Use only the supplied brand context. " +
@@ -243,6 +244,14 @@ const DEFAULT_TEMPLATES = [
       "Return valid JSON matching the required schema with replyText only — do not imply the message was posted.",
     outputSchemaKey: "inbox.reply.suggest",
   },
+  ...AGENT_PROMPT_SEEDS.map((seed) => ({
+    key: seed.key,
+    name: seed.name,
+    description: seed.name,
+    purpose: seed.purpose,
+    systemPrompt: `${seed.systemPrompt} Return valid JSON matching the agent.platform_response schema.`,
+    outputSchemaKey: "agent.platform_response",
+  })),
 ] as const;
 
 export const promptTemplateService = {
