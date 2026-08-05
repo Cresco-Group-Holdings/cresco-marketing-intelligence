@@ -18068,10 +18068,43 @@ enum ProviderWebhookEventStatus {
 
 enum ProviderSyncRunStatus {
   PENDING
+  QUEUED
   RUNNING
   COMPLETED
+  SUCCEEDED
+  PARTIALLY_SUCCEEDED
   FAILED
+  RETRYING
   CANCELLED
+  DEAD_LETTERED
+}
+
+enum ProviderSyncDirection {
+  IMPORT
+  EXPORT
+}
+
+enum ProviderSyncTriggerType {
+  MANUAL
+  SCHEDULED
+  WEBHOOK
+  EVENT
+  INITIAL_IMPORT
+  RETRY
+}
+
+enum ProviderSyncRecordAction {
+  CREATED
+  UPDATED
+  SKIPPED
+  FAILED
+}
+
+enum ProviderWebhookEndpointStatus {
+  PENDING
+  ACTIVE
+  FAILED
+  REVOKED
 }
 
 enum ProviderHealthStatus {
@@ -18174,6 +18207,7 @@ model ProviderConnection {
   webhookEvents    ProviderWebhookEvent[]
   syncCursors      ProviderSyncCursor[]
   syncRuns         ProviderSyncRun[]
+  providerAccounts ProviderAccount[]
   rateLimitStates  ProviderRateLimitState[]
   healthStates     ProviderHealthState[]
   auditEvents      ProviderAuditEvent[]
@@ -18230,22 +18264,27 @@ model ProviderOAuthState {
 }
 
 model ProviderWebhookEndpoint {
-  id             String    @id @default(cuid())
-  organisationId String
-  connectionId   String
-  providerKey    String
-  externalId     String?
-  url            String
-  secretDigest   String?
-  isActive       Boolean   @default(true)
-  lastReceivedAt DateTime?
-  metadata       Json?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id               String                        @id @default(cuid())
+  organisationId   String
+  connectionId     String
+  providerKey      String
+  endpointKey      String                        @default("default")
+  externalId       String?
+  url              String
+  secretDigest     String?
+  status           ProviderWebhookEndpointStatus @default(PENDING)
+  subscribedEvents String[]                      @default([])
+  isActive         Boolean                       @default(true)
+  lastReceivedAt   DateTime?
+  lastVerifiedAt   DateTime?
+  metadata         Json?
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
 
   connection ProviderConnection     @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   events     ProviderWebhookEvent[]
 
+  @@unique([connectionId, endpointKey])
   @@index([connectionId])
   @@index([organisationId, providerKey])
 }
@@ -18292,25 +18331,83 @@ model ProviderSyncCursor {
 }
 
 model ProviderSyncRun {
-  id               String                @id @default(cuid())
+  id               String                  @id @default(cuid())
   organisationId   String
   connectionId     String
+  capability       String?
   resourceType     String?
-  status           ProviderSyncRunStatus @default(PENDING)
+  direction        ProviderSyncDirection   @default(IMPORT)
+  triggerType      ProviderSyncTriggerType @default(MANUAL)
+  status           ProviderSyncRunStatus   @default(PENDING)
+  cursor           String?
+  checkpoint       Json?
+  idempotencyKey   String?
+  requestedByUserId String?
   startedAt        DateTime?
   completedAt      DateTime?
-  recordsProcessed Int                   @default(0)
+  recordsRead      Int                     @default(0)
+  recordsWritten   Int                     @default(0)
+  recordsSkipped   Int                     @default(0)
+  recordsFailed    Int                     @default(0)
+  recordsProcessed Int                     @default(0)
+  attemptCount     Int                     @default(0)
+  nextRetryAt      DateTime?
   errorCode        String?
   errorMessage     String?
   correlationId    String?
   metadata         Json?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  connection ProviderConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  records    ProviderSyncRecord[]
+
+  @@unique([connectionId, idempotencyKey])
+  @@index([connectionId, status])
+  @@index([connectionId, capability, status])
+  @@index([organisationId, createdAt])
+}
+
+model ProviderSyncRecord {
+  id                   String                 @id @default(cuid())
+  syncRunId            String
+  externalResourceType String
+  externalResourceId   String
+  internalResourceType String?
+  internalResourceId   String?
+  action               ProviderSyncRecordAction
+  checksum             String?
+  errorCode            String?
+  errorMessage         String?
+  processedAt          DateTime               @default(now())
+
+  syncRun ProviderSyncRun @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+
+  @@index([syncRunId, processedAt])
+  @@index([externalResourceType, externalResourceId])
+}
+
+model ProviderAccount {
+  id               String   @id @default(cuid())
+  organisationId   String
+  connectionId     String
+  externalId       String
+  displayName      String
+  accountType      String?
+  parentExternalId String?
+  currency         String?
+  timezone         String?
+  status           String?
+  selected         Boolean  @default(false)
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
-  @@index([connectionId, status])
-  @@index([organisationId, createdAt])
+  @@unique([connectionId, externalId])
+  @@index([connectionId, selected])
+  @@index([organisationId])
 }
 
 model ProviderRateLimitState {
