@@ -3,7 +3,9 @@ import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { evaluateQualificationRules } from "@/lib/leads/qualification-rules";
 import type { TenantContext } from "@/lib/tenancy/context";
+import { getOrganisationNotifierUserIds } from "@/lib/notifications/recipients";
 import { recordAuditEvent } from "@/server/services/audit-service";
+import { notificationEventService } from "@/server/services/notification-event-service";
 import { brandService } from "@/server/services/workspace-service";
 
 export const leadQualificationService = {
@@ -98,6 +100,20 @@ export const leadQualificationService = {
       resourceId: qualification.id,
       metadata: { leadId, profile: input.profile, qualified },
     });
+
+    if (qualified && lead.status !== "QUALIFIED") {
+      const recipientUserIds = await getOrganisationNotifierUserIds(organisationId);
+      await notificationEventService
+        .newQualifiedLead({
+          organisationId,
+          projectId: brand.projectId,
+          brandId,
+          leadId,
+          recipientUserIds: recipientUserIds.filter((id) => id !== context.userProfileId),
+          idempotencyKey: `lead-qualified:${leadId}:${input.profile}`,
+        })
+        .catch(() => undefined);
+    }
 
     return qualification;
   },

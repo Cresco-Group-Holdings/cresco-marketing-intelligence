@@ -22,6 +22,7 @@ import {
 import { isWithinQuietHours } from "@/lib/notifications/quiet-hours";
 import type { NotificationListFilters } from "@/lib/validation/notifications";
 import { assertOrganisationScope, type TenantContext } from "@/lib/tenancy/context";
+import { unifiedInboxService } from "@/server/services/unified-inbox-service";
 
 export type EmitNotificationInput = {
   organisationId: string;
@@ -164,6 +165,21 @@ export const notificationService = {
       }
 
       created.push({ notification, duplicate: false });
+
+      await unifiedInboxService.upsertFromNotification({
+        organisationId: input.organisationId,
+        userId,
+        category,
+        eventType: input.eventType,
+        title: input.title,
+        message: safeBody,
+        priority,
+        sourceEntityType: input.resourceType,
+        sourceEntityId: input.resourceId,
+        actionUrl: actionUrl ?? undefined,
+        notificationId: notification.id,
+        idempotencyKey: perUserKey,
+      });
     }
 
     return created;
@@ -210,6 +226,42 @@ export const notificationService = {
     return prisma.notification.count({
       where: { organisationId, userId, readAt: null, dismissedAt: null },
     });
+  },
+
+  async dismiss(organisationId: string, userId: string, notificationId: string, context: TenantContext) {
+    assertOrganisationScope(organisationId, context);
+    const notification = await prisma.notification.findFirst({
+      where: { id: notificationId, organisationId, userId },
+    });
+    if (!notification) throw new AppError("NOT_FOUND", "Notification was not found.");
+    return prisma.notification.update({
+      where: { id: notificationId },
+      data: { dismissedAt: new Date() },
+    });
+  },
+
+  async markAllRead(organisationId: string, userId: string, context: TenantContext) {
+    assertOrganisationScope(organisationId, context);
+    const result = await prisma.notification.updateMany({
+      where: { organisationId, userId, readAt: null, dismissedAt: null },
+      data: { readAt: new Date() },
+    });
+    await unifiedInboxService.markAllRead(organisationId, userId, context);
+    return { updated: result.count };
+  },
+
+  async bulkMarkRead(
+    organisationId: string,
+    userId: string,
+    notificationIds: string[],
+    context: TenantContext,
+  ) {
+    assertOrganisationScope(organisationId, context);
+    const result = await prisma.notification.updateMany({
+      where: { id: { in: notificationIds }, organisationId, userId },
+      data: { readAt: new Date() },
+    });
+    return { updated: result.count };
   },
 };
 
@@ -304,6 +356,7 @@ export const notificationDigestService = {
     const results = [];
     for (const [key, deliveries] of grouped) {
       const [organisationId, userId] = key.split(":");
+      const titles = deliveries.map((d) => d.notification.title).slice(0, 20);
       const digest = await prisma.notificationDigest.create({
         data: {
           organisationId,
@@ -315,6 +368,28 @@ export const notificationDigestService = {
           sentAt: new Date(),
         },
       });
+
+      const profile = await prisma.userProfile.findUnique({
+        where: { id: userId },
+        select: { email: true },
+      });
+      const org = await prisma.organisation.findUnique({
+        where: { id: organisationId },
+        select: { name: true },
+      });
+
+      if (profile?.email) {
+        const emailPayload = buildSafeEmailPayload({
+          subject: `${period === "DIGEST_WEEKLY" ? "Weekly" : "Daily"} digest — ${deliveries.length} updates`,
+          body: titles.map((title) => `• ${title}`).join("\n"),
+          organisationName: org?.name ?? "Cresco",
+          actionPath: "/notifications",
+          allowUnsubscribe: true,
+          userId,
+          organisationId,
+        });
+        await getEmailProvider().send({ ...emailPayload, to: profile.email });
+      }
 
       await prisma.notificationDelivery.updateMany({
         where: { id: { in: deliveries.map((d) => d.id) } },
