@@ -327,7 +327,7 @@ export const calendarService = {
         color: input.color || null,
         location: input.location || null,
         channelType: input.channelType || null,
-        metadata: input.metadata ?? undefined,
+        metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
         sourceLocked: false,
         createdByUserId: context.userProfileId,
         updatedByUserId: context.userProfileId,
@@ -389,8 +389,8 @@ export const calendarService = {
       color: input.color,
       location: input.location,
       channelType: input.channelType,
-      metadata: input.metadata ?? undefined,
-      updatedByUserId: context.userProfileId,
+      metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
+      updatedBy: { connect: { id: context.userProfileId } },
     };
 
     if (input.allDay != null) data.allDay = input.allDay;
@@ -476,7 +476,7 @@ export const calendarService = {
         endsAt: normalizedEnds,
         allDay,
         timezone: input.timezone ?? existing.timezone,
-        updatedByUserId: context.userProfileId,
+        updatedBy: { connect: { id: context.userProfileId } },
       });
     }
 

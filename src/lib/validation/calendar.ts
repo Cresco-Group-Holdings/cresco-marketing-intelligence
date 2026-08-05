@@ -42,7 +42,7 @@ export const calendarCreateSchema = z.object({
   color: optionalTrimmed(32),
   location: optionalTrimmed(500),
   channelType: optionalTrimmed(64),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const calendarUpdateSchema = z
@@ -57,7 +57,7 @@ export const calendarUpdateSchema = z
     color: optionalTrimmed(32).nullable(),
     location: optionalTrimmed(500).nullable(),
     channelType: optionalTrimmed(64).nullable(),
-    metadata: z.record(z.unknown()).optional().nullable(),
+    metadata: z.record(z.string(), z.unknown()).optional().nullable(),
     version: z.number().int().positive(),
   })
   .refine((value) => Object.keys(value).length > 1, {
