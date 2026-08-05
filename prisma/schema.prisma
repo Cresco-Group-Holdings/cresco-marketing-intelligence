@@ -412,6 +412,8 @@ model UserProfile {
   campaignMemberships                          CampaignMember[]
   campaignMembersAdded                         CampaignMember[]                       @relation("CampaignMemberAdder")
   campaignActivitiesAuthored                   CampaignActivity[]                     @relation("CampaignActivityActor")
+  calendarEventsCreated                        CalendarEvent[]                        @relation("CalendarEventCreator")
+  calendarEventsUpdated                        CalendarEvent[]                        @relation("CalendarEventUpdater")
   contentTasksAssigned                         ContentTask[]                          @relation("ContentTaskAssignee")
   contentTasksOwned                            ContentTask[]                          @relation("ContentTaskOwner")
   contentTasksCreated                          ContentTask[]                          @relation("ContentTaskCreator")
@@ -819,6 +821,7 @@ model Organisation {
   campaignChannels                        CampaignChannel[]
   campaignKpis                            CampaignKpi[]
   campaignActivities                      CampaignActivity[]
+  calendarEvents                          CalendarEvent[]
   contentTasks                            ContentTask[]
   contentAssignments                      ContentAssignment[]
   contentDeadlines                        ContentDeadline[]
@@ -1087,6 +1090,7 @@ model Project {
   contentCampaigns                 ContentCampaign[]
   campaigns                        Campaign[]
   campaignActivities               CampaignActivity[]
+  calendarEvents                   CalendarEvent[]
   contentTasks                     ContentTask[]
   contentActivities                ContentActivity[]
   socialConversations              SocialConversation[]
@@ -1362,6 +1366,7 @@ model Brand {
   contentCampaigns                 ContentCampaign[]
   campaigns                        Campaign[]
   campaignActivities               CampaignActivity[]
+  calendarEvents                   CalendarEvent[]
   contentTasks                     ContentTask[]
   contentAssignments               ContentAssignment[]
   contentDeadlines                 ContentDeadline[]
@@ -3176,6 +3181,7 @@ model ContentItem {
   contentDeadlines         ContentDeadline[]
   contentChecklists        ContentChecklist[]
   contentActivities        ContentActivity[]
+  calendarEvents           CalendarEvent[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -7520,6 +7526,7 @@ model Campaign {
   kpis           CampaignKpi[]
   members        CampaignMember[]
   activities     CampaignActivity[]
+  calendarEvents CalendarEvent[]
 
   @@index([organisationId, brandId, status])
   @@index([organisationId, archivedAt])
@@ -7613,6 +7620,68 @@ model CampaignActivity {
 
   @@index([organisationId, brandId, createdAt])
   @@index([campaignId, createdAt])
+}
+
+enum CalendarEventType {
+  CONTENT_PUBLICATION
+  CAMPAIGN_START
+  CAMPAIGN_END
+  TASK_DEADLINE
+  REVIEW
+  MANUAL
+}
+
+enum CalendarEventStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  TENTATIVE
+}
+
+model CalendarEvent {
+  id               String              @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  campaignId       String?
+  contentItemId    String?
+  title            String
+  description      String?
+  type             CalendarEventType
+  status           CalendarEventStatus @default(SCHEDULED)
+  startsAt         DateTime
+  endsAt           DateTime?
+  allDay           Boolean             @default(false)
+  timezone         String
+  color            String?
+  location         String?
+  sourceEntityType String?
+  sourceEntityId   String?
+  sourceLocked     Boolean             @default(false)
+  channelType      String?
+  metadata         Json?
+  cancelledAt      DateTime?
+  createdByUserId  String
+  updatedByUserId  String?
+  version          Int                 @default(1)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  contentItem  ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  createdBy    UserProfile  @relation("CalendarEventCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy    UserProfile? @relation("CalendarEventUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, startsAt])
+  @@index([organisationId, startsAt, endsAt])
+  @@index([organisationId, status])
+  @@index([organisationId, projectId])
+  @@index([campaignId])
+  @@index([contentItemId])
 }
 
 enum ContentCampaignStatus {
