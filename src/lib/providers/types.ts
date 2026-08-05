@@ -31,7 +31,10 @@ export type ProviderKey =
   | "stripe"
   | "licensed-rank-provider"
   | "csv-import"
-  | "first-party-crawler";
+  | "first-party-crawler"
+  | "mock-advertising"
+  | "mock-crm"
+  | "mock-social";
 
 export type ProviderDefinition = {
   key: ProviderKey;

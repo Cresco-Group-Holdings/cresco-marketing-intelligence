@@ -115,6 +115,12 @@ export const dashboardNavigation: NavigationItem[] = [
     description: "Draft and manage marketing content",
   },
   {
+    label: "Publishing",
+    href: "/publishing",
+    icon: Megaphone,
+    description: "Governed outbound provider operations",
+  },
+  {
     label: "Campaigns",
     href: "/campaigns",
     icon: Megaphone,
