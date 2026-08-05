@@ -1,5 +1,5 @@
-import { ContentOperationsView } from "@/components/operations/content-operations-view";
+import { CampaignListView } from "@/components/campaigns/campaign-list-view";
 
 export default function CampaignsPage() {
-  return <ContentOperationsView mode="campaigns" />;
+  return <CampaignListView />;
 }

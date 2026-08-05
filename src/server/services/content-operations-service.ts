@@ -275,7 +275,7 @@ export const contentOperationsService = {
       });
 
       const uniqueMembers = [...new Set([ownerUserId, ...memberIds])];
-      await tx.campaignMember.createMany({
+      await tx.contentCampaignMember.createMany({
         data: uniqueMembers.map((userId) => ({
           campaignId: created.id,
           userId,
