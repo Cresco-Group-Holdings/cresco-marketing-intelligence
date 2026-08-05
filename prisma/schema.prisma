@@ -386,6 +386,9 @@ model UserProfile {
   emailCampaignApprovalsActed                  EmailCampaignApproval[]                @relation("EmailCampaignApprover")
   marketingAutomationsCreated                  MarketingAutomation[]                  @relation("MarketingAutomationCreator")
   marketingAutomationsUpdated                  MarketingAutomation[]                  @relation("MarketingAutomationUpdater")
+  automationWorkflowsCreated                   AutomationWorkflow[]                   @relation("AutomationWorkflowCreator")
+  automationWorkflowsUpdated                   AutomationWorkflow[]                   @relation("AutomationWorkflowUpdater")
+  automationExecutionsTriggered                AutomationExecution[]                  @relation("AutomationExecutionTriggerer")
   marketingAutomationApprovalsActed            MarketingAutomationApproval[]          @relation("MarketingAutomationApprover")
   marketingAutomationEnrollmentsMade           MarketingAutomationEnrollment[]        @relation("MarketingAutomationEnroller")
   leadScoringModelsCreated                     LeadScoringModel[]                     @relation("LeadScoringModelCreator")
@@ -798,6 +801,9 @@ model Organisation {
   crmAudienceSegments                     CrmAudienceSegment[]
   emailCampaigns                          EmailCampaign[]
   marketingAutomations                    MarketingAutomation[]
+  automationWorkflows                     AutomationWorkflow[]
+  automationExecutions                    AutomationExecution[]
+  automationQuotaUsages                   AutomationQuotaUsage[]
   leadScoringModels                       LeadScoringModel[]
   leadQualificationModels                 LeadQualificationModel[]
   lifecycleAgentRuns                      LifecycleAgentRun[]
@@ -1068,6 +1074,8 @@ model Project {
   emailMessages                    EmailMessage[]
   emailCampaigns                   EmailCampaign[]
   marketingAutomations             MarketingAutomation[]
+  automationWorkflows              AutomationWorkflow[]
+  automationExecutions             AutomationExecution[]
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
   lifecycleAgentRuns               LifecycleAgentRun[]
@@ -1340,6 +1348,9 @@ model Brand {
   crmAudienceSegments              CrmAudienceSegment[]
   emailCampaigns                   EmailCampaign[]
   marketingAutomations             MarketingAutomation[]
+  automationWorkflows              AutomationWorkflow[]
+  automationExecutions             AutomationExecution[]
+  automationQuotaUsages            AutomationQuotaUsage[]
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
   lifecycleAgentRuns               LifecycleAgentRun[]
@@ -18417,4 +18428,221 @@ model ProviderOutboundSend {
   @@index([organisationId, providerKey])
   @@index([connectionId, status])
   @@index([providerMessageId])
+}
+
+// ---------------------------------------------------------------------------
+// Stage 9 — Internal Automation Engine Core
+// ---------------------------------------------------------------------------
+
+enum AutomationWorkflowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum AutomationTriggerKind {
+  EVENT
+  SCHEDULE
+}
+
+enum AutomationEventType {
+  CAMPAIGN_ACTIVATED
+  CONTENT_ENTERED_REVIEW
+  DEADLINE_APPROACHING
+  LEAD_SCORE_THRESHOLD
+  KPI_BELOW_TARGET
+  MANUAL
+  AUTOMATION_COMPLETED
+}
+
+enum AutomationActionType {
+  CREATE_TASK
+  UPDATE_CAMPAIGN_STATUS
+  ASSIGN_USER
+  REQUEST_APPROVAL
+  CREATE_NOTIFICATION
+  ADD_CRM_ACTIVITY
+  UPDATE_LEAD_STATUS
+  CREATE_CALENDAR_EVENT
+}
+
+enum AutomationExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  DEAD_LETTER
+  SKIPPED
+  DRY_RUN
+}
+
+enum AutomationStepStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  RETRYING
+  SKIPPED
+}
+
+model AutomationWorkflow {
+  id                   String                   @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  name                 String
+  description          String?
+  status               AutomationWorkflowStatus @default(DRAFT)
+  activeVersionId      String?
+  executionLimitPerDay Int?
+  monthlyQuota         Int?
+  preventSelfTrigger   Boolean                  @default(true)
+  createdByUserId      String
+  updatedByUserId      String?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  archivedAt           DateTime?
+
+  organisation  Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy     UserProfile           @relation("AutomationWorkflowCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy     UserProfile?          @relation("AutomationWorkflowUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  activeVersion AutomationVersion?    @relation("AutomationWorkflowActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions      AutomationVersion[]
+  executions    AutomationExecution[]
+
+  @@index([organisationId, brandId, status])
+}
+
+model AutomationVersion {
+  id             String                   @id @default(cuid())
+  workflowId     String
+  versionNumber  Int
+  status         AutomationWorkflowStatus @default(DRAFT)
+  definitionHash String?
+  notes          String?
+  publishedAt    DateTime?
+  createdAt      DateTime                 @default(now())
+
+  workflow  AutomationWorkflow    @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  activeFor AutomationWorkflow[]  @relation("AutomationWorkflowActiveVersion")
+  triggers  AutomationTrigger[]
+  conditions AutomationCondition[]
+  actions   AutomationAction[]
+  executions AutomationExecution[]
+
+  @@unique([workflowId, versionNumber])
+}
+
+model AutomationTrigger {
+  id           String                @id @default(cuid())
+  versionId    String
+  triggerKind  AutomationTriggerKind
+  eventType    AutomationEventType?
+  scheduleCron String?
+  config       Json?
+  isEnabled    Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+
+  version AutomationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+  @@index([eventType])
+}
+
+model AutomationCondition {
+  id        String @id @default(cuid())
+  versionId String
+  field     String
+  operator  String
+  value     Json?
+  sortOrder Int    @default(0)
+
+  version AutomationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId, sortOrder])
+}
+
+model AutomationAction {
+  id                     String               @id @default(cuid())
+  versionId              String
+  actionType             AutomationActionType
+  config                 Json
+  sortOrder              Int                  @default(0)
+  maxRetries             Int                  @default(3)
+  idempotencyKeyTemplate String?
+
+  version AutomationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId, sortOrder])
+}
+
+model AutomationExecution {
+  id               String                    @id @default(cuid())
+  workflowId       String
+  versionId        String
+  organisationId   String
+  projectId        String
+  brandId          String
+  status           AutomationExecutionStatus @default(PENDING)
+  idempotencyKey   String
+  triggerEventType AutomationEventType?
+  triggerPayload   Json?
+  dryRun           Boolean                   @default(false)
+  attemptCount     Int                       @default(0)
+  maxAttempts      Int                       @default(3)
+  triggerDepth     Int                       @default(0)
+  errorMessage     String?
+  deadLetterAt     DateTime?
+  triggeredByUserId String?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime                  @default(now())
+
+  workflow    AutomationWorkflow      @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  version     AutomationVersion         @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  organisation Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project     Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand       Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  triggeredBy UserProfile?              @relation("AutomationExecutionTriggerer", fields: [triggeredByUserId], references: [id], onDelete: SetNull)
+  steps       AutomationExecutionStep[]
+
+  @@unique([workflowId, idempotencyKey])
+  @@index([organisationId, brandId, status])
+  @@index([createdAt])
+}
+
+model AutomationExecutionStep {
+  id           String               @id @default(cuid())
+  executionId  String
+  actionId     String
+  status       AutomationStepStatus @default(PENDING)
+  attemptCount Int                  @default(0)
+  result       Json?
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime             @default(now())
+
+  execution AutomationExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId])
+}
+
+model AutomationQuotaUsage {
+  id             String   @id @default(cuid())
+  organisationId String
+  brandId        String
+  periodStart    DateTime
+  executionCount Int      @default(0)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, brandId, periodStart])
+  @@index([organisationId, brandId])
 }
