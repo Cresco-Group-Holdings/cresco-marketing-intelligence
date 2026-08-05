@@ -822,6 +822,14 @@ model Organisation {
   campaignKpis                            CampaignKpi[]
   campaignActivities                      CampaignActivity[]
   calendarEvents                          CalendarEvent[]
+  analyticsDataSources                    AnalyticsDataSource[]
+  analyticsMetricDefinitions              AnalyticsMetricDefinition[]
+  analyticsDimensionDefinitions           AnalyticsDimensionDefinition[]
+  analyticsFacts                          AnalyticsFact[]
+  analyticsImportBatches                  AnalyticsImportBatch[]
+  analyticsAttributionModels              AnalyticsAttributionModel[]
+  analyticsGoals                          AnalyticsGoal[]
+  analyticsSnapshots                      AnalyticsSnapshot[]
   contentTasks                            ContentTask[]
   contentAssignments                      ContentAssignment[]
   contentDeadlines                        ContentDeadline[]
@@ -1091,6 +1099,9 @@ model Project {
   campaigns                        Campaign[]
   campaignActivities               CampaignActivity[]
   calendarEvents                   CalendarEvent[]
+  analyticsFacts                   AnalyticsFact[]
+  analyticsGoals                   AnalyticsGoal[]
+  analyticsSnapshots               AnalyticsSnapshot[]
   contentTasks                     ContentTask[]
   contentActivities                ContentActivity[]
   socialConversations              SocialConversation[]
@@ -1367,6 +1378,9 @@ model Brand {
   campaigns                        Campaign[]
   campaignActivities               CampaignActivity[]
   calendarEvents                   CalendarEvent[]
+  analyticsFacts                   AnalyticsFact[]
+  analyticsGoals                   AnalyticsGoal[]
+  analyticsSnapshots               AnalyticsSnapshot[]
   contentTasks                     ContentTask[]
   contentAssignments               ContentAssignment[]
   contentDeadlines                 ContentDeadline[]
@@ -7527,6 +7541,9 @@ model Campaign {
   members        CampaignMember[]
   activities     CampaignActivity[]
   calendarEvents CalendarEvent[]
+  analyticsFacts AnalyticsFact[]
+  analyticsGoals AnalyticsGoal[]
+  analyticsSnapshots AnalyticsSnapshot[]
 
   @@index([organisationId, brandId, status])
   @@index([organisationId, archivedAt])
@@ -18721,4 +18738,262 @@ model ProviderOutboundSend {
   @@index([organisationId, providerKey])
   @@index([connectionId, status])
   @@index([providerMessageId])
+}
+
+// ---------------------------------------------------------------------------
+// Stage 7 — Canonical Analytics Data Model and Performance Core
+// Provider-independent measurement layer (no external connectors yet).
+// ---------------------------------------------------------------------------
+
+enum AnalyticsDataSourceKind {
+  MANUAL_IMPORT
+  INTERNAL
+  CONNECTOR
+}
+
+enum AnalyticsDataSourceStatus {
+  ACTIVE
+  INACTIVE
+  DEPRECATED
+}
+
+enum AnalyticsMetricKind {
+  BASE
+  DERIVED
+}
+
+enum AnalyticsMetricDataType {
+  INTEGER
+  DECIMAL
+  PERCENTAGE
+  CURRENCY
+  RATIO
+}
+
+enum AnalyticsGranularity {
+  HOUR
+  DAY
+  WEEK
+  MONTH
+  TOTAL
+}
+
+enum AnalyticsImportBatchStatus {
+  PENDING
+  VALIDATING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+enum AnalyticsAttributionModelType {
+  FIRST_TOUCH
+  LAST_TOUCH
+  LINEAR
+  POSITION_BASED
+  TIME_DECAY
+}
+
+enum AnalyticsGoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum AnalyticsSnapshotStatus {
+  DRAFT
+  FINALIZED
+}
+
+model AnalyticsDataSource {
+  id             String                    @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  name           String
+  description    String?
+  kind           AnalyticsDataSourceKind   @default(MANUAL_IMPORT)
+  status         AnalyticsDataSourceStatus @default(ACTIVE)
+  providerKey    String?
+  lastImportAt   DateTime?
+  metadata       Json?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  organisation Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  facts        AnalyticsFact[]
+  importBatches AnalyticsImportBatch[]
+
+  @@index([organisationId, status])
+  @@index([workspaceId])
+}
+
+model AnalyticsMetricDefinition {
+  id             String                  @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  metricKey      String
+  displayName    String
+  description    String?
+  kind           AnalyticsMetricKind     @default(BASE)
+  dataType       AnalyticsMetricDataType
+  unit           String?
+  isCumulative   Boolean                 @default(false)
+  formulaKey     String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, metricKey])
+  @@index([workspaceId])
+}
+
+model AnalyticsDimensionDefinition {
+  id             String   @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  dimensionKey   String
+  displayName    String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, dimensionKey])
+  @@index([workspaceId])
+}
+
+model AnalyticsImportBatch {
+  id             String                     @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  dataSourceId   String
+  status         AnalyticsImportBatchStatus @default(PENDING)
+  fileName       String?
+  rowCount       Int                        @default(0)
+  acceptedCount  Int                        @default(0)
+  rejectedCount  Int                        @default(0)
+  duplicateCount Int                        @default(0)
+  errors         Json?
+  warnings       Json?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdByUserId String?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  dataSource   AnalyticsDataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  facts        AnalyticsFact[]
+
+  @@index([organisationId, status])
+  @@index([dataSourceId, createdAt])
+  @@index([workspaceId])
+}
+
+model AnalyticsFact {
+  id               String               @id @default(cuid())
+  organisationId   String
+  workspaceId      String
+  projectId        String?
+  brandId          String?
+  campaignId       String?
+  channel          String?
+  provider         String?
+  dataSourceId     String?
+  metricKey        String
+  value            Decimal              @db.Decimal(24, 8)
+  currency         String?
+  occurredAt       DateTime
+  granularity      AnalyticsGranularity @default(DAY)
+  dimensions       Json                 @default("{}")
+  sourceBatchId    String?
+  dedupeFingerprint String
+  createdAt        DateTime             @default(now())
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?                @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign     Campaign?             @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  dataSource   AnalyticsDataSource?  @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
+  sourceBatch  AnalyticsImportBatch? @relation(fields: [sourceBatchId], references: [id], onDelete: SetNull)
+
+  @@unique([organisationId, dedupeFingerprint])
+  @@index([organisationId, metricKey, occurredAt])
+  @@index([organisationId, campaignId, occurredAt])
+  @@index([organisationId, channel, occurredAt])
+  @@index([organisationId, brandId, occurredAt])
+  @@index([workspaceId, occurredAt])
+  @@index([sourceBatchId])
+}
+
+model AnalyticsAttributionModel {
+  id             String                      @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  name           String
+  modelType      AnalyticsAttributionModelType
+  isDefault      Boolean                     @default(false)
+  config         Json?
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, isDefault])
+  @@index([workspaceId])
+}
+
+model AnalyticsGoal {
+  id             String              @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  projectId      String?
+  brandId        String?
+  campaignId     String?
+  name           String
+  metricKey      String
+  targetValue    Decimal             @db.Decimal(24, 8)
+  currency       String?
+  status         AnalyticsGoalStatus @default(ACTIVE)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, status])
+  @@index([campaignId])
+  @@index([workspaceId])
+}
+
+model AnalyticsSnapshot {
+  id             String                  @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  projectId      String?
+  brandId        String?
+  campaignId     String?
+  name           String
+  status         AnalyticsSnapshotStatus @default(DRAFT)
+  periodFrom     DateTime
+  periodTo       DateTime
+  payload        Json
+  createdByUserId String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, createdAt])
+  @@index([workspaceId, periodFrom, periodTo])
 }
