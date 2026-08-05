@@ -11,7 +11,12 @@ export type AppErrorCode =
   | "AUTH_CONFIGURATION_ERROR"
   | "AUTH_PROVIDER_UNAVAILABLE"
   | "PROFILE_PROVISIONING_FAILED"
-  | "INTERNAL_ERROR";
+  | "INTERNAL_ERROR"
+  | "PLAN_LIMIT_EXCEEDED"
+  | "FEATURE_NOT_INCLUDED"
+  | "SUBSCRIPTION_INACTIVE"
+  | "PAYMENT_ACTION_REQUIRED"
+  | "TRIAL_EXPIRED";
 
 export class AppError extends Error {
   readonly code: AppErrorCode;
@@ -47,7 +52,14 @@ function mapCodeToStatus(code: AppErrorCode): number {
     case "CONFLICT":
       return 409;
     case "RATE_LIMITED":
+    case "PLAN_LIMIT_EXCEEDED":
       return 429;
+    case "FEATURE_NOT_INCLUDED":
+    case "SUBSCRIPTION_INACTIVE":
+    case "TRIAL_EXPIRED":
+      return 403;
+    case "PAYMENT_ACTION_REQUIRED":
+      return 402;
     case "AUTH_CONFIGURATION_ERROR":
     case "AUTH_PROVIDER_UNAVAILABLE":
     case "PROFILE_PROVISIONING_FAILED":

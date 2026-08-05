@@ -856,6 +856,9 @@ model Organisation {
   providerConnections                     ProviderConnection[]
   oauthTransactions                       OAuthTransaction[]
   externalResourceMappings                ExternalResourceMapping[]
+  billingAccount                          BillingAccount?
+  workspaceEntitlements                   WorkspaceEntitlement[]
+  usageRecords                            UsageRecord[]
   providerAuditEvents                     ProviderAuditEvent[]
   providerFeatureFlags                    ProviderFeatureFlag[]
 
@@ -19431,4 +19434,298 @@ model ProviderSyncFailure {
   @@index([connectionId, status])
   @@index([syncRunId])
   @@index([organisationId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Stage 16: Billing, plans, usage and entitlements
+// ---------------------------------------------------------------------------
+
+enum BillingAccountStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  UNPAID
+  PAUSED
+  INCOMPLETE
+}
+
+enum BillingInterval {
+  MONTHLY
+  ANNUAL
+}
+
+enum UsageAllowancePeriod {
+  DAILY
+  MONTHLY
+  BILLING_PERIOD
+  LIFETIME
+}
+
+enum EntitlementValueType {
+  BOOLEAN
+  COUNT
+  RATE
+}
+
+enum WorkspaceEntitlementSource {
+  PLAN
+  OVERRIDE
+  PROMO
+  TRIAL
+}
+
+enum BillingEventStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  DUPLICATE
+}
+
+enum TrialStatus {
+  ACTIVE
+  CONVERTED
+  EXPIRED
+  CANCELLED
+}
+
+model BillingAccount {
+  id               String               @id @default(cuid())
+  workspaceId      String
+  organisationId   String               @unique
+  status           BillingAccountStatus @default(ACTIVE)
+  billingEmail     String?
+  taxMetadata      Json?
+  externalCustomerRef String?
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  organisation Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  subscription Subscription?
+  trial        Trial?
+  invoices     BillingInvoiceReference[]
+  events       BillingEvent[]
+
+  @@index([workspaceId])
+  @@index([status])
+}
+
+model SubscriptionPlan {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  displayName String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  versions SubscriptionPlanVersion[]
+}
+
+model SubscriptionPlanVersion {
+  id                   String          @id @default(cuid())
+  planId               String
+  version              Int
+  monthlyPriceCents    Int             @default(0)
+  annualPriceCents     Int             @default(0)
+  currency             String          @default("USD")
+  externalPriceMonthlyRef String?
+  externalPriceAnnualRef  String?
+  trialDays            Int             @default(0)
+  effectiveFrom        DateTime        @default(now())
+  effectiveTo          DateTime?
+  isCurrent            Boolean         @default(true)
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  plan          SubscriptionPlan   @relation(fields: [planId], references: [id], onDelete: Cascade)
+  entitlements  PlanEntitlement[]
+  allowances    UsageAllowance[]
+  subscriptions Subscription[]
+  promoCodes    PromoCode[]
+
+  @@unique([planId, version])
+  @@index([planId, isCurrent])
+}
+
+model PlanEntitlement {
+  id             String               @id @default(cuid())
+  planVersionId  String
+  entitlementKey String
+  valueType      EntitlementValueType @default(COUNT)
+  limitValue     Int?
+  booleanValue   Boolean?
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+
+  planVersion SubscriptionPlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([planVersionId, entitlementKey])
+  @@index([entitlementKey])
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  billingAccountId      String             @unique
+  planVersionId         String
+  status                SubscriptionStatus @default(ACTIVE)
+  billingInterval       BillingInterval    @default(MONTHLY)
+  externalSubscriptionRef String?
+  currentPeriodStart    DateTime
+  currentPeriodEnd      DateTime
+  cancelAtPeriodEnd     Boolean            @default(false)
+  cancelledAt           DateTime?
+  trialEnd              DateTime?
+  metadata              Json?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  billingAccount BillingAccount          @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+  planVersion    SubscriptionPlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([planVersionId])
+}
+
+model WorkspaceEntitlement {
+  id             String                     @id @default(cuid())
+  workspaceId    String
+  organisationId String
+  entitlementKey String
+  valueType      EntitlementValueType       @default(COUNT)
+  limitValue     Int?
+  booleanValue   Boolean?
+  source         WorkspaceEntitlementSource @default(PLAN)
+  expiresAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, entitlementKey, source])
+  @@index([workspaceId])
+  @@index([entitlementKey])
+}
+
+model UsageMeter {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  displayName String
+  unit        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  allowances UsageAllowance[]
+  records    UsageRecord[]
+}
+
+model UsageAllowance {
+  id            String               @id @default(cuid())
+  planVersionId String
+  meterKey      String
+  allowance     Int
+  period        UsageAllowancePeriod @default(BILLING_PERIOD)
+  overageAllowed Boolean             @default(false)
+  createdAt     DateTime             @default(now())
+
+  planVersion SubscriptionPlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  meter       UsageMeter              @relation(fields: [meterKey], references: [key], onDelete: Cascade)
+
+  @@unique([planVersionId, meterKey, period])
+}
+
+model UsageRecord {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  organisationId String
+  meterKey       String
+  amount         Int
+  idempotencyKey String
+  periodStart    DateTime
+  periodEnd      DateTime
+  metadata       Json?
+  recordedAt     DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  meter        UsageMeter   @relation(fields: [meterKey], references: [key], onDelete: Restrict)
+
+  @@unique([organisationId, idempotencyKey])
+  @@index([organisationId, meterKey, periodStart])
+  @@index([workspaceId, recordedAt])
+}
+
+model BillingInvoiceReference {
+  id               String   @id @default(cuid())
+  billingAccountId String
+  externalInvoiceRef String
+  invoiceUrl       String?
+  amountCents      Int
+  currency         String   @default("USD")
+  status           String
+  periodStart      DateTime?
+  periodEnd        DateTime?
+  createdAt        DateTime @default(now())
+
+  billingAccount BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([externalInvoiceRef])
+  @@index([billingAccountId, createdAt])
+}
+
+model BillingEvent {
+  id               String             @id @default(cuid())
+  billingAccountId String?
+  externalEventRef String             @unique
+  eventType        String
+  status           BillingEventStatus @default(PENDING)
+  payload          Json?
+  errorMessage     String?
+  processedAt      DateTime?
+  createdAt        DateTime           @default(now())
+
+  billingAccount BillingAccount? @relation(fields: [billingAccountId], references: [id], onDelete: SetNull)
+
+  @@index([billingAccountId, createdAt])
+  @@index([status])
+}
+
+model Trial {
+  id               String      @id @default(cuid())
+  billingAccountId String      @unique
+  status           TrialStatus @default(ACTIVE)
+  startedAt        DateTime    @default(now())
+  endsAt           DateTime
+  convertedAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  billingAccount BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+
+  @@index([status, endsAt])
+}
+
+model PromoCode {
+  id              String   @id @default(cuid())
+  code            String   @unique
+  planVersionId   String?
+  discountPercent Int?
+  trialDaysExtra  Int?
+  maxRedemptions  Int?
+  redemptionCount Int      @default(0)
+  expiresAt       DateTime?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  planVersion SubscriptionPlanVersion? @relation(fields: [planVersionId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, expiresAt])
 }

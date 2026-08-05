@@ -46,6 +46,9 @@ const serverEnvSchema = z.object({
   SUPABASE_ANON_KEY: optionalNonEmptyString,
   PRODUCTION_AUTH_DATABASE_DIAGNOSTICS_ENABLED: optionalNonEmptyString,
   PRODUCTION_DIAGNOSTICS_TOKEN: optionalNonEmptyString,
+  STRIPE_BILLING_SECRET_KEY: optionalNonEmptyString,
+  STRIPE_BILLING_WEBHOOK_SECRET: optionalNonEmptyString,
+  STRIPE_BILLING_PUBLISHABLE_KEY: optionalNonEmptyString,
 });
 
 const clientEnvSchema = z.object({
