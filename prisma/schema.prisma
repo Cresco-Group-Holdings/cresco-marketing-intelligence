@@ -435,6 +435,14 @@ model UserProfile {
   providerCredentialsRevoked                   ProviderCredential[]                   @relation("ProviderCredentialRevoker")
   oauthTransactionsInitiated                   OAuthTransaction[]                     @relation("OAuthTransactionInitiator")
   providerAuditEvents                          ProviderAuditEvent[]                   @relation("ProviderAuditActor")
+  platformAdminGrant                           PlatformAdminGrant?                    @relation("PlatformAdminGrantUser")
+  platformAdminGrantsIssued                    PlatformAdminGrant[]                   @relation("PlatformAdminGrantGranter")
+  systemAnnouncementsCreated                   SystemAnnouncement[]                   @relation("SystemAnnouncementCreator")
+  supportAccessSessionsAsAdmin                 SupportAccessSession[]                 @relation("SupportAccessAdmin")
+  supportAccessSessionsAsTarget                SupportAccessSession[]                 @relation("SupportAccessTarget")
+  supportAccessSessionsRevoked                 SupportAccessSession[]                 @relation("SupportAccessRevoker")
+  dataDeletionRequests                         DataDeletionRequest[]                  @relation("DataDeletionRequester")
+  incidentLogsOpened                           IncidentLog[]                          @relation("IncidentLogOpener")
 
   @@index([email])
 }
@@ -861,6 +869,8 @@ model Organisation {
   usageRecords                            UsageRecord[]
   providerAuditEvents                     ProviderAuditEvent[]
   providerFeatureFlags                    ProviderFeatureFlag[]
+  supportAccessSessions                   SupportAccessSession[]
+  dataDeletionRequests                    DataDeletionRequest[]
 
   @@index([status])
   @@index([archivedAt])
@@ -19728,4 +19738,148 @@ model PromoCode {
   planVersion SubscriptionPlanVersion? @relation(fields: [planVersionId], references: [id], onDelete: SetNull)
 
   @@index([isActive, expiresAt])
+}
+
+// ─── Stage 17: Security, reliability & enterprise administration ─────────────
+
+enum SupportAccessStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum DataDeletionRequestStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+}
+
+enum IncidentSeverity {
+  SEV1
+  SEV2
+  SEV3
+  SEV4
+}
+
+enum IncidentStatus {
+  OPEN
+  MITIGATING
+  RESOLVED
+  CLOSED
+}
+
+model PlatformAdminGrant {
+  id            String   @id @default(cuid())
+  userProfileId String   @unique
+  grantedById   String?
+  reason        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  userProfile UserProfile  @relation("PlatformAdminGrantUser", fields: [userProfileId], references: [id], onDelete: Cascade)
+  grantedBy   UserProfile? @relation("PlatformAdminGrantGranter", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
+
+model SystemAnnouncement {
+  id          String    @id @default(cuid())
+  title       String
+  message     String
+  severity    String    @default("info")
+  isActive    Boolean   @default(true)
+  startsAt    DateTime  @default(now())
+  endsAt      DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  createdBy UserProfile? @relation("SystemAnnouncementCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([isActive, startsAt, endsAt])
+}
+
+model PlatformFeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  displayName String
+  description String?
+  enabled     Boolean  @default(false)
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+model SupportAccessSession {
+  id               String              @id @default(cuid())
+  adminUserId      String
+  targetUserId     String
+  targetOrgId      String?
+  reason           String
+  status           SupportAccessStatus @default(ACTIVE)
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  revokedById      String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  adminUser   UserProfile  @relation("SupportAccessAdmin", fields: [adminUserId], references: [id], onDelete: Cascade)
+  targetUser  UserProfile  @relation("SupportAccessTarget", fields: [targetUserId], references: [id], onDelete: Cascade)
+  targetOrg   Organisation? @relation(fields: [targetOrgId], references: [id], onDelete: SetNull)
+  revokedBy   UserProfile? @relation("SupportAccessRevoker", fields: [revokedById], references: [id], onDelete: SetNull)
+
+  @@index([status, expiresAt])
+  @@index([adminUserId])
+  @@index([targetUserId])
+}
+
+model DataRetentionPolicy {
+  id              String   @id @default(cuid())
+  resourceType    String   @unique
+  retentionDays   Int
+  anonymiseAfter  Int?
+  isActive        Boolean  @default(true)
+  description     String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model DataDeletionRequest {
+  id              String                    @id @default(cuid())
+  organisationId  String
+  requestedById   String
+  subjectEmail    String?
+  status          DataDeletionRequestStatus @default(PENDING)
+  reason          String?
+  completedAt     DateTime?
+  metadata        Json?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime                  @updatedAt
+
+  organisation  Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  requestedBy   UserProfile  @relation("DataDeletionRequester", fields: [requestedById], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, status])
+  @@index([status, createdAt])
+}
+
+model IncidentLog {
+  id          String           @id @default(cuid())
+  title       String
+  description String?
+  severity    IncidentSeverity @default(SEV3)
+  status      IncidentStatus   @default(OPEN)
+  openedById  String?
+  resolvedAt  DateTime?
+  metadata    Json?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  openedBy UserProfile? @relation("IncidentLogOpener", fields: [openedById], references: [id], onDelete: SetNull)
+
+  @@index([status, severity])
+  @@index([createdAt])
 }

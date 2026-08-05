@@ -49,6 +49,7 @@ const serverEnvSchema = z.object({
   STRIPE_BILLING_SECRET_KEY: optionalNonEmptyString,
   STRIPE_BILLING_WEBHOOK_SECRET: optionalNonEmptyString,
   STRIPE_BILLING_PUBLISHABLE_KEY: optionalNonEmptyString,
+  PLATFORM_ADMIN_EMAILS: optionalNonEmptyString,
 });
 
 const clientEnvSchema = z.object({
