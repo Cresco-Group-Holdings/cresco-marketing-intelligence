@@ -3212,7 +3212,7 @@ model OrganisationContentSettings {
 }
 
 model ContentItem {
-  id                String             @id @default(cuid())
+  id                String                 @id @default(cuid())
   organisationId    String
   projectId         String
   brandId           String
@@ -3231,8 +3231,8 @@ model ContentItem {
   primaryCTA        String?
   destinationUrl    String?
   primaryChannel    BrandMarketingChannel?
-  status            ContentStatus      @default(IDEA)
-  priority          ContentPriority    @default(NORMAL)
+  status            ContentStatus          @default(IDEA)
+  priority          ContentPriority        @default(NORMAL)
   ownerUserId       String
   createdByUserId   String
   approvedByUserId  String?
@@ -3240,9 +3240,9 @@ model ContentItem {
   dueAt             DateTime?
   scheduledFor      DateTime?
   timezone          String?
-  version           Int                @default(1)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  version           Int                    @default(1)
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
   archivedAt        DateTime?
 
   organisation             Organisation                      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -3298,7 +3298,7 @@ model ContentItem {
 }
 
 model ContentVariant {
-  id               String                  @id @default(cuid())
+  id               String                 @id @default(cuid())
   organisationId   String
   projectId        String
   brandId          String
@@ -3311,19 +3311,19 @@ model ContentVariant {
   channelBody      String?
   headline         String?
   description      String?
-  hashtags         String[]                @default([])
-  mentions         String[]                @default([])
+  hashtags         String[]               @default([])
+  mentions         String[]               @default([])
   destinationUrl   String?
   firstComment     String?
   altText          String?
   thumbnailAssetId String?
   durationSeconds  Int?
   aspectRatio      String?
-  status           ContentStatus           @default(DRAFT)
+  status           ContentStatus          @default(DRAFT)
   validationErrors Json?
   providerMetadata Json?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
 
   organisation             Organisation                      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   project                  Project                           @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -3507,7 +3507,7 @@ model ContentReview {
 }
 
 model ContentTemplate {
-  id                      String                  @id @default(cuid())
+  id                      String                 @id @default(cuid())
   organisationId          String
   projectId               String
   brandId                 String
@@ -3520,10 +3520,10 @@ model ContentTemplate {
   contentBodyTemplate     String?
   callToActionTemplate    String?
   variantTemplates        Json?
-  isActive                Boolean                 @default(true)
+  isActive                Boolean                @default(true)
   createdByUserId         String
-  createdAt               DateTime                @default(now())
-  updatedAt               DateTime                @updatedAt
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
   archivedAt              DateTime?
 
   organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)

@@ -86,7 +86,7 @@ export const contentStudioTemplateCreateSchema = z.object({
   audienceSummaryTemplate: optionalTrimmed(5000),
   contentBodyTemplate: optionalTrimmed(100000),
   callToActionTemplate: optionalTrimmed(300),
-  variantTemplates: z.record(z.unknown()).optional(),
+  variantTemplates: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const contentStudioKnowledgeRefSchema = z.object({

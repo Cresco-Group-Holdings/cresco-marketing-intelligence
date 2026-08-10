@@ -30,7 +30,7 @@ export default function NewContentStudioPage() {
         {
           method: "POST",
           organisationId,
-          body: {
+          body: JSON.stringify({
             title: values.title,
             studioType: values.studioType,
             studioObjective: values.studioObjective || undefined,
@@ -44,7 +44,7 @@ export default function NewContentStudioPage() {
               ? new Date(values.scheduledFor).toISOString()
               : undefined,
             timezone: values.timezone || undefined,
-          },
+          }),
         },
       );
       router.push(`/content/studio/${data.item.id}`);

@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api/client";
@@ -127,7 +126,7 @@ export default function ContentStudioDetailPage() {
         {
           method: "PATCH",
           organisationId,
-          body: {
+          body: JSON.stringify({
             title: values.title,
             studioType: values.studioType,
             studioObjective: values.studioObjective || undefined,
@@ -141,7 +140,7 @@ export default function ContentStudioDetailPage() {
               : undefined,
             timezone: values.timezone || undefined,
             expectedVersion: item.version,
-          },
+          }),
         },
       );
       await loadItem();
@@ -156,7 +155,7 @@ export default function ContentStudioDetailPage() {
     if (!organisationId || !brandId) return;
     await apiFetch(
       `/api/brands/${brandId}/content-studio/${contentId}?organisationId=${organisationId}`,
-      { method: "POST", organisationId, body: { toStatus } },
+      { method: "POST", organisationId, body: JSON.stringify({ toStatus }) },
     );
     await loadItem();
   }
@@ -174,7 +173,7 @@ export default function ContentStudioDetailPage() {
     if (!organisationId || !brandId) return;
     await apiFetch(
       `/api/brands/${brandId}/content-studio/${contentId}/approve?organisationId=${organisationId}`,
-      { method: "POST", organisationId, body: {} },
+      { method: "POST", organisationId, body: JSON.stringify({}) },
     );
     await loadItem();
   }
@@ -183,7 +182,7 @@ export default function ContentStudioDetailPage() {
     if (!organisationId || !brandId) return;
     await apiFetch(
       `/api/brands/${brandId}/content-studio/${contentId}/request-changes?organisationId=${organisationId}`,
-      { method: "POST", organisationId, body: { decisionNote: feedback } },
+      { method: "POST", organisationId, body: JSON.stringify({ decisionNote: feedback }) },
     );
     await loadItem();
   }
@@ -205,9 +204,9 @@ export default function ContentStudioDetailPage() {
     return (
       <div className="py-8 text-center">
         <p className="text-destructive">{error ?? "Content not found."}</p>
-        <Button className="mt-4" variant="outline" size="sm" asChild>
-          <Link href="/content/studio">Back to studio</Link>
-        </Button>
+        <ButtonLink className="mt-4" variant="outline" size="sm" href="/content/studio">
+          Back to studio
+        </ButtonLink>
       </div>
     );
   }
@@ -222,9 +221,9 @@ export default function ContentStudioDetailPage() {
         actions={
           <div className="flex items-center gap-2">
             <Badge>{item.status.replace(/_/g, " ")}</Badge>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/content/studio">Back</Link>
-            </Button>
+            <ButtonLink variant="outline" size="sm" href="/content/studio">
+              Back
+            </ButtonLink>
           </div>
         }
       />

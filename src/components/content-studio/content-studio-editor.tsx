@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 
 const STUDIO_TYPES = [
   "SOCIAL_POST",
@@ -96,8 +95,9 @@ export function ContentStudioEditor({
           <label htmlFor="title" className={labelClass}>
             Title
           </label>
-          <Input
+          <input
             id="title"
+            className={fieldClass}
             value={values.title}
             onChange={(e) => update("title", e.target.value)}
             disabled={readOnly}
@@ -149,8 +149,9 @@ export function ContentStudioEditor({
           <label htmlFor="objective" className={labelClass}>
             Objective
           </label>
-          <Input
+          <input
             id="objective"
+            className={fieldClass}
             value={values.studioObjective}
             onChange={(e) => update("studioObjective", e.target.value)}
             disabled={readOnly}
@@ -189,8 +190,9 @@ export function ContentStudioEditor({
           <label htmlFor="cta" className={labelClass}>
             Call to action
           </label>
-          <Input
+          <input
             id="cta"
+            className={fieldClass}
             value={values.primaryCTA}
             onChange={(e) => update("primaryCTA", e.target.value)}
             disabled={readOnly}
@@ -202,9 +204,10 @@ export function ContentStudioEditor({
             <label htmlFor="dueAt" className={labelClass}>
               Due date
             </label>
-            <Input
+            <input
               id="dueAt"
               type="datetime-local"
+              className={fieldClass}
               value={values.dueAt}
               onChange={(e) => update("dueAt", e.target.value)}
               disabled={readOnly}
@@ -214,9 +217,10 @@ export function ContentStudioEditor({
             <label htmlFor="scheduledFor" className={labelClass}>
               Scheduled for
             </label>
-            <Input
+            <input
               id="scheduledFor"
               type="datetime-local"
+              className={fieldClass}
               value={values.scheduledFor}
               onChange={(e) => update("scheduledFor", e.target.value)}
               disabled={readOnly}

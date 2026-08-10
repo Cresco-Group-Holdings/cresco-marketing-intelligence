@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api/client";
 import {
@@ -56,12 +56,12 @@ export default function ContentStudioPage() {
         description="Manage content briefs, drafts, reviews, and publication readiness."
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/content">Legacy content</Link>
-            </Button>
-            <Button size="sm" asChild>
-              <Link href="/content/studio/new">New content</Link>
-            </Button>
+            <ButtonLink variant="outline" size="sm" href="/content">
+              Legacy content
+            </ButtonLink>
+            <ButtonLink size="sm" href="/content/studio/new">
+              New content
+            </ButtonLink>
           </div>
         }
       />
@@ -69,14 +69,14 @@ export default function ContentStudioPage() {
       <div className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"
-          variant={view === "pipeline" ? "default" : "outline"}
+          variant={view === "pipeline" ? "primary" : "outline"}
           onClick={() => setView("pipeline")}
         >
           Pipeline
         </Button>
         <Button
           size="sm"
-          variant={view === "list" ? "default" : "outline"}
+          variant={view === "list" ? "primary" : "outline"}
           onClick={() => setView("list")}
         >
           List
@@ -114,9 +114,9 @@ export default function ContentStudioPage() {
         <Card>
           <CardContent className="py-8 text-center">
             <p className="text-muted-foreground">No content studio items yet.</p>
-            <Button className="mt-4" size="sm" asChild>
-              <Link href="/content/studio/new">Create your first content</Link>
-            </Button>
+            <ButtonLink className="mt-4" size="sm" href="/content/studio/new">
+              Create your first content
+            </ButtonLink>
           </CardContent>
         </Card>
       )}
