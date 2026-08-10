@@ -411,7 +411,12 @@ model UserProfile {
   complianceOverridesCreated                   ComplianceOverride[]                   @relation("ComplianceOverrideUser")
   contentCampaignsOwned                        ContentCampaign[]                      @relation("ContentCampaignOwner")
   contentCampaignsCreated                      ContentCampaign[]                      @relation("ContentCampaignCreator")
+  contentCampaignMemberships                   ContentCampaignMember[]
+  campaignsOwned                               Campaign[]                             @relation("CampaignOwner")
+  campaignsCreated                             Campaign[]                             @relation("CampaignCreator")
   campaignMemberships                          CampaignMember[]
+  campaignMembersAdded                         CampaignMember[]                       @relation("CampaignMemberAdder")
+  campaignActivitiesAuthored                   CampaignActivity[]                     @relation("CampaignActivityActor")
   contentTasksAssigned                         ContentTask[]                          @relation("ContentTaskAssignee")
   contentTasksOwned                            ContentTask[]                          @relation("ContentTaskOwner")
   contentTasksCreated                          ContentTask[]                          @relation("ContentTaskCreator")
@@ -427,6 +432,13 @@ model UserProfile {
   socialInboxAssigned                          SocialConversation[]                   @relation("SocialInboxConversationAssignee")
   providerConnectionsCreated                   ProviderConnection[]                   @relation("ProviderConnectionCreator")
   providerAuditEvents                          ProviderAuditEvent[]                   @relation("ProviderAuditActor")
+  knowledgeEntriesCreated                      KnowledgeEntry[]                       @relation("KnowledgeEntryCreator")
+  knowledgeEntriesApproved                     KnowledgeEntry[]                       @relation("KnowledgeEntryApprover")
+  knowledgeEntryVersionsChanged                KnowledgeEntryVersion[]                @relation("KnowledgeEntryVersionChanger")
+  knowledgeDocumentsUploaded                   KnowledgeDocument[]                    @relation("KnowledgeDocumentUploader")
+  knowledgeDocumentVersionsUploaded            KnowledgeDocumentVersion[]             @relation("KnowledgeDocumentVersionUploader")
+  knowledgeRelationshipsCreated                KnowledgeRelationship[]                @relation("KnowledgeRelationshipCreator")
+  knowledgeActivities                            KnowledgeActivity[]                    @relation("KnowledgeActivityActor")
 
   @@index([email])
 }
@@ -819,6 +831,10 @@ model Organisation {
   complianceEvaluations                   ComplianceEvaluation[]
   complianceOverrides                     ComplianceOverride[]
   contentCampaigns                        ContentCampaign[]
+  campaigns                               Campaign[]
+  campaignChannels                        CampaignChannel[]
+  campaignKpis                            CampaignKpi[]
+  campaignActivities                      CampaignActivity[]
   contentTasks                            ContentTask[]
   contentAssignments                      ContentAssignment[]
   contentDeadlines                        ContentDeadline[]
@@ -836,6 +852,14 @@ model Organisation {
   providerConnections                     ProviderConnection[]
   providerAuditEvents                     ProviderAuditEvent[]
   providerFeatureFlags                    ProviderFeatureFlag[]
+  knowledgeBases                          KnowledgeBase[]
+  knowledgeEntries                        KnowledgeEntry[]
+  knowledgeEntryVersions                  KnowledgeEntryVersion[]
+  knowledgeDocuments                      KnowledgeDocument[]
+  knowledgeDocumentVersions               KnowledgeDocumentVersion[]
+  knowledgeTags                           KnowledgeTag[]
+  knowledgeRelationships                  KnowledgeRelationship[]
+  knowledgeActivities                     KnowledgeActivity[]
 
   @@index([status])
   @@index([archivedAt])
@@ -1089,6 +1113,8 @@ model Project {
   compliancePolicies               CompliancePolicy[]
   complianceEvaluations            ComplianceEvaluation[]
   contentCampaigns                 ContentCampaign[]
+  campaigns                        Campaign[]
+  campaignActivities               CampaignActivity[]
   contentTasks                     ContentTask[]
   contentActivities                ContentActivity[]
   socialConversations              SocialConversation[]
@@ -1101,6 +1127,9 @@ model Project {
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
   providerConnections              ProviderConnection[]
+  knowledgeBases                   KnowledgeBase[]
+  knowledgeEntries                 KnowledgeEntry[]
+  knowledgeDocuments               KnowledgeDocument[]
 
   @@unique([organisationId, slug])
   @@index([organisationId])
@@ -1366,6 +1395,8 @@ model Brand {
   compliancePolicies               CompliancePolicy[]
   complianceEvaluations            ComplianceEvaluation[]
   contentCampaigns                 ContentCampaign[]
+  campaigns                        Campaign[]
+  campaignActivities               CampaignActivity[]
   contentTasks                     ContentTask[]
   contentAssignments               ContentAssignment[]
   contentDeadlines                 ContentDeadline[]
@@ -1381,6 +1412,9 @@ model Brand {
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
   providerConnections              ProviderConnection[]
+  knowledgeBases                   KnowledgeBase[]
+  knowledgeEntries                 KnowledgeEntry[]
+  knowledgeDocuments               KnowledgeDocument[]
 
   @@unique([projectId, slug])
   @@index([organisationId])
@@ -1560,6 +1594,7 @@ model BrandAudience {
   advertisingAudiencePlans AdvertisingCampaignAudiencePlan[]
   advertisingAudiences     AdvertisingAudience[]
   contentCampaigns         ContentCampaign[]
+  campaigns                Campaign[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -7563,6 +7598,227 @@ enum ContentTaskStatus {
   CANCELLED
 }
 
+enum CampaignStatus {
+  DRAFT
+  PLANNED
+  READY
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+  ARCHIVED
+}
+
+enum CampaignLifecycleStage {
+  INTAKE
+  PLANNING
+  EXECUTION
+  OPTIMIZATION
+  WRAP_UP
+  CLOSED
+}
+
+enum CampaignObjective {
+  BRAND_AWARENESS
+  LEAD_GENERATION
+  WEBSITE_TRAFFIC
+  ENGAGEMENT
+  CONVERSIONS
+  RETENTION
+}
+
+enum CampaignBudgetType {
+  TOTAL
+  DAILY
+  MONTHLY
+  LIFETIME
+}
+
+enum CampaignChannelType {
+  ORGANIC_SOCIAL
+  PAID_SOCIAL
+  EMAIL
+  SEO
+  PAID_SEARCH
+  DISPLAY
+  EVENTS
+  PARTNERSHIPS
+  OTHER
+}
+
+enum CampaignChannelStatus {
+  PLANNED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum CampaignMemberRole {
+  OWNER
+  MANAGER
+  CONTRIBUTOR
+  VIEWER
+}
+
+enum CampaignKpiSourceType {
+  MANUAL
+  WAREHOUSE
+  CONNECTOR
+  CALCULATED
+}
+
+enum CampaignActivityType {
+  CREATED
+  UPDATED
+  STATUS_TRANSITION
+  LIFECYCLE_CHANGED
+  CHANNEL_ADDED
+  CHANNEL_UPDATED
+  CHANNEL_REMOVED
+  KPI_ADDED
+  KPI_UPDATED
+  KPI_REMOVED
+  MEMBER_ADDED
+  MEMBER_UPDATED
+  MEMBER_REMOVED
+  ARCHIVED
+  RESTORED
+}
+
+model Campaign {
+  id                     String                 @id @default(cuid())
+  organisationId         String
+  projectId              String
+  brandId                String
+  name                   String
+  description            String?
+  status                 CampaignStatus         @default(DRAFT)
+  lifecycleStage         CampaignLifecycleStage @default(INTAKE)
+  primaryObjective       CampaignObjective?
+  timezone               String                 @default("UTC")
+  startAt                DateTime?
+  endAt                  DateTime?
+  budgetType             CampaignBudgetType?
+  budgetAmount           Decimal?               @db.Decimal(18, 4)
+  budgetCurrency         String?
+  strategyNarrative      String?
+  strategyTargetOutcomes String[]               @default([])
+  audienceDescription    String?
+  audienceSegments       String[]               @default([])
+  targetAudienceId       String?
+  ownerUserId            String
+  createdByUserId        String
+  version                Int                    @default(1)
+  archivedAt             DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  organisation   Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  owner          UserProfile       @relation("CampaignOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy      UserProfile       @relation("CampaignCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  targetAudience BrandAudience?    @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
+  channels       CampaignChannel[]
+  kpis           CampaignKpi[]
+  members        CampaignMember[]
+  activities     CampaignActivity[]
+
+  @@index([organisationId, brandId, status])
+  @@index([organisationId, archivedAt])
+  @@index([ownerUserId])
+  @@index([startAt, endAt])
+  @@index([projectId])
+}
+
+model CampaignChannel {
+  id             String                @id @default(cuid())
+  organisationId String
+  campaignId     String
+  channelType    CampaignChannelType
+  status         CampaignChannelStatus @default(PLANNED)
+  name           String?
+  provider       String?
+  budgetAmount   Decimal?              @db.Decimal(18, 4)
+  budgetCurrency String?
+  notes          String?
+  startAt        DateTime?
+  endAt          DateTime?
+  externalRef    String?
+  metadata       Json?
+  sortOrder      Int                   @default(0)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  campaign     Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, channelType])
+  @@index([organisationId])
+}
+
+model CampaignKpi {
+  id             String                @id @default(cuid())
+  organisationId String
+  campaignId     String
+  name           String
+  metricKey      String?
+  targetValue    Decimal?              @db.Decimal(18, 4)
+  currentValue   Decimal?              @db.Decimal(18, 4)
+  unit           String?
+  sourceType     CampaignKpiSourceType @default(MANUAL)
+  sourceRef      String?
+  sortOrder      Int                   @default(0)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  campaign     Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, sortOrder])
+  @@index([organisationId])
+}
+
+model CampaignMember {
+  id            String             @id @default(cuid())
+  campaignId    String
+  userId        String
+  role          CampaignMemberRole @default(CONTRIBUTOR)
+  addedByUserId String
+  addedAt       DateTime           @default(now())
+  removedAt     DateTime?
+
+  campaign Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     UserProfile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  addedBy  UserProfile @relation("CampaignMemberAdder", fields: [addedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([campaignId, userId])
+  @@index([userId])
+}
+
+model CampaignActivity {
+  id             String               @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String
+  campaignId     String
+  activityType   CampaignActivityType
+  actorUserId    String
+  summary        String
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign     Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  actor        UserProfile  @relation("CampaignActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, brandId, createdAt])
+  @@index([campaignId, createdAt])
+}
+
 enum ContentCampaignStatus {
   PLANNED
   ACTIVE
@@ -7643,7 +7899,7 @@ model ContentCampaign {
   targetAudience     BrandAudience?      @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
   offer              BrandOffer?         @relation(fields: [offerId], references: [id], onDelete: SetNull)
   marketingObjective MarketingObjective? @relation(fields: [marketingObjectiveId], references: [id], onDelete: SetNull)
-  members            CampaignMember[]
+  members            ContentCampaignMember[]
   contentItems       ContentItem[]
   tasks              ContentTask[]
   assignments        ContentAssignment[]
@@ -7651,13 +7907,14 @@ model ContentCampaign {
   checklists         ContentChecklist[]
   activities         ContentActivity[]
   experiments        GrowthExperiment[]
+  knowledgeEntries   KnowledgeEntry[]
 
   @@index([organisationId, brandId, status])
   @@index([ownerUserId])
   @@index([startDate, endDate])
 }
 
-model CampaignMember {
+model ContentCampaignMember {
   id         String    @id @default(cuid())
   campaignId String
   userId     String
@@ -18255,10 +18512,43 @@ enum ProviderWebhookEventStatus {
 
 enum ProviderSyncRunStatus {
   PENDING
+  QUEUED
   RUNNING
   COMPLETED
+  SUCCEEDED
+  PARTIALLY_SUCCEEDED
   FAILED
+  RETRYING
   CANCELLED
+  DEAD_LETTERED
+}
+
+enum ProviderSyncDirection {
+  IMPORT
+  EXPORT
+}
+
+enum ProviderSyncTriggerType {
+  MANUAL
+  SCHEDULED
+  WEBHOOK
+  EVENT
+  INITIAL_IMPORT
+  RETRY
+}
+
+enum ProviderSyncRecordAction {
+  CREATED
+  UPDATED
+  SKIPPED
+  FAILED
+}
+
+enum ProviderWebhookEndpointStatus {
+  PENDING
+  ACTIVE
+  FAILED
+  REVOKED
 }
 
 enum ProviderHealthStatus {
@@ -18361,6 +18651,7 @@ model ProviderConnection {
   webhookEvents    ProviderWebhookEvent[]
   syncCursors      ProviderSyncCursor[]
   syncRuns         ProviderSyncRun[]
+  providerAccounts ProviderAccount[]
   rateLimitStates  ProviderRateLimitState[]
   healthStates     ProviderHealthState[]
   auditEvents      ProviderAuditEvent[]
@@ -18417,22 +18708,27 @@ model ProviderOAuthState {
 }
 
 model ProviderWebhookEndpoint {
-  id             String    @id @default(cuid())
-  organisationId String
-  connectionId   String
-  providerKey    String
-  externalId     String?
-  url            String
-  secretDigest   String?
-  isActive       Boolean   @default(true)
-  lastReceivedAt DateTime?
-  metadata       Json?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id               String                        @id @default(cuid())
+  organisationId   String
+  connectionId     String
+  providerKey      String
+  endpointKey      String                        @default("default")
+  externalId       String?
+  url              String
+  secretDigest     String?
+  status           ProviderWebhookEndpointStatus @default(PENDING)
+  subscribedEvents String[]                      @default([])
+  isActive         Boolean                       @default(true)
+  lastReceivedAt   DateTime?
+  lastVerifiedAt   DateTime?
+  metadata         Json?
+  createdAt        DateTime                      @default(now())
+  updatedAt        DateTime                      @updatedAt
 
   connection ProviderConnection     @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   events     ProviderWebhookEvent[]
 
+  @@unique([connectionId, endpointKey])
   @@index([connectionId])
   @@index([organisationId, providerKey])
 }
@@ -18479,25 +18775,83 @@ model ProviderSyncCursor {
 }
 
 model ProviderSyncRun {
-  id               String                @id @default(cuid())
+  id               String                  @id @default(cuid())
   organisationId   String
   connectionId     String
+  capability       String?
   resourceType     String?
-  status           ProviderSyncRunStatus @default(PENDING)
+  direction        ProviderSyncDirection   @default(IMPORT)
+  triggerType      ProviderSyncTriggerType @default(MANUAL)
+  status           ProviderSyncRunStatus   @default(PENDING)
+  cursor           String?
+  checkpoint       Json?
+  idempotencyKey   String?
+  requestedByUserId String?
   startedAt        DateTime?
   completedAt      DateTime?
-  recordsProcessed Int                   @default(0)
+  recordsRead      Int                     @default(0)
+  recordsWritten   Int                     @default(0)
+  recordsSkipped   Int                     @default(0)
+  recordsFailed    Int                     @default(0)
+  recordsProcessed Int                     @default(0)
+  attemptCount     Int                     @default(0)
+  nextRetryAt      DateTime?
   errorCode        String?
   errorMessage     String?
   correlationId    String?
   metadata         Json?
-  createdAt        DateTime              @default(now())
-  updatedAt        DateTime              @updatedAt
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  connection ProviderConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  records    ProviderSyncRecord[]
+
+  @@unique([connectionId, idempotencyKey])
+  @@index([connectionId, status])
+  @@index([connectionId, capability, status])
+  @@index([organisationId, createdAt])
+}
+
+model ProviderSyncRecord {
+  id                   String                 @id @default(cuid())
+  syncRunId            String
+  externalResourceType String
+  externalResourceId   String
+  internalResourceType String?
+  internalResourceId   String?
+  action               ProviderSyncRecordAction
+  checksum             String?
+  errorCode            String?
+  errorMessage         String?
+  processedAt          DateTime               @default(now())
+
+  syncRun ProviderSyncRun @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+
+  @@index([syncRunId, processedAt])
+  @@index([externalResourceType, externalResourceId])
+}
+
+model ProviderAccount {
+  id               String   @id @default(cuid())
+  organisationId   String
+  connectionId     String
+  externalId       String
+  displayName      String
+  accountType      String?
+  parentExternalId String?
+  currency         String?
+  timezone         String?
+  status           String?
+  selected         Boolean  @default(false)
+  metadata         Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
-  @@index([connectionId, status])
-  @@index([organisationId, createdAt])
+  @@unique([connectionId, externalId])
+  @@index([connectionId, selected])
+  @@index([organisationId])
 }
 
 model ProviderRateLimitState {
@@ -18604,4 +18958,298 @@ model ProviderOutboundSend {
   @@index([organisationId, providerKey])
   @@index([connectionId, status])
   @@index([providerMessageId])
+}
+
+// ---------------------------------------------------------------------------
+// Knowledge Base and Brand Intelligence Core (Stage 2)
+// ---------------------------------------------------------------------------
+
+enum KnowledgeBaseStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum KnowledgeEntryType {
+  BRAND_GUIDELINE
+  TONE_OF_VOICE
+  PRODUCT
+  SERVICE
+  AUDIENCE
+  PERSONA
+  ICP
+  COMPETITOR
+  FAQ
+  CASE_STUDY
+  APPROVED_CLAIM
+  PROHIBITED_CLAIM
+  POLICY
+  CAMPAIGN_CONTEXT
+  SALES_MATERIAL
+  GENERAL
+}
+
+enum KnowledgeEntryStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum KnowledgeEntrySourceType {
+  MANUAL
+  DOCUMENT
+  URL
+  IMPORT
+  SYSTEM
+}
+
+enum KnowledgeRelationshipType {
+  RELATED
+  CONFLICTS_WITH
+  SUPERSEDES
+  DERIVED_FROM
+}
+
+enum KnowledgeDocumentStatus {
+  PROCESSING
+  READY
+  QUARANTINED
+  REJECTED
+  ARCHIVED
+}
+
+enum KnowledgeActivityAction {
+  CREATED
+  UPDATED
+  SUBMITTED_FOR_REVIEW
+  APPROVED
+  REJECTED
+  ARCHIVED
+  RESTORED
+  VERSION_CREATED
+  DOCUMENT_UPLOADED
+  TAG_ADDED
+  TAG_REMOVED
+  RELATIONSHIP_ADDED
+  RELATIONSHIP_REMOVED
+}
+
+model KnowledgeBase {
+  id             String              @id @default(cuid())
+  organisationId String
+  projectId      String
+  brandId        String?
+  name           String
+  description    String?
+  status         KnowledgeBaseStatus @default(ACTIVE)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand?              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  entries      KnowledgeEntry[]
+  documents    KnowledgeDocument[]
+  tags         KnowledgeTag[]
+  activities   KnowledgeActivity[]
+
+  @@index([organisationId, brandId, status])
+  @@index([projectId])
+}
+
+model KnowledgeEntry {
+  id               String                   @id @default(cuid())
+  knowledgeBaseId  String
+  organisationId   String
+  projectId        String
+  brandId          String?
+  campaignId       String?
+
+  type             KnowledgeEntryType
+  title            String
+  summary          String?
+  content          String
+
+  status           KnowledgeEntryStatus     @default(DRAFT)
+  sourceType       KnowledgeEntrySourceType @default(MANUAL)
+  sourceReference  String?
+
+  confidence       Decimal?                 @db.Decimal(5, 4)
+  validFrom        DateTime?
+  validUntil       DateTime?
+
+  version          Int                      @default(1)
+  createdByUserId  String
+  approvedByUserId String?
+  approvedAt       DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+  archivedAt       DateTime?
+
+  knowledgeBase    KnowledgeBase            @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  organisation     Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand            Brand?                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign         ContentCampaign?         @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdBy        UserProfile              @relation("KnowledgeEntryCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approvedBy       UserProfile?             @relation("KnowledgeEntryApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  versions         KnowledgeEntryVersion[]
+  entryTags        KnowledgeEntryTag[]
+  relationshipsFrom KnowledgeRelationship[] @relation("KnowledgeRelationshipSource")
+  relationshipsTo   KnowledgeRelationship[] @relation("KnowledgeRelationshipTarget")
+  activities       KnowledgeActivity[]
+  linkedDocuments  KnowledgeDocument[]
+
+  @@index([knowledgeBaseId, status])
+  @@index([organisationId, brandId, type, status])
+  @@index([campaignId])
+  @@index([validFrom, validUntil])
+}
+
+model KnowledgeEntryVersion {
+  id              String               @id @default(cuid())
+  entryId         String
+  organisationId  String
+  version         Int
+  title           String
+  summary         String?
+  content         String
+  type            KnowledgeEntryType
+  status          KnowledgeEntryStatus
+  validFrom       DateTime?
+  validUntil      DateTime?
+  changedByUserId String
+  changeNote      String?
+  createdAt       DateTime             @default(now())
+
+  entry         KnowledgeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  organisation  Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  changedBy     UserProfile    @relation("KnowledgeEntryVersionChanger", fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([entryId, version])
+  @@index([entryId, createdAt])
+}
+
+model KnowledgeDocument {
+  id               String                  @id @default(cuid())
+  knowledgeBaseId  String
+  organisationId   String
+  projectId        String
+  brandId          String?
+  entryId          String?
+
+  title            String
+  filename         String
+  mimeType         String
+  fileSizeBytes    Int
+  storageKey       String
+  status           KnowledgeDocumentStatus @default(PROCESSING)
+  currentVersion   Int                     @default(1)
+  uploadedByUserId String
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  archivedAt       DateTime?
+
+  knowledgeBase KnowledgeBase             @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  organisation  Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand?                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  entry         KnowledgeEntry?           @relation(fields: [entryId], references: [id], onDelete: SetNull)
+  uploadedBy    UserProfile               @relation("KnowledgeDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  versions      KnowledgeDocumentVersion[]
+
+  @@index([knowledgeBaseId, status])
+  @@index([organisationId, brandId])
+  @@index([entryId])
+}
+
+model KnowledgeDocumentVersion {
+  id             String   @id @default(cuid())
+  documentId     String
+  organisationId String
+  version        Int
+  filename       String
+  mimeType       String
+  fileSizeBytes  Int
+  storageKey     String
+  extractedText  String?
+  uploadedByUserId String
+  createdAt      DateTime @default(now())
+
+  document     KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  uploadedBy   UserProfile       @relation("KnowledgeDocumentVersionUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([documentId, version])
+  @@index([documentId])
+}
+
+model KnowledgeTag {
+  id              String   @id @default(cuid())
+  knowledgeBaseId String
+  organisationId  String
+  name            String
+  colour          String?
+  createdAt       DateTime @default(now())
+
+  knowledgeBase KnowledgeBase       @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  organisation  Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  entryTags     KnowledgeEntryTag[]
+
+  @@unique([knowledgeBaseId, name])
+  @@index([organisationId])
+}
+
+model KnowledgeEntryTag {
+  id        String   @id @default(cuid())
+  entryId   String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  entry KnowledgeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  tag   KnowledgeTag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([entryId, tagId])
+  @@index([tagId])
+}
+
+model KnowledgeRelationship {
+  id               String                    @id @default(cuid())
+  organisationId   String
+  sourceEntryId    String
+  targetEntryId    String
+  relationshipType KnowledgeRelationshipType
+  note             String?
+  createdByUserId  String
+  createdAt        DateTime                  @default(now())
+
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  sourceEntry  KnowledgeEntry @relation("KnowledgeRelationshipSource", fields: [sourceEntryId], references: [id], onDelete: Cascade)
+  targetEntry  KnowledgeEntry @relation("KnowledgeRelationshipTarget", fields: [targetEntryId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile    @relation("KnowledgeRelationshipCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([sourceEntryId, targetEntryId, relationshipType])
+  @@index([targetEntryId])
+}
+
+model KnowledgeActivity {
+  id             String                  @id @default(cuid())
+  organisationId String
+  knowledgeBaseId String
+  entryId        String?
+  documentId     String?
+  actorUserId    String
+  action         KnowledgeActivityAction
+  metadata       Json?
+  createdAt      DateTime                @default(now())
+
+  organisation  Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  knowledgeBase KnowledgeBase   @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  entry         KnowledgeEntry? @relation(fields: [entryId], references: [id], onDelete: SetNull)
+  actor         UserProfile     @relation("KnowledgeActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([knowledgeBaseId, createdAt])
+  @@index([entryId, createdAt])
+  @@index([organisationId, createdAt])
 }

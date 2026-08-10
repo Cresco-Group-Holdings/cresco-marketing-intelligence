@@ -7,6 +7,7 @@ export type AppErrorCode =
   | "ORGANISATION_MEMBERSHIP_REQUIRED"
   | "INSUFFICIENT_ROLE"
   | "RATE_LIMITED"
+  | "CONFLICT"
   | "AUTH_CONFIGURATION_ERROR"
   | "AUTH_PROVIDER_UNAVAILABLE"
   | "PROFILE_PROVISIONING_FAILED"
@@ -43,6 +44,8 @@ function mapCodeToStatus(code: AppErrorCode): number {
     case "VALIDATION_ERROR":
     case "TENANT_CONTEXT_REQUIRED":
       return 400;
+    case "CONFLICT":
+      return 409;
     case "RATE_LIMITED":
       return 429;
     case "AUTH_CONFIGURATION_ERROR":
