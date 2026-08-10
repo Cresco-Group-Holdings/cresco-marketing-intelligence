@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { apiFetch } from "@/lib/api/client";
 import { DIGITAL_ASSET_STATUS_LABELS, DIGITAL_ASSET_TYPE_LABELS } from "@/lib/digital-assets/constants";
@@ -69,9 +69,9 @@ export default function DigitalAssetDetailPage() {
         title={asset.name}
         description={`${DIGITAL_ASSET_TYPE_LABELS[asset.type]} · ${DIGITAL_ASSET_STATUS_LABELS[asset.status]} · v${asset.version}`}
         actions={
-          <Button variant="outline" asChild>
-            <Link href={`/brands/${params.brandId}/digital-assets`}>Back to library</Link>
-          </Button>
+          <ButtonLink variant="outline" href={`/brands/${params.brandId}/digital-assets`}>
+            Back to library
+          </ButtonLink>
         }
       />
 

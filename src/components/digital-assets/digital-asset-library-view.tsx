@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/api/client";
@@ -137,9 +137,9 @@ export function DigitalAssetLibraryView() {
         title="Digital Asset Library"
         description="Canonical library for images, videos, documents, creatives, and campaign assets."
         actions={
-          <Button variant="outline" asChild>
-            <Link href={`/brands/${brandId}/assets`}>Legacy marketing assets</Link>
-          </Button>
+          <ButtonLink variant="outline" href={`/brands/${brandId}/assets`}>
+            Legacy marketing assets
+          </ButtonLink>
         }
       />
 
@@ -161,6 +161,7 @@ export function DigitalAssetLibraryView() {
         </CardHeader>
         <CardContent>
           <Input
+            label="Upload file"
             type="file"
             accept="image/*,video/*,audio/*,.pdf,.txt,.md,.doc,.docx"
             onChange={(e) => {
@@ -172,7 +173,7 @@ export function DigitalAssetLibraryView() {
       </Card>
 
       <div className="flex flex-wrap items-center gap-3">
-        <Input placeholder="Search assets" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
+        <Input label="Search assets" placeholder="Search assets" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-xs" />
         <select className="rounded-lg border px-3 py-2 text-sm" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
           <option value="">All types</option>
           {ASSET_TYPES.map((t) => (
@@ -187,8 +188,8 @@ export function DigitalAssetLibraryView() {
         </select>
         <Button size="sm" variant="outline" onClick={() => void loadAssets()}>Apply</Button>
         <div className="ml-auto flex gap-2">
-          <Button size="sm" variant={viewMode === "grid" ? "default" : "outline"} onClick={() => setViewMode("grid")}>Grid</Button>
-          <Button size="sm" variant={viewMode === "list" ? "default" : "outline"} onClick={() => setViewMode("list")}>List</Button>
+          <Button size="sm" variant={viewMode === "grid" ? "primary" : "outline"} onClick={() => setViewMode("grid")}>Grid</Button>
+          <Button size="sm" variant={viewMode === "list" ? "primary" : "outline"} onClick={() => setViewMode("list")}>List</Button>
         </div>
       </div>
 
@@ -255,9 +256,9 @@ export function DigitalAssetLibraryView() {
               {selected.width ? <p>Dimensions: {selected.width}×{selected.height}</p> : null}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" asChild>
-                <Link href={`/brands/${brandId}/digital-assets/${selected.id}`}>Full detail</Link>
-              </Button>
+              <ButtonLink variant="outline" href={`/brands/${brandId}/digital-assets/${selected.id}`}>
+                Full detail
+              </ButtonLink>
               <Button variant="outline" onClick={() => setSelected(null)}>Close</Button>
             </div>
           </CardContent>

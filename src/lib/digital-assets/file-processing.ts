@@ -80,7 +80,7 @@ export async function processDigitalAssetUpload(
   }
 
   const detected = await FileType.fromBuffer(buffer);
-  let mimeType = detected?.mime ?? null;
+  let mimeType: string | null = detected?.mime ?? null;
   if (!mimeType && extension === ".svg") mimeType = "image/svg+xml";
   if (!mimeType && (extension === ".txt" || extension === ".md")) mimeType = "text/plain";
 
