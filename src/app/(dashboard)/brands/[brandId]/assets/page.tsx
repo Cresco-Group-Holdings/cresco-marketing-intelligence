@@ -205,9 +205,14 @@ export default function BrandAssetLibraryPage() {
           { label: "Asset library" },
         ]}
         actions={
-          <Link href={`/brands/${brandId}/knowledge`} className="text-sm font-medium text-slate-900 hover:underline">
-            Knowledge base
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href={`/brands/${brandId}/digital-assets`} className="text-sm font-medium text-slate-900 hover:underline">
+              Digital asset library
+            </Link>
+            <Link href={`/brands/${brandId}/knowledge`} className="text-sm font-medium text-slate-900 hover:underline">
+              Knowledge base
+            </Link>
+          </div>
         }
       />
 

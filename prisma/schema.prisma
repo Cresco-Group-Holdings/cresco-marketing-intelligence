@@ -427,13 +427,17 @@ model UserProfile {
   socialInboxAssigned                          SocialConversation[]                   @relation("SocialInboxConversationAssignee")
   providerConnectionsCreated                   ProviderConnection[]                   @relation("ProviderConnectionCreator")
   providerAuditEvents                          ProviderAuditEvent[]                   @relation("ProviderAuditActor")
+  digitalAssetsCreated                         DigitalAsset[]                         @relation("DigitalAssetCreator")
+  digitalAssetVersionsUploaded                 DigitalAssetVersion[]                  @relation("DigitalAssetVersionUploader")
+  digitalAssetCollectionsCreated               DigitalAssetCollection[]               @relation("DigitalAssetCollectionCreator")
+  digitalAssetActivities                       DigitalAssetActivity[]                 @relation("DigitalAssetActivityActor")
   knowledgeEntriesCreated                      KnowledgeEntry[]                       @relation("KnowledgeEntryCreator")
   knowledgeEntriesApproved                     KnowledgeEntry[]                       @relation("KnowledgeEntryApprover")
   knowledgeEntryVersionsChanged                KnowledgeEntryVersion[]                @relation("KnowledgeEntryVersionChanger")
   knowledgeDocumentsUploaded                   KnowledgeDocument[]                    @relation("KnowledgeDocumentUploader")
   knowledgeDocumentVersionsUploaded            KnowledgeDocumentVersion[]             @relation("KnowledgeDocumentVersionUploader")
   knowledgeRelationshipsCreated                KnowledgeRelationship[]                @relation("KnowledgeRelationshipCreator")
-  knowledgeActivities                            KnowledgeActivity[]                    @relation("KnowledgeActivityActor")
+  knowledgeActivities                          KnowledgeActivity[]                    @relation("KnowledgeActivityActor")
 
   @@index([email])
 }
@@ -843,6 +847,14 @@ model Organisation {
   providerConnections                     ProviderConnection[]
   providerAuditEvents                     ProviderAuditEvent[]
   providerFeatureFlags                    ProviderFeatureFlag[]
+  digitalAssets                           DigitalAsset[]
+  digitalAssetVersions                    DigitalAssetVersion[]
+  digitalAssetTags                        DigitalAssetTag[]
+  digitalAssetUsages                      DigitalAssetUsage[]
+  digitalAssetCollections                 DigitalAssetCollection[]
+  digitalAssetMetadata                    DigitalAssetMetadata[]
+  digitalAssetActivities                  DigitalAssetActivity[]
+  digitalAssetProcessingJobs              DigitalAssetProcessingJob[]
   knowledgeBases                          KnowledgeBase[]
   knowledgeEntries                        KnowledgeEntry[]
   knowledgeEntryVersions                  KnowledgeEntryVersion[]
@@ -1114,6 +1126,7 @@ model Project {
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
   providerConnections              ProviderConnection[]
+  digitalAssets                    DigitalAsset[]
   knowledgeBases                   KnowledgeBase[]
   knowledgeEntries                 KnowledgeEntry[]
   knowledgeDocuments               KnowledgeDocument[]
@@ -1395,6 +1408,9 @@ model Brand {
   socialInboxStatusHistory         SocialInboxStatusHistory[]
   socialInboxReplyDrafts           SocialInboxReplyDraft[]
   providerConnections              ProviderConnection[]
+  digitalAssets                    DigitalAsset[]
+  digitalAssetTags                 DigitalAssetTag[]
+  digitalAssetCollections          DigitalAssetCollection[]
   knowledgeBases                   KnowledgeBase[]
   knowledgeEntries                 KnowledgeEntry[]
   knowledgeDocuments               KnowledgeDocument[]
@@ -7531,12 +7547,12 @@ model Campaign {
   createdAt              DateTime               @default(now())
   updatedAt              DateTime               @updatedAt
 
-  organisation   Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project        Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand          Brand             @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  owner          UserProfile       @relation("CampaignOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
-  createdBy      UserProfile       @relation("CampaignCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  targetAudience BrandAudience?    @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
+  organisation   Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand              @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  owner          UserProfile        @relation("CampaignOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy      UserProfile        @relation("CampaignCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  targetAudience BrandAudience?     @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
   channels       CampaignChannel[]
   kpis           CampaignKpi[]
   members        CampaignMember[]
@@ -7704,14 +7720,14 @@ model ContentCampaign {
   updatedAt            DateTime              @updatedAt
   archivedAt           DateTime?
 
-  organisation       Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand              Brand               @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  owner              UserProfile         @relation("ContentCampaignOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
-  createdBy          UserProfile         @relation("ContentCampaignCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  targetAudience     BrandAudience?      @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
-  offer              BrandOffer?         @relation(fields: [offerId], references: [id], onDelete: SetNull)
-  marketingObjective MarketingObjective? @relation(fields: [marketingObjectiveId], references: [id], onDelete: SetNull)
+  organisation       Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project            Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand              Brand                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  owner              UserProfile             @relation("ContentCampaignOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  createdBy          UserProfile             @relation("ContentCampaignCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  targetAudience     BrandAudience?          @relation(fields: [targetAudienceId], references: [id], onDelete: SetNull)
+  offer              BrandOffer?             @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  marketingObjective MarketingObjective?     @relation(fields: [marketingObjectiveId], references: [id], onDelete: SetNull)
   members            ContentCampaignMember[]
   contentItems       ContentItem[]
   tasks              ContentTask[]
@@ -7720,6 +7736,7 @@ model ContentCampaign {
   checklists         ContentChecklist[]
   activities         ContentActivity[]
   experiments        GrowthExperiment[]
+  digitalAssets      DigitalAsset[]
   knowledgeEntries   KnowledgeEntry[]
 
   @@index([organisationId, brandId, status])
@@ -18588,35 +18605,35 @@ model ProviderSyncCursor {
 }
 
 model ProviderSyncRun {
-  id               String                  @id @default(cuid())
-  organisationId   String
-  connectionId     String
-  capability       String?
-  resourceType     String?
-  direction        ProviderSyncDirection   @default(IMPORT)
-  triggerType      ProviderSyncTriggerType @default(MANUAL)
-  status           ProviderSyncRunStatus   @default(PENDING)
-  cursor           String?
-  checkpoint       Json?
-  idempotencyKey   String?
+  id                String                  @id @default(cuid())
+  organisationId    String
+  connectionId      String
+  capability        String?
+  resourceType      String?
+  direction         ProviderSyncDirection   @default(IMPORT)
+  triggerType       ProviderSyncTriggerType @default(MANUAL)
+  status            ProviderSyncRunStatus   @default(PENDING)
+  cursor            String?
+  checkpoint        Json?
+  idempotencyKey    String?
   requestedByUserId String?
-  startedAt        DateTime?
-  completedAt      DateTime?
-  recordsRead      Int                     @default(0)
-  recordsWritten   Int                     @default(0)
-  recordsSkipped   Int                     @default(0)
-  recordsFailed    Int                     @default(0)
-  recordsProcessed Int                     @default(0)
-  attemptCount     Int                     @default(0)
-  nextRetryAt      DateTime?
-  errorCode        String?
-  errorMessage     String?
-  correlationId    String?
-  metadata         Json?
-  createdAt        DateTime                @default(now())
-  updatedAt        DateTime                @updatedAt
+  startedAt         DateTime?
+  completedAt       DateTime?
+  recordsRead       Int                     @default(0)
+  recordsWritten    Int                     @default(0)
+  recordsSkipped    Int                     @default(0)
+  recordsFailed     Int                     @default(0)
+  recordsProcessed  Int                     @default(0)
+  attemptCount      Int                     @default(0)
+  nextRetryAt       DateTime?
+  errorCode         String?
+  errorMessage      String?
+  correlationId     String?
+  metadata          Json?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 
-  connection ProviderConnection  @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connection ProviderConnection   @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   records    ProviderSyncRecord[]
 
   @@unique([connectionId, idempotencyKey])
@@ -18626,7 +18643,7 @@ model ProviderSyncRun {
 }
 
 model ProviderSyncRecord {
-  id                   String                 @id @default(cuid())
+  id                   String                   @id @default(cuid())
   syncRunId            String
   externalResourceType String
   externalResourceId   String
@@ -18636,7 +18653,7 @@ model ProviderSyncRecord {
   checksum             String?
   errorCode            String?
   errorMessage         String?
-  processedAt          DateTime               @default(now())
+  processedAt          DateTime                 @default(now())
 
   syncRun ProviderSyncRun @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
 
@@ -18746,7 +18763,7 @@ model ProviderFeatureFlag {
 }
 
 model ProviderOutboundSend {
-  id                String                   @id @default(cuid())
+  id                String                     @id @default(cuid())
   organisationId    String
   brandId           String?
   connectionId      String
@@ -18762,8 +18779,8 @@ model ProviderOutboundSend {
   recipientId       String?
   sentAt            DateTime?
   metadata          Json?
-  createdAt         DateTime                 @default(now())
-  updatedAt         DateTime                 @updatedAt
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
 
   connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
 
@@ -18771,6 +18788,284 @@ model ProviderOutboundSend {
   @@index([organisationId, providerKey])
   @@index([connectionId, status])
   @@index([providerMessageId])
+}
+
+// ---------------------------------------------------------------------------
+// Digital Asset Management (Stage 3)
+// ---------------------------------------------------------------------------
+
+enum DigitalAssetType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+  LOGO
+  TEMPLATE
+  AD_CREATIVE
+  SOCIAL_CREATIVE
+  OTHER
+}
+
+enum DigitalAssetStatus {
+  UPLOADING
+  PROCESSING
+  READY
+  FAILED
+  ARCHIVED
+}
+
+enum DigitalAssetUsageEntityType {
+  CAMPAIGN
+  CONTENT_ITEM
+  ADVERTISEMENT
+  KNOWLEDGE_ENTRY
+  BRAND
+}
+
+enum DigitalAssetProcessingJobType {
+  CHECKSUM
+  METADATA
+  THUMBNAIL
+  SAFETY_VALIDATION
+  PREVIEW
+}
+
+enum DigitalAssetProcessingJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum DigitalAssetActivityAction {
+  CREATED
+  UPLOADED
+  VERSION_REPLACED
+  PROCESSING_COMPLETED
+  PROCESSING_FAILED
+  ARCHIVED
+  RESTORED
+  TAG_ADDED
+  TAG_REMOVED
+  COLLECTION_ADDED
+  COLLECTION_REMOVED
+  USAGE_RECORDED
+  USAGE_REMOVED
+  BULK_ARCHIVED
+  DOWNLOADED
+}
+
+model DigitalAsset {
+  id             String  @id @default(cuid())
+  organisationId String
+  projectId      String?
+  brandId        String?
+  campaignId     String?
+
+  name        String
+  description String?
+  type        DigitalAssetType
+  status      DigitalAssetStatus @default(UPLOADING)
+
+  storageProvider String @default("supabase")
+  storageKey      String @unique
+  mimeType        String
+  sizeBytes       BigInt
+
+  width           Int?
+  height          Int?
+  durationSeconds Int?
+
+  checksum String
+  version  Int    @default(1)
+
+  thumbnailStorageKey String?
+
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  archivedAt      DateTime?
+
+  organisation    Organisation                 @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project?                     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand           Brand?                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign        ContentCampaign?             @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdBy       UserProfile                  @relation("DigitalAssetCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  versions        DigitalAssetVersion[]
+  tagAssignments  DigitalAssetTagAssignment[]
+  usages          DigitalAssetUsage[]
+  collectionItems DigitalAssetCollectionItem[]
+  metadata        DigitalAssetMetadata[]
+  activities      DigitalAssetActivity[]
+  processingJobs  DigitalAssetProcessingJob[]
+
+  @@index([organisationId, brandId, status])
+  @@index([organisationId, checksum])
+  @@index([campaignId])
+  @@index([type, status])
+}
+
+model DigitalAssetVersion {
+  id               String   @id @default(cuid())
+  assetId          String
+  organisationId   String
+  version          Int
+  storageKey       String   @unique
+  mimeType         String
+  sizeBytes        BigInt
+  checksum         String
+  width            Int?
+  height           Int?
+  durationSeconds  Int?
+  uploadedByUserId String
+  createdAt        DateTime @default(now())
+
+  asset        DigitalAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  uploadedBy   UserProfile  @relation("DigitalAssetVersionUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([assetId, version])
+  @@index([assetId])
+}
+
+model DigitalAssetTag {
+  id             String   @id @default(cuid())
+  organisationId String
+  brandId        String?
+  name           String
+  colour         String?
+  createdAt      DateTime @default(now())
+
+  organisation Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?                      @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  assignments  DigitalAssetTagAssignment[]
+
+  @@unique([organisationId, brandId, name])
+  @@index([organisationId])
+}
+
+model DigitalAssetTagAssignment {
+  id        String   @id @default(cuid())
+  assetId   String
+  tagId     String
+  createdAt DateTime @default(now())
+
+  asset DigitalAsset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  tag   DigitalAssetTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, tagId])
+  @@index([tagId])
+}
+
+model DigitalAssetUsage {
+  id             String                      @id @default(cuid())
+  assetId        String
+  organisationId String
+  entityType     DigitalAssetUsageEntityType
+  entityId       String
+  usageRole      String?
+  createdAt      DateTime                    @default(now())
+  removedAt      DateTime?
+
+  asset        DigitalAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, entityType, entityId])
+  @@index([entityType, entityId])
+  @@index([assetId])
+}
+
+model DigitalAssetCollection {
+  id              String   @id @default(cuid())
+  organisationId  String
+  brandId         String?
+  name            String
+  description     String?
+  createdByUserId String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organisation Organisation                 @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand?                       @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy    UserProfile                  @relation("DigitalAssetCollectionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  items        DigitalAssetCollectionItem[]
+
+  @@unique([organisationId, brandId, name])
+  @@index([organisationId])
+}
+
+model DigitalAssetCollectionItem {
+  id           String   @id @default(cuid())
+  collectionId String
+  assetId      String
+  sortOrder    Int      @default(0)
+  addedAt      DateTime @default(now())
+
+  collection DigitalAssetCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  asset      DigitalAsset           @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, assetId])
+  @@index([assetId])
+}
+
+model DigitalAssetMetadata {
+  id             String   @id @default(cuid())
+  assetId        String
+  organisationId String
+  metadataKey    String
+  stringValue    String?
+  numberValue    Float?
+  jsonValue      Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  asset        DigitalAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, metadataKey])
+  @@index([organisationId])
+}
+
+model DigitalAssetActivity {
+  id             String                     @id @default(cuid())
+  organisationId String
+  assetId        String
+  actorUserId    String
+  action         DigitalAssetActivityAction
+  metadata       Json?
+  createdAt      DateTime                   @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  asset        DigitalAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  actor        UserProfile  @relation("DigitalAssetActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([assetId, createdAt])
+  @@index([organisationId, createdAt])
+}
+
+model DigitalAssetProcessingJob {
+  id             String                          @id @default(cuid())
+  organisationId String
+  assetId        String
+  jobType        DigitalAssetProcessingJobType
+  status         DigitalAssetProcessingJobStatus @default(PENDING)
+  idempotencyKey String
+  attemptCount   Int                             @default(0)
+  maxAttempts    Int                             @default(3)
+  lastError      String?
+  result         Json?
+  scheduledFor   DateTime                        @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime                        @default(now())
+  updatedAt      DateTime                        @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  asset        DigitalAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@unique([assetId, idempotencyKey])
+  @@index([status, scheduledFor])
+  @@index([organisationId])
 }
 
 // ---------------------------------------------------------------------------
@@ -18872,47 +19167,47 @@ model KnowledgeBase {
 }
 
 model KnowledgeEntry {
-  id               String                   @id @default(cuid())
-  knowledgeBaseId  String
-  organisationId   String
-  projectId        String
-  brandId          String?
-  campaignId       String?
+  id              String  @id @default(cuid())
+  knowledgeBaseId String
+  organisationId  String
+  projectId       String
+  brandId         String?
+  campaignId      String?
 
-  type             KnowledgeEntryType
-  title            String
-  summary          String?
-  content          String
+  type    KnowledgeEntryType
+  title   String
+  summary String?
+  content String
 
-  status           KnowledgeEntryStatus     @default(DRAFT)
-  sourceType       KnowledgeEntrySourceType @default(MANUAL)
-  sourceReference  String?
+  status          KnowledgeEntryStatus     @default(DRAFT)
+  sourceType      KnowledgeEntrySourceType @default(MANUAL)
+  sourceReference String?
 
-  confidence       Decimal?                 @db.Decimal(5, 4)
-  validFrom        DateTime?
-  validUntil       DateTime?
+  confidence Decimal?  @db.Decimal(5, 4)
+  validFrom  DateTime?
+  validUntil DateTime?
 
-  version          Int                      @default(1)
+  version          Int       @default(1)
   createdByUserId  String
   approvedByUserId String?
   approvedAt       DateTime?
-  createdAt        DateTime                 @default(now())
-  updatedAt        DateTime                 @updatedAt
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
   archivedAt       DateTime?
 
-  knowledgeBase    KnowledgeBase            @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
-  organisation     Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project          Project                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand            Brand?                   @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  campaign         ContentCampaign?         @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  createdBy        UserProfile              @relation("KnowledgeEntryCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  approvedBy       UserProfile?             @relation("KnowledgeEntryApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
-  versions         KnowledgeEntryVersion[]
-  entryTags        KnowledgeEntryTag[]
+  knowledgeBase     KnowledgeBase           @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  organisation      Organisation            @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project           Project                 @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand             Brand?                  @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign          ContentCampaign?        @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdBy         UserProfile             @relation("KnowledgeEntryCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approvedBy        UserProfile?            @relation("KnowledgeEntryApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  versions          KnowledgeEntryVersion[]
+  entryTags         KnowledgeEntryTag[]
   relationshipsFrom KnowledgeRelationship[] @relation("KnowledgeRelationshipSource")
   relationshipsTo   KnowledgeRelationship[] @relation("KnowledgeRelationshipTarget")
-  activities       KnowledgeActivity[]
-  linkedDocuments  KnowledgeDocument[]
+  activities        KnowledgeActivity[]
+  linkedDocuments   KnowledgeDocument[]
 
   @@index([knowledgeBaseId, status])
   @@index([organisationId, brandId, type, status])
@@ -18936,21 +19231,21 @@ model KnowledgeEntryVersion {
   changeNote      String?
   createdAt       DateTime             @default(now())
 
-  entry         KnowledgeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
-  organisation  Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  changedBy     UserProfile    @relation("KnowledgeEntryVersionChanger", fields: [changedByUserId], references: [id], onDelete: Restrict)
+  entry        KnowledgeEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  organisation Organisation   @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  changedBy    UserProfile    @relation("KnowledgeEntryVersionChanger", fields: [changedByUserId], references: [id], onDelete: Restrict)
 
   @@unique([entryId, version])
   @@index([entryId, createdAt])
 }
 
 model KnowledgeDocument {
-  id               String                  @id @default(cuid())
-  knowledgeBaseId  String
-  organisationId   String
-  projectId        String
-  brandId          String?
-  entryId          String?
+  id              String  @id @default(cuid())
+  knowledgeBaseId String
+  organisationId  String
+  projectId       String
+  brandId         String?
+  entryId         String?
 
   title            String
   filename         String
@@ -18964,12 +19259,12 @@ model KnowledgeDocument {
   updatedAt        DateTime                @updatedAt
   archivedAt       DateTime?
 
-  knowledgeBase KnowledgeBase             @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
-  organisation  Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project       Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand         Brand?                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  entry         KnowledgeEntry?           @relation(fields: [entryId], references: [id], onDelete: SetNull)
-  uploadedBy    UserProfile               @relation("KnowledgeDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  knowledgeBase KnowledgeBase              @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  organisation  Organisation               @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project                    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand?                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  entry         KnowledgeEntry?            @relation(fields: [entryId], references: [id], onDelete: SetNull)
+  uploadedBy    UserProfile                @relation("KnowledgeDocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
   versions      KnowledgeDocumentVersion[]
 
   @@index([knowledgeBaseId, status])
@@ -18978,17 +19273,17 @@ model KnowledgeDocument {
 }
 
 model KnowledgeDocumentVersion {
-  id             String   @id @default(cuid())
-  documentId     String
-  organisationId String
-  version        Int
-  filename       String
-  mimeType       String
-  fileSizeBytes  Int
-  storageKey     String
-  extractedText  String?
+  id               String   @id @default(cuid())
+  documentId       String
+  organisationId   String
+  version          Int
+  filename         String
+  mimeType         String
+  fileSizeBytes    Int
+  storageKey       String
+  extractedText    String?
   uploadedByUserId String
-  createdAt      DateTime @default(now())
+  createdAt        DateTime @default(now())
 
   document     KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
   organisation Organisation      @relation(fields: [organisationId], references: [id], onDelete: Cascade)
@@ -19047,15 +19342,15 @@ model KnowledgeRelationship {
 }
 
 model KnowledgeActivity {
-  id             String                  @id @default(cuid())
-  organisationId String
+  id              String                  @id @default(cuid())
+  organisationId  String
   knowledgeBaseId String
-  entryId        String?
-  documentId     String?
-  actorUserId    String
-  action         KnowledgeActivityAction
-  metadata       Json?
-  createdAt      DateTime                @default(now())
+  entryId         String?
+  documentId      String?
+  actorUserId     String
+  action          KnowledgeActivityAction
+  metadata        Json?
+  createdAt       DateTime                @default(now())
 
   organisation  Organisation    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
   knowledgeBase KnowledgeBase   @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)

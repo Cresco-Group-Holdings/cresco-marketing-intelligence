@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/api/client";
@@ -177,9 +177,9 @@ export default function KnowledgeEntryDetailPage() {
         title={entry.title}
         description={`${KNOWLEDGE_ENTRY_TYPE_LABELS[entry.type]} · ${KNOWLEDGE_ENTRY_STATUS_LABELS[entry.status]} · v${entry.version}`}
         actions={
-          <Button variant="outline" asChild>
-            <Link href={`/brands/${brandId}/knowledge-bases`}>Back to list</Link>
-          </Button>
+          <ButtonLink variant="outline" href={`/brands/${brandId}/knowledge-bases`}>
+            Back to list
+          </ButtonLink>
         }
       />
 
@@ -201,13 +201,14 @@ export default function KnowledgeEntryDetailPage() {
               <CardTitle>Content</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+              <Input label="Title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
               <textarea
                 className="min-h-48 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
               />
               <Input
+                label="Change note"
                 placeholder="Change note (optional)"
                 value={changeNote}
                 onChange={(e) => setChangeNote(e.target.value)}
@@ -225,6 +226,7 @@ export default function KnowledgeEntryDetailPage() {
                       Approve
                     </Button>
                     <Input
+                      label="Rejection reason"
                       placeholder="Rejection reason"
                       value={rejectReason}
                       onChange={(e) => setRejectReason(e.target.value)}

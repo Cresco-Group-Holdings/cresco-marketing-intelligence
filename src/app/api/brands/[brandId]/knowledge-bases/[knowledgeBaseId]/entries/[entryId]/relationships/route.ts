@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { knowledgeBaseService } from "@/server/services";
 import { knowledgeRelationshipCreateSchema } from "@/lib/validation/knowledge-base";
+import { AppError } from "@/lib/errors";
 import {
   apiSuccess,
   jsonBody,
@@ -9,7 +10,6 @@ import {
   withKnowledgeBaseRead,
   withKnowledgeBaseWrite,
   type BrandKbEntryParams,
-  type BrandKbRelationshipParams,
 } from "@/lib/api/knowledge-base-handler";
 
 export async function GET(request: NextRequest, { params }: BrandKbEntryParams) {
@@ -54,9 +54,13 @@ export async function POST(request: NextRequest, { params }: BrandKbEntryParams)
   });
 }
 
-export async function DELETE(request: NextRequest, { params }: BrandKbRelationshipParams) {
-  const { brandId, knowledgeBaseId, entryId, relationshipId } = await params;
+export async function DELETE(request: NextRequest, { params }: BrandKbEntryParams) {
+  const { brandId, knowledgeBaseId, entryId } = await params;
   const organisationId = requireOrganisationId(request);
+  const relationshipId = request.nextUrl.searchParams.get("relationshipId");
+  if (!relationshipId) {
+    throw new AppError("VALIDATION_ERROR", "relationshipId query parameter is required.");
+  }
 
   return withKnowledgeBaseWrite(request, organisationId, async ({ requestId, tenant }) => {
     await knowledgeBaseService.relationships.remove(

@@ -118,6 +118,8 @@ describe("knowledgeBaseService", () => {
         type: "BRAND_GUIDELINE",
         title: "Mission",
         content: "We help marketers.",
+        validFrom: null,
+        validUntil: null,
       },
       tenantContext,
     );
@@ -231,6 +233,8 @@ describe("knowledgeBaseService", () => {
           title: "Campaign brief",
           content: "Context",
           campaignId: "other-campaign",
+          validFrom: null,
+          validUntil: null,
         },
         tenantContext,
       ),
