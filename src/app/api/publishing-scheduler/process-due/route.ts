@@ -28,8 +28,9 @@ async function handleProcessDue(request: NextRequest) {
  * Cron entry point. Enqueues due ContentSchedule rows as PublishingJob records and immediately
  * drains due work so a single scheduled invocation keeps publishing on time.
  *
- * Production schedule: Vercel Cron (see vercel.json and docs/PUBLISHING_SCHEDULER.md).
- * Vercel invokes this route with GET + Authorization: Bearer $CRON_SECRET.
+ * Manual / high-frequency entry point. On Vercel Hobby, publishing is invoked by the
+ * daily dispatcher at /api/cron/daily-dispatch (see vercel.json and docs/PUBLISHING_SCHEDULER.md).
+ * Production target cadence: every 5 minutes via Vercel Pro or external scheduler.
  */
 export async function GET(request: NextRequest) {
   return handleProcessDue(request);
