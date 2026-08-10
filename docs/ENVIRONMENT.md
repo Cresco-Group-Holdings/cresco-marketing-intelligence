@@ -27,7 +27,9 @@ These may be omitted during local development. The environment module reports wh
 | `META_APP_ID` | Server only | Meta OAuth |
 | `META_APP_SECRET` | Server only | Meta OAuth |
 | `PUBLISHING_WORKER_TOKEN` | Server only | Bearer token for publishing worker and manual scheduler invocations. The endpoint rejects every request when unset. |
-| `CRON_SECRET` | Server only | Vercel Cron bearer secret. Vercel injects `Authorization: Bearer <CRON_SECRET>` on cron requests when set. Required for production publishing schedule. |
+| `CRON_SECRET` | Server only | Vercel Cron bearer secret. Vercel injects `Authorization: Bearer <CRON_SECRET>` on cron requests when set. Required for production daily cron dispatch. |
+| `VERCEL_CRON_ENABLED` | Server only | Set to `true` to run cron dispatch on Preview/local; defaults to enabled on Production only. Set `false` to disable all Vercel cron dispatch. |
+| `DAILY_CRON_MAX_PASSES` | Server only | Maximum drain passes per job inside the daily dispatcher (default `20`, max `200`). |
 | `TIKTOK_CLIENT_KEY` | Server only | TikTok OAuth |
 | `TIKTOK_CLIENT_SECRET` | Server only | TikTok OAuth |
 | `LINKEDIN_CLIENT_ID` | Server only | LinkedIn OAuth |

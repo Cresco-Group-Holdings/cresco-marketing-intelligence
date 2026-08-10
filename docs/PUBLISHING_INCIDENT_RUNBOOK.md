@@ -34,7 +34,7 @@ PUBLISHING_SCHEDULER_ENABLED=false
 ## Investigation steps
 
 ### 1. Check scheduler health
-- Verify **Vercel Cron** is configured (`vercel.json` → `/api/publishing-scheduler/process-due`, every 5 minutes)
+- Verify **Vercel Cron** is configured (`vercel.json` → `/api/cron/daily`, once daily on Hobby)
 - Confirm `CRON_SECRET` is set in Vercel (cron auth) and `PUBLISHING_WORKER_TOKEN` for manual runs
 - See `docs/PUBLISHING_SCHEDULER.md` for full operations
 - Emergency only: GitHub Actions **Publishing Scheduler (manual fallback only)** via `workflow_dispatch` — not the production scheduler

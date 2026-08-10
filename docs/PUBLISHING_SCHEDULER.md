@@ -1,17 +1,17 @@
 # Publishing scheduler
 
-Production publishing uses **Vercel Cron** — not GitHub Actions.
+Production publishing uses **Vercel Cron** on the Hobby plan via a single daily dispatcher. High-frequency schedules remain available through worker-token endpoints or Vercel Pro cron entries.
 
 ## Schedule
 
-| Setting | Value |
-|---------|--------|
-| Frequency | Every **5 minutes** (`*/5 * * * *`) |
-| Platform | Vercel Cron (`vercel.json`) |
-| HTTP method | `GET` |
-| Endpoint | `/api/publishing-scheduler/process-due` |
+| Setting | Hobby (default) | Pro / external |
+|---------|-----------------|----------------|
+| Frequency | Once daily at **06:00 UTC** (`0 6 * * *`) | Every **5 minutes** (`*/5 * * * *`) on the publishing endpoint |
+| Platform | Vercel Cron (`vercel.json`) | Vercel Pro cron, GitHub Actions, or any HTTPS scheduler |
+| HTTP method | `GET` | `GET` or `POST` |
+| Endpoint | `/api/cron/daily` | `/api/publishing-scheduler/process-due` |
 
-Each invocation enqueues due `ContentSchedule` rows and drains the publishing job queue in one pass (idempotent per schedule via `scheduledJobIdempotencyKey`).
+The daily dispatcher enqueues due `ContentSchedule` rows, drains publishing jobs, processes digital asset jobs, and runs other platform maintenance schedulers in one authenticated pass. Individual `process-due` endpoints remain available for higher-frequency external scheduling.
 
 ## Authentication
 

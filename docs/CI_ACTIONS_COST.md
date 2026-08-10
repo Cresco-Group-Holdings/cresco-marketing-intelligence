@@ -6,7 +6,7 @@ See PR #101 for the CI optimisation rationale.
 
 The publishing scheduler **must not** use a GitHub Actions `schedule` trigger. At a 5-minute interval that is ~288 runs/day (~8,640/month) and exhausts the included 2,000 Actions minutes quota even with lightweight jobs.
 
-Production publishing runs on **Vercel Cron** (`vercel.json`, every 5 minutes). See `docs/PUBLISHING_SCHEDULER.md`.
+Production publishing runs on **Vercel Cron** (`vercel.json`, once daily on Hobby via `/api/cron/daily`). High-frequency schedules use worker-token endpoints or Vercel Pro. See `docs/PUBLISHING_SCHEDULER.md`.
 
 ## Estimated monthly GitHub Actions usage (after full optimisation)
 
