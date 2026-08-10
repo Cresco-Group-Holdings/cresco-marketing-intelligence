@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { PageHeader } from "@/components/layout/page-header";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { apiFetch } from "@/lib/api/client";
@@ -201,9 +201,9 @@ export function KnowledgeBaseView() {
         description="Versioned, approved brand intelligence for AI and content modules."
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" asChild>
-              <Link href={`/brands/${brandId}/knowledge`}>Structured profile</Link>
-            </Button>
+            <ButtonLink variant="outline" href={`/brands/${brandId}/knowledge`}>
+              Structured profile
+            </ButtonLink>
             <Button onClick={() => setView("create")}>New entry</Button>
           </div>
         }
@@ -224,7 +224,7 @@ export function KnowledgeBaseView() {
         {knowledgeBases.map((kb) => (
           <Button
             key={kb.id}
-            variant={kb.id === activeKbId ? "default" : "outline"}
+            variant={kb.id === activeKbId ? "primary" : "outline"}
             size="sm"
             onClick={() => setActiveKbId(kb.id)}
           >
@@ -247,7 +247,7 @@ export function KnowledgeBaseView() {
                 <Button
                   key={tab}
                   size="sm"
-                  variant={view === tab ? "default" : "outline"}
+                  variant={view === tab ? "primary" : "outline"}
                   onClick={() => setView(tab)}
                 >
                   {tab === "entries" && "Entries"}
@@ -266,6 +266,7 @@ export function KnowledgeBaseView() {
               <div className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-3">
                   <Input
+                    label="Search entries"
                     placeholder="Search entries"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
@@ -351,6 +352,7 @@ export function KnowledgeBaseView() {
             {view === "documents" ? (
               <div className="space-y-4">
                 <Input
+                  label="Upload document"
                   type="file"
                   accept=".pdf,.txt,.md,.csv,.doc,.docx"
                   onChange={(event) => {
@@ -396,6 +398,7 @@ export function KnowledgeBaseView() {
                 <div className="space-y-3 md:col-span-2">
                   <label className="text-sm font-medium">Title</label>
                   <Input
+                    label="Title"
                     value={newEntry.title}
                     onChange={(event) => setNewEntry((prev) => ({ ...prev, title: event.target.value }))}
                   />
@@ -403,6 +406,7 @@ export function KnowledgeBaseView() {
                 <div className="space-y-3 md:col-span-2">
                   <label className="text-sm font-medium">Summary</label>
                   <Input
+                    label="Summary"
                     value={newEntry.summary}
                     onChange={(event) => setNewEntry((prev) => ({ ...prev, summary: event.target.value }))}
                   />

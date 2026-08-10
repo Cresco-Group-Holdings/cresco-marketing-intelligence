@@ -64,7 +64,7 @@ export async function processKnowledgeDocumentUpload(
   }
 
   const detected = await FileType.fromBuffer(buffer);
-  let mimeType = detected?.mime ?? null;
+  let mimeType: string | null = detected?.mime ?? null;
   if (!mimeType && (extension === ".txt" || extension === ".md" || extension === ".csv")) {
     mimeType = extension === ".csv" ? "text/csv" : extension === ".md" ? "text/markdown" : "text/plain";
   }
