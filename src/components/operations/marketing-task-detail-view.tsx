@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
@@ -105,7 +105,7 @@ export function MarketingTaskDetailView() {
     if (!organisationId || !brandId || !comment.trim()) return;
     await apiFetch(
       `/api/brands/${brandId}/marketing-tasks/${taskId}/comments?organisationId=${organisationId}`,
-      { method: "POST", organisationId, body: { body: comment.trim() } },
+      { method: "POST", organisationId, body: JSON.stringify({ body: comment.trim() }) },
     );
     setComment("");
     await loadTask();
@@ -115,7 +115,7 @@ export function MarketingTaskDetailView() {
     if (!organisationId || !brandId) return;
     await apiFetch(
       `/api/brands/${brandId}/marketing-tasks/${taskId}/checklist/${itemId}?organisationId=${organisationId}`,
-      { method: "PATCH", organisationId, body: { isCompleted } },
+      { method: "PATCH", organisationId, body: JSON.stringify({ isCompleted }) },
     );
     await loadTask();
   }
@@ -126,9 +126,9 @@ export function MarketingTaskDetailView() {
     return (
       <div className="py-8 text-center">
         <p className="text-destructive">{error ?? "Task not found."}</p>
-        <Button className="mt-4" variant="outline" size="sm" asChild>
-          <Link href="/tasks">Back to tasks</Link>
-        </Button>
+        <ButtonLink className="mt-4" variant="outline" size="sm" href="/tasks">
+          Back to tasks
+        </ButtonLink>
       </div>
     );
   }
@@ -143,9 +143,9 @@ export function MarketingTaskDetailView() {
             <Badge>
               {TASK_STATUS_LABELS[task.status as keyof typeof TASK_STATUS_LABELS] ?? task.status}
             </Badge>
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/tasks">Back</Link>
-            </Button>
+            <ButtonLink variant="outline" size="sm" href="/tasks">
+              Back
+            </ButtonLink>
             {task.status !== "DONE" && (
               <Button size="sm" onClick={() => void completeTask()}>
                 Complete
@@ -205,6 +205,7 @@ export function MarketingTaskDetailView() {
               ))}
               <div className="flex gap-2">
                 <Input
+                  label="Comment"
                   placeholder="Add a comment…"
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}

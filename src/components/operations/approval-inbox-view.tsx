@@ -67,7 +67,7 @@ export function ApprovalInboxView() {
       decision !== "APPROVED" ? window.prompt("Optional feedback:") ?? undefined : undefined;
     await apiFetch(
       `/api/brands/${brandId}/approvals/${approvalId}?organisationId=${organisationId}`,
-      { method: "POST", organisationId, body: { decision, feedback } },
+      { method: "POST", organisationId, body: JSON.stringify({ decision, feedback }) },
     );
     await loadInbox();
   }

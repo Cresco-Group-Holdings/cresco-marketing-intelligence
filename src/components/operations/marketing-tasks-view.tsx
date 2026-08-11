@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
@@ -99,7 +99,7 @@ export function MarketingTasksView({ mode = "list" }: Props) {
     await apiFetch(`/api/brands/${brandId}/marketing-tasks?organisationId=${organisationId}`, {
       method: "POST",
       organisationId,
-      body: { title: newTitle.trim() },
+      body: JSON.stringify({ title: newTitle.trim() }),
     });
     setNewTitle("");
     await loadTasks();
@@ -121,9 +121,9 @@ export function MarketingTasksView({ mode = "list" }: Props) {
         description="Canonical task management across campaigns, content, assets, and experiments."
         actions={
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" asChild>
-              <Link href="/approvals">Approval inbox</Link>
-            </Button>
+            <ButtonLink variant="outline" size="sm" href="/approvals">
+              Approval inbox
+            </ButtonLink>
           </div>
         }
       />
@@ -145,14 +145,14 @@ export function MarketingTasksView({ mode = "list" }: Props) {
           <>
             <Button
               size="sm"
-              variant={view === "list" ? "default" : "outline"}
+              variant={view === "list" ? "primary" : "outline"}
               onClick={() => setView("list")}
             >
               List
             </Button>
             <Button
               size="sm"
-              variant={view === "board" ? "default" : "outline"}
+              variant={view === "board" ? "primary" : "outline"}
               onClick={() => setView("board")}
             >
               Board
@@ -163,6 +163,7 @@ export function MarketingTasksView({ mode = "list" }: Props) {
 
       <div className="flex gap-2">
         <Input
+          label="New task title"
           placeholder="New task title…"
           value={newTitle}
           onChange={(e) => setNewTitle(e.target.value)}
