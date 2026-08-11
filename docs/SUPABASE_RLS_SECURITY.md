@@ -7,48 +7,145 @@ Production security hardening to resolve Supabase Security Advisor **RLS Disable
 | Finding | Count |
 |---------|-------|
 | RLS Disabled in Public (errors) | 538 |
-| Other warnings | 1 (see §13) |
+| Other warnings | 1 (requires Dashboard re-check after deploy) |
 
 ## B. Root cause analysis
 
 1. **All Prisma application tables live in the `public` schema** (~563 models / ~538 advisor-flagged tables).
 2. **No RLS was enabled** on any application table — Supabase defaults expose `public` tables to PostgREST when grants exist.
-3. **Supabase auto-grants** `SELECT/INSERT/UPDATE/DELETE` on new tables to `anon` and `authenticated` roles.
+3. **Supabase auto-grants** `SELECT/INSERT/UPDATE/DELETE` on new tables to `anon`, `authenticated`, and `service_role`.
 4. **The application does not use Supabase Data API** for application data (`supabase.from()` is never called). All tenant data flows through **server-side Prisma** and Next.js API routes with `organisationId` scoping.
-5. Supabase client usage is limited to **Auth** (anon key) and **Storage** (service role, server-only).
+5. Supabase client usage is limited to **Auth** (anon key / JWT) and **Storage** (service role, server-only).
 
-**Conclusion:** The 538 findings are legitimate. Client roles could theoretically query tenant data through PostgREST if grants remained. The fix is **defense-in-depth lockdown**, not permissive RLS policies.
+**Conclusion:** The 538 findings are legitimate. API-facing roles could theoretically query tenant data through PostgREST if grants remained. The fix is **defense-in-depth lockdown**, not permissive RLS policies.
 
 ## C. Database access architecture
 
-| Access path | Role | Tables | RLS impact |
-|-------------|------|--------|------------|
-| Prisma (`DATABASE_URL` / `DIRECT_URL`) | `postgres` (superuser) | All | **Bypasses RLS** — unchanged |
-| Prisma migrations (`DIRECT_URL`) | `postgres` | All incl. `_prisma_migrations` | **Bypasses RLS** — unchanged |
-| Supabase Auth (browser/server) | `anon` / `authenticated` via JWT | `auth` schema only | Not application tables |
-| Supabase Storage (server) | `service_role` | `storage` buckets | Server-only |
-| PostgREST / Data API | `anon` / `authenticated` | `public` | **Blocked after hardening** |
+| Access path | Role | Schema | Application tables? |
+|-------------|------|--------|---------------------|
+| Prisma (`DATABASE_URL` / `DIRECT_URL`) | `postgres` | `public` | Yes — **table owner bypass** |
+| Prisma migrations (`DIRECT_URL`) | `postgres` | `public` incl. `_prisma_migrations` | Yes — **table owner bypass** |
+| Supabase Auth (browser/server) | `anon` / `authenticated` via JWT | `auth` | No |
+| Supabase Storage (server) | `service_role` | `storage` | No (buckets only) |
+| PostgREST / Data API | `anon` / `authenticated` / `service_role` | `public` | **Blocked after hardening** |
 
-**Canonical tenant key:** `organisationId`  
-**Brand scope key:** `brandId`  
-**Application-layer isolation:** Enforced in services via `brandService.getById(organisationId, brandId)` and `withApiHandler` permission checks (see `docs/V1_TENANT_ISOLATION_REVIEW.md`).
+### PostgreSQL role properties (Supabase)
+
+Run on staging/production:
+
+```sql
+SELECT rolname, rolsuper, rolbypassrls
+FROM pg_roles
+WHERE rolname IN ('postgres', 'anon', 'authenticated', 'service_role');
+```
+
+**Expected on Supabase:**
+
+| Role | `rolsuper` | `rolbypassrls` | Notes |
+|------|------------|----------------|-------|
+| `postgres` | **false** | false | NOT a PostgreSQL superuser |
+| `anon` | false | false | PostgREST anonymous |
+| `authenticated` | false | false | PostgREST JWT users |
+| `service_role` | false | **true** | Server-only; bypasses RLS but still needs table grants |
+
+### Why Prisma continues to work with RLS enabled
+
+Supabase `postgres` is **not** a superuser. Prisma works because:
+
+1. **Prisma migrations create tables as `postgres`**, making `postgres` the **table owner**.
+2. PostgreSQL table **owners bypass RLS** by default (we do **not** use `FORCE ROW LEVEL SECURITY`).
+3. Prisma runtime connects via `DATABASE_URL` as the same `postgres` role.
+
+This is **not** database-enforced `organisationId` isolation for Prisma — application-layer tenant controls remain mandatory.
+
+### Prisma table ownership
+
+```sql
+SELECT pg_get_userbyid(c.relowner) AS owner, COUNT(*)::int AS table_count
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public' AND c.relkind = 'r'
+GROUP BY pg_get_userbyid(c.relowner);
+```
+
+**Expected:** `postgres` owns all Prisma-created application tables.
 
 ## D. Schema strategy — OPTION C (chosen)
 
 | Option | Decision |
 |--------|----------|
-| A. public + comprehensive per-tenant RLS policies | Rejected — 500+ policies, high maintenance, no Data API consumer |
-| B. Dedicated API schema | Rejected — large migration risk, no client DB consumer |
+| A. public + comprehensive per-tenant RLS policies | Rejected — 500+ policies, no Data API consumer |
+| B. Dedicated API schema | Rejected — large migration risk |
 | **C. Disable/restrict Data API for application tables** | **Selected** — matches actual architecture |
 
 **Implementation:**
-- Enable RLS on all `public` tables (default deny for `anon`/`authenticated`)
-- Revoke `anon`/`authenticated` grants on tables, sequences, functions
+- Enable RLS on all `public` tables (default deny for API roles)
+- Revoke `anon`/`authenticated`/`service_role` grants on `public` tables, sequences, functions
 - No `USING (true)` policies
 - Event trigger auto-hardens new Prisma-created tables
 - Default privileges prevent grant regression
 
-## E. Table inventory by category
+## E. service_role audit
+
+**Repository audit result:** `service_role` is used **only** for:
+
+| File | Usage |
+|------|-------|
+| `src/lib/auth/supabase-service.ts` | Creates service client |
+| `src/server/services/auth-service.ts` | `auth.admin.signOut()` — **auth schema** |
+| `src/lib/storage/supabase-storage-provider.ts` | `storage.from(bucket)` — **storage schema** |
+
+**No `supabase.from('public_table')` calls exist.** No application-data queries via `service_role`.
+
+**Hardening action:** Revoke `public` schema table/sequence/function grants from `service_role`. Auth and Storage are unaffected (`auth.*`, `storage.*` schemas retain their own grants).
+
+## F. Data API — safe to disable for application data
+
+**Confirmed:** Zero `supabase.from()` application-table queries in the repository.
+
+| Concern | Technology |
+|---------|------------|
+| Application data | Prisma / direct PostgreSQL (`postgres` role) |
+| Authentication | Supabase Auth (`auth` schema) |
+| File storage | Supabase Storage (`storage` schema, service role) |
+
+The application does **not** depend on Supabase REST or GraphQL Data API for `public` schema tables.
+
+### Recommended: disable public schema Data API exposure (manual Dashboard step)
+
+Do **not** automate this — apply in Supabase Dashboard after staging verification:
+
+1. Open **Supabase Dashboard** → your project
+2. Go to **Project Settings** → **API**
+3. Under **Data API Settings** → **Exposed schemas**
+4. **Remove `public`** from the exposed schemas list (leave `storage` / `graphql_public` only if required)
+5. Save and verify Auth sign-in and Storage uploads still work in staging
+
+Alternative (if schema removal is not available in your plan UI): keep `public` exposed — RLS + revoked grants already block access. Removing exposure is defense-in-depth.
+
+## G. Event trigger safety (`trg_ensure_public_table_rls`)
+
+| Property | Behaviour |
+|----------|-----------|
+| Scope | `CREATE TABLE` in `public` schema only |
+| System schemas | `auth`, `storage`, `extensions` unaffected |
+| Recursion | `ALTER TABLE` / `REVOKE` do not fire `CREATE TABLE` — no self-trigger |
+| Prisma migrations | `CREATE TABLE` during migrate → trigger fires → RLS + revoke applied automatically |
+| `search_path` | Fixed to `public, pg_temp` — prevents injection |
+| Dynamic SQL | `object_identity` from `pg_event_trigger_ddl_commands()` — catalog-sourced, not user input |
+| Policies | None created — default deny only |
+
+## H. Tenant isolation — what RLS does and does not do
+
+| Layer | What it enforces |
+|-------|------------------|
+| **RLS + revoked grants (new)** | Blocks PostgREST/Data API access for `anon`, `authenticated`, `service_role` on `public` tables |
+| **Application services (existing, mandatory)** | `organisationId` + `brandId` isolation for all Prisma queries |
+| **API middleware (existing, mandatory)** | `requireOrganisationId`, RBAC permission checks |
+
+**Do not claim** that RLS provides `organisationId` isolation for trusted Prisma connections. Prisma connects as `postgres` (table owner) and bypasses RLS. Cross-tenant protection for application logic remains entirely in the service/API layer.
+
+## I. Table inventory by category
 
 Generated by `npm run generate:rls-inventory` → `docs/SUPABASE_RLS_INVENTORY.json`
 
@@ -62,124 +159,52 @@ Generated by `npm run generate:rls-inventory` → `docs/SUPABASE_RLS_INVENTORY.j
 | G | Audit/security tables | 1 |
 | **Total** | | **563** |
 
-All categories: **RLS enabled, no client policies, grants revoked**.
-
-## F. Tables exposed to Data API
-
-**None intentionally.** After hardening, `anon` and `authenticated` have no table-level privileges on `public` application tables.
-
-## G. Tables removed/restricted from Data API
-
-All ~538 `public` application tables plus `_prisma_migrations`.
-
-## H. RLS policies created
-
-**Zero permissive policies.** RLS is enabled with **default deny** (no policies for client roles). This is intentional — the application does not use PostgREST for tenant data.
-
-## I. Grants revoked/changed
+## J. Grants revoked
 
 ```sql
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres ... REVOKE ALL ... FROM anon, authenticated;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated, service_role;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated, service_role;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated, service_role;
+ALTER DEFAULT PRIVILEGES FOR ROLE postgres ... REVOKE ALL ... FROM anon, authenticated, service_role;
 ```
 
-`GRANT USAGE ON SCHEMA public` retained (PostgREST introspection).
-
-## J. Tenant isolation strategy
-
-| Layer | Mechanism |
-|-------|-----------|
-| Database (new) | RLS default deny + revoked client grants |
-| Service layer | `organisationId` + `brandId` on every query |
-| API layer | `requireOrganisationId`, permission middleware |
-| Auth | Supabase JWT → server session; no direct DB reads |
-
-Cross-tenant `SELECT/INSERT/UPDATE/DELETE` via Data API: **impossible** after hardening.
+`GRANT USAGE ON SCHEMA public` retained for PostgREST introspection.
 
 ## K. `_prisma_migrations` handling
 
 - Remains in `public` (Prisma requirement)
 - RLS enabled, no client policies
-- `anon`/`authenticated` grants revoked
-- Prisma migrate uses `postgres` superuser via `DIRECT_URL` — **unaffected**
+- `anon`/`authenticated`/`service_role` grants revoked
+- Prisma migrate uses `postgres` (table owner) via `DIRECT_URL` — **unaffected**
 
-## L. Prisma compatibility
+## L. Security tests and staging verification
 
-| Check | Result |
-|-------|--------|
-| `postgres` role bypasses RLS | Yes (superuser) |
-| `prisma migrate deploy` | Compatible |
-| Runtime queries via Prisma | Compatible |
-| Connection pooler (`DATABASE_URL`) | Compatible |
-| No `FORCE ROW LEVEL SECURITY` | Avoided — would affect non-superuser roles |
+| Suite | Command |
+|-------|---------|
+| Unit (migration SQL) | `npm run test:unit -- tests/unit/rls-security.test.ts` |
+| Live database | `ANALYTICS_TEST_DATABASE_URL=... npm run test:database -- tests/database/rls-security.test.ts` |
+| Full staging script | `ANALYTICS_TEST_DATABASE_URL=... npm run verify:rls-staging` |
+| Deploy + verify | `RLS_VERIFY_RUN_MIGRATE=1 ANALYTICS_TEST_DATABASE_URL=... npm run verify:rls-staging` |
+| CI guard | `npm run validate:rls-security` (in `npm run build`) |
 
-## M. Security tests
+### Staging checklist (mandatory before merge)
 
-| Suite | Coverage |
-|-------|----------|
-| `tests/unit/rls-security.test.ts` | Migration SQL structure, no permissive policies |
-| `tests/database/rls-security.test.ts` | Live DB: RLS enabled, grants revoked, event trigger (requires `ANALYTICS_TEST_DATABASE_URL`) |
-| `scripts/validate-rls-security.mjs` | CI guard for migration integrity |
+- [ ] `prisma migrate deploy` succeeds
+- [ ] Prisma runtime queries succeed
+- [ ] `_prisma_migrations` readable by postgres
+- [ ] `anon` cannot SELECT/INSERT/UPDATE/DELETE on application tables
+- [ ] `authenticated` cannot access application tables
+- [ ] `service_role` has no grants on `public` application tables
+- [ ] New table auto-receives RLS + revoked grants (event trigger)
+- [ ] Auth sign-in/sign-out works
+- [ ] Storage upload/signed URL works
+- [ ] Application API tenant operations work
+- [ ] Security Advisor re-run shows 0 RLS errors
 
-## N. CI guard
-
-`npm run validate:rls-security` runs in `npm run build` and checks:
-
-- Hardening migration exists with required controls
-- No `GRANT ... TO anon/authenticated` in subsequent migrations
-- No `USING (true)` policies
-- No `DISABLE ROW LEVEL SECURITY`
-
-Event trigger `trg_ensure_public_table_rls` auto-hardens new tables at DDL time.
-
-## O. Staged rollout
-
-| Batch | Tables | Status |
-|-------|--------|--------|
-| 1 — All tenant/customer tables | A (416) | Single migration (dynamic SQL) |
-| 2 — User/profile | B (8) | Included |
-| 3 — Jobs/webhooks | E, F (5) | Included |
-| 4 — Analytics/AI | A subset | Included |
-| 5 — Internal/system | D, G, H | Included |
-
-Deploy via `prisma migrate deploy` in a maintenance window. Re-run Security Advisor after deploy.
-
-## P. Background services compatibility
-
-No changes to worker routes, Prisma services, queues, or webhooks. All use `postgres`/`service_role` which bypass RLS.
-
-## Q. Supabase Advisor warning (1)
-
-**Cannot be read from codebase** — requires Supabase Dashboard access. Common warnings alongside RLS findings:
-
-| Warning | Likely? | Action |
-|---------|---------|--------|
-| Extension in `public` schema | Possible | Move extensions to `extensions` schema in Supabase |
-| Leaked password protection disabled | Possible | Enable in Auth settings |
-| Postgres version upgrade available | Possible | Schedule upgrade |
-| MFA not enforced for dashboard | Possible | Enable team MFA |
-
-**Action:** Re-run Security Advisor after RLS migration deploy and resolve the remaining warning in Dashboard.
-
-## R. Migration file
+## M. Migration file
 
 `prisma/migrations/20260811120000_supabase_rls_hardening/migration.sql`
 
-## S. Acceptance criteria checklist
-
-- [x] No unintended public table access (revoke + RLS default deny)
-- [x] Tenant isolation at application layer (unchanged, documented)
-- [x] Prisma production flows compatible (postgres bypasses RLS)
-- [x] Migrations compatible (`_prisma_migrations` secured, postgres access preserved)
-- [x] No `USING (true)` shortcuts
-- [x] New-table security guard (event trigger + CI)
-- [ ] Supabase Security Advisor re-run (requires production deploy)
-- [ ] Remaining 1 warning resolved (requires Dashboard)
-
-**Target:** 0 legitimate RLS Disabled in Public errors after deploy.
-
-## T. Intentionally accepted findings
+## N. Intentionally accepted findings
 
 None planned. If a future table requires authenticated Data API access, add **explicit tenant-scoped policies** — never `USING (true)`.

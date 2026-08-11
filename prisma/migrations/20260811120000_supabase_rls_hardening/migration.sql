@@ -1,17 +1,18 @@
 -- Supabase RLS hardening for Cresco Marketing Intelligence
 --
 -- Architecture: application data is accessed exclusively through server-side Prisma.
--- Supabase client usage is limited to Auth and Storage (service role). The public schema
--- must not be reachable through PostgREST/Data API for anon or authenticated roles.
+-- Supabase client usage is limited to Auth (anon/authenticated JWT) and Storage (service_role).
+-- The public schema must not be reachable through PostgREST/Data API for any API role.
 --
--- This migration:
---   1. Enables RLS on every existing public table (default deny for client roles)
---   2. Revokes anon/authenticated grants on tables, sequences, and functions
---   3. Sets default privileges so future Prisma-created objects stay locked down
---   4. Installs an event trigger to auto-enable RLS on newly created public tables
+-- Prisma compatibility:
+--   Supabase `postgres` is NOT a PostgreSQL superuser (rolsuper = false).
+--   Prisma migrations and runtime queries connect as `postgres`, which OWNS application
+--   tables created in public. Table owners bypass RLS unless FORCE ROW LEVEL SECURITY
+--   is set (we do not enable FORCE).
 --
--- Prisma connects as the postgres superuser (or equivalent migration role) which bypasses RLS.
--- service_role also bypasses RLS and is server-only.
+-- service_role:
+--   Has rolbypassrls = true but is only used server-side for Auth admin and Storage APIs
+--   (auth.* and storage.* schemas). Public application-table grants are revoked here.
 
 -- ---------------------------------------------------------------------------
 -- 1. Enable RLS on all existing public tables
@@ -30,47 +31,55 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------------
--- 2. Revoke Data API access for client-facing roles
+-- 2. Revoke Data API access for all PostgREST-facing roles
 -- ---------------------------------------------------------------------------
-REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
+REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated, service_role;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated, service_role;
+REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated, service_role;
 
--- Preserve schema USAGE so PostgREST can introspect; table-level grants remain revoked.
-GRANT USAGE ON SCHEMA public TO anon, authenticated;
+-- Preserve schema USAGE for PostgREST introspection; table-level grants remain revoked.
+GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- 3. Default privileges for objects created by postgres (Prisma migrations)
 -- ---------------------------------------------------------------------------
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  REVOKE ALL ON TABLES FROM anon, authenticated;
+  REVOKE ALL ON TABLES FROM anon, authenticated, service_role;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+  REVOKE ALL ON SEQUENCES FROM anon, authenticated, service_role;
 
 ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public
-  REVOKE ALL ON FUNCTIONS FROM anon, authenticated;
+  REVOKE ALL ON FUNCTIONS FROM anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- 4. Event trigger: auto-enable RLS + revoke client grants on new public tables
+-- 4. Event trigger: auto-enable RLS + revoke API-role grants on new public tables
+--    - Fires only on CREATE TABLE in public (not auth/storage/system schemas)
+--    - ALTER TABLE / REVOKE do not re-fire CREATE TABLE (no recursion)
+--    - object_identity comes from pg_event_trigger_ddl_commands() (catalog-safe)
+--    - SECURITY DEFINER + fixed search_path prevents search_path injection
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.ensure_public_table_rls()
 RETURNS event_trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, pg_temp
 AS $$
 DECLARE
   cmd RECORD;
 BEGIN
   FOR cmd IN
-    SELECT *
+    SELECT object_identity, schema_name
     FROM pg_event_trigger_ddl_commands()
     WHERE command_tag = 'CREATE TABLE'
       AND schema_name = 'public'
   LOOP
+    -- object_identity is a fully-qualified regclass text from the system catalog.
     EXECUTE format('ALTER TABLE %s ENABLE ROW LEVEL SECURITY', cmd.object_identity);
-    EXECUTE format('REVOKE ALL ON TABLE %s FROM anon, authenticated', cmd.object_identity);
+    EXECUTE format(
+      'REVOKE ALL ON TABLE %s FROM anon, authenticated, service_role',
+      cmd.object_identity
+    );
   END LOOP;
 END;
 $$;
@@ -83,12 +92,12 @@ CREATE EVENT TRIGGER trg_ensure_public_table_rls
   EXECUTE FUNCTION public.ensure_public_table_rls();
 
 -- ---------------------------------------------------------------------------
--- 5. _prisma_migrations — revoke client access (Prisma uses postgres role)
+-- 5. _prisma_migrations — revoke API-role access (Prisma uses postgres table owner)
 -- ---------------------------------------------------------------------------
 DO $$
 BEGIN
   IF to_regclass('public._prisma_migrations') IS NOT NULL THEN
     EXECUTE 'ALTER TABLE public._prisma_migrations ENABLE ROW LEVEL SECURITY';
-    EXECUTE 'REVOKE ALL ON TABLE public._prisma_migrations FROM anon, authenticated';
+    EXECUTE 'REVOKE ALL ON TABLE public._prisma_migrations FROM anon, authenticated, service_role';
   END IF;
 END $$;

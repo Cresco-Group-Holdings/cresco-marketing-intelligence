@@ -18,11 +18,12 @@ if (!fs.existsSync(hardeningSqlPath)) {
   const sql = fs.readFileSync(hardeningSqlPath, "utf8");
   const requiredFragments = [
     "ENABLE ROW LEVEL SECURITY",
-    "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated",
+    "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated, service_role",
     "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public",
     "ensure_public_table_rls",
     "trg_ensure_public_table_rls",
     "_prisma_migrations",
+    "SET search_path = public, pg_temp",
   ];
 
   for (const fragment of requiredFragments) {
@@ -54,8 +55,8 @@ if (hardeningIndex === -1) {
 
     const sql = fs.readFileSync(sqlPath, "utf8");
 
-    if (/GRANT\s+.*\s+TO\s+(anon|authenticated)/i.test(sql)) {
-      errors.push(`Migration ${folder} grants privileges to anon/authenticated roles.`);
+    if (/GRANT\s+.*\s+TO\s+(anon|authenticated|service_role)/i.test(sql)) {
+      errors.push(`Migration ${folder} grants privileges to API-facing roles.`);
     }
 
     if (/USING\s*\(\s*true\s*\)/i.test(sql)) {
