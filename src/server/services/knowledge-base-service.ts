@@ -508,7 +508,10 @@ export const knowledgeBaseService = {
       await getKnowledgeBaseForBrand(knowledgeBaseId, scope);
       const existing = await getEntryForBase(entryId, knowledgeBaseId, scope);
 
-      if (![KnowledgeEntryStatus.DRAFT, KnowledgeEntryStatus.REJECTED].includes(existing.status)) {
+      if (
+        existing.status !== KnowledgeEntryStatus.DRAFT &&
+        existing.status !== KnowledgeEntryStatus.REJECTED
+      ) {
         throw new AppError("VALIDATION_ERROR", "Only draft or rejected entries can be submitted for review.");
       }
 
