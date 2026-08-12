@@ -138,7 +138,7 @@ export const crmLeadCoreService = {
           outcome: input.outcome as Prisma.CrmQualificationAssessmentCreateInput["outcome"],
           criteria: input.criteria as Prisma.InputJsonValue,
           notes: input.notes,
-          metadata: sanitiseActivityMetadata({ criteriaKeys: Object.keys(input.criteria ?? {}) }),
+          metadata: sanitiseActivityMetadata({ criteriaKeys: Object.keys(input.criteria ?? {}) }) as Prisma.InputJsonValue,
         },
       });
       await tx.crmLead.update({

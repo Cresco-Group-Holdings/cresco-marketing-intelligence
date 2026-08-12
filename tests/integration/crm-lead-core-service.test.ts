@@ -28,11 +28,13 @@ vi.mock("@/server/services/audit-service", () => ({
 }));
 
 import { crmLeadCoreService } from "@/server/services/crm-lead-core-service";
+import { OrganisationRole } from "@prisma/client";
 
 const tenantContext = {
   userId: "user-1",
   userProfileId: "profile-1",
   organisationId: "org-1",
+  organisationRole: OrganisationRole.OWNER,
 };
 
 describe("crmLeadCoreService", () => {
