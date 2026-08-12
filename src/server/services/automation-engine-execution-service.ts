@@ -1,4 +1,4 @@
-import type { AutomationActionType, Prisma } from "@prisma/client";
+import type { AutomationActionType, OrganisationRole, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { buildDryRunPlan, canTransitionCampaignStatus, validateActionConfig } from "@/lib/automation-engine/actions";
 import { evaluateAllConditions } from "@/lib/automation-engine/conditions";
@@ -44,6 +44,7 @@ async function executeAction(
     userId: ctx.userProfileId,
     userProfileId: ctx.userProfileId,
     organisationId: ctx.organisationId,
+    organisationRole: "OWNER" as OrganisationRole,
   };
 
   switch (actionType) {

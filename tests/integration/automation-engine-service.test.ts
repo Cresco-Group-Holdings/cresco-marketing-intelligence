@@ -39,11 +39,13 @@ vi.mock("@/server/services/notification-service", () => ({
 
 import { automationEngineService } from "@/server/services/automation-engine-service";
 import { automationEngineExecutionService } from "@/server/services/automation-engine-execution-service";
+import { OrganisationRole } from "@prisma/client";
 
 const tenantContext = {
   userId: "user-1",
   userProfileId: "profile-1",
   organisationId: "org-1",
+  organisationRole: OrganisationRole.OWNER,
 };
 
 describe("automationEngineService", () => {
