@@ -65,3 +65,19 @@ export const withCrmExport = (
   organisationId: string,
   handler: Parameters<typeof withApiHandler>[1],
 ) => withApiHandler(request, handler, { organisationId, permission: PERMISSIONS["crm.export"] });
+
+export const withCrmManageConsent = (
+  request: NextRequest,
+  organisationId: string,
+  handler: Parameters<typeof withApiHandler>[1],
+) =>
+  withApiHandler(request, handler, {
+    organisationId,
+    permission: PERMISSIONS["crm.manageConsent"],
+  });
+
+export const withCrmArchive = (
+  request: NextRequest,
+  organisationId: string,
+  handler: Parameters<typeof withApiHandler>[1],
+) => withApiHandler(request, handler, { organisationId, permission: PERMISSIONS["crm.archive"] });
