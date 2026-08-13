@@ -76,6 +76,13 @@ export function NotificationBell() {
           <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
             <p className="text-sm font-semibold text-slate-900">Notifications</p>
             <Link
+              href="/notifications"
+              className="text-xs text-slate-600 underline"
+              onClick={() => setOpen(false)}
+            >
+              View all
+            </Link>
+            <Link
               href="/settings/notifications"
               className="text-xs text-slate-600 underline"
               onClick={() => setOpen(false)}
