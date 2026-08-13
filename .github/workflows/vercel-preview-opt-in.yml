@@ -1,0 +1,48 @@
+# Enable Vercel preview when the `vercel-preview` label is applied to a PR.
+# Adds `.vercel/preview-required` so the Ignored Build Step allows deployment.
+
+name: Vercel Preview Opt-In
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, synchronize, opened, reopened]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  sync-preview-marker:
+    name: Sync Vercel preview marker
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Add preview marker when label present
+        if: contains(github.event.pull_request.labels.*.name, 'vercel-preview')
+        run: |
+          mkdir -p .vercel
+          if [[ ! -f .vercel/preview-required ]]; then
+            echo "Preview requested via vercel-preview label (PR #${{ github.event.pull_request.number }})" > .vercel/preview-required
+            git add .vercel/preview-required
+            git commit -m "chore(vercel): enable preview deployment for PR #${{ github.event.pull_request.number }}"
+            git push
+          fi
+
+      - name: Remove preview marker when label absent
+        if: ${{ !contains(github.event.pull_request.labels.*.name, 'vercel-preview') }}
+        run: |
+          if [[ -f .vercel/preview-required ]]; then
+            git rm -f .vercel/preview-required
+            git commit -m "chore(vercel): disable preview deployment (label removed)"
+            git push
+          fi

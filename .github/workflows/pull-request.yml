@@ -78,11 +78,14 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
+      - run: npx prisma generate
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run validate:prisma
       - run: npm run validate:migrations
       - run: npm run validate:routes
+      - run: npm run validate:vercel-cron
+      - run: npm run validate:vercel-build
       - run: npm run audit:secrets
 
   test:
@@ -162,4 +165,4 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run build
+      - run: npm run build:ci
