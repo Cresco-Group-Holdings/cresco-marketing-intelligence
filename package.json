@@ -30,6 +30,8 @@
     "validate:migrations": "node scripts/validate-migrations.mjs",
     "validate:routes": "node scripts/validate-routes.mjs",
     "validate:vercel-cron": "node scripts/validate-vercel-cron.mjs",
+    "validate:vercel-build": "node scripts/validate-vercel-build.mjs",
+    "measure:build-stages": "node scripts/measure-build-stages.mjs",
     "deploy:supabase-email-templates": "node scripts/deploy-supabase-auth-email-templates.mjs",
     "audit:deps": "npm audit --audit-level=high",
     "audit:secrets": "node scripts/secret-scan.mjs",
