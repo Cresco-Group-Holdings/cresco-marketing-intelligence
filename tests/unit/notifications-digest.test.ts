@@ -8,6 +8,12 @@ const prismaMock = vi.hoisted(() => ({
   notificationDigest: {
     create: vi.fn(),
   },
+  userProfile: {
+    findUnique: vi.fn(),
+  },
+  organisation: {
+    findUnique: vi.fn(),
+  },
 }));
 
 vi.mock("@/lib/database/prisma", () => ({ prisma: prismaMock }));
@@ -36,6 +42,8 @@ describe("notification digest grouping", () => {
       ...data,
     }));
     prismaMock.notificationDelivery.updateMany.mockResolvedValue({ count: 1 });
+    prismaMock.userProfile.findUnique.mockResolvedValue({ email: "user@example.com" });
+    prismaMock.organisation.findUnique.mockResolvedValue({ name: "Test Org" });
   });
 
   it("groups pending deliveries by organisation and user", async () => {
