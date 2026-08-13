@@ -427,6 +427,15 @@ model UserProfile {
   contentAssignmentsMade                       ContentAssignment[]                    @relation("ContentAssignmentAssigner")
   contentActivitiesAuthored                    ContentActivity[]                      @relation("ContentActivityActor")
   checklistItemsCompleted                      ContentChecklistItem[]                 @relation("ChecklistItemCompleter")
+  marketingTasksAssigned                       MarketingTask[]                        @relation("MarketingTaskAssignee")
+  marketingTasksReported                       MarketingTask[]                        @relation("MarketingTaskReporter")
+  marketingTaskCommentsAuthored                MarketingTaskComment[]                 @relation("MarketingTaskCommentAuthor")
+  marketingTaskAttachmentsUploaded             MarketingTaskAttachment[]              @relation("MarketingTaskAttachmentUploader")
+  marketingTaskWatchers                        MarketingTaskWatcher[]                 @relation("MarketingTaskWatcher")
+  marketingTaskChecklistItemsCompleted         MarketingTaskChecklistItem[]           @relation("MarketingTaskChecklistCompleter")
+  marketingTaskActivitiesAuthored              MarketingTaskActivity[]                @relation("MarketingTaskActivityActor")
+  marketingApprovalRequestsSubmitted           MarketingApprovalRequest[]             @relation("MarketingApprovalRequester")
+  marketingApprovalDecisionsMade               MarketingApprovalDecision[]            @relation("MarketingApprovalDecider")
   socialInboxAssignments                       SocialInboxAssignment[]                @relation("SocialInboxAssignee")
   socialInboxAssignmentsMade                   SocialInboxAssignment[]                @relation("SocialInboxAssigner")
   socialInboxStatusChanges                     SocialInboxStatusHistory[]             @relation("SocialInboxStatusChanger")
@@ -868,6 +877,15 @@ model Organisation {
   contentDeadlines                        ContentDeadline[]
   contentChecklists                       ContentChecklist[]
   contentActivities                       ContentActivity[]
+  marketingTasks                          MarketingTask[]
+  marketingTaskDependencies               MarketingTaskDependency[]
+  marketingTaskComments                   MarketingTaskComment[]
+  marketingTaskAttachments                MarketingTaskAttachment[]
+  marketingTaskWatchers                   MarketingTaskWatcher[]
+  marketingTaskChecklistItems             MarketingTaskChecklistItem[]
+  marketingTaskActivities                 MarketingTaskActivity[]
+  marketingApprovalRequests               MarketingApprovalRequest[]
+  marketingApprovalDecisions              MarketingApprovalDecision[]
   socialConversations                     SocialConversation[]
   socialMessages                          SocialMessage[]
   socialComments                          SocialComment[]
@@ -1158,6 +1176,8 @@ model Project {
   campaignActivities               CampaignActivity[]
   contentTasks                     ContentTask[]
   contentActivities                ContentActivity[]
+  marketingTasks                   MarketingTask[]
+  marketingApprovalRequests        MarketingApprovalRequest[]
   socialConversations              SocialConversation[]
   socialMessages                   SocialMessage[]
   socialComments                   SocialComment[]
@@ -1449,6 +1469,8 @@ model Brand {
   contentDeadlines                 ContentDeadline[]
   contentChecklists                ContentChecklist[]
   contentActivities                ContentActivity[]
+  marketingTasks                   MarketingTask[]
+  marketingApprovalRequests        MarketingApprovalRequest[]
   socialConversations              SocialConversation[]
   socialParticipants               SocialParticipant[]
   socialComments                   SocialComment[]
@@ -8098,6 +8120,7 @@ model ContentCampaign {
   members            ContentCampaignMember[]
   contentItems       ContentItem[]
   tasks              ContentTask[]
+  marketingTasks     MarketingTask[]
   assignments        ContentAssignment[]
   deadlines          ContentDeadline[]
   checklists         ContentChecklist[]
@@ -8255,6 +8278,274 @@ model ContentChecklistItem {
 
   @@unique([checklistId, itemKey])
   @@index([checklistId, sortOrder])
+}
+
+// --- Stage 5: Canonical marketing operations (tasks & approvals) ---
+
+enum MarketingTaskType {
+  GENERAL
+  CONTENT
+  CAMPAIGN
+  ASSET
+  EXPERIMENT
+  APPROVAL
+  REVIEW
+  PUBLISHING
+  COMPLIANCE
+  OTHER
+}
+
+enum MarketingTaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum MarketingTaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum MarketingApprovalType {
+  CONTENT
+  CAMPAIGN_ACTIVATION
+  BUDGET_CHANGE
+  ASSET_APPROVAL
+  AI_ACTION
+  OTHER
+}
+
+enum MarketingApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CHANGES_REQUESTED
+  CANCELLED
+}
+
+enum MarketingTaskActivityType {
+  CREATED
+  UPDATED
+  STATUS_CHANGED
+  ASSIGNED
+  COMMENT_ADDED
+  CHECKLIST_UPDATED
+  DEPENDENCY_ADDED
+  DEPENDENCY_REMOVED
+  ATTACHMENT_ADDED
+  WATCHER_ADDED
+  COMPLETED
+  ARCHIVED
+}
+
+model MarketingTask {
+  id               String                @id @default(cuid())
+  organisationId   String
+  projectId        String?
+  brandId          String?
+  campaignId       String?
+  title            String
+  description      String?
+  type             MarketingTaskType     @default(GENERAL)
+  status           MarketingTaskStatus   @default(TODO)
+  priority         MarketingTaskPriority @default(MEDIUM)
+  assigneeUserId   String?
+  reporterUserId   String
+  startAt          DateTime?
+  dueAt            DateTime?
+  completedAt      DateTime?
+  sourceEntityType String?
+  sourceEntityId   String?
+  templateId       String?
+  isTemplate       Boolean               @default(false)
+  recurrenceRule   String?
+  version          Int                   @default(1)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  archivedAt       DateTime?
+
+  organisation  Organisation                @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project?                    @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand         Brand?                      @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign      ContentCampaign?            @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  assignee      UserProfile?                @relation("MarketingTaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  reporter      UserProfile                 @relation("MarketingTaskReporter", fields: [reporterUserId], references: [id], onDelete: Restrict)
+  template      MarketingTask?              @relation("MarketingTaskTemplate", fields: [templateId], references: [id], onDelete: SetNull)
+  derivedTasks  MarketingTask[]             @relation("MarketingTaskTemplate")
+  dependencies  MarketingTaskDependency[]   @relation("DependentTask")
+  dependents    MarketingTaskDependency[]   @relation("BlockingTask")
+  comments      MarketingTaskComment[]
+  attachments   MarketingTaskAttachment[]
+  watchers      MarketingTaskWatcher[]
+  checklistItems MarketingTaskChecklistItem[]
+  activities    MarketingTaskActivity[]
+
+  @@index([organisationId, brandId, status])
+  @@index([organisationId, assigneeUserId, status])
+  @@index([organisationId, reporterUserId])
+  @@index([campaignId])
+  @@index([sourceEntityType, sourceEntityId])
+  @@index([dueAt])
+  @@index([archivedAt])
+  @@index([isTemplate])
+}
+
+model MarketingTaskDependency {
+  id              String   @id @default(cuid())
+  organisationId  String
+  taskId          String
+  dependsOnTaskId String
+  createdAt       DateTime @default(now())
+
+  organisation  Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  task          MarketingTask @relation("DependentTask", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOnTask MarketingTask @relation("BlockingTask", fields: [dependsOnTaskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, dependsOnTaskId])
+  @@index([organisationId])
+  @@index([dependsOnTaskId])
+}
+
+model MarketingTaskComment {
+  id             String   @id @default(cuid())
+  organisationId String
+  taskId         String
+  authorUserId   String
+  body           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  task         MarketingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  author       UserProfile   @relation("MarketingTaskCommentAuthor", fields: [authorUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([taskId, createdAt])
+}
+
+model MarketingTaskAttachment {
+  id               String   @id @default(cuid())
+  organisationId   String
+  taskId           String
+  uploadedByUserId String
+  fileName         String
+  fileUrl          String
+  mimeType         String?
+  fileSizeBytes    Int?
+  createdAt        DateTime @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  task         MarketingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedBy   UserProfile   @relation("MarketingTaskAttachmentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([taskId])
+}
+
+model MarketingTaskWatcher {
+  id             String   @id @default(cuid())
+  organisationId String
+  taskId         String
+  userId         String
+  createdAt      DateTime @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  task         MarketingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user         UserProfile   @relation("MarketingTaskWatcher", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, userId])
+  @@index([organisationId])
+  @@index([userId])
+}
+
+model MarketingTaskChecklistItem {
+  id                String    @id @default(cuid())
+  organisationId    String
+  taskId            String
+  label             String
+  isCompleted       Boolean   @default(false)
+  sortOrder         Int       @default(0)
+  completedByUserId String?
+  completedAt       DateTime?
+  createdAt         DateTime  @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  task         MarketingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  completedBy  UserProfile?  @relation("MarketingTaskChecklistCompleter", fields: [completedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId])
+  @@index([taskId, sortOrder])
+}
+
+model MarketingTaskActivity {
+  id             String                    @id @default(cuid())
+  organisationId String
+  taskId         String
+  activityType   MarketingTaskActivityType
+  actorUserId    String
+  summary        String
+  metadata       Json?
+  createdAt      DateTime                  @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  task         MarketingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  actor        UserProfile   @relation("MarketingTaskActivityActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, taskId, createdAt])
+  @@index([taskId, createdAt])
+}
+
+model MarketingApprovalRequest {
+  id              String                  @id @default(cuid())
+  organisationId  String
+  projectId       String?
+  brandId         String?
+  type            MarketingApprovalType
+  status          MarketingApprovalStatus @default(PENDING)
+  title           String
+  description     String?
+  requesterUserId String
+  entityType      String
+  entityId        String
+  version         Int                     @default(1)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  organisation Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?                  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?                    @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  requester    UserProfile               @relation("MarketingApprovalRequester", fields: [requesterUserId], references: [id], onDelete: Restrict)
+  decisions    MarketingApprovalDecision[]
+
+  @@index([organisationId, brandId, status])
+  @@index([organisationId, requesterUserId])
+  @@index([entityType, entityId])
+  @@index([status])
+}
+
+model MarketingApprovalDecision {
+  id                String                  @id @default(cuid())
+  organisationId    String
+  approvalRequestId String
+  decision          MarketingApprovalStatus
+  deciderUserId     String
+  feedback          String?
+  decidedAt         DateTime                @default(now())
+  createdAt         DateTime                @default(now())
+
+  organisation    Organisation             @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  approvalRequest MarketingApprovalRequest @relation(fields: [approvalRequestId], references: [id], onDelete: Cascade)
+  decider         UserProfile              @relation("MarketingApprovalDecider", fields: [deciderUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId])
+  @@index([approvalRequestId])
+  @@index([deciderUserId])
 }
 
 model ContentActivity {
