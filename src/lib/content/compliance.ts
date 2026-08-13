@@ -13,7 +13,7 @@ export type ComplianceInput = {
   prohibitedClaims?: string[];
   variants: Array<{
     id: string;
-    provider: SocialProvider;
+    provider: SocialProvider | null;
     format: ContentType;
     caption?: string | null;
     altText?: string | null;
@@ -93,6 +93,10 @@ export function runComplianceChecks(input: ComplianceInput): ComplianceFinding[]
   }
 
   for (const variant of input.variants) {
+    if (!variant.provider) {
+      continue;
+    }
+
     const supported = PROVIDER_FORMAT_SUPPORT[variant.provider] ?? [];
     if (!supported.includes(variant.format)) {
       findings.push({
