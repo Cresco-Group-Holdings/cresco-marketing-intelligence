@@ -22,4 +22,11 @@ describe("provider permissions", () => {
     expect(hasPermission(OrganisationRole.VIEWER, PERMISSIONS["providerConnections.read"])).toBe(true);
     expect(hasPermission(OrganisationRole.VIEWER, PERMISSIONS["providerConnections.authorize"])).toBe(false);
   });
+
+  it("grants integration permissions to admin roles", () => {
+    expect(hasPermission(OrganisationRole.ADMIN, PERMISSIONS["integration.sync"])).toBe(true);
+    expect(hasPermission(OrganisationRole.ADMIN, PERMISSIONS["integration.manage_credentials"])).toBe(true);
+    expect(hasPermission(OrganisationRole.VIEWER, PERMISSIONS["integration.read"])).toBe(true);
+    expect(hasPermission(OrganisationRole.VIEWER, PERMISSIONS["integration.manage_credentials"])).toBe(false);
+  });
 });

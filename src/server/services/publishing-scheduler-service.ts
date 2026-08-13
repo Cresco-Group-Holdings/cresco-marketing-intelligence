@@ -13,6 +13,7 @@ import { processPublishingJob } from "@/server/services/publishing-worker";
 export type PublishingSchedulerSkipReason =
   | "SCHEDULER_DISABLED"
   | "PROVIDER_DISABLED"
+  | "MISSING_PROVIDER"
   | "CAPABILITY_BLOCKED"
   | "ALREADY_ENQUEUED";
 
@@ -66,6 +67,11 @@ export const publishingSchedulerService = {
 
     for (const schedule of schedules) {
       const provider = schedule.contentVariant.provider;
+
+      if (!provider) {
+        outcome.skipped.push({ contentScheduleId: schedule.id, reason: "MISSING_PROVIDER" });
+        continue;
+      }
 
       if (isProviderPublishingDisabled(provider)) {
         outcome.skipped.push({ contentScheduleId: schedule.id, reason: "PROVIDER_DISABLED" });
