@@ -36,6 +36,12 @@ npm run build
 
 `next.config.ts` sets `eslint.ignoreDuringBuilds: true` because ESLint runs in CI.
 
+`typescript.tsconfigPath` points to `tsconfig.build.json`, which type-checks **application source only** (`src/**`). Tests, scripts, Playwright, and Prisma seed utilities are excluded from the Vercel build type-check pass; CI still runs full `npm run typecheck` against the root `tsconfig.json`.
+
+`experimental.webpackMemoryOptimizations`, `parallelServerCompiles: false`, `parallelServerBuildTraces: false`, and `cpus: 1` reduce peak RSS during `next build` on Hobby (8 GB container).
+
+`NODE_OPTIONS=--max-old-space-size=7680` on `npm run build` caps the Node heap below the Hobby container limit. **Do not use 8192 MB** — that leaves no headroom for native allocations and triggers SIGKILL during the type-check phase. **Do not use ≤6144 MB** — the Prisma-heavy type graph exceeds that heap during `Checking validity of types`.
+
 ## Prisma policy
 
 - **Generate once** per install via `postinstall`.
@@ -96,6 +102,7 @@ Image processing uses `@/lib/images/sharp-loader` (dynamic `import("sharp")`). `
 | Symptom | Likely cause |
 |---------|----------------|
 | Build fails at ~46 min | Build step exceeded 45 min — ensure lean `build` script |
+| Build SIGKILL during type-check | OOM on Hobby — ensure `tsconfig.build.json`, heap ≤ 4096 MB, memory optimizations in `next.config.ts` |
 | Preview never appears | Branch skipped by `ignoreCommand` — add opt-in marker |
 | Typecheck errors in CI | Stale Prisma client — CI runs `prisma generate` after `npm ci` |
 | Hobby queue blocked | Too many concurrent previews — use opt-in policy |

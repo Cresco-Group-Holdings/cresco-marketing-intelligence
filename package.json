@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "NODE_OPTIONS=--max-old-space-size=8192 next build",
+    "build": "NODE_OPTIONS=--max-old-space-size=7680 next build",
     "build:ci": "npm run validate:routes && npm run validate:vercel-cron && npm run build",
     "start": "next start",
     "lint": "eslint .",

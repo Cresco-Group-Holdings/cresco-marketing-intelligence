@@ -51,6 +51,40 @@ if (fs.existsSync(vercelJsonPath)) {
   }
 }
 
+const tsconfigBuildPath = path.join(process.cwd(), "tsconfig.build.json");
+if (!fs.existsSync(tsconfigBuildPath)) {
+  errors.push("tsconfig.build.json is required for production Next.js type-check scope.");
+}
+
+const nextConfigPath = path.join(process.cwd(), "next.config.ts");
+if (fs.existsSync(nextConfigPath)) {
+  const nextConfig = fs.readFileSync(nextConfigPath, "utf8");
+  if (!/tsconfigPath:\s*["']\.?\/tsconfig\.build\.json["']/.test(nextConfig)) {
+    errors.push('next.config.ts must set typescript.tsconfigPath to "./tsconfig.build.json".');
+  }
+  if (!/webpackMemoryOptimizations:\s*true/.test(nextConfig)) {
+    errors.push("next.config.ts must enable experimental.webpackMemoryOptimizations.");
+  }
+}
+
+const heapMatch = /--max-old-space-size=(\d+)/.exec(buildScript);
+if (heapMatch) {
+  const heapMb = Number(heapMatch[1]);
+  if (!Number.isFinite(heapMb) || heapMb > 8192) {
+    errors.push(`package.json "build" heap must not exceed 8192 MB. Found: ${heapMb}`);
+  }
+  if (heapMb < 6144) {
+    errors.push(
+      `package.json "build" heap must be at least 6144 MB for Prisma-heavy type-checking. Found: ${heapMb}`,
+    );
+  }
+  if (heapMb > 7680) {
+    errors.push(
+      `package.json "build" heap should be <= 7680 MB on Vercel Hobby (8192 MB container). Found: ${heapMb}`,
+    );
+  }
+}
+
 if (errors.length > 0) {
   console.error("Vercel build script validation failed:\n");
   for (const message of errors) {
