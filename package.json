@@ -31,6 +31,7 @@
     "validate:vercel-cron": "node scripts/validate-vercel-cron.mjs",
     "validate:rls-security": "node scripts/validate-rls-security.mjs",
     "verify:rls-staging": "node scripts/verify-rls-staging.mjs",
+    "audit:public-functions": "node scripts/audit-public-functions.mjs",
     "generate:rls-inventory": "node scripts/generate-rls-inventory.mjs",
     "deploy:supabase-email-templates": "node scripts/deploy-supabase-auth-email-templates.mjs",
     "audit:deps": "npm audit --audit-level=high",

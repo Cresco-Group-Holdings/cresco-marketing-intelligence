@@ -19,9 +19,13 @@ if (!fs.existsSync(hardeningSqlPath)) {
   const requiredFragments = [
     "ENABLE ROW LEVEL SECURITY",
     "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated, service_role",
+    "REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC",
+    "REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC",
     "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public",
     "ensure_public_table_rls",
+    "ensure_public_function_privileges",
     "trg_ensure_public_table_rls",
+    "trg_ensure_public_function_privileges",
     "_prisma_migrations",
     "SET search_path = public, pg_temp",
   ];
@@ -55,8 +59,12 @@ if (hardeningIndex === -1) {
 
     const sql = fs.readFileSync(sqlPath, "utf8");
 
-    if (/GRANT\s+.*\s+TO\s+(anon|authenticated|service_role)/i.test(sql)) {
-      errors.push(`Migration ${folder} grants privileges to API-facing roles.`);
+    if (/GRANT\s+.*\s+TO\s+(anon|authenticated|service_role|PUBLIC)/i.test(sql)) {
+      errors.push(`Migration ${folder} grants privileges to API-facing or PUBLIC roles.`);
+    }
+
+    if (/GRANT\s+EXECUTE\s+ON\s+FUNCTION/i.test(sql) && /TO\s+PUBLIC/i.test(sql)) {
+      errors.push(`Migration ${folder} grants EXECUTE on functions to PUBLIC.`);
     }
 
     if (/USING\s*\(\s*true\s*\)/i.test(sql)) {

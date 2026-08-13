@@ -101,7 +101,15 @@ GROUP BY pg_get_userbyid(c.relowner);
 
 ## F. Data API — safe to disable for application data
 
-**Confirmed:** Zero `supabase.from()` application-table queries in the repository.
+**Confirmed:** Zero application-data Data API usage in the repository.
+
+| Pattern | Found in `src/` |
+|---------|-----------------|
+| `supabase.from(` | **No** |
+| `supabase.rpc(` | **No** |
+| `/rest/v1/rpc/` | **No** |
+| `/graphql/v1` | **No** |
+| `supabase.schema(` | **No** |
 
 | Concern | Technology |
 |---------|------------|
@@ -123,7 +131,29 @@ Do **not** automate this — apply in Supabase Dashboard after staging verificat
 
 Alternative (if schema removal is not available in your plan UI): keep `public` exposed — RLS + revoked grants already block access. Removing exposure is defense-in-depth.
 
-## G. Event trigger safety (`trg_ensure_public_table_rls`)
+## G. Function privilege hardening
+
+RLS does **not** protect `EXECUTE` on PostgreSQL functions. New functions are granted to **PUBLIC** by default.
+
+| Control | SQL |
+|---------|-----|
+| Existing functions | `REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC` |
+| Future functions | `ALTER DEFAULT PRIVILEGES ... REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` |
+| API roles | `REVOKE ALL ON ALL FUNCTIONS ... FROM anon, authenticated, service_role` |
+| New `CREATE FUNCTION` | Event trigger `trg_ensure_public_function_privileges` |
+
+### SECURITY DEFINER functions in `public`
+
+| Function | Owner | `search_path` | PUBLIC execute | Purpose |
+|----------|-------|---------------|----------------|---------|
+| `ensure_public_table_rls()` | `postgres` | `public, pg_temp` | Revoked | DDL: enable RLS on new tables |
+| `ensure_public_function_privileges()` | `postgres` | `public, pg_temp` | Revoked | DDL: revoke function execute |
+
+Both use catalog-sourced `object_identity` only. No cross-tenant data access.
+
+Audit live inventory: `npm run audit:public-functions` (requires database URL).
+
+## H. Event trigger safety (`trg_ensure_public_table_rls`)
 
 | Property | Behaviour |
 |----------|-----------|

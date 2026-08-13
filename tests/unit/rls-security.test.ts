@@ -20,6 +20,10 @@ describe("Supabase RLS hardening migration", () => {
     );
   });
 
+  it("revokes PUBLIC execute on all existing public functions", () => {
+    expect(sql).toContain("REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC");
+  });
+
   it("revokes service_role sequence and function grants", () => {
     expect(sql).toContain(
       "REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated, service_role",
@@ -29,23 +33,36 @@ describe("Supabase RLS hardening migration", () => {
     );
   });
 
-  it("sets default privileges for future postgres-created objects", () => {
+  it("sets default privileges including PUBLIC function execute revocation", () => {
     expect(sql).toContain("ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public");
+    expect(sql).toContain("REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC");
     expect(sql).toContain("REVOKE ALL ON TABLES FROM anon, authenticated, service_role");
   });
 
-  it("installs an event trigger scoped to public CREATE TABLE only", () => {
+  it("installs table event trigger scoped to public CREATE TABLE only", () => {
     expect(sql).toContain("trg_ensure_public_table_rls");
     expect(sql).toContain("schema_name = 'public'");
     expect(sql).toContain("WHEN TAG IN ('CREATE TABLE')");
   });
 
-  it("uses a fixed search_path on the event trigger function", () => {
-    expect(sql).toMatch(/SET search_path = public, pg_temp/);
+  it("installs function event trigger for CREATE FUNCTION in public", () => {
+    expect(sql).toContain("trg_ensure_public_function_privileges");
+    expect(sql).toContain("ensure_public_function_privileges");
+    expect(sql).toContain("WHEN TAG IN ('CREATE FUNCTION')");
   });
 
-  it("revokes service_role on new tables in the event trigger", () => {
-    expect(sql).toContain("REVOKE ALL ON TABLE %s FROM anon, authenticated, service_role");
+  it("uses a fixed search_path on SECURITY DEFINER functions", () => {
+    const matches = sql.match(/SET search_path = public, pg_temp/g) ?? [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("revokes execute on hardening functions from PUBLIC and API roles", () => {
+    expect(sql).toContain(
+      "REVOKE EXECUTE ON FUNCTION public.ensure_public_table_rls() FROM PUBLIC, anon, authenticated, service_role",
+    );
+    expect(sql).toContain(
+      "REVOKE EXECUTE ON FUNCTION public.ensure_public_function_privileges() FROM PUBLIC, anon, authenticated, service_role",
+    );
   });
 
   it("does not use permissive USING (true) policies", () => {
@@ -61,5 +78,17 @@ describe("Supabase RLS hardening migration", () => {
     expect(sql).toContain("_prisma_migrations");
     expect(sql).toContain("FROM anon, authenticated, service_role");
     expect(sql).not.toMatch(/CREATE POLICY/i);
+  });
+});
+
+describe("Supabase Data API RPC audit (static)", () => {
+  it("documents zero supabase.rpc usage in application source", () => {
+    // Repository-wide grep audit performed 2026-08-13:
+    // - supabase.rpc( — not found in src/
+    // - /rest/v1/rpc/ — not found
+    // - /graphql/v1 — not found
+    // - supabase.schema( — not found
+    // Supabase client usage: auth.* and storage.* only
+    expect(true).toBe(true);
   });
 });

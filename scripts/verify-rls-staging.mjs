@@ -129,6 +129,97 @@ async function main() {
       `SELECT has_table_privilege('service_role', 'public."Organisation"', 'SELECT') AS v`,
     );
 
+    const funcCount = await prisma.$queryRaw`
+      SELECT COUNT(*)::int AS count
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public' AND p.prokind = 'f'
+    `;
+    pass("public function inventory", `count=${funcCount[0]?.count}`);
+
+    const publicExecuteFuncs = await prisma.$queryRaw`
+      SELECT p.proname AS name
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public'
+        AND p.prokind = 'f'
+        AND has_function_privilege('PUBLIC', p.oid, 'EXECUTE')
+      ORDER BY p.proname
+      LIMIT 20
+    `;
+    if (publicExecuteFuncs.length === 0) {
+      pass("no PUBLIC execute grants on public functions");
+    } else {
+      fail(
+        "no PUBLIC execute grants on public functions",
+        publicExecuteFuncs.map((f) => f.name).join(", "),
+      );
+    }
+
+    await assertFalse(
+      prisma,
+      "anon cannot EXECUTE ensure_public_table_rls",
+      `SELECT has_function_privilege('anon', 'public.ensure_public_table_rls()', 'EXECUTE') AS v`,
+    );
+    await assertFalse(
+      prisma,
+      "authenticated cannot EXECUTE ensure_public_table_rls",
+      `SELECT has_function_privilege('authenticated', 'public.ensure_public_table_rls()', 'EXECUTE') AS v`,
+    );
+    await assertFalse(
+      prisma,
+      "service_role cannot EXECUTE ensure_public_table_rls",
+      `SELECT has_function_privilege('service_role', 'public.ensure_public_table_rls()', 'EXECUTE') AS v`,
+    );
+
+    const postgresCanExec = await prisma.$queryRaw`
+      SELECT has_function_privilege('postgres', 'public.ensure_public_table_rls()', 'EXECUTE') AS v
+    `;
+    if (postgresCanExec[0]?.v === true) pass("postgres can EXECUTE owned security functions");
+    else fail("postgres can EXECUTE owned security functions");
+
+    const secDefiner = await prisma.$queryRaw`
+      SELECT p.proname AS name, COALESCE(array_to_string(p.proconfig, ', '), '') AS config
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public' AND p.prosecdef = true
+      ORDER BY p.proname
+    `;
+    console.log("\nSECURITY DEFINER functions in public:");
+    console.table(secDefiner);
+    for (const fn of secDefiner) {
+      if (!fn.config.includes("search_path=public")) {
+        fail(`SECURITY DEFINER ${fn.name} missing fixed search_path`, fn.config);
+      } else {
+        pass(`SECURITY DEFINER ${fn.name} has fixed search_path`);
+      }
+    }
+
+    const funcTrigger = await prisma.$queryRaw`
+      SELECT evtname FROM pg_event_trigger WHERE evtname = 'trg_ensure_public_function_privileges'
+    `;
+    if (funcTrigger.length === 1) pass("function privilege event trigger installed");
+    else fail("function privilege event trigger installed");
+
+    const testFunc = `_rls_fn_${Date.now()}`;
+    await prisma.$executeRawUnsafe(
+      `CREATE FUNCTION public."${testFunc}"() RETURNS void LANGUAGE sql AS $$ SELECT 1 $$`,
+    );
+    try {
+      await assertFalse(
+        prisma,
+        "new function revokes PUBLIC execute",
+        `SELECT has_function_privilege('PUBLIC', 'public."${testFunc}"()', 'EXECUTE') AS v`,
+      );
+      await assertFalse(
+        prisma,
+        "new function revokes anon execute",
+        `SELECT has_function_privilege('anon', 'public."${testFunc}"()', 'EXECUTE') AS v`,
+      );
+    } finally {
+      await prisma.$executeRawUnsafe(`DROP FUNCTION public."${testFunc}"()`);
+    }
+
     const trigger = await prisma.$queryRaw`
       SELECT evtname FROM pg_event_trigger WHERE evtname = 'trg_ensure_public_table_rls'
     `;

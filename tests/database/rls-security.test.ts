@@ -86,6 +86,81 @@ suite("Supabase RLS security (live database)", () => {
     expect(Number(rows[0]?.count ?? 0)).toBeGreaterThanOrEqual(0);
   });
 
+  it("has ensure_public_function_privileges event trigger installed", async () => {
+    const rows = await prisma.$queryRaw<Array<{ evtname: string }>>`
+      SELECT evtname FROM pg_event_trigger WHERE evtname = 'trg_ensure_public_function_privileges'
+    `;
+    expect(rows.length).toBe(1);
+  });
+
+  it("revokes PUBLIC execute on public functions", async () => {
+    const rows = await prisma.$queryRaw<Array<{ count: number }>>`
+      SELECT COUNT(*)::int AS count
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public'
+        AND p.prokind = 'f'
+        AND has_function_privilege('PUBLIC', p.oid, 'EXECUTE')
+    `;
+    expect(rows[0]?.count ?? 0).toBe(0);
+  });
+
+  const functionExecuteCases = [
+    ["anon", "ensure_public_table_rls"],
+    ["authenticated", "ensure_public_table_rls"],
+    ["service_role", "ensure_public_table_rls"],
+  ] as const;
+
+  it.each(functionExecuteCases)("revokes %s EXECUTE on %s()", async (role, fn) => {
+    const rows = await prisma.$queryRaw<Array<{ has_exec: boolean }>>`
+      SELECT has_function_privilege(
+        ${role},
+        ${`public.${fn}()`},
+        'EXECUTE'
+      ) AS has_exec
+    `;
+    expect(rows[0]?.has_exec).toBe(false);
+  });
+
+  it("allows postgres to EXECUTE owned ensure_public_table_rls()", async () => {
+    const rows = await prisma.$queryRaw<Array<{ has_exec: boolean }>>`
+      SELECT has_function_privilege('postgres', 'public.ensure_public_table_rls()', 'EXECUTE') AS has_exec
+    `;
+    expect(rows[0]?.has_exec).toBe(true);
+  });
+
+  it("audits SECURITY DEFINER functions have fixed search_path", async () => {
+    const rows = await prisma.$queryRaw<Array<{ proname: string; config: string }>>`
+      SELECT p.proname, COALESCE(array_to_string(p.proconfig, ', '), '') AS config
+      FROM pg_proc p
+      JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public' AND p.prosecdef = true
+    `;
+    for (const row of rows) {
+      expect(row.config).toContain("search_path=public");
+    }
+  });
+
+  it("auto-revokes execute on newly created public functions", async () => {
+    const fnName = `_rls_fn_test_${Date.now()}`;
+    await prisma.$executeRawUnsafe(
+      `CREATE FUNCTION public."${fnName}"() RETURNS integer LANGUAGE sql AS $$ SELECT 1 $$`,
+    );
+    try {
+      const publicExec = await prisma.$queryRawUnsafe<Array<{ has_exec: boolean }>>(
+        `SELECT has_function_privilege('PUBLIC', 'public."${fnName}"()', 'EXECUTE') AS has_exec`,
+      );
+      expect(publicExec[0]?.has_exec).toBe(false);
+
+      const anonExec = await prisma.$queryRawUnsafe<Array<{ has_exec: boolean }>>(
+        `SELECT has_function_privilege('anon', 'public."${fnName}"()', 'EXECUTE') AS has_exec`,
+      );
+      expect(anonExec[0]?.has_exec).toBe(false);
+    } finally {
+      await prisma.$executeRawUnsafe(`DROP FUNCTION public."${fnName}"()`);
+    }
+  });
+
   it("has ensure_public_table_rls event trigger installed", async () => {
     const rows = await prisma.$queryRaw<Array<{ evtname: string }>>`
       SELECT evtname FROM pg_event_trigger WHERE evtname = 'trg_ensure_public_table_rls'
