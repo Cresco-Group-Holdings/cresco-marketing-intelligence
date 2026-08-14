@@ -93,7 +93,7 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION public.ensure_public_table_rls() FROM PUBLIC, anon, authenticated, service_role;
 
-DROP EVENT TRIGGER IF EXISTS trg_ensure_public_table_rls ON ddl_command_end;
+DROP EVENT TRIGGER IF EXISTS trg_ensure_public_table_rls;
 
 CREATE EVENT TRIGGER trg_ensure_public_table_rls
   ON ddl_command_end
@@ -128,7 +128,7 @@ $$;
 
 REVOKE EXECUTE ON FUNCTION public.ensure_public_function_privileges() FROM PUBLIC, anon, authenticated, service_role;
 
-DROP EVENT TRIGGER IF EXISTS trg_ensure_public_function_privileges ON ddl_command_end;
+DROP EVENT TRIGGER IF EXISTS trg_ensure_public_function_privileges;
 
 CREATE EVENT TRIGGER trg_ensure_public_function_privileges
   ON ddl_command_end

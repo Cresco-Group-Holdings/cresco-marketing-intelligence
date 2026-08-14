@@ -39,6 +39,12 @@ describe("Supabase RLS hardening migration", () => {
     expect(sql).toContain("REVOKE ALL ON TABLES FROM anon, authenticated, service_role");
   });
 
+  it("uses valid PostgreSQL DROP EVENT TRIGGER syntax", () => {
+    expect(sql).not.toMatch(/DROP EVENT TRIGGER[^;]+ ON ddl_command_end/i);
+    expect(sql).toContain("DROP EVENT TRIGGER IF EXISTS trg_ensure_public_table_rls;");
+    expect(sql).toContain("DROP EVENT TRIGGER IF EXISTS trg_ensure_public_function_privileges;");
+  });
+
   it("installs table event trigger scoped to public CREATE TABLE only", () => {
     expect(sql).toContain("trg_ensure_public_table_rls");
     expect(sql).toContain("schema_name = 'public'");
