@@ -29,6 +29,24 @@ describe("validate:vercel-build", () => {
       fs.writeFileSync(packagePath, original);
     }
   });
+
+  it("rejects build scripts with max-old-space-size=8192", () => {
+    const packagePath = path.join(root, "package.json");
+    const original = fs.readFileSync(packagePath, "utf8");
+    const pkg = JSON.parse(original);
+    const savedBuild = pkg.scripts.build;
+    pkg.scripts.build = "NODE_OPTIONS=--max-old-space-size=8192 next build";
+    fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2) + "\n");
+
+    try {
+      expect(() => {
+        execSync("node scripts/validate-vercel-build.mjs", { stdio: "pipe" });
+      }).toThrow();
+    } finally {
+      pkg.scripts.build = savedBuild;
+      fs.writeFileSync(packagePath, original);
+    }
+  });
 });
 
 describe("vercel-should-build.sh", () => {
