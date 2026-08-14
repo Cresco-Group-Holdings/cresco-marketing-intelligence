@@ -34,7 +34,16 @@ npm run build
   └─ next build                    (no lint, tests, validators, or duplicate prisma generate)
 ```
 
-`next.config.ts` sets `eslint.ignoreDuringBuilds: true` because ESLint runs in CI.
+`next.config.ts` sets `eslint.ignoreDuringBuilds: true` and `typescript.ignoreBuildErrors: true` because ESLint and TypeScript run in GitHub CI. Vercel performs an optimized compile-only build to stay within Hobby memory limits.
+
+## Type safety model
+
+| Layer | Responsibility |
+|-------|----------------|
+| **GitHub CI** | Authoritative `npm run typecheck` (`tsconfig.typecheck.json`, includes app + tests) |
+| **Vercel** | Compile-only `next build` — skips redundant in-build type validation |
+
+This avoids running two full TypeScript programs on memory-constrained Vercel builders (~8GB), which previously caused SIGKILL during "Checking validity of types".
 
 ## Prisma policy
 
@@ -96,6 +105,7 @@ Image processing uses `@/lib/images/sharp-loader` (dynamic `import("sharp")`). `
 | Symptom | Likely cause |
 |---------|----------------|
 | Build fails at ~46 min | Build step exceeded 45 min — ensure lean `build` script |
+| Build SIGKILL / OOM during type check | Ensure `typescript.ignoreBuildErrors: true` and no `max-old-space-size=8192` on `build` |
 | Preview never appears | Branch skipped by `ignoreCommand` — add opt-in marker |
 | Typecheck errors in CI | Stale Prisma client — CI runs `prisma generate` after `npm ci` |
 | Hobby queue blocked | Too many concurrent previews — use opt-in policy |
