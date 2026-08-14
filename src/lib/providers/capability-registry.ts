@@ -37,6 +37,8 @@ export function isCanonicalCapability(value: string): value is CanonicalProvider
 export const MOCK_ADVERTISING_CAPABILITIES: CanonicalProviderCapability[] = [
   "AD_ACCOUNTS_READ",
   "AD_CAMPAIGNS_READ",
+  "AD_CAMPAIGNS_WRITE",
+  "AD_CREATIVES_WRITE",
   "AD_INSIGHTS_READ",
 ];
 
@@ -44,6 +46,11 @@ export const MOCK_CRM_CAPABILITIES: CanonicalProviderCapability[] = [
   "CRM_CONTACTS_READ",
   "CRM_COMPANIES_READ",
   "WEBHOOKS_RECEIVE",
+];
+
+export const MOCK_SOCIAL_CAPABILITIES: CanonicalProviderCapability[] = [
+  "SOCIAL_CONTENT_PUBLISH",
+  "SOCIAL_ACCOUNTS_READ",
 ];
 
 export function providerSupportsCapability(
@@ -56,11 +63,15 @@ export function providerSupportsCapability(
   if (providerKey === "mock-crm") {
     return MOCK_CRM_CAPABILITIES.includes(capability);
   }
+  if (providerKey === "mock-social") {
+    return MOCK_SOCIAL_CAPABILITIES.includes(capability);
+  }
   return false;
 }
 
 export function listProviderCapabilities(providerKey: string): CanonicalProviderCapability[] {
   if (providerKey === "mock-advertising") return MOCK_ADVERTISING_CAPABILITIES;
   if (providerKey === "mock-crm") return MOCK_CRM_CAPABILITIES;
+  if (providerKey === "mock-social") return MOCK_SOCIAL_CAPABILITIES;
   return [];
 }

@@ -33,7 +33,8 @@ export type ProviderKey =
   | "csv-import"
   | "first-party-crawler"
   | "mock-advertising"
-  | "mock-crm";
+  | "mock-crm"
+  | "mock-social";
 
 export type ProviderDefinition = {
   key: ProviderKey;
