@@ -51,6 +51,28 @@ if (fs.existsSync(vercelJsonPath)) {
   }
 }
 
+const nextConfigPath = path.join(process.cwd(), "next.config.ts");
+if (fs.existsSync(nextConfigPath)) {
+  const nextConfigSource = fs.readFileSync(nextConfigPath, "utf8");
+  if (!/ignoreDuringBuilds:\s*true/.test(nextConfigSource)) {
+    errors.push("next.config.ts must set eslint.ignoreDuringBuilds: true (lint runs in CI).");
+  }
+  if (!/ignoreBuildErrors:\s*true/.test(nextConfigSource)) {
+    errors.push(
+      "next.config.ts must set typescript.ignoreBuildErrors: true (typecheck runs in CI; avoids Vercel OOM).",
+    );
+  }
+  if (/--max-old-space-size=8192/.test(nextConfigSource)) {
+    errors.push("next.config.ts must not set NODE_OPTIONS=--max-old-space-size=8192.");
+  }
+}
+
+if (/--max-old-space-size=8192/.test(buildScript)) {
+  errors.push(
+    'package.json "build" must not set NODE_OPTIONS=--max-old-space-size=8192 (causes Vercel Hobby OOM during type validation).',
+  );
+}
+
 if (errors.length > 0) {
   console.error("Vercel build script validation failed:\n");
   for (const message of errors) {
