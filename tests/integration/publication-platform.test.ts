@@ -53,6 +53,13 @@ vi.mock("@/server/services/provider-health-service", () => ({
   providerHealthService: { upsertHealth: vi.fn() },
 }));
 
+vi.mock("@/server/services/notification-event-service", () => ({
+  notificationEventService: {
+    publicationSucceeded: vi.fn().mockResolvedValue(undefined),
+    publicationFailed: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 describe("publication execution integration", () => {
   const tenant = {
     userId: "user-1",
