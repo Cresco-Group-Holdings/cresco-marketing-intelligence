@@ -104,6 +104,21 @@ export class MockAIProvider extends BaseAIProvider {
         hashtags: ["#marketing", "#brand", "#social"],
         rationale: "Relevant brand-safe hashtags.",
       };
+    } else if (request.schemaName === "agent.platform_response") {
+      payload = {
+        summary: "Mock agent analysis completed using authorised internal data only.",
+        analysis: ["Reviewed available tool outputs.", "No external providers were contacted."],
+        recommendations: [
+          {
+            title: "Review data coverage",
+            description: "Import or connect additional metrics before making budget decisions.",
+            rationale: "Tool outputs may be incomplete for the selected scope.",
+          },
+        ],
+        proposedActions: [],
+        limitations: ["Mock provider response — validate against real data in production."],
+        confidence: "MEDIUM",
+      };
     } else if (request.schemaName.startsWith("content.")) {
       payload = mockSocialContent(request.schemaName);
     } else {

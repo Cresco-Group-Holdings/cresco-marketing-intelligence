@@ -23,6 +23,14 @@ const serverEnvSchema = z.object({
   TIKTOK_CLIENT_SECRET: optionalNonEmptyString,
   LINKEDIN_CLIENT_ID: optionalNonEmptyString,
   LINKEDIN_CLIENT_SECRET: optionalNonEmptyString,
+  MICROSOFT_CLIENT_ID: optionalNonEmptyString,
+  MICROSOFT_CLIENT_SECRET: optionalNonEmptyString,
+  HUBSPOT_CLIENT_ID: optionalNonEmptyString,
+  HUBSPOT_CLIENT_SECRET: optionalNonEmptyString,
+  MAILCHIMP_CLIENT_ID: optionalNonEmptyString,
+  MAILCHIMP_CLIENT_SECRET: optionalNonEmptyString,
+  SLACK_CLIENT_ID: optionalNonEmptyString,
+  SLACK_CLIENT_SECRET: optionalNonEmptyString,
   X_CLIENT_ID: optionalNonEmptyString,
   X_CLIENT_SECRET: optionalNonEmptyString,
   PROVIDER_ENCRYPTION_KEY: optionalNonEmptyString,
@@ -38,6 +46,9 @@ const serverEnvSchema = z.object({
   SUPABASE_ANON_KEY: optionalNonEmptyString,
   PRODUCTION_AUTH_DATABASE_DIAGNOSTICS_ENABLED: optionalNonEmptyString,
   PRODUCTION_DIAGNOSTICS_TOKEN: optionalNonEmptyString,
+  STRIPE_BILLING_SECRET_KEY: optionalNonEmptyString,
+  STRIPE_BILLING_WEBHOOK_SECRET: optionalNonEmptyString,
+  STRIPE_BILLING_PUBLISHABLE_KEY: optionalNonEmptyString,
 });
 
 const clientEnvSchema = z.object({
