@@ -14,7 +14,12 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
+    // Lower peak RSS during webpack compilation on memory-constrained builders.
     webpackMemoryOptimizations: true,
+    // Avoid parallel server compile/trace workers that spike memory on Hobby.
+    parallelServerCompiles: false,
+    parallelServerBuildTraces: false,
+    cpus: 1,
   },
 };
 

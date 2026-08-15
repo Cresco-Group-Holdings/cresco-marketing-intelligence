@@ -43,7 +43,11 @@ npm run build
 | **GitHub CI** | Authoritative `npm run typecheck` (`tsconfig.typecheck.json`, includes app + tests) |
 | **Vercel** | Compile-only `next build` — skips redundant in-build type validation |
 
-This avoids running two full TypeScript programs on memory-constrained Vercel builders (~8GB), which previously caused SIGKILL during "Checking validity of types".
+This avoids running two full TypeScript programs on memory-constrained Vercel builders (~8 GB), which previously caused SIGKILL during "Checking validity of types".
+
+`experimental.webpackMemoryOptimizations`, `parallelServerCompiles: false`, `parallelServerBuildTraces: false`, and `cpus: 1` reduce peak RSS during `next build` on Hobby.
+
+**Do not** set `NODE_OPTIONS=--max-old-space-size=8192` on `npm run build` — that leaves no headroom for native allocations on Hobby and can trigger SIGKILL. The production build script is plain `next build` with no heap override; memory is controlled by skipping in-build type validation and the experimental webpack settings above.
 
 ## Prisma policy
 
@@ -85,6 +89,7 @@ Run local profiling:
 ```bash
 npm ci
 node scripts/measure-build-stages.mjs
+node scripts/measure-build-memory.mjs
 ```
 
 ## Guardrails
@@ -92,6 +97,8 @@ node scripts/measure-build-stages.mjs
 `npm run validate:vercel-build` fails if:
 
 - `package.json` `build` script includes tests, lint, typecheck, validators, migrations, or duplicate `prisma generate`
+- `package.json` `build` sets `NODE_OPTIONS=--max-old-space-size=8192` or heap above 7680 MB
+- `next.config.ts` is missing `ignoreBuildErrors`, `webpackMemoryOptimizations`, or Hobby memory limits (`parallelServerCompiles: false`, `parallelServerBuildTraces: false`)
 - `vercel.json` is missing `ignoreCommand`
 
 This runs in GitHub Actions quality jobs.
@@ -105,7 +112,7 @@ Image processing uses `@/lib/images/sharp-loader` (dynamic `import("sharp")`). `
 | Symptom | Likely cause |
 |---------|----------------|
 | Build fails at ~46 min | Build step exceeded 45 min — ensure lean `build` script |
-| Build SIGKILL / OOM during type check | Ensure `typescript.ignoreBuildErrors: true` and no `max-old-space-size=8192` on `build` |
+| Build SIGKILL / OOM during type check | Ensure `typescript.ignoreBuildErrors: true`, no `max-old-space-size=8192` on `build`, and webpack memory optimizations enabled |
 | Preview never appears | Branch skipped by `ignoreCommand` — add opt-in marker |
 | Typecheck errors in CI | Stale Prisma client — CI runs `prisma generate` after `npm ci` |
 | Hobby queue blocked | Too many concurrent previews — use opt-in policy |
