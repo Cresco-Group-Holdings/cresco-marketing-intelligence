@@ -34,9 +34,35 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const organisationId = requireOrganisationId(request);
-  const notificationId = request.nextUrl.searchParams.get("notificationId");
+  const body = await request.json().catch(() => ({}));
+
+  if (body.action === "markAllRead") {
+    return withNotificationsWrite(request, organisationId, async ({ requestId, tenant }) => {
+      const result = await notificationService.markAllRead(
+        organisationId,
+        tenant!.userProfileId,
+        tenant!,
+      );
+      return apiSuccess(result, { requestId });
+    });
+  }
+
+  const notificationId =
+    body.notificationId ?? request.nextUrl.searchParams.get("notificationId");
   if (!notificationId) {
     return apiSuccess({ error: "notificationId required" }, { requestId: "missing" });
+  }
+
+  if (body.action === "dismiss") {
+    return withNotificationsWrite(request, organisationId, async ({ requestId, tenant }) => {
+      const notification = await notificationService.dismiss(
+        organisationId,
+        tenant!.userProfileId,
+        notificationId,
+        tenant!,
+      );
+      return apiSuccess({ notification }, { requestId });
+    });
   }
 
   return withNotificationsWrite(request, organisationId, async ({ requestId, tenant }) =>

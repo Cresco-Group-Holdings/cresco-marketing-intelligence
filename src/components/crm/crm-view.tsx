@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { apiFetch } from "@/lib/api/client";
 import { LifecycleRecommendationPanel } from "@/components/crm/assistant-view";
+import { CrmLeadCorePanel } from "@/components/crm/crm-lead-core-panel";
 import { LeadScoreExplanationPanel } from "@/components/crm/scoring-view";
 
 export type CrmViewMode =
@@ -363,6 +364,15 @@ export function CrmView({ mode, leadId, contactId, companyId }: CrmViewProps) {
               onOverride={applyScoreOverride}
               compact
             />
+            {brandId && organisationId && leadId ? (
+              <CrmLeadCorePanel
+                brandId={brandId}
+                organisationId={organisationId}
+                leadId={leadId}
+                currentStatus={String(lead.status)}
+                onUpdated={loadData}
+              />
+            ) : null}
             <LifecycleRecommendationPanel leadId={leadId} compact />
             <Card>
               <CardHeader><CardTitle>Actions</CardTitle></CardHeader>

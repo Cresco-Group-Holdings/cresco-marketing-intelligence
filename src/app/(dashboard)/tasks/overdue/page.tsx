@@ -1,5 +1,5 @@
-import { ContentOperationsView } from "@/components/operations/content-operations-view";
+import { MarketingTasksView } from "@/components/operations/marketing-tasks-view";
 
 export default function OverdueTasksPage() {
-  return <ContentOperationsView mode="overdue" />;
+  return <MarketingTasksView mode="overdue" />;
 }
