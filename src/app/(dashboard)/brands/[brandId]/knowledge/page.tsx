@@ -169,9 +169,17 @@ export default function BrandKnowledgePage() {
           { label: "Knowledge base" },
         ]}
         actions={
-          <Link href={`/brands/${brandId}/profile`} className="text-sm font-medium text-slate-900 hover:underline">
-            Brand profile
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href={`/brands/${brandId}/knowledge-bases`}
+              className="text-sm font-medium text-slate-900 hover:underline"
+            >
+              Intelligence KB
+            </Link>
+            <Link href={`/brands/${brandId}/profile`} className="text-sm font-medium text-slate-900 hover:underline">
+              Brand profile
+            </Link>
+          </div>
         }
       />
 
