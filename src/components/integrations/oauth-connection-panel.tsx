@@ -90,7 +90,7 @@ export function OAuthConnectionPanel({
     setSubmitting(true);
     setError(null);
     try {
-      const response = await fetch(`/api/integrations/${providerKey}/connect`, {
+      const response = await fetch(`/api/integrations/oauth/${providerKey}/connect`, {
         method: "POST",
         headers: orgHeaders(),
         body: JSON.stringify({ returnPath: "/integrations" }),

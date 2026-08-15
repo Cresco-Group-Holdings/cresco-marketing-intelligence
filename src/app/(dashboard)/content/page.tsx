@@ -94,6 +94,12 @@ export default function ContentPage() {
           brandId ? (
             <div className="flex gap-2">
               <Link
+                href="/content/studio"
+                className="inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-slate-50"
+              >
+                Content Studio
+              </Link>
+              <Link
                 href="/content/long-form"
                 className="inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-slate-50"
               >

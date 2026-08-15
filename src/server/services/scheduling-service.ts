@@ -4,6 +4,7 @@ import type { TenantContext } from "@/lib/tenancy/context";
 import type { ScheduleCreateInput } from "@/lib/validation/scheduling";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { complianceAgentService } from "@/server/services/compliance-agent-service";
+import { notificationEventService } from "@/server/services/notification-event-service";
 import { brandService } from "@/server/services/workspace-service";
 
 export const schedulingService = {
@@ -23,6 +24,18 @@ export const schedulingService = {
     const schedule = await prisma.contentSchedule.create({ data: { organisationId, projectId: brand.projectId, brandId, contentItemId: contentId, contentVariantId: variant.id, socialAccountId: account.id, scheduledFor, timezone: input.timezone, status: "READY", recurrence: input.recurrence, createdByUserId: context.userProfileId } });
     await prisma.contentItem.update({ where: { id: contentId }, data: { status: "SCHEDULED" } });
     await recordAuditEvent({ organisationId, projectId: brand.projectId, actorUserId: context.userProfileId, action: "content.scheduled", resourceType: "contentSchedule", resourceId: schedule.id, requestId, metadata: { duplicateWarning: Boolean(duplicate), conflictWarning: conflicts > 0 } });
+    await notificationEventService
+      .contentScheduled({
+        organisationId,
+        projectId: brand.projectId,
+        brandId,
+        contentId,
+        scheduleId: schedule.id,
+        scheduledFor,
+        recipientUserIds: [context.userProfileId],
+        idempotencyKey: `content-scheduled:${schedule.id}`,
+      })
+      .catch(() => undefined);
     return { schedule, warnings: { duplicate: Boolean(duplicate), conflict: conflicts > 0 } };
   },
   async list(brandId: string, organisationId: string, context: TenantContext, from: Date, to: Date) {
