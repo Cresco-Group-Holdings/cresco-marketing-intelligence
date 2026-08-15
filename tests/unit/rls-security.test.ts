@@ -14,29 +14,27 @@ describe("Supabase RLS hardening migration", () => {
     expect(sql).toContain("ENABLE ROW LEVEL SECURITY");
   });
 
-  it("revokes anon, authenticated, and service_role table grants", () => {
-    expect(sql).toContain(
-      "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated, service_role",
-    );
+  it("revokes API-role table grants conditionally when roles exist", () => {
+    expect(sql).toContain("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM %I");
+    expect(sql).toContain("ARRAY['anon', 'authenticated', 'service_role']");
+    expect(sql).toContain("pg_roles WHERE rolname = api_role");
   });
 
   it("revokes PUBLIC execute on all existing public functions", () => {
     expect(sql).toContain("REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC");
   });
 
-  it("revokes service_role sequence and function grants", () => {
-    expect(sql).toContain(
-      "REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated, service_role",
-    );
-    expect(sql).toContain(
-      "REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated, service_role",
-    );
+  it("revokes API-role sequence and function grants conditionally", () => {
+    expect(sql).toContain("REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM %I");
+    expect(sql).toContain("REVOKE ALL ON ALL FUNCTIONS IN SCHEMA public FROM %I");
   });
 
   it("sets default privileges including PUBLIC function execute revocation", () => {
     expect(sql).toContain("ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public");
     expect(sql).toContain("REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC");
-    expect(sql).toContain("REVOKE ALL ON TABLES FROM anon, authenticated, service_role");
+    expect(sql).toContain("REVOKE ALL ON TABLES FROM %I");
+    expect(sql).toContain("REVOKE ALL ON SEQUENCES FROM %I");
+    expect(sql).toContain("REVOKE ALL ON FUNCTIONS FROM %I");
   });
 
   it("uses valid PostgreSQL DROP EVENT TRIGGER syntax", () => {
@@ -62,12 +60,16 @@ describe("Supabase RLS hardening migration", () => {
     expect(matches.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("revokes execute on hardening functions from PUBLIC and API roles", () => {
+  it("revokes execute on hardening functions from PUBLIC and API roles conditionally", () => {
+    expect(sql).toContain("REVOKE EXECUTE ON FUNCTION public.ensure_public_table_rls() FROM PUBLIC");
     expect(sql).toContain(
-      "REVOKE EXECUTE ON FUNCTION public.ensure_public_table_rls() FROM PUBLIC, anon, authenticated, service_role",
+      "REVOKE EXECUTE ON FUNCTION public.ensure_public_table_rls() FROM %I",
     );
     expect(sql).toContain(
-      "REVOKE EXECUTE ON FUNCTION public.ensure_public_function_privileges() FROM PUBLIC, anon, authenticated, service_role",
+      "REVOKE EXECUTE ON FUNCTION public.ensure_public_function_privileges() FROM PUBLIC",
+    );
+    expect(sql).toContain(
+      "REVOKE EXECUTE ON FUNCTION public.ensure_public_function_privileges() FROM %I",
     );
   });
 
@@ -75,14 +77,14 @@ describe("Supabase RLS hardening migration", () => {
     expect(sql).not.toMatch(/USING\s*\(\s*true\s*\)/i);
   });
 
-  it("documents that postgres is not a superuser", () => {
-    expect(sql).toContain("NOT a PostgreSQL superuser");
-    expect(sql).not.toMatch(/postgres\s+superuser/i);
+  it("documents portability for vanilla PostgreSQL CI", () => {
+    expect(sql).toContain("GitHub CI");
+    expect(sql).toContain("pg_roles");
   });
 
   it("secures _prisma_migrations without client policies", () => {
     expect(sql).toContain("_prisma_migrations");
-    expect(sql).toContain("FROM anon, authenticated, service_role");
+    expect(sql).toContain("REVOKE ALL ON TABLE public._prisma_migrations FROM %I");
     expect(sql).not.toMatch(/CREATE POLICY/i);
   });
 });

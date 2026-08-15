@@ -18,7 +18,8 @@ if (!fs.existsSync(hardeningSqlPath)) {
   const sql = fs.readFileSync(hardeningSqlPath, "utf8");
   const requiredFragments = [
     "ENABLE ROW LEVEL SECURITY",
-    "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon, authenticated, service_role",
+    "ARRAY['anon', 'authenticated', 'service_role']",
+    "REVOKE ALL ON ALL TABLES IN SCHEMA public",
     "REVOKE EXECUTE ON ALL FUNCTIONS IN SCHEMA public FROM PUBLIC",
     "REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC",
     "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public",
@@ -28,6 +29,7 @@ if (!fs.existsSync(hardeningSqlPath)) {
     "trg_ensure_public_function_privileges",
     "_prisma_migrations",
     "SET search_path = public, pg_temp",
+    "pg_roles WHERE rolname = api_role",
   ];
 
   for (const fragment of requiredFragments) {
