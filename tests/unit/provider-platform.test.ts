@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   CANONICAL_PROVIDER_CAPABILITIES,
+  MOCK_ADVERTISING_CAPABILITIES,
   isCanonicalCapability,
   listProviderCapabilities,
   providerSupportsCapability,
@@ -35,11 +36,7 @@ describe("provider integration platform", () => {
     });
 
     it("lists mock provider capabilities", () => {
-      expect(listProviderCapabilities("mock-advertising")).toEqual([
-        "AD_ACCOUNTS_READ",
-        "AD_CAMPAIGNS_READ",
-        "AD_INSIGHTS_READ",
-      ]);
+      expect(listProviderCapabilities("mock-advertising")).toEqual(MOCK_ADVERTISING_CAPABILITIES);
       expect(providerSupportsCapability("mock-crm", "CRM_CONTACTS_READ")).toBe(true);
       expect(providerSupportsCapability("mock-crm", "AD_CAMPAIGNS_READ")).toBe(false);
     });

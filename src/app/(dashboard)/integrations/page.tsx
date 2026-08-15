@@ -9,6 +9,8 @@ import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/api/client";
 import { ResendConnectionPanel } from "@/components/integrations/resend-connection-panel";
+import { OAuthConnectionPanel } from "@/components/integrations/oauth-connection-panel";
+import { isStage12OAuthProvider } from "@/lib/integrations/oauth/provider-definitions";
 import type {
   IntegrationConnectionView,
   ProviderCatalogueItem,
@@ -36,6 +38,7 @@ export default function IntegrationsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
   const [connectingKey, setConnectingKey] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
@@ -69,6 +72,18 @@ export default function IntegrationsPage() {
   useEffect(() => {
     void loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("integration") === "success") {
+      const missing = params.get("missingScopes");
+      setBanner(
+        missing
+          ? `Connected, but additional scopes are required: ${missing}`
+          : "Provider connected successfully.",
+      );
+    }
+  }, []);
 
   const filteredProviders = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -135,6 +150,12 @@ export default function IntegrationsPage() {
             </CardDescription>
           </CardHeader>
         </Card>
+      ) : null}
+
+      {banner ? (
+        <div className="mb-4 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+          {banner}
+        </div>
       ) : null}
 
       {error ? (
@@ -235,6 +256,20 @@ export default function IntegrationsPage() {
                       key={definition.key}
                       connection={connection}
                       onConnected={() => {
+                        void loadData();
+                      }}
+                    />
+                  );
+                }
+
+                if (isStage12OAuthProvider(definition.key) && isAvailable) {
+                  return (
+                    <OAuthConnectionPanel
+                      key={definition.key}
+                      providerKey={definition.key}
+                      displayName={definition.displayName}
+                      connection={connection}
+                      onUpdated={() => {
                         void loadData();
                       }}
                     />

@@ -51,6 +51,52 @@ if (fs.existsSync(vercelJsonPath)) {
   }
 }
 
+const nextConfigPath = path.join(process.cwd(), "next.config.ts");
+if (fs.existsSync(nextConfigPath)) {
+  const nextConfigSource = fs.readFileSync(nextConfigPath, "utf8");
+  if (!/ignoreDuringBuilds:\s*true/.test(nextConfigSource)) {
+    errors.push("next.config.ts must set eslint.ignoreDuringBuilds: true (lint runs in CI).");
+  }
+  if (!/ignoreBuildErrors:\s*true/.test(nextConfigSource)) {
+    errors.push(
+      "next.config.ts must set typescript.ignoreBuildErrors: true (typecheck runs in CI; avoids Vercel OOM).",
+    );
+  }
+  if (!/webpackMemoryOptimizations:\s*true/.test(nextConfigSource)) {
+    errors.push("next.config.ts must enable experimental.webpackMemoryOptimizations.");
+  }
+  if (!/parallelServerCompiles:\s*false/.test(nextConfigSource)) {
+    errors.push("next.config.ts must set experimental.parallelServerCompiles: false (Hobby memory).");
+  }
+  if (!/parallelServerBuildTraces:\s*false/.test(nextConfigSource)) {
+    errors.push(
+      "next.config.ts must set experimental.parallelServerBuildTraces: false (Hobby memory).",
+    );
+  }
+  if (/--max-old-space-size=8192/.test(nextConfigSource)) {
+    errors.push("next.config.ts must not set NODE_OPTIONS=--max-old-space-size=8192.");
+  }
+}
+
+if (/--max-old-space-size=8192/.test(buildScript)) {
+  errors.push(
+    'package.json "build" must not set NODE_OPTIONS=--max-old-space-size=8192 (causes Vercel Hobby OOM during type validation).',
+  );
+}
+
+const heapMatch = /--max-old-space-size=(\d+)/.exec(buildScript);
+if (heapMatch) {
+  const heapMb = Number(heapMatch[1]);
+  if (!Number.isFinite(heapMb) || heapMb > 8192) {
+    errors.push(`package.json "build" heap must not exceed 8192 MB. Found: ${heapMb}`);
+  }
+  if (heapMb > 7680) {
+    errors.push(
+      `package.json "build" heap should be <= 7680 MB on Vercel Hobby (8192 MB container). Found: ${heapMb}`,
+    );
+  }
+}
+
 if (errors.length > 0) {
   console.error("Vercel build script validation failed:\n");
   for (const message of errors) {

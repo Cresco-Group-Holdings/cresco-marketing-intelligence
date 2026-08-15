@@ -1,0 +1,331 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { useWorkspace } from "@/components/workspace/workspace-provider";
+import { PageHeader } from "@/components/layout/page-header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { apiFetch } from "@/lib/api/client";
+
+type BillingAccountResponse = {
+  summary: {
+    billingStatus: string;
+    plan: { key: string; displayName: string; monthlyPriceCents: number; annualPriceCents: number } | null;
+    subscription: {
+      status: string;
+      billingInterval: string;
+      currentPeriodEnd: string;
+      cancelAtPeriodEnd: boolean;
+    } | null;
+    trial: { status: string; endsAt: string } | null;
+  };
+  usage: Array<{
+    meterKey: string;
+    displayName: string;
+    unit: string;
+    allowance: number;
+    used: number;
+    remaining: number;
+    period: string;
+  }>;
+  entitlements: Array<{
+    entitlementKey: string;
+    valueType: string;
+    limitValue: number | null;
+    booleanValue: boolean | null;
+  }>;
+};
+
+type PlanOption = {
+  key: string;
+  displayName: string;
+  description: string;
+  version: {
+    monthlyPriceCents: number;
+    annualPriceCents: number;
+    trialDays: number;
+  } | null;
+};
+
+function formatPrice(cents: number) {
+  if (cents === 0) return "Free";
+  return `$${(cents / 100).toFixed(0)}/mo`;
+}
+
+function statusBadgeVariant(status: string): "default" | "muted" | "warning" {
+  if (status === "ACTIVE" || status === "TRIALING") return "default";
+  if (status === "PAST_DUE" || status === "UNPAID") return "warning";
+  return "muted";
+}
+
+export function BillingSettingsPanel() {
+  const { preference } = useWorkspace();
+  const organisationId = preference.currentOrganisationId;
+  const [account, setAccount] = useState<BillingAccountResponse | null>(null);
+  const [plans, setPlans] = useState<PlanOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "ANNUAL">("MONTHLY");
+
+  const load = useCallback(async () => {
+    if (!organisationId) return;
+    setLoading(true);
+    setActionError(null);
+    try {
+      const [accountData, planData] = await Promise.all([
+        apiFetch<BillingAccountResponse>(`/api/billing/account?organisationId=${organisationId}`, {
+          organisationId,
+        }),
+        apiFetch<{ plans: PlanOption[] }>(`/api/billing/plans?organisationId=${organisationId}`, {
+          organisationId,
+        }),
+      ]);
+      setAccount(accountData);
+      setPlans(planData.plans);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Failed to load billing data.");
+    } finally {
+      setLoading(false);
+    }
+  }, [organisationId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function handleCheckout(planKey: string) {
+    if (!organisationId) return;
+    setActionError(null);
+    const origin = window.location.origin;
+    const result = await apiFetch<{ checkoutUrl: string }>("/api/billing/checkout", {
+      method: "POST",
+      organisationId,
+      body: JSON.stringify({
+        planKey,
+        billingInterval,
+        successUrl: `${origin}/settings/billing?checkout=success`,
+        cancelUrl: `${origin}/settings/billing?checkout=cancelled`,
+      }),
+    });
+    window.location.href = result.checkoutUrl;
+  }
+
+  async function handlePortal() {
+    if (!organisationId) return;
+    setActionError(null);
+    const result = await apiFetch<{ portalUrl: string }>("/api/billing/portal", {
+      method: "POST",
+      organisationId,
+      body: JSON.stringify({ returnUrl: `${window.location.origin}/settings/billing` }),
+    });
+    window.location.href = result.portalUrl;
+  }
+
+  async function handleChangePlan(planKey: string) {
+    if (!organisationId) return;
+    setActionError(null);
+    await apiFetch("/api/billing/subscription/change", {
+      method: "POST",
+      organisationId,
+      body: JSON.stringify({ planKey, billingInterval }),
+    });
+    await load();
+  }
+
+  async function handleCancel(immediate = false) {
+    if (!organisationId) return;
+    setActionError(null);
+    await apiFetch("/api/billing/subscription/cancel", {
+      method: "POST",
+      organisationId,
+      body: JSON.stringify({ immediate }),
+    });
+    await load();
+  }
+
+  if (!organisationId) {
+    return <p className="text-sm text-slate-600">Select an organisation to manage billing.</p>;
+  }
+
+  if (loading) {
+    return <p className="text-sm text-slate-600">Loading billing…</p>;
+  }
+
+  const currentPlanKey = account?.summary.plan?.key ?? "free";
+  const subscriptionStatus = account?.summary.subscription?.status ?? "ACTIVE";
+
+  return (
+    <>
+      <PageHeader
+        title="Billing"
+        description="Manage your subscription, usage limits, and invoices."
+        breadcrumbs={[{ label: "Settings", href: "/settings" }, { label: "Billing" }]}
+      />
+
+      {actionError ? (
+        <Card className="mb-4 border-amber-200 bg-amber-50">
+          <CardContent className="pt-6 text-sm text-amber-900">{actionError}</CardContent>
+        </Card>
+      ) : null}
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Current plan</CardTitle>
+            <CardDescription>Subscription status and billing period.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="font-medium">{account?.summary.plan?.displayName ?? "Free"}</span>
+              <Badge variant={statusBadgeVariant(subscriptionStatus)}>{subscriptionStatus}</Badge>
+            </div>
+            {account?.summary.trial ? (
+              <p className="text-slate-600">
+                Trial ends {new Date(account.summary.trial.endsAt).toLocaleDateString()}
+              </p>
+            ) : null}
+            {account?.summary.subscription ? (
+              <p className="text-slate-600">
+                Current period ends{" "}
+                {new Date(account.summary.subscription.currentPeriodEnd).toLocaleDateString()}
+                {account.summary.subscription.cancelAtPeriodEnd ? " (cancels at period end)" : ""}
+              </p>
+            ) : null}
+            <div className="flex flex-wrap gap-2 pt-2">
+              <Button variant="outline" size="sm" onClick={() => void handlePortal()}>
+                Payment methods & invoices
+              </Button>
+              {account?.summary.subscription && !account.summary.subscription.cancelAtPeriodEnd ? (
+                <Button variant="outline" size="sm" onClick={() => void handleCancel(false)}>
+                  Cancel at period end
+                </Button>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Usage overview</CardTitle>
+            <CardDescription>Current consumption against plan allowances.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {account?.usage.length ? (
+              account.usage.map((meter) => {
+                const pct = meter.allowance > 0 ? Math.min(100, (meter.used / meter.allowance) * 100) : 0;
+                const atLimit = meter.remaining <= 0;
+                return (
+                  <div key={meter.meterKey}>
+                    <div className="mb-1 flex justify-between text-sm">
+                      <span>{meter.displayName}</span>
+                      <span className={atLimit ? "font-medium text-amber-700" : "text-slate-600"}>
+                        {meter.used.toLocaleString()} / {meter.allowance.toLocaleString()} {meter.unit}
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                      <div
+                        className={`h-full rounded-full ${atLimit ? "bg-amber-500" : "bg-slate-900"}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="text-sm text-slate-600">No usage meters configured for this plan.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Compare plans</CardTitle>
+          <CardDescription>Upgrade or downgrade your workspace subscription.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4 flex gap-2">
+            <Button
+              size="sm"
+              variant={billingInterval === "MONTHLY" ? "primary" : "outline"}
+              onClick={() => setBillingInterval("MONTHLY")}
+            >
+              Monthly
+            </Button>
+            <Button
+              size="sm"
+              variant={billingInterval === "ANNUAL" ? "primary" : "outline"}
+              onClick={() => setBillingInterval("ANNUAL")}
+            >
+              Annual
+            </Button>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {plans
+              .filter((p) => !["free", "trial"].includes(p.key))
+              .map((plan) => {
+                const price =
+                  billingInterval === "ANNUAL"
+                    ? plan.version?.annualPriceCents ?? 0
+                    : plan.version?.monthlyPriceCents ?? 0;
+                const isCurrent = plan.key === currentPlanKey;
+                return (
+                  <Card key={plan.key} className={isCurrent ? "border-slate-900" : ""}>
+                    <CardHeader>
+                      <CardTitle className="text-base">{plan.displayName}</CardTitle>
+                      <CardDescription>{plan.description}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <p className="text-2xl font-semibold">
+                        {billingInterval === "ANNUAL" && price > 0
+                          ? `$${(price / 100).toFixed(0)}/yr`
+                          : formatPrice(price)}
+                      </p>
+                      {isCurrent ? (
+                        <Badge variant="muted">Current plan</Badge>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          <Button size="sm" onClick={() => void handleCheckout(plan.key)}>
+                            Upgrade via checkout
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => void handleChangePlan(plan.key)}>
+                            Change plan
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle>Feature entitlements</CardTitle>
+          <CardDescription>What your plan includes for this workspace.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ul className="grid gap-2 text-sm md:grid-cols-2">
+            {account?.entitlements.map((e) => (
+              <li key={e.entitlementKey} className="flex items-center justify-between rounded border px-3 py-2">
+                <span className="text-slate-700">{e.entitlementKey}</span>
+                <span className="font-medium">
+                  {e.valueType === "BOOLEAN"
+                    ? e.booleanValue
+                      ? "Included"
+                      : "Locked"
+                    : e.limitValue === null
+                      ? "Unlimited"
+                      : e.limitValue.toLocaleString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+      </Card>
+    </>
+  );
+}

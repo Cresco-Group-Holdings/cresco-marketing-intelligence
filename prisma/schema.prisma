@@ -395,6 +395,9 @@ model UserProfile {
   emailCampaignApprovalsActed                  EmailCampaignApproval[]                @relation("EmailCampaignApprover")
   marketingAutomationsCreated                  MarketingAutomation[]                  @relation("MarketingAutomationCreator")
   marketingAutomationsUpdated                  MarketingAutomation[]                  @relation("MarketingAutomationUpdater")
+  automationWorkflowsCreated                   AutomationWorkflow[]                   @relation("AutomationWorkflowCreator")
+  automationWorkflowsUpdated                   AutomationWorkflow[]                   @relation("AutomationWorkflowUpdater")
+  automationExecutionsTriggered                AutomationExecution[]                  @relation("AutomationExecutionTriggerer")
   marketingAutomationApprovalsActed            MarketingAutomationApproval[]          @relation("MarketingAutomationApprover")
   marketingAutomationEnrollmentsMade           MarketingAutomationEnrollment[]        @relation("MarketingAutomationEnroller")
   leadScoringModelsCreated                     LeadScoringModel[]                     @relation("LeadScoringModelCreator")
@@ -449,6 +452,8 @@ model UserProfile {
   socialInboxMessagesSent                      SocialMessage[]                        @relation("SocialMessageSender")
   socialInboxAssigned                          SocialConversation[]                   @relation("SocialInboxConversationAssignee")
   providerConnectionsCreated                   ProviderConnection[]                   @relation("ProviderConnectionCreator")
+  providerCredentialsRevoked                   ProviderCredential[]                   @relation("ProviderCredentialRevoker")
+  oauthTransactionsInitiated                   OAuthTransaction[]                     @relation("OAuthTransactionInitiator")
   providerAuditEvents                          ProviderAuditEvent[]                   @relation("ProviderAuditActor")
   publicationsRequested                        Publication[]                          @relation("PublicationRequester")
   publicationsApproved                         Publication[]                          @relation("PublicationApprover")
@@ -856,6 +861,9 @@ model Organisation {
   crmAudienceSegments                     CrmAudienceSegment[]
   emailCampaigns                          EmailCampaign[]
   marketingAutomations                    MarketingAutomation[]
+  automationWorkflows                     AutomationWorkflow[]
+  automationExecutions                    AutomationExecution[]
+  automationQuotaUsages                   AutomationQuotaUsage[]
   leadScoringModels                       LeadScoringModel[]
   leadQualificationModels                 LeadQualificationModel[]
   lifecycleAgentRuns                      LifecycleAgentRun[]
@@ -878,18 +886,6 @@ model Organisation {
   campaignChannels                        CampaignChannel[]
   campaignKpis                            CampaignKpi[]
   campaignActivities                      CampaignActivity[]
-  calendarEvents                          CalendarEvent[]
-  analyticsDataSources                    AnalyticsDataSource[]
-  analyticsMetricDefinitions              AnalyticsMetricDefinition[]
-  analyticsDimensionDefinitions           AnalyticsDimensionDefinition[]
-  analyticsFacts                          AnalyticsFact[]
-  analyticsImportBatches                  AnalyticsImportBatch[]
-  analyticsAttributionModels              AnalyticsAttributionModel[]
-  analyticsGoals                          AnalyticsGoal[]
-  analyticsSnapshots                      AnalyticsSnapshot[]
-  agentPlatformRuns                       AgentPlatformRun[]
-  agentPlatformApprovals                  AgentPlatformApproval[]
-  agentPlatformQuotas                     AgentPlatformQuota?
   contentTasks                            ContentTask[]
   contentAssignments                      ContentAssignment[]
   contentDeadlines                        ContentDeadline[]
@@ -915,6 +911,21 @@ model Organisation {
   socialInboxReplyDrafts                  SocialInboxReplyDraft[]
   providerConnections                     ProviderConnection[]
   providerAuditEvents                     ProviderAuditEvent[]
+  externalResourceMappings                ExternalResourceMapping[]
+  oauthTransactions                       OAuthTransaction[]
+  analyticsDataSources                    AnalyticsDataSource[]
+  analyticsMetricDefinitions              AnalyticsMetricDefinition[]
+  analyticsDimensionDefinitions           AnalyticsDimensionDefinition[]
+  analyticsFacts                          AnalyticsFact[]
+  analyticsImportBatches                  AnalyticsImportBatch[]
+  analyticsAttributionModels              AnalyticsAttributionModel[]
+  analyticsGoals                          AnalyticsGoal[]
+  analyticsSnapshots                      AnalyticsSnapshot[]
+  agentPlatformRuns                       AgentPlatformRun[]
+  agentPlatformApprovals                  AgentPlatformApproval[]
+  agentPlatformQuotas                     AgentPlatformQuota?
+  calendarEvents                          CalendarEvent[]
+  billingAccount                          BillingAccount?
   providerFeatureFlags                    ProviderFeatureFlag[]
   publications                            Publication[]
   digitalAssets                           DigitalAsset[]
@@ -933,6 +944,8 @@ model Organisation {
   knowledgeTags                           KnowledgeTag[]
   knowledgeRelationships                  KnowledgeRelationship[]
   knowledgeActivities                     KnowledgeActivity[]
+  workspaceEntitlements                   WorkspaceEntitlement[]
+  usageRecords                            UsageRecord[]
 
   @@index([status])
   @@index([archivedAt])
@@ -1181,6 +1194,8 @@ model Project {
   emailMessages                    EmailMessage[]
   emailCampaigns                   EmailCampaign[]
   marketingAutomations             MarketingAutomation[]
+  automationWorkflows              AutomationWorkflow[]
+  automationExecutions             AutomationExecution[]
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
   lifecycleAgentRuns               LifecycleAgentRun[]
@@ -1475,6 +1490,9 @@ model Brand {
   crmAudienceSegments              CrmAudienceSegment[]
   emailCampaigns                   EmailCampaign[]
   marketingAutomations             MarketingAutomation[]
+  automationWorkflows              AutomationWorkflow[]
+  automationExecutions             AutomationExecution[]
+  automationQuotaUsages            AutomationQuotaUsage[]
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
   lifecycleAgentRuns               LifecycleAgentRun[]
@@ -3511,8 +3529,8 @@ model ContentItem {
   contentDeadlines         ContentDeadline[]
   contentChecklists        ContentChecklist[]
   contentActivities        ContentActivity[]
-  calendarEvents           CalendarEvent[]
   publications             Publication[]
+  calendarEvents           CalendarEvent[]
 
   @@index([organisationId])
   @@index([projectId])
@@ -8069,68 +8087,6 @@ model CampaignActivity {
 
   @@index([organisationId, brandId, createdAt])
   @@index([campaignId, createdAt])
-}
-
-enum CalendarEventType {
-  CONTENT_PUBLICATION
-  CAMPAIGN_START
-  CAMPAIGN_END
-  TASK_DEADLINE
-  REVIEW
-  MANUAL
-}
-
-enum CalendarEventStatus {
-  SCHEDULED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  TENTATIVE
-}
-
-model CalendarEvent {
-  id               String              @id @default(cuid())
-  organisationId   String
-  projectId        String
-  brandId          String
-  campaignId       String?
-  contentItemId    String?
-  title            String
-  description      String?
-  type             CalendarEventType
-  status           CalendarEventStatus @default(SCHEDULED)
-  startsAt         DateTime
-  endsAt           DateTime?
-  allDay           Boolean             @default(false)
-  timezone         String
-  color            String?
-  location         String?
-  sourceEntityType String?
-  sourceEntityId   String?
-  sourceLocked     Boolean             @default(false)
-  channelType      String?
-  metadata         Json?
-  cancelledAt      DateTime?
-  createdByUserId  String
-  updatedByUserId  String?
-  version          Int                 @default(1)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
-
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  contentItem  ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
-  createdBy    UserProfile  @relation("CalendarEventCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  updatedBy    UserProfile? @relation("CalendarEventUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
-
-  @@index([organisationId, brandId, startsAt])
-  @@index([organisationId, startsAt, endsAt])
-  @@index([organisationId, status])
-  @@index([organisationId, projectId])
-  @@index([campaignId])
-  @@index([contentItemId])
 }
 
 enum ContentCampaignStatus {
@@ -19344,14 +19300,19 @@ enum ProviderCategory {
 
 enum ProviderConnectionStatus {
   DRAFT
+  PENDING
   PENDING_AUTHORIZATION
   CONNECTED
   DEGRADED
+  ACTION_REQUIRED
   REAUTH_REQUIRED
+  EXPIRED
+  RECONNECTED
   RATE_LIMITED
   SUSPENDED
   DISABLED
   REVOKED
+  ARCHIVED
   ERROR
 }
 
@@ -19405,6 +19366,7 @@ enum ProviderSyncRunStatus {
   RUNNING
   COMPLETED
   SUCCEEDED
+  PARTIAL
   PARTIALLY_SUCCEEDED
   FAILED
   RETRYING
@@ -19431,6 +19393,40 @@ enum ProviderSyncRecordAction {
   UPDATED
   SKIPPED
   FAILED
+}
+
+enum ProviderSyncSchedule {
+  MANUAL
+  HOURLY
+  EVERY_6_HOURS
+  DAILY
+  WEEKLY
+  CUSTOM
+}
+
+enum ProviderSyncMode {
+  FULL
+  INCREMENTAL
+  BACKFILL
+  MANUAL
+  SCHEDULED
+  WEBHOOK
+  RETRY
+}
+
+enum ProviderCampaignMappingPolicy {
+  EXTERNAL_ONLY
+  LINKED_TO_INTERNAL
+  IMPORTED_AS_INTERNAL
+  IGNORED
+  ARCHIVED_EXTERNALLY
+}
+
+enum ProviderSyncFailureStatus {
+  PENDING_RETRY
+  RETRYING
+  RESOLVED
+  ABANDONED
 }
 
 enum ProviderWebhookEndpointStatus {
@@ -19470,6 +19466,10 @@ enum ProviderAuditAction {
   EMAIL_SEND_REJECTED
   EMAIL_SEND_SIMULATED
   SUPPRESSION_APPLIED
+  CREDENTIAL_STORED
+  CREDENTIAL_ACCESSED
+  CONNECTION_STATUS_CHANGED
+  CREDENTIAL_ROTATED
 }
 
 enum ProviderCredentialType {
@@ -19530,22 +19530,28 @@ model ProviderConnection {
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
 
-  organisation     Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project          Project?                  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand            Brand?                    @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  createdBy        UserProfile?              @relation("ProviderConnectionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  credentials      ProviderCredential[]
-  oauthStates      ProviderOAuthState[]
-  webhookEndpoints ProviderWebhookEndpoint[]
-  webhookEvents    ProviderWebhookEvent[]
-  syncCursors      ProviderSyncCursor[]
-  syncRuns         ProviderSyncRun[]
-  providerAccounts ProviderAccount[]
-  rateLimitStates  ProviderRateLimitState[]
-  healthStates     ProviderHealthState[]
-  auditEvents      ProviderAuditEvent[]
-  outboundSends    ProviderOutboundSend[]
-  publications     Publication[]
+  organisation             Organisation                    @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project                  Project?                        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand                    Brand?                          @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy                UserProfile?                    @relation("ProviderConnectionCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  credentials              ProviderCredential[]
+  oauthStates              ProviderOAuthState[]
+  webhookEndpoints         ProviderWebhookEndpoint[]
+  webhookEvents            ProviderWebhookEvent[]
+  syncCursors              ProviderSyncCursor[]
+  syncRuns                 ProviderSyncRun[]
+  syncPolicy               ProviderSyncPolicy?
+  syncFailures             ProviderSyncFailure[]
+  externalResourceMappings ExternalResourceMapping[]
+  oauthTransactions        OAuthTransaction[]
+  discoveredAccounts       ProviderConnectionAccount[]
+  scopeRecords             ProviderConnectionScopeRecord[]
+  providerAccounts         ProviderAccount[]
+  rateLimitStates          ProviderRateLimitState[]
+  healthStates             ProviderHealthState[]
+  auditEvents              ProviderAuditEvent[]
+  outboundSends            ProviderOutboundSend[]
+  publications             Publication[]
 
   @@index([organisationId, providerKey])
   @@index([organisationId, status])
@@ -19555,20 +19561,24 @@ model ProviderConnection {
 }
 
 model ProviderCredential {
-  id             String                 @id @default(cuid())
-  organisationId String
-  connectionId   String
-  credentialType ProviderCredentialType
-  encryptedValue String
-  keyVersion     Int                    @default(1)
-  fingerprint    String?
-  expiresAt      DateTime?
-  revokedAt      DateTime?
-  metadata       Json?
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
+  id              String                 @id @default(cuid())
+  organisationId  String
+  connectionId    String
+  credentialType  ProviderCredentialType
+  encryptedValue  String
+  keyVersion      Int                    @default(1)
+  fingerprint     String?
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  revokedByUserId String?
+  rotatedAt       DateTime?
+  rotationVersion Int                    @default(1)
+  metadata        Json?
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
 
   connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  revokedBy  UserProfile?       @relation("ProviderCredentialRevoker", fields: [revokedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([connectionId, credentialType])
   @@index([connectionId, credentialType])
@@ -19673,6 +19683,12 @@ model ProviderSyncRun {
   direction         ProviderSyncDirection   @default(IMPORT)
   triggerType       ProviderSyncTriggerType @default(MANUAL)
   status            ProviderSyncRunStatus   @default(PENDING)
+  syncMode          ProviderSyncMode?
+  partialFailure    Boolean                 @default(false)
+  resourceTypes     String[]                @default([])
+  triggeredByUserId String?
+  dateRangeStart    DateTime?
+  dateRangeEnd      DateTime?
   cursor            String?
   checkpoint        Json?
   idempotencyKey    String?
@@ -19693,8 +19709,9 @@ model ProviderSyncRun {
   createdAt         DateTime                @default(now())
   updatedAt         DateTime                @updatedAt
 
-  connection ProviderConnection   @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  connection ProviderConnection    @relation(fields: [connectionId], references: [id], onDelete: Cascade)
   records    ProviderSyncRecord[]
+  failures   ProviderSyncFailure[]
 
   @@unique([connectionId, idempotencyKey])
   @@index([connectionId, status])
@@ -19719,6 +19736,77 @@ model ProviderSyncRecord {
 
   @@index([syncRunId, processedAt])
   @@index([externalResourceType, externalResourceId])
+}
+
+model ExternalResourceMapping {
+  id                   String                         @id @default(cuid())
+  workspaceId          String
+  organisationId       String
+  connectionId         String
+  providerKey          String
+  externalResourceType String
+  externalResourceId   String
+  internalResourceType String
+  internalResourceId   String
+  mappingPolicy        ProviderCampaignMappingPolicy?
+  sourceUpdatedAt      DateTime?
+  lastSyncedAt         DateTime
+  checksum             String?
+  metadata             Json?
+  createdAt            DateTime                       @default(now())
+  updatedAt            DateTime                       @updatedAt
+
+  organisation Organisation       @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  connection   ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalResourceType, externalResourceId])
+  @@index([organisationId, providerKey])
+  @@index([internalResourceType, internalResourceId])
+  @@index([connectionId, externalResourceType])
+}
+
+model ProviderSyncPolicy {
+  id                    String               @id @default(cuid())
+  organisationId        String
+  connectionId          String               @unique
+  schedule              ProviderSyncSchedule @default(MANUAL)
+  customIntervalMinutes Int?
+  resourceTypes         String[]             @default([])
+  backfillDays          Int                  @default(90)
+  timezone              String               @default("UTC")
+  enabled               Boolean              @default(true)
+  lastScheduledAt       DateTime?
+  metadata              Json?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+}
+
+model ProviderSyncFailure {
+  id                 String                    @id @default(cuid())
+  organisationId     String
+  connectionId       String
+  syncRunId          String
+  resourceType       String
+  externalResourceId String?
+  pageCursor         String?
+  errorCode          String?
+  errorMessage       String
+  status             ProviderSyncFailureStatus @default(PENDING_RETRY)
+  retryCount         Int                       @default(0)
+  resolvedAt         DateTime?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  syncRun    ProviderSyncRun    @relation(fields: [syncRunId], references: [id], onDelete: Cascade)
+
+  @@index([connectionId, status])
+  @@index([syncRunId])
+  @@index([organisationId, createdAt])
 }
 
 model ProviderAccount {
@@ -19848,476 +19936,6 @@ model ProviderOutboundSend {
   @@index([organisationId, providerKey])
   @@index([connectionId, status])
   @@index([providerMessageId])
-}
-
-// ---------------------------------------------------------------------------
-// Stage 7 — Canonical Analytics Data Model and Performance Core
-// Provider-independent measurement layer (no external connectors yet).
-// ---------------------------------------------------------------------------
-
-enum AnalyticsDataSourceKind {
-  MANUAL_IMPORT
-  INTERNAL
-  CONNECTOR
-}
-
-enum AnalyticsDataSourceStatus {
-  ACTIVE
-  INACTIVE
-  DEPRECATED
-}
-
-enum AnalyticsMetricKind {
-  BASE
-  DERIVED
-}
-
-enum AnalyticsMetricDataType {
-  INTEGER
-  DECIMAL
-  PERCENTAGE
-  CURRENCY
-  RATIO
-}
-
-enum AnalyticsGranularity {
-  HOUR
-  DAY
-  WEEK
-  MONTH
-  TOTAL
-}
-
-enum AnalyticsImportBatchStatus {
-  PENDING
-  VALIDATING
-  COMPLETED
-  PARTIAL
-  FAILED
-}
-
-enum AnalyticsAttributionModelType {
-  FIRST_TOUCH
-  LAST_TOUCH
-  LINEAR
-  POSITION_BASED
-  TIME_DECAY
-}
-
-enum AnalyticsGoalStatus {
-  ACTIVE
-  PAUSED
-  COMPLETED
-  ARCHIVED
-}
-
-enum AnalyticsSnapshotStatus {
-  DRAFT
-  FINALIZED
-}
-
-model AnalyticsDataSource {
-  id             String                    @id @default(cuid())
-  organisationId String
-  workspaceId    String
-  name           String
-  description    String?
-  kind           AnalyticsDataSourceKind   @default(MANUAL_IMPORT)
-  status         AnalyticsDataSourceStatus @default(ACTIVE)
-  providerKey    String?
-  lastImportAt   DateTime?
-  metadata       Json?
-  createdAt      DateTime                  @default(now())
-  updatedAt      DateTime                  @updatedAt
-
-  organisation  Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  facts         AnalyticsFact[]
-  importBatches AnalyticsImportBatch[]
-
-  @@index([organisationId, status])
-  @@index([workspaceId])
-}
-
-model AnalyticsMetricDefinition {
-  id             String                  @id @default(cuid())
-  organisationId String
-  workspaceId    String
-  metricKey      String
-  displayName    String
-  description    String?
-  kind           AnalyticsMetricKind     @default(BASE)
-  dataType       AnalyticsMetricDataType
-  unit           String?
-  isCumulative   Boolean                 @default(false)
-  formulaKey     String?
-  createdAt      DateTime                @default(now())
-  updatedAt      DateTime                @updatedAt
-
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-
-  @@unique([organisationId, metricKey])
-  @@index([workspaceId])
-}
-
-model AnalyticsDimensionDefinition {
-  id             String   @id @default(cuid())
-  organisationId String
-  workspaceId    String
-  dimensionKey   String
-  displayName    String
-  description    String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-
-  @@unique([organisationId, dimensionKey])
-  @@index([workspaceId])
-}
-
-model AnalyticsImportBatch {
-  id              String                     @id @default(cuid())
-  organisationId  String
-  workspaceId     String
-  dataSourceId    String
-  status          AnalyticsImportBatchStatus @default(PENDING)
-  fileName        String?
-  rowCount        Int                        @default(0)
-  acceptedCount   Int                        @default(0)
-  rejectedCount   Int                        @default(0)
-  duplicateCount  Int                        @default(0)
-  errors          Json?
-  warnings        Json?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  createdByUserId String?
-  createdAt       DateTime                   @default(now())
-  updatedAt       DateTime                   @updatedAt
-
-  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  dataSource   AnalyticsDataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
-  facts        AnalyticsFact[]
-
-  @@index([organisationId, status])
-  @@index([dataSourceId, createdAt])
-  @@index([workspaceId])
-}
-
-model AnalyticsFact {
-  id                String               @id @default(cuid())
-  organisationId    String
-  workspaceId       String
-  projectId         String?
-  brandId           String?
-  campaignId        String?
-  channel           String?
-  provider          String?
-  dataSourceId      String?
-  metricKey         String
-  value             Decimal              @db.Decimal(24, 8)
-  currency          String?
-  occurredAt        DateTime
-  granularity       AnalyticsGranularity @default(DAY)
-  dimensions        Json                 @default("{}")
-  sourceBatchId     String?
-  dedupeFingerprint String
-  createdAt         DateTime             @default(now())
-
-  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project      Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  brand        Brand?                @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  campaign     Campaign?             @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  dataSource   AnalyticsDataSource?  @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
-  sourceBatch  AnalyticsImportBatch? @relation(fields: [sourceBatchId], references: [id], onDelete: SetNull)
-
-  @@unique([organisationId, dedupeFingerprint])
-  @@index([organisationId, metricKey, occurredAt])
-  @@index([organisationId, campaignId, occurredAt])
-  @@index([organisationId, channel, occurredAt])
-  @@index([organisationId, brandId, occurredAt])
-  @@index([workspaceId, occurredAt])
-  @@index([sourceBatchId])
-}
-
-model AnalyticsAttributionModel {
-  id             String                        @id @default(cuid())
-  organisationId String
-  workspaceId    String
-  name           String
-  modelType      AnalyticsAttributionModelType
-  isDefault      Boolean                       @default(false)
-  config         Json?
-  createdAt      DateTime                      @default(now())
-  updatedAt      DateTime                      @updatedAt
-
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-
-  @@index([organisationId, isDefault])
-  @@index([workspaceId])
-}
-
-model AnalyticsGoal {
-  id             String              @id @default(cuid())
-  organisationId String
-  workspaceId    String
-  projectId      String?
-  brandId        String?
-  campaignId     String?
-  name           String
-  metricKey      String
-  targetValue    Decimal             @db.Decimal(24, 8)
-  currency       String?
-  status         AnalyticsGoalStatus @default(ACTIVE)
-  startsAt       DateTime?
-  endsAt         DateTime?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-
-  @@index([organisationId, status])
-  @@index([campaignId])
-  @@index([workspaceId])
-}
-
-model AnalyticsSnapshot {
-  id              String                  @id @default(cuid())
-  organisationId  String
-  workspaceId     String
-  projectId       String?
-  brandId         String?
-  campaignId      String?
-  name            String
-  status          AnalyticsSnapshotStatus @default(DRAFT)
-  periodFrom      DateTime
-  periodTo        DateTime
-  payload         Json
-  createdByUserId String?
-  createdAt       DateTime                @default(now())
-  updatedAt       DateTime                @updatedAt
-
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-
-  @@index([organisationId, createdAt])
-  @@index([workspaceId, periodFrom, periodTo])
-}
-
-// ---------------------------------------------------------------------------
-// Stage 10 — AI Agent Foundation (provider-independent orchestration)
-// ---------------------------------------------------------------------------
-
-enum AgentPlatformRunStatus {
-  PENDING
-  RUNNING
-  AWAITING_APPROVAL
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-enum AgentPlatformStepType {
-  CONTEXT_BUILD
-  SAFETY_CHECK
-  QUOTA_CHECK
-  TOOL_CALL
-  MODEL_CALL
-  REDACTION
-  EVALUATION
-  PROPOSAL
-}
-
-enum AgentPlatformStepStatus {
-  PENDING
-  RUNNING
-  COMPLETED
-  FAILED
-  SKIPPED
-}
-
-enum AgentPlatformToolRiskLevel {
-  READ_ONLY
-  DRAFT
-  HIGH_IMPACT
-}
-
-enum AgentPlatformActionStatus {
-  PROPOSED
-  APPROVED
-  REJECTED
-  EXECUTED
-  CANCELLED
-}
-
-enum AgentPlatformApprovalStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  EXPIRED
-}
-
-enum AgentPlatformEvaluationResult {
-  PASSED
-  FAILED
-  WARNING
-}
-
-model AgentPlatformRun {
-  id                String                 @id @default(cuid())
-  organisationId    String
-  projectId         String?
-  brandId           String?
-  campaignId        String?
-  agentKey          String
-  status            AgentPlatformRunStatus @default(PENDING)
-  initiatedByUserId String
-  userInput         String
-  contextSnapshot   Json?
-  summary           String?
-  limitations       Json?
-  promptTokens      Int                    @default(0)
-  completionTokens  Int                    @default(0)
-  totalTokens       Int                    @default(0)
-  estimatedCostUsd  Decimal?               @db.Decimal(12, 6)
-  aiRequestId       String?
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
-  completedAt       DateTime?
-
-  organisation    Organisation                  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project         Project?                      @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  brand           Brand?                        @relation(fields: [brandId], references: [id], onDelete: SetNull)
-  campaign        Campaign?                     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  initiatedBy     UserProfile                   @relation("AgentPlatformRunInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
-  steps           AgentPlatformRunStep[]
-  toolCalls       AgentPlatformToolCall[]
-  proposedActions AgentPlatformProposedAction[]
-  evaluations     AgentPlatformEvaluation[]
-  approvals       AgentPlatformApproval[]
-
-  @@index([organisationId, agentKey, createdAt])
-  @@index([organisationId, status])
-  @@index([initiatedByUserId])
-}
-
-model AgentPlatformRunStep {
-  id           String                  @id @default(cuid())
-  runId        String
-  stepIndex    Int
-  stepType     AgentPlatformStepType
-  status       AgentPlatformStepStatus @default(PENDING)
-  title        String
-  inputDigest  String?
-  outputDigest String?
-  metadata     Json?
-  latencyMs    Int?
-  errorMessage String?
-  startedAt    DateTime?
-  completedAt  DateTime?
-  createdAt    DateTime                @default(now())
-
-  run       AgentPlatformRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
-  toolCalls AgentPlatformToolCall[]
-
-  @@index([runId, stepIndex])
-}
-
-model AgentPlatformToolCall {
-  id               String                     @id @default(cuid())
-  runId            String
-  stepId           String?
-  toolKey          String
-  riskLevel        AgentPlatformToolRiskLevel
-  status           AgentPlatformStepStatus    @default(PENDING)
-  input            Json
-  output           Json?
-  errorMessage     String?
-  requiresApproval Boolean                    @default(false)
-  createdAt        DateTime                   @default(now())
-  completedAt      DateTime?
-
-  run  AgentPlatformRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
-  step AgentPlatformRunStep? @relation(fields: [stepId], references: [id], onDelete: SetNull)
-
-  @@index([runId, toolKey])
-}
-
-model AgentPlatformProposedAction {
-  id               String                     @id @default(cuid())
-  runId            String
-  actionKey        String
-  title            String
-  description      String
-  payload          Json
-  riskLevel        AgentPlatformToolRiskLevel
-  status           AgentPlatformActionStatus  @default(PROPOSED)
-  requiresApproval Boolean                    @default(true)
-  createdAt        DateTime                   @default(now())
-  updatedAt        DateTime                   @updatedAt
-
-  run       AgentPlatformRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
-  approvals AgentPlatformApproval[]
-
-  @@index([runId, status])
-}
-
-model AgentPlatformApproval {
-  id                String                      @id @default(cuid())
-  organisationId    String
-  runId             String
-  proposedActionId  String?
-  status            AgentPlatformApprovalStatus @default(PENDING)
-  requestedByUserId String
-  decidedByUserId   String?
-  comment           String?
-  decidedAt         DateTime?
-  createdAt         DateTime                    @default(now())
-  updatedAt         DateTime                    @updatedAt
-
-  organisation   Organisation                 @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  run            AgentPlatformRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
-  proposedAction AgentPlatformProposedAction? @relation(fields: [proposedActionId], references: [id], onDelete: SetNull)
-  requestedBy    UserProfile                  @relation("AgentPlatformApprovalRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
-  decidedBy      UserProfile?                 @relation("AgentPlatformApprovalDecider", fields: [decidedByUserId], references: [id], onDelete: SetNull)
-
-  @@index([organisationId, status])
-  @@index([runId])
-}
-
-model AgentPlatformEvaluation {
-  id           String                        @id @default(cuid())
-  runId        String
-  criterionKey String
-  result       AgentPlatformEvaluationResult
-  score        Float?
-  notes        String?
-  metadata     Json?
-  createdAt    DateTime                      @default(now())
-
-  run AgentPlatformRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-
-  @@index([runId, criterionKey])
-}
-
-model AgentPlatformQuota {
-  id                String   @id @default(cuid())
-  organisationId    String   @unique
-  dailyRunLimit     Int      @default(100)
-  dailyTokenLimit   Int      @default(500000)
-  dailyCostLimitUsd Decimal  @default(25) @db.Decimal(12, 4)
-  runsToday         Int      @default(0)
-  tokensToday       Int      @default(0)
-  costTodayUsd      Decimal  @default(0) @db.Decimal(12, 6)
-  resetAt           DateTime @default(now())
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
 }
 
 // ---------------------------------------------------------------------------
@@ -20890,4 +20508,1114 @@ model KnowledgeActivity {
   @@index([knowledgeBaseId, createdAt])
   @@index([entryId, createdAt])
   @@index([organisationId, createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Stage 9 — Internal Automation Engine Core
+// ---------------------------------------------------------------------------
+
+enum AutomationWorkflowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum AutomationTriggerKind {
+  EVENT
+  SCHEDULE
+}
+
+enum AutomationEventType {
+  CAMPAIGN_ACTIVATED
+  CONTENT_ENTERED_REVIEW
+  DEADLINE_APPROACHING
+  LEAD_SCORE_THRESHOLD
+  KPI_BELOW_TARGET
+  MANUAL
+  AUTOMATION_COMPLETED
+}
+
+enum AutomationActionType {
+  CREATE_TASK
+  UPDATE_CAMPAIGN_STATUS
+  ASSIGN_USER
+  REQUEST_APPROVAL
+  CREATE_NOTIFICATION
+  ADD_CRM_ACTIVITY
+  UPDATE_LEAD_STATUS
+  CREATE_CALENDAR_EVENT
+}
+
+enum AutomationExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  DEAD_LETTER
+  SKIPPED
+  DRY_RUN
+}
+
+enum AutomationStepStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  RETRYING
+  SKIPPED
+}
+
+model AutomationWorkflow {
+  id                   String                   @id @default(cuid())
+  organisationId       String
+  projectId            String
+  brandId              String
+  name                 String
+  description          String?
+  status               AutomationWorkflowStatus @default(DRAFT)
+  activeVersionId      String?
+  executionLimitPerDay Int?
+  monthlyQuota         Int?
+  preventSelfTrigger   Boolean                  @default(true)
+  createdByUserId      String
+  updatedByUserId      String?
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  archivedAt           DateTime?
+
+  organisation  Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project       Project               @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand         Brand                 @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  createdBy     UserProfile           @relation("AutomationWorkflowCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy     UserProfile?          @relation("AutomationWorkflowUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+  activeVersion AutomationVersion?    @relation("AutomationWorkflowActiveVersion", fields: [activeVersionId], references: [id], onDelete: SetNull)
+  versions      AutomationVersion[]
+  executions    AutomationExecution[]
+
+  @@index([organisationId, brandId, status])
+}
+
+model AutomationVersion {
+  id             String                   @id @default(cuid())
+  workflowId     String
+  versionNumber  Int
+  status         AutomationWorkflowStatus @default(DRAFT)
+  definitionHash String?
+  notes          String?
+  publishedAt    DateTime?
+  createdAt      DateTime                 @default(now())
+
+  workflow   AutomationWorkflow    @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  activeFor  AutomationWorkflow[]  @relation("AutomationWorkflowActiveVersion")
+  triggers   AutomationTrigger[]
+  conditions AutomationCondition[]
+  actions    AutomationAction[]
+  executions AutomationExecution[]
+
+  @@unique([workflowId, versionNumber])
+}
+
+model AutomationTrigger {
+  id           String                @id @default(cuid())
+  versionId    String
+  triggerKind  AutomationTriggerKind
+  eventType    AutomationEventType?
+  scheduleCron String?
+  config       Json?
+  isEnabled    Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+
+  version AutomationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+  @@index([eventType])
+}
+
+model AutomationCondition {
+  id        String @id @default(cuid())
+  versionId String
+  field     String
+  operator  String
+  value     Json?
+  sortOrder Int    @default(0)
+
+  version AutomationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId, sortOrder])
+}
+
+model AutomationAction {
+  id                     String               @id @default(cuid())
+  versionId              String
+  actionType             AutomationActionType
+  config                 Json
+  sortOrder              Int                  @default(0)
+  maxRetries             Int                  @default(3)
+  idempotencyKeyTemplate String?
+
+  version AutomationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId, sortOrder])
+}
+
+model AutomationExecution {
+  id                String                    @id @default(cuid())
+  workflowId        String
+  versionId         String
+  organisationId    String
+  projectId         String
+  brandId           String
+  status            AutomationExecutionStatus @default(PENDING)
+  idempotencyKey    String
+  triggerEventType  AutomationEventType?
+  triggerPayload    Json?
+  dryRun            Boolean                   @default(false)
+  attemptCount      Int                       @default(0)
+  maxAttempts       Int                       @default(3)
+  triggerDepth      Int                       @default(0)
+  errorMessage      String?
+  deadLetterAt      DateTime?
+  triggeredByUserId String?
+  startedAt         DateTime?
+  completedAt       DateTime?
+  createdAt         DateTime                  @default(now())
+
+  workflow     AutomationWorkflow        @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  version      AutomationVersion         @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  organisation Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  triggeredBy  UserProfile?              @relation("AutomationExecutionTriggerer", fields: [triggeredByUserId], references: [id], onDelete: SetNull)
+  steps        AutomationExecutionStep[]
+
+  @@unique([workflowId, idempotencyKey])
+  @@index([organisationId, brandId, status])
+  @@index([createdAt])
+}
+
+model AutomationExecutionStep {
+  id           String               @id @default(cuid())
+  executionId  String
+  actionId     String
+  status       AutomationStepStatus @default(PENDING)
+  attemptCount Int                  @default(0)
+  result       Json?
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime             @default(now())
+
+  execution AutomationExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId])
+}
+
+model AutomationQuotaUsage {
+  id             String   @id @default(cuid())
+  organisationId String
+  brandId        String
+  periodStart    DateTime
+  executionCount Int      @default(0)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, brandId, periodStart])
+  @@index([organisationId, brandId])
+}
+
+enum CalendarEventType {
+  CONTENT_PUBLICATION
+  CAMPAIGN_START
+  CAMPAIGN_END
+  TASK_DEADLINE
+  REVIEW
+  MANUAL
+}
+
+enum CalendarEventStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  TENTATIVE
+}
+
+model CalendarEvent {
+  id               String              @id @default(cuid())
+  organisationId   String
+  projectId        String
+  brandId          String
+  campaignId       String?
+  contentItemId    String?
+  title            String
+  description      String?
+  type             CalendarEventType
+  status           CalendarEventStatus @default(SCHEDULED)
+  startsAt         DateTime
+  endsAt           DateTime?
+  allDay           Boolean             @default(false)
+  timezone         String
+  color            String?
+  location         String?
+  sourceEntityType String?
+  sourceEntityId   String?
+  sourceLocked     Boolean             @default(false)
+  channelType      String?
+  metadata         Json?
+  cancelledAt      DateTime?
+  createdByUserId  String
+  updatedByUserId  String?
+  version          Int                 @default(1)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  contentItem  ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  createdBy    UserProfile  @relation("CalendarEventCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy    UserProfile? @relation("CalendarEventUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, brandId, startsAt])
+  @@index([organisationId, startsAt, endsAt])
+  @@index([organisationId, status])
+  @@index([organisationId, projectId])
+  @@index([campaignId])
+  @@index([contentItemId])
+}
+
+enum AnalyticsDataSourceKind {
+  MANUAL_IMPORT
+  INTERNAL
+  CONNECTOR
+}
+
+enum AnalyticsDataSourceStatus {
+  ACTIVE
+  INACTIVE
+  DEPRECATED
+}
+
+enum AnalyticsMetricKind {
+  BASE
+  DERIVED
+}
+
+enum AnalyticsMetricDataType {
+  INTEGER
+  DECIMAL
+  PERCENTAGE
+  CURRENCY
+  RATIO
+}
+
+enum AnalyticsGranularity {
+  HOUR
+  DAY
+  WEEK
+  MONTH
+  TOTAL
+}
+
+enum AnalyticsImportBatchStatus {
+  PENDING
+  VALIDATING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
+enum AnalyticsAttributionModelType {
+  FIRST_TOUCH
+  LAST_TOUCH
+  LINEAR
+  POSITION_BASED
+  TIME_DECAY
+}
+
+enum AnalyticsGoalStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  ARCHIVED
+}
+
+enum AnalyticsSnapshotStatus {
+  DRAFT
+  FINALIZED
+}
+
+model AnalyticsDataSource {
+  id             String                    @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  name           String
+  description    String?
+  kind           AnalyticsDataSourceKind   @default(MANUAL_IMPORT)
+  status         AnalyticsDataSourceStatus @default(ACTIVE)
+  providerKey    String?
+  lastImportAt   DateTime?
+  metadata       Json?
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  organisation  Organisation           @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  facts         AnalyticsFact[]
+  importBatches AnalyticsImportBatch[]
+
+  @@index([organisationId, status])
+  @@index([workspaceId])
+}
+
+model AnalyticsMetricDefinition {
+  id             String                  @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  metricKey      String
+  displayName    String
+  description    String?
+  kind           AnalyticsMetricKind     @default(BASE)
+  dataType       AnalyticsMetricDataType
+  unit           String?
+  isCumulative   Boolean                 @default(false)
+  formulaKey     String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, metricKey])
+  @@index([workspaceId])
+}
+
+model AnalyticsDimensionDefinition {
+  id             String   @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  dimensionKey   String
+  displayName    String
+  description    String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, dimensionKey])
+  @@index([workspaceId])
+}
+
+model AnalyticsImportBatch {
+  id              String                     @id @default(cuid())
+  organisationId  String
+  workspaceId     String
+  dataSourceId    String
+  status          AnalyticsImportBatchStatus @default(PENDING)
+  fileName        String?
+  rowCount        Int                        @default(0)
+  acceptedCount   Int                        @default(0)
+  rejectedCount   Int                        @default(0)
+  duplicateCount  Int                        @default(0)
+  errors          Json?
+  warnings        Json?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdByUserId String?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  dataSource   AnalyticsDataSource @relation(fields: [dataSourceId], references: [id], onDelete: Cascade)
+  facts        AnalyticsFact[]
+
+  @@index([organisationId, status])
+  @@index([dataSourceId, createdAt])
+  @@index([workspaceId])
+}
+
+model AnalyticsFact {
+  id                String               @id @default(cuid())
+  organisationId    String
+  workspaceId       String
+  projectId         String?
+  brandId           String?
+  campaignId        String?
+  channel           String?
+  provider          String?
+  dataSourceId      String?
+  metricKey         String
+  value             Decimal              @db.Decimal(24, 8)
+  currency          String?
+  occurredAt        DateTime
+  granularity       AnalyticsGranularity @default(DAY)
+  dimensions        Json                 @default("{}")
+  sourceBatchId     String?
+  dedupeFingerprint String
+  createdAt         DateTime             @default(now())
+
+  organisation Organisation          @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?              @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?                @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign     Campaign?             @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  dataSource   AnalyticsDataSource?  @relation(fields: [dataSourceId], references: [id], onDelete: SetNull)
+  sourceBatch  AnalyticsImportBatch? @relation(fields: [sourceBatchId], references: [id], onDelete: SetNull)
+
+  @@unique([organisationId, dedupeFingerprint])
+  @@index([organisationId, metricKey, occurredAt])
+  @@index([organisationId, campaignId, occurredAt])
+  @@index([organisationId, channel, occurredAt])
+  @@index([organisationId, brandId, occurredAt])
+  @@index([workspaceId, occurredAt])
+  @@index([sourceBatchId])
+}
+
+model AnalyticsAttributionModel {
+  id             String                        @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  name           String
+  modelType      AnalyticsAttributionModelType
+  isDefault      Boolean                       @default(false)
+  config         Json?
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, isDefault])
+  @@index([workspaceId])
+}
+
+model AnalyticsGoal {
+  id             String              @id @default(cuid())
+  organisationId String
+  workspaceId    String
+  projectId      String?
+  brandId        String?
+  campaignId     String?
+  name           String
+  metricKey      String
+  targetValue    Decimal             @db.Decimal(24, 8)
+  currency       String?
+  status         AnalyticsGoalStatus @default(ACTIVE)
+  startsAt       DateTime?
+  endsAt         DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, status])
+  @@index([campaignId])
+  @@index([workspaceId])
+}
+
+model AnalyticsSnapshot {
+  id              String                  @id @default(cuid())
+  organisationId  String
+  workspaceId     String
+  projectId       String?
+  brandId         String?
+  campaignId      String?
+  name            String
+  status          AnalyticsSnapshotStatus @default(DRAFT)
+  periodFrom      DateTime
+  periodTo        DateTime
+  payload         Json
+  createdByUserId String?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand?       @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign     Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, createdAt])
+  @@index([workspaceId, periodFrom, periodTo])
+}
+
+// ---------------------------------------------------------------------------
+// Stage 10 — AI Agent Foundation (provider-independent orchestration)
+// ---------------------------------------------------------------------------
+
+enum AgentPlatformRunStatus {
+  PENDING
+  RUNNING
+  AWAITING_APPROVAL
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum AgentPlatformStepType {
+  CONTEXT_BUILD
+  SAFETY_CHECK
+  QUOTA_CHECK
+  TOOL_CALL
+  MODEL_CALL
+  REDACTION
+  EVALUATION
+  PROPOSAL
+}
+
+enum AgentPlatformStepStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum AgentPlatformToolRiskLevel {
+  READ_ONLY
+  DRAFT
+  HIGH_IMPACT
+}
+
+enum AgentPlatformActionStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+  EXECUTED
+  CANCELLED
+}
+
+enum AgentPlatformApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+}
+
+enum AgentPlatformEvaluationResult {
+  PASSED
+  FAILED
+  WARNING
+}
+
+model AgentPlatformRun {
+  id                String                 @id @default(cuid())
+  organisationId    String
+  projectId         String?
+  brandId           String?
+  campaignId        String?
+  agentKey          String
+  status            AgentPlatformRunStatus @default(PENDING)
+  initiatedByUserId String
+  userInput         String
+  contextSnapshot   Json?
+  summary           String?
+  limitations       Json?
+  promptTokens      Int                    @default(0)
+  completionTokens  Int                    @default(0)
+  totalTokens       Int                    @default(0)
+  estimatedCostUsd  Decimal?               @db.Decimal(12, 6)
+  aiRequestId       String?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  completedAt       DateTime?
+
+  organisation    Organisation                  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project         Project?                      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand           Brand?                        @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  campaign        Campaign?                     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  initiatedBy     UserProfile                   @relation("AgentPlatformRunInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+  steps           AgentPlatformRunStep[]
+  toolCalls       AgentPlatformToolCall[]
+  proposedActions AgentPlatformProposedAction[]
+  evaluations     AgentPlatformEvaluation[]
+  approvals       AgentPlatformApproval[]
+
+  @@index([organisationId, agentKey, createdAt])
+  @@index([organisationId, status])
+  @@index([initiatedByUserId])
+}
+
+model AgentPlatformRunStep {
+  id           String                  @id @default(cuid())
+  runId        String
+  stepIndex    Int
+  stepType     AgentPlatformStepType
+  status       AgentPlatformStepStatus @default(PENDING)
+  title        String
+  inputDigest  String?
+  outputDigest String?
+  metadata     Json?
+  latencyMs    Int?
+  errorMessage String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime                @default(now())
+
+  run       AgentPlatformRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+  toolCalls AgentPlatformToolCall[]
+
+  @@index([runId, stepIndex])
+}
+
+model AgentPlatformToolCall {
+  id               String                     @id @default(cuid())
+  runId            String
+  stepId           String?
+  toolKey          String
+  riskLevel        AgentPlatformToolRiskLevel
+  status           AgentPlatformStepStatus    @default(PENDING)
+  input            Json
+  output           Json?
+  errorMessage     String?
+  requiresApproval Boolean                    @default(false)
+  createdAt        DateTime                   @default(now())
+  completedAt      DateTime?
+
+  run  AgentPlatformRun      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  step AgentPlatformRunStep? @relation(fields: [stepId], references: [id], onDelete: SetNull)
+
+  @@index([runId, toolKey])
+}
+
+model AgentPlatformProposedAction {
+  id               String                     @id @default(cuid())
+  runId            String
+  actionKey        String
+  title            String
+  description      String
+  payload          Json
+  riskLevel        AgentPlatformToolRiskLevel
+  status           AgentPlatformActionStatus  @default(PROPOSED)
+  requiresApproval Boolean                    @default(true)
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  run       AgentPlatformRun        @relation(fields: [runId], references: [id], onDelete: Cascade)
+  approvals AgentPlatformApproval[]
+
+  @@index([runId, status])
+}
+
+model AgentPlatformApproval {
+  id                String                      @id @default(cuid())
+  organisationId    String
+  runId             String
+  proposedActionId  String?
+  status            AgentPlatformApprovalStatus @default(PENDING)
+  requestedByUserId String
+  decidedByUserId   String?
+  comment           String?
+  decidedAt         DateTime?
+  createdAt         DateTime                    @default(now())
+  updatedAt         DateTime                    @updatedAt
+
+  organisation   Organisation                 @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  run            AgentPlatformRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
+  proposedAction AgentPlatformProposedAction? @relation(fields: [proposedActionId], references: [id], onDelete: SetNull)
+  requestedBy    UserProfile                  @relation("AgentPlatformApprovalRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  decidedBy      UserProfile?                 @relation("AgentPlatformApprovalDecider", fields: [decidedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([organisationId, status])
+  @@index([runId])
+}
+
+model AgentPlatformEvaluation {
+  id           String                        @id @default(cuid())
+  runId        String
+  criterionKey String
+  result       AgentPlatformEvaluationResult
+  score        Float?
+  notes        String?
+  metadata     Json?
+  createdAt    DateTime                      @default(now())
+
+  run AgentPlatformRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, criterionKey])
+}
+
+model AgentPlatformQuota {
+  id                String   @id @default(cuid())
+  organisationId    String   @unique
+  dailyRunLimit     Int      @default(100)
+  dailyTokenLimit   Int      @default(500000)
+  dailyCostLimitUsd Decimal  @default(25) @db.Decimal(12, 4)
+  runsToday         Int      @default(0)
+  tokensToday       Int      @default(0)
+  costTodayUsd      Decimal  @default(0) @db.Decimal(12, 6)
+  resetAt           DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+}
+
+enum ProviderConnectionAccountStatus {
+  DISCOVERED
+  SELECTED
+  DISABLED
+  ARCHIVED
+}
+
+model OAuthTransaction {
+  id                    String    @id @default(cuid())
+  workspaceId           String
+  organisationId        String
+  providerKey           String
+  connectionId          String?
+  initiatedByUserId     String
+  encryptedState        String
+  stateDigest           String    @unique
+  codeVerifierReference String?
+  requestedScopes       String[]  @default([])
+  returnPath            String?
+  redirectUri           String
+  expiresAt             DateTime
+  consumedAt            DateTime?
+  createdAt             DateTime  @default(now())
+
+  organisation Organisation        @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  connection   ProviderConnection? @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  initiatedBy  UserProfile         @relation("OAuthTransactionInitiator", fields: [initiatedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([organisationId, providerKey, createdAt])
+  @@index([expiresAt])
+  @@index([connectionId])
+}
+
+model ProviderConnectionAccount {
+  id                String                          @id @default(cuid())
+  organisationId    String
+  connectionId      String
+  providerKey       String
+  externalAccountId String
+  accountType       String
+  displayName       String
+  status            ProviderConnectionAccountStatus @default(DISCOVERED)
+  metadata          Json?
+  selectedAt        DateTime?
+  createdAt         DateTime                        @default(now())
+  updatedAt         DateTime                        @updatedAt
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId, externalAccountId, accountType])
+  @@index([organisationId, providerKey])
+  @@index([connectionId, status])
+}
+
+model ProviderConnectionScopeRecord {
+  id              String   @id @default(cuid())
+  organisationId  String
+  connectionId    String
+  requestedScopes String[] @default([])
+  grantedScopes   String[] @default([])
+  missingScopes   String[] @default([])
+  optionalScopes  String[] @default([])
+  capabilityMap   Json?
+  updatedAt       DateTime @updatedAt
+  createdAt       DateTime @default(now())
+
+  connection ProviderConnection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([connectionId])
+  @@index([organisationId])
+}
+
+// ---------------------------------------------------------------------------
+// Stage 16: Billing, plans, usage and entitlements
+// ---------------------------------------------------------------------------
+
+enum BillingAccountStatus {
+  ACTIVE
+  SUSPENDED
+  CLOSED
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  UNPAID
+  PAUSED
+  INCOMPLETE
+}
+
+enum BillingInterval {
+  MONTHLY
+  ANNUAL
+}
+
+enum UsageAllowancePeriod {
+  DAILY
+  MONTHLY
+  BILLING_PERIOD
+  LIFETIME
+}
+
+enum EntitlementValueType {
+  BOOLEAN
+  COUNT
+  RATE
+}
+
+enum WorkspaceEntitlementSource {
+  PLAN
+  OVERRIDE
+  PROMO
+  TRIAL
+}
+
+enum BillingEventStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  DUPLICATE
+}
+
+enum TrialStatus {
+  ACTIVE
+  CONVERTED
+  EXPIRED
+  CANCELLED
+}
+
+model BillingAccount {
+  id                  String               @id @default(cuid())
+  workspaceId         String
+  organisationId      String               @unique
+  status              BillingAccountStatus @default(ACTIVE)
+  billingEmail        String?
+  taxMetadata         Json?
+  externalCustomerRef String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  organisation Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  subscription Subscription?
+  trial        Trial?
+  invoices     BillingInvoiceReference[]
+  events       BillingEvent[]
+
+  @@index([workspaceId])
+  @@index([status])
+}
+
+model SubscriptionPlan {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  displayName String
+  description String?
+  sortOrder   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  versions SubscriptionPlanVersion[]
+}
+
+model SubscriptionPlanVersion {
+  id                      String    @id @default(cuid())
+  planId                  String
+  version                 Int
+  monthlyPriceCents       Int       @default(0)
+  annualPriceCents        Int       @default(0)
+  currency                String    @default("USD")
+  externalPriceMonthlyRef String?
+  externalPriceAnnualRef  String?
+  trialDays               Int       @default(0)
+  effectiveFrom           DateTime  @default(now())
+  effectiveTo             DateTime?
+  isCurrent               Boolean   @default(true)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  plan          SubscriptionPlan  @relation(fields: [planId], references: [id], onDelete: Cascade)
+  entitlements  PlanEntitlement[]
+  allowances    UsageAllowance[]
+  subscriptions Subscription[]
+  promoCodes    PromoCode[]
+
+  @@unique([planId, version])
+  @@index([planId, isCurrent])
+}
+
+model PlanEntitlement {
+  id             String               @id @default(cuid())
+  planVersionId  String
+  entitlementKey String
+  valueType      EntitlementValueType @default(COUNT)
+  limitValue     Int?
+  booleanValue   Boolean?
+  metadata       Json?
+  createdAt      DateTime             @default(now())
+
+  planVersion SubscriptionPlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([planVersionId, entitlementKey])
+  @@index([entitlementKey])
+}
+
+model Subscription {
+  id                      String             @id @default(cuid())
+  billingAccountId        String             @unique
+  planVersionId           String
+  status                  SubscriptionStatus @default(ACTIVE)
+  billingInterval         BillingInterval    @default(MONTHLY)
+  externalSubscriptionRef String?
+  currentPeriodStart      DateTime
+  currentPeriodEnd        DateTime
+  cancelAtPeriodEnd       Boolean            @default(false)
+  cancelledAt             DateTime?
+  trialEnd                DateTime?
+  metadata                Json?
+  createdAt               DateTime           @default(now())
+  updatedAt               DateTime           @updatedAt
+
+  billingAccount BillingAccount          @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+  planVersion    SubscriptionPlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Restrict)
+
+  @@index([status])
+  @@index([planVersionId])
+}
+
+model WorkspaceEntitlement {
+  id             String                     @id @default(cuid())
+  workspaceId    String
+  organisationId String
+  entitlementKey String
+  valueType      EntitlementValueType       @default(COUNT)
+  limitValue     Int?
+  booleanValue   Boolean?
+  source         WorkspaceEntitlementSource @default(PLAN)
+  expiresAt      DateTime?
+  metadata       Json?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, entitlementKey, source])
+  @@index([workspaceId])
+  @@index([entitlementKey])
+}
+
+model UsageMeter {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  displayName String
+  unit        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  allowances UsageAllowance[]
+  records    UsageRecord[]
+}
+
+model UsageAllowance {
+  id             String               @id @default(cuid())
+  planVersionId  String
+  meterKey       String
+  allowance      Int
+  period         UsageAllowancePeriod @default(BILLING_PERIOD)
+  overageAllowed Boolean              @default(false)
+  createdAt      DateTime             @default(now())
+
+  planVersion SubscriptionPlanVersion @relation(fields: [planVersionId], references: [id], onDelete: Cascade)
+  meter       UsageMeter              @relation(fields: [meterKey], references: [key], onDelete: Cascade)
+
+  @@unique([planVersionId, meterKey, period])
+}
+
+model UsageRecord {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  organisationId String
+  meterKey       String
+  amount         Int
+  idempotencyKey String
+  periodStart    DateTime
+  periodEnd      DateTime
+  metadata       Json?
+  recordedAt     DateTime @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  meter        UsageMeter   @relation(fields: [meterKey], references: [key], onDelete: Restrict)
+
+  @@unique([organisationId, idempotencyKey])
+  @@index([organisationId, meterKey, periodStart])
+  @@index([workspaceId, recordedAt])
+}
+
+model BillingInvoiceReference {
+  id                 String    @id @default(cuid())
+  billingAccountId   String
+  externalInvoiceRef String
+  invoiceUrl         String?
+  amountCents        Int
+  currency           String    @default("USD")
+  status             String
+  periodStart        DateTime?
+  periodEnd          DateTime?
+  createdAt          DateTime  @default(now())
+
+  billingAccount BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+
+  @@unique([externalInvoiceRef])
+  @@index([billingAccountId, createdAt])
+}
+
+model BillingEvent {
+  id               String             @id @default(cuid())
+  billingAccountId String?
+  externalEventRef String             @unique
+  eventType        String
+  status           BillingEventStatus @default(PENDING)
+  payload          Json?
+  errorMessage     String?
+  processedAt      DateTime?
+  createdAt        DateTime           @default(now())
+
+  billingAccount BillingAccount? @relation(fields: [billingAccountId], references: [id], onDelete: SetNull)
+
+  @@index([billingAccountId, createdAt])
+  @@index([status])
+}
+
+model Trial {
+  id               String      @id @default(cuid())
+  billingAccountId String      @unique
+  status           TrialStatus @default(ACTIVE)
+  startedAt        DateTime    @default(now())
+  endsAt           DateTime
+  convertedAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  billingAccount BillingAccount @relation(fields: [billingAccountId], references: [id], onDelete: Cascade)
+
+  @@index([status, endsAt])
+}
+
+model PromoCode {
+  id              String    @id @default(cuid())
+  code            String    @unique
+  planVersionId   String?
+  discountPercent Int?
+  trialDaysExtra  Int?
+  maxRedemptions  Int?
+  redemptionCount Int       @default(0)
+  expiresAt       DateTime?
+  isActive        Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  planVersion SubscriptionPlanVersion? @relation(fields: [planVersionId], references: [id], onDelete: SetNull)
+
+  @@index([isActive, expiresAt])
 }
