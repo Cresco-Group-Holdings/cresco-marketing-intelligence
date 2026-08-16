@@ -63,6 +63,7 @@ export function CampaignTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Input
+          label="Search campaigns"
           type="search"
           placeholder="Search campaigns…"
           value={search}
@@ -71,7 +72,6 @@ export function CampaignTable({
             setPage(0);
           }}
           className="sm:max-w-xs"
-          aria-label="Search campaigns"
         />
         <select
           value={provider}
