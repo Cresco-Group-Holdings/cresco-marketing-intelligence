@@ -936,6 +936,7 @@ model Organisation {
   digitalAssetMetadata                    DigitalAssetMetadata[]
   digitalAssetActivities                  DigitalAssetActivity[]
   digitalAssetProcessingJobs              DigitalAssetProcessingJob[]
+  workerJobs                              WorkerJob[]
   knowledgeBases                          KnowledgeBase[]
   knowledgeEntries                        KnowledgeEntry[]
   knowledgeEntryVersions                  KnowledgeEntryVersion[]
@@ -3201,11 +3202,11 @@ model PublishingJob {
   manualConfirmedAt       DateTime?
   manualConfirmedByUserId String?
 
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-  schedule    ContentSchedule?  @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
-  publication Publication?      @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  attempts  PublishingAttempt[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  schedule    ContentSchedule?    @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
+  publication Publication?        @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  attempts    PublishingAttempt[]
 
   @@unique([contentScheduleId, idempotencyKey])
   @@unique([publicationId, idempotencyKey])
@@ -3224,6 +3225,76 @@ model PublishingAttempt {
   job              PublishingJob @relation(fields: [publishingJobId], references: [id], onDelete: Cascade)
 
   @@unique([publishingJobId, attemptNumber])
+}
+
+enum WorkerJobType {
+  PUBLISHING
+  TOKEN_REFRESH
+  ANALYTICS_SYNC
+  PROVIDER_SYNC
+  DAM_PROCESSING
+  SEO_CRAWL
+  AUTOMATION_EXECUTION
+  NOTIFICATION_DIGEST
+}
+
+enum WorkerJobStatus {
+  PENDING
+  SCHEDULED
+  READY
+  CLAIMED
+  RUNNING
+  RETRY_WAIT
+  SUCCEEDED
+  FAILED
+  DEAD_LETTER
+  CANCELLED
+}
+
+enum WorkerJobErrorCategory {
+  RETRYABLE
+  NON_RETRYABLE
+  RATE_LIMITED
+  REAUTH_REQUIRED
+  CONFIGURATION_ERROR
+}
+
+model WorkerJob {
+  id               String                  @id @default(cuid())
+  organisationId   String
+  jobType          WorkerJobType
+  domainRefType    String
+  domainRefId      String
+  payload          Json?
+  status           WorkerJobStatus         @default(PENDING)
+  priority         Int                     @default(0)
+  dueAt            DateTime?
+  scheduledAt      DateTime?
+  attemptCount     Int                     @default(0)
+  maxAttempts      Int                     @default(3)
+  nextRetryAt      DateTime?
+  claimedBy        String?
+  leaseExpiresAt   DateTime?
+  heartbeatAt      DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  failedAt         DateTime?
+  errorCategory    WorkerJobErrorCategory?
+  safeErrorMessage String?
+  idempotencyKey   String                  @unique
+  createdByUserId  String?
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId])
+  @@index([jobType, status])
+  @@index([status, dueAt])
+  @@index([status, nextRetryAt])
+  @@index([status, leaseExpiresAt])
+  @@index([status, scheduledAt])
+  @@index([organisationId, jobType, status])
 }
 
 enum PublicationStatus {
@@ -3308,15 +3379,15 @@ model Publication {
   cancelledAt           DateTime?
   publishedAt           DateTime?
 
-  organisation  Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project       Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand         Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  contentItem   ContentItem               @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
-  connection    ProviderConnection        @relation(fields: [connectionId], references: [id], onDelete: Restrict)
-  approvedBy    UserProfile?              @relation("PublicationApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
-  requestedBy   UserProfile               @relation("PublicationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
-  attempts      PublicationAttempt[]
-  budgetChanges PublicationBudgetChange[]
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem    ContentItem               @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  connection     ProviderConnection        @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  approvedBy     UserProfile?              @relation("PublicationApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  requestedBy    UserProfile               @relation("PublicationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  attempts       PublicationAttempt[]
+  budgetChanges  PublicationBudgetChange[]
   publishingJobs PublishingJob[]
 
   @@unique([organisationId, brandId, idempotencyKey])

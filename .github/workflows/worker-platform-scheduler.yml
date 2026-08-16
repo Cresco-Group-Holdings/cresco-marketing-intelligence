@@ -1,0 +1,55 @@
+# Canonical worker dispatcher — production scheduler entry point.
+#
+# Invokes dispatch + process on a bounded cadence. Uses WORKER_TOKEN or
+# PUBLISHING_WORKER_TOKEN for machine authentication. Never embed provider credentials.
+
+name: Worker Platform Scheduler
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: Maximum jobs to dispatch/process per invocation
+        required: false
+        default: "25"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-platform-scheduler
+  cancel-in-progress: false
+
+jobs:
+  dispatch-and-process:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 5
+    steps:
+      - name: Dispatch due canonical worker jobs
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
+          WORKER_LIMIT: ${{ github.event.inputs.limit || '25' }}
+        run: |
+          if [ -z "${APP_URL:-}" ] || [ -z "${WORKER_TOKEN:-}" ]; then
+            echo "APP_URL and WORKER_TOKEN (or PUBLISHING_WORKER_TOKEN) must be configured."
+            exit 1
+          fi
+          base="${APP_URL%/}"
+          curl --fail-with-body -sS -X POST "${base}/api/workers/dispatch?limit=${WORKER_LIMIT}" \
+            -H "authorization: Bearer ${WORKER_TOKEN}" \
+            -H "content-type: application/json"
+
+      - name: Process claimed worker jobs
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
+          WORKER_LIMIT: ${{ github.event.inputs.limit || '25' }}
+        run: |
+          base="${APP_URL%/}"
+          curl --fail-with-body -sS -X POST "${base}/api/workers/process?limit=${WORKER_LIMIT}" \
+            -H "authorization: Bearer ${WORKER_TOKEN}" \
+            -H "content-type: application/json"

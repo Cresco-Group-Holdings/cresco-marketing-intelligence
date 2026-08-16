@@ -64,11 +64,15 @@ export function isProtectedRoute(pathname: string): boolean {
 }
 
 const WORKER_API_PREFIXES = [
+  "/api/workers/",
+  "/api/cron/",
   "/api/publishing-scheduler/",
   "/api/publishing-jobs/",
   "/api/social-analytics-sync/",
   "/api/seo-crawl/",
   "/api/notifications/digest/",
+  "/api/digital-assets/process-due",
+  "/api/social-reports/process-due",
 ] as const;
 
 export function isWorkerApiRoute(pathname: string): boolean {
