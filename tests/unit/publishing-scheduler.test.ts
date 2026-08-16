@@ -8,6 +8,11 @@ const worker = vi.hoisted(() => ({ processPublishingJob: vi.fn() }));
 
 vi.mock("@/lib/database/prisma", () => ({ prisma }));
 vi.mock("@/server/services/publishing-worker", () => worker);
+vi.mock("@/server/services/canonical-publication-service", () => ({
+  canonicalPublicationService: {
+    enqueueDueScheduledPublications: vi.fn().mockResolvedValue([]),
+  },
+}));
 
 import { scheduledJobIdempotencyKey } from "@/lib/publishing/config";
 import { resetPublishingCounters, readPublishingCounters } from "@/lib/publishing/observability";

@@ -3174,7 +3174,8 @@ model PublishingJob {
   organisationId    String
   projectId         String
   brandId           String
-  contentScheduleId String
+  contentScheduleId String?
+  publicationId     String?
   idempotencyKey    String
   status            ContentScheduleStatus @default(QUEUED)
   attemptCount      Int                   @default(0)
@@ -3200,10 +3201,14 @@ model PublishingJob {
 
   createdAt DateTime            @default(now())
   updatedAt DateTime            @updatedAt
-  schedule  ContentSchedule     @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
+  schedule    ContentSchedule?  @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
+  publication Publication?      @relation(fields: [publicationId], references: [id], onDelete: Cascade)
   attempts  PublishingAttempt[]
 
   @@unique([contentScheduleId, idempotencyKey])
+  @@unique([publicationId, idempotencyKey])
+  @@index([publicationId])
+  @@index([organisationId, status])
 }
 
 model PublishingAttempt {
@@ -3310,6 +3315,7 @@ model Publication {
   requestedBy   UserProfile               @relation("PublicationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
   attempts      PublicationAttempt[]
   budgetChanges PublicationBudgetChange[]
+  publishingJobs PublishingJob[]
 
   @@unique([organisationId, brandId, idempotencyKey])
   @@index([organisationId, brandId, status, updatedAt])

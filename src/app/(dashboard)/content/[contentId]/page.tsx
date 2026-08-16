@@ -12,6 +12,7 @@ import { apiFetch } from "@/lib/api/client";
 import { TikTokPublishPanel } from "@/components/publishing/tiktok-publish-panel";
 import { LinkedInFacebookPublishPanel } from "@/components/publishing/linkedin-facebook-publish-panel";
 import { YouTubeXPublishPanel } from "@/components/publishing/youtube-x-publish-panel";
+import { CanonicalPublishPanel } from "@/components/publishing/canonical-publish-panel";
 
 type ContentDetail = {
   id: string;
@@ -173,6 +174,17 @@ export default function ContentDetailPage() {
             ))}
           </CardContent>
         </Card>
+
+        {item.status === "APPROVED" && organisationId && brandId ? (
+          <div className="lg:col-span-2">
+            <CanonicalPublishPanel
+              brandId={brandId}
+              organisationId={organisationId}
+              contentId={contentId}
+              onPublished={() => void loadItem()}
+            />
+          </div>
+        ) : null}
 
         {item.status === "APPROVED" && organisationId && brandId
           ? item.variants

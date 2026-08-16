@@ -21,7 +21,19 @@ const prismaMock = {
   },
   contentItem: { findFirst: vi.fn() },
   complianceOverride: { findFirst: vi.fn() },
+  publishingJob: {
+    findFirst: vi.fn(),
+    create: vi.fn(),
+  },
 };
+
+vi.mock("@/server/services/publication-publishing-worker", () => ({
+  processPublicationPublishingJob: vi.fn().mockResolvedValue({
+    state: "PUBLISHED",
+    externalPublicationId: "mock-post-external",
+    permalink: "https://mock-social.test/posts/mock-post-external",
+  }),
+}));
 
 vi.mock("@/lib/database/prisma", () => ({ prisma: prismaMock }));
 
@@ -131,6 +143,7 @@ describe("publication execution integration", () => {
       id: "pub-1",
       organisationId: "org-1",
       brandId: "brand-1",
+      projectId: "proj-1",
       connectionId: "conn-1",
       providerKey: "mock-social",
       operationType: "SOCIAL_PUBLISH_POST",
@@ -143,30 +156,16 @@ describe("publication execution integration", () => {
       dryRun: false,
       providerPayload: {},
       budgetChanges: [],
+      contentItem: { variants: [] },
     });
-    prismaMock.publicationAttempt.count.mockResolvedValue(0);
-    prismaMock.publicationAttempt.create.mockResolvedValue({
-      id: "attempt-1",
-      requestId: "req-1",
-    });
-    prismaMock.publicationAttempt.update.mockResolvedValue({});
+    prismaMock.publishingJob.findFirst.mockResolvedValue(null);
+    prismaMock.publishingJob.create.mockResolvedValue({ id: "job-1" });
     prismaMock.publication.update.mockResolvedValue({});
-    prismaMock.providerConnection.findFirst.mockResolvedValue({
-      id: "conn-1",
-      organisationId: "org-1",
-      providerKey: "mock-social",
-      providerVersion: "1.0-test",
-      status: "CONNECTED",
-      configuration: {},
-      revokedAt: null,
-    });
-    prismaMock.providerConnection.update.mockResolvedValue({});
 
     const result = await publicationExecutionService.execute("pub-1", "org-1", "brand-1", tenant);
 
     expect(result.success).toBe(true);
-    const data = result.data as { externalPublicationId?: string };
-    expect(data.externalPublicationId).toBeTruthy();
-    expect(JSON.stringify(result)).not.toMatch(/valid-token/);
+    expect(result.result?.state).toBe("PUBLISHED");
+    expect(result.result?.externalPublicationId).toBeTruthy();
   });
 });

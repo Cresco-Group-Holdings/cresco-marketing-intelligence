@@ -97,11 +97,18 @@ function mapScheduleStatus(status: string): "SCHEDULED" | "COMPLETED" | "CANCELL
   return "SCHEDULED";
 }
 
+function mapPublicationStatus(status: string): "SCHEDULED" | "COMPLETED" | "CANCELLED" {
+  if (status === "PUBLISHED" || status === "PARTIALLY_PUBLISHED") return "COMPLETED";
+  if (status === "CANCELLED" || status === "REMOVED") return "CANCELLED";
+  return "SCHEDULED";
+}
+
 export const calendarProjectionService = {
   async syncOrganisationRange(range: ProjectionRange) {
     const { organisationId, from, to } = range;
 
     await this.syncContentSchedules(organisationId, from, to);
+    await this.syncPublications(organisationId, from, to);
     await this.syncCampaigns(organisationId, from, to);
     await this.syncContentTasks(organisationId, from, to);
     await this.syncContentDeadlines(organisationId, from, to);
@@ -146,6 +153,78 @@ export const calendarProjectionService = {
         },
       });
     }
+  },
+
+  async syncPublications(organisationId: string, from: Date, to: Date) {
+    const publications = await prisma.publication.findMany({
+      where: {
+        organisationId,
+        scheduledFor: { gte: from, lte: to },
+        status: { in: ["SCHEDULED", "QUEUED", "PUBLISHING", "PUBLISHED", "FAILED", "CANCELLED"] },
+      },
+      include: {
+        contentItem: { select: { title: true, contentCampaignId: true } },
+      },
+    });
+
+    for (const publication of publications) {
+      if (!publication.scheduledFor) continue;
+      await upsertDerivedEvent({
+        organisationId: publication.organisationId,
+        projectId: publication.projectId,
+        brandId: publication.brandId,
+        campaignId: publication.contentItem?.contentCampaignId,
+        contentItemId: publication.contentItemId,
+        title: publication.contentItem?.title ?? "Scheduled publication",
+        description: publication.lastErrorMessage,
+        type: CALENDAR_EVENT_TYPES.CONTENT_PUBLICATION,
+        startsAt: publication.scheduledFor,
+        endsAt: new Date(publication.scheduledFor.getTime() + 30 * 60_000),
+        timezone: publication.timezone,
+        channelType: publication.providerKey,
+        sourceEntityType: CALENDAR_SOURCE_ENTITY_TYPES.Publication,
+        sourceEntityId: publication.id,
+        createdByUserId: publication.requestedByUserId,
+        status: mapPublicationStatus(publication.status),
+        metadata: {
+          publicationStatus: publication.status,
+          connectionId: publication.connectionId,
+          externalAccountId: publication.externalAccountId,
+        },
+      });
+    }
+  },
+
+  async syncPublication(publicationId: string) {
+    const publication = await prisma.publication.findUnique({
+      where: { id: publicationId },
+      include: { contentItem: { select: { title: true } } },
+    });
+    if (!publication?.scheduledFor) return null;
+
+    return upsertDerivedEvent({
+      organisationId: publication.organisationId,
+      projectId: publication.projectId,
+      brandId: publication.brandId,
+      campaignId: publication.campaignId,
+      contentItemId: publication.contentItemId,
+      title: publication.contentItem?.title ?? "Scheduled publication",
+      description: publication.lastErrorMessage,
+      type: CALENDAR_EVENT_TYPES.CONTENT_PUBLICATION,
+      startsAt: publication.scheduledFor,
+      endsAt: new Date(publication.scheduledFor.getTime() + 30 * 60_000),
+      timezone: publication.timezone,
+      channelType: publication.providerKey,
+      sourceEntityType: CALENDAR_SOURCE_ENTITY_TYPES.Publication,
+      sourceEntityId: publication.id,
+      createdByUserId: publication.requestedByUserId,
+      status: mapPublicationStatus(publication.status),
+      metadata: {
+        publicationStatus: publication.status,
+        connectionId: publication.connectionId,
+        externalPublicationId: publication.externalPublicationId,
+      },
+    });
   },
 
   async syncCampaigns(organisationId: string, from: Date, to: Date) {

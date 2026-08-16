@@ -26,6 +26,7 @@ export type CreatePublicationInput = {
   dryRun?: boolean;
   providerPayload?: Record<string, unknown>;
   humanApprovalRequired?: boolean;
+  publicationApproved?: boolean;
 };
 
 function toSafePublication(publication: {
@@ -199,7 +200,7 @@ export const publicationService = {
       scheduledFor: input.scheduledFor ? new Date(input.scheduledFor) : null,
       timezone: input.timezone ?? "UTC",
       adaptation,
-      publicationApproved: false,
+      publicationApproved: input.publicationApproved ?? false,
       humanApprovalRequired: input.humanApprovalRequired ?? true,
       emergencyShutdown: getPublishingConfig().emergencyShutdown,
     });

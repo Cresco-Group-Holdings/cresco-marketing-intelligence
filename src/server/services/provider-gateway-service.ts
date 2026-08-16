@@ -5,6 +5,7 @@ import type { ProviderOperation, ProviderOperationResult } from "@/lib/providers
 import { resolvePlatformAdapter } from "@/lib/providers/platform-registry";
 import { classifyProviderError, withProviderRetry } from "@/lib/providers/execution-policy";
 import { providerCredentialService } from "@/server/services/provider-credential-service";
+import { tokenLifecycleService } from "@/server/services/token-lifecycle-service";
 import { providerAuditService } from "@/server/services/provider-audit-service";
 import { providerHealthService } from "@/server/services/provider-health-service";
 import type { TenantContext } from "@/lib/tenancy/context";
@@ -76,6 +77,24 @@ export const providerGateway = {
       apiVersion: connection.providerVersion,
       configuration: (connection.configuration as Record<string, unknown>) ?? {},
       correlationId: input.correlationId ?? crypto.randomUUID(),
+      getAccessToken: async () => {
+        const tokenResult = await tokenLifecycleService.getValidAccessToken(
+          {
+            organisationId: connection.organisationId,
+            actorUserId: context.userProfileId,
+          },
+          connection.id,
+        );
+        if (
+          !tokenResult.accessToken ||
+          tokenResult.status === "REVOKED" ||
+          tokenResult.status === "REAUTH_REQUIRED" ||
+          tokenResult.status === "REFRESH_FAILED"
+        ) {
+          return null;
+        }
+        return tokenResult.accessToken;
+      },
       decryptCredential: async (type: string) => {
         try {
           return await providerCredentialService.getCredentialPlaintext(
