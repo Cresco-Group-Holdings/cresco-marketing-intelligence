@@ -1,3 +1,4 @@
+import { isMockSocialAdapterAllowed } from "@/lib/providers/oauth/runtime";
 import { registerAllMockSocialAdapters } from "@/lib/social/adapters/mock-social-adapter";
 
 let bootstrapped = false;
@@ -6,7 +7,9 @@ export function ensureSocialAdaptersRegistered(): void {
   if (bootstrapped) {
     return;
   }
-  registerAllMockSocialAdapters();
+  if (isMockSocialAdapterAllowed()) {
+    registerAllMockSocialAdapters();
+  }
   bootstrapped = true;
 }
 

@@ -15,6 +15,8 @@ import {
 } from "@/lib/integrations/oauth/security";
 import { generatePkceChallenge, generatePkceVerifier } from "@/lib/providers/oauth/pkce";
 import { createSignedOAuthStatePayload } from "@/lib/providers/oauth/state-signing";
+import { getProviderOAuthConfigDetail } from "@/lib/providers/oauth/provider-config";
+import { isProductionOAuthProvider } from "@/lib/providers/oauth/production-providers";
 import { assertProviderConnectorsEnabled } from "@/lib/providers/feature-flags";
 import { oauthAdapterRegistry } from "@/server/providers/oauth/oauth-adapter-registry";
 import { providerConnectionService } from "@/server/services/provider-connection-service";
@@ -48,6 +50,16 @@ export const oauthAuthorizationService = {
     const oauthDef = getOAuthProviderDefinition(input.providerKey);
     if (!oauthDef) {
       throw new AppError("VALIDATION_ERROR", "OAuth configuration not available for provider.");
+    }
+
+    if (isProductionOAuthProvider(input.providerKey)) {
+      const config = getProviderOAuthConfigDetail(input.providerKey);
+      if (config.status === "MISCONFIGURED") {
+        throw new AppError(
+          "AUTH_CONFIGURATION_ERROR",
+          `Provider "${input.providerKey}" OAuth is not configured. Missing: ${config.missingEnv.join(", ") || "credentials"}.`,
+        );
+      }
     }
 
     const returnPath = (() => {

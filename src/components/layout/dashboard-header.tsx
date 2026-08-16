@@ -1,10 +1,11 @@
 import { requireAuthenticatedUser } from "@/lib/tenancy/guards";
-import { prisma } from "@/lib/database/prisma";
 import { UserMenu } from "@/components/auth/user-menu";
 import { CopilotHeaderButton } from "@/components/copilot/copilot-shell";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { WorkspaceSelectors } from "@/components/workspace/workspace-selectors";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
+import { AppearanceMenu } from "@/components/theme/appearance-menu";
+import { prisma } from "@/lib/database/prisma";
 import { APP_NAME } from "@/lib/constants";
 
 export async function DashboardHeader() {
@@ -34,6 +35,7 @@ export async function DashboardHeader() {
             <WorkspaceSelectors />
           </div>
           <CopilotHeaderButton />
+          <AppearanceMenu />
           <NotificationBell />
           <UserMenu
             email={profile?.email ?? user.email}
