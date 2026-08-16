@@ -248,6 +248,7 @@ export default function IntegrationsPage() {
                 const connection = connections.find((item) => item.providerKey === definition.key);
                 const isAvailable =
                   definition.status === "AVAILABLE" || definition.status === "BETA";
+                const isMisconfigured = definition.status === "MISCONFIGURED";
                 const isMock = definition.key.startsWith("mock-");
 
                 if (definition.key === "resend" && isAvailable) {
@@ -262,13 +263,20 @@ export default function IntegrationsPage() {
                   );
                 }
 
-                if (isStage12OAuthProvider(definition.key) && isAvailable) {
+                if (
+                  isStage12OAuthProvider(definition.key) &&
+                  (isAvailable || isMisconfigured || connection)
+                ) {
                   return (
                     <OAuthConnectionPanel
                       key={definition.key}
                       providerKey={definition.key}
                       displayName={definition.displayName}
                       connection={connection}
+                      oauthConfigStatus={
+                        (definition.metadata?.oauthConfigStatus as string | null) ?? null
+                      }
+                      missingEnv={(definition.metadata?.missingEnv as string[]) ?? []}
                       onUpdated={() => {
                         void loadData();
                       }}

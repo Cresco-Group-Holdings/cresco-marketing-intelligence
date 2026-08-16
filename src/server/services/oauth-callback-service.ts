@@ -9,6 +9,7 @@ import {
   validateRedirectUri,
 } from "@/lib/integrations/oauth/security";
 import { verifySignedOAuthStatePayload } from "@/lib/providers/oauth/state-signing";
+import { isOAuthMockAllowed, isProductionRuntime } from "@/lib/providers/oauth/runtime";
 import { oauthAdapterRegistry } from "@/server/providers/oauth/oauth-adapter-registry";
 import { credentialVault } from "@/server/services/credential-vault";
 import { connectionScopeResolver } from "@/server/services/connection-scope-resolver";
@@ -37,9 +38,15 @@ export const oauthCallbackService = {
       throw new AppError("VALIDATION_ERROR", "Missing OAuth state.");
     }
 
+    if (input.mode === "mock" && isProductionRuntime() && !isOAuthMockAllowed()) {
+      throw new AppError("VALIDATION_ERROR", "Mock OAuth callbacks are not permitted in production.");
+    }
+
     const code =
       input.code ??
-      (input.mode === "mock" ? `mock_code_${input.providerKey}_${Date.now()}` : undefined);
+      (input.mode === "mock" && isOAuthMockAllowed()
+        ? `mock_code_${input.providerKey}_${Date.now()}`
+        : undefined);
     if (!code) {
       throw new AppError("VALIDATION_ERROR", "Missing OAuth code.");
     }
@@ -101,6 +108,17 @@ export const oauthCallbackService = {
       redirectUri: transaction.redirectUri,
       codeVerifier: decryptPkceVerifierReference(transaction.codeVerifierReference) ?? undefined,
     });
+
+    const validation = await oauthAdapterRegistry.validateConnection({
+      providerKey: input.providerKey,
+      accessToken: tokenResponse.accessToken,
+    });
+    if (!validation.healthy) {
+      throw new AppError(
+        "AUTH_PROVIDER_UNAVAILABLE",
+        validation.message ?? "Provider connection verification failed.",
+      );
+    }
 
     const connectionId = transaction.connectionId!;
     const grantedScopes = tokenResponse.grantedScopes;
