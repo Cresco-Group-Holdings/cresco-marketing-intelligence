@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/database/prisma";
 import { listProviderCapabilities } from "@/lib/providers/capability-registry";
+import { getProviderOAuthConfigDetail } from "@/lib/providers/oauth/provider-config";
+import { isProductionOAuthProvider } from "@/lib/providers/oauth/production-providers";
 import { getProviderDefinition, listProviderDefinitions } from "@/lib/providers/registry";
 import { providerConnectionService } from "@/server/services/provider-connection-service";
 import { providerGateway } from "@/server/services/provider-gateway-service";
@@ -12,20 +14,38 @@ import type { ProviderCredentialType } from "@prisma/client";
 /** Facade mapping ProviderConnection to Stage 11 IntegrationConnection API shape. */
 export const integrationConnectionService = {
   listProviders() {
-    return listProviderDefinitions().map((def) => ({
-      key: def.key,
-      displayName: def.displayName,
-      category: def.category,
-      authTypes: [def.authType],
-      status: def.enabled ? "AVAILABLE" : def.apiVersionStatus === "DEPRECATED" ? "DEPRECATED" : "DISABLED",
-      defaultApiVersion: def.apiVersion,
-      documentationUrl: def.documentationUrl,
-      supportsWebhooks: def.webhookSupport,
-      supportsPolling: def.pullSupport,
-      supportsPush: def.pushSupport,
-      capabilities: listProviderCapabilities(def.key),
-      metadata: { requiresApproval: def.requiresApproval },
-    }));
+    return listProviderDefinitions().map((def) => {
+      const oauthConfig = isProductionOAuthProvider(def.key)
+        ? getProviderOAuthConfigDetail(def.key)
+        : null;
+      const isAvailable =
+        def.enabled ||
+        oauthConfig?.status === "READY";
+      return {
+        key: def.key,
+        displayName: def.displayName,
+        category: def.category,
+        authTypes: [def.authType],
+        status: isAvailable
+          ? "AVAILABLE"
+          : oauthConfig?.status === "MISCONFIGURED"
+            ? "MISCONFIGURED"
+            : def.apiVersionStatus === "DEPRECATED"
+              ? "DEPRECATED"
+              : "DISABLED",
+        defaultApiVersion: def.apiVersion,
+        documentationUrl: def.documentationUrl,
+        supportsWebhooks: def.webhookSupport,
+        supportsPolling: def.pullSupport,
+        supportsPush: def.pushSupport,
+        capabilities: listProviderCapabilities(def.key),
+        metadata: {
+          requiresApproval: def.requiresApproval,
+          oauthConfigStatus: oauthConfig?.status ?? null,
+          missingEnv: oauthConfig?.missingEnv ?? [],
+        },
+      };
+    });
   },
 
   getProvider(providerKey: string) {
