@@ -36,43 +36,43 @@ export function UserMenu({ email, displayName }: UserMenuProps) {
     <div className="relative group">
       <button
         type="button"
-        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm font-medium text-foreground-muted hover:bg-surface-subtle"
         aria-haspopup="menu"
       >
-        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
           {label.charAt(0).toUpperCase()}
         </span>
         <span className="hidden max-w-[10rem] truncate sm:inline">{label}</span>
       </button>
-      <div className="invisible absolute right-0 z-40 mt-2 w-56 rounded-lg border border-slate-200 bg-white p-2 opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-        <div className="border-b border-slate-100 px-3 py-2">
-          <p className="truncate text-sm font-medium text-slate-900">{label}</p>
-          <p className="truncate text-xs text-slate-500">{email}</p>
+      <div className="invisible absolute right-0 z-40 mt-2 w-56 rounded-lg border border-border bg-surface-elevated p-2 opacity-0 shadow-lg transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+        <div className="border-b border-border-subtle px-3 py-2">
+          <p className="truncate text-sm font-medium text-foreground">{label}</p>
+          <p className="truncate text-xs text-foreground-subtle">{email}</p>
         </div>
         <div className="py-1">
           <Link
             href="/settings/account"
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-surface-subtle"
           >
             <Settings className="h-4 w-4" />
             Account
           </Link>
           <Link
             href="/settings/security"
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-surface-subtle"
           >
             <Shield className="h-4 w-4" />
             Security
           </Link>
           <Link
             href="/settings/sessions"
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-surface-subtle"
           >
             <Monitor className="h-4 w-4" />
             Sessions
           </Link>
         </div>
-        <div className="border-t border-slate-100 pt-1">
+        <div className="border-t border-border-subtle pt-1">
           <Button
             type="button"
             variant="ghost"

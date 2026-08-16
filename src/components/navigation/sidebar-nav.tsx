@@ -4,36 +4,75 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { useState } from "react";
-import { dashboardNavigation } from "@/components/navigation/dashboard-nav";
+import {
+  dashboardNavigationSections,
+  type NavigationItem,
+} from "@/components/navigation/dashboard-nav";
 import { Badge } from "@/components/ui/badge";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+
+function isNavItemActive(pathname: string, href: string): boolean {
+  if (pathname === href) {
+    return true;
+  }
+
+  if (href === "/dashboard") {
+    return false;
+  }
+
+  if (href === "/knowledge" && pathname.includes("/knowledge")) {
+    return true;
+  }
+
+  if (href === "/assets" && pathname.includes("/assets")) {
+    return true;
+  }
+
+  if (href === "/advertising" && pathname.startsWith("/advertising")) {
+    return true;
+  }
+
+  if (href === "/social" && pathname.startsWith("/social")) {
+    return true;
+  }
+
+  if (href === "/content" && pathname.startsWith("/content")) {
+    return true;
+  }
+
+  if (href === "/analytics" && pathname.startsWith("/analytics")) {
+    return true;
+  }
+
+  if (href === "/growth" && pathname.startsWith("/growth")) {
+    return true;
+  }
+
+  return pathname.startsWith(`${href}/`);
+}
 
 function NavLink({
   item,
   pathname,
   onNavigate,
 }: {
-  item: (typeof dashboardNavigation)[number];
+  item: NavigationItem;
   pathname: string;
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
-  const isActive =
-    pathname === item.href ||
-    (item.href === "/knowledge" && pathname.includes("/knowledge")) ||
-    (item.href === "/assets" && pathname.includes("/assets")) ||
-    (item.href === "/advertising" && pathname.startsWith("/advertising"));
+  const isActive = isNavItemActive(pathname, item.href);
 
   return (
     <Link
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
+        "relative flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isActive
-          ? "bg-slate-900 text-white"
-          : "text-slate-700 hover:bg-slate-100 hover:text-slate-900",
+          ? "bg-surface-selected text-foreground before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-paid-accent"
+          : "text-foreground-muted hover:bg-surface-hover hover:text-foreground",
       )}
       aria-current={isActive ? "page" : undefined}
       title={item.description}
@@ -51,6 +90,36 @@ function NavLink({
   );
 }
 
+function SidebarContent({
+  pathname,
+  onNavigate,
+}: {
+  pathname: string;
+  onNavigate?: () => void;
+}) {
+  return (
+    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
+      {dashboardNavigationSections.map((section) => (
+        <div key={section.id}>
+          <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-foreground-subtle">
+            {section.label}
+          </p>
+          <nav aria-label={`${section.label} navigation`} className="mt-1 flex flex-col gap-1">
+            {section.items.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                pathname={pathname}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </nav>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function SidebarNav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -59,7 +128,7 @@ export function SidebarNav() {
     <>
       <button
         type="button"
-        className="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-700 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 lg:hidden"
+        className="inline-flex items-center justify-center rounded-lg border border-border bg-surface-elevated p-2 text-foreground-muted shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
         aria-expanded={mobileOpen}
         aria-controls="mobile-sidebar"
         onClick={() => setMobileOpen((open) => !open)}
@@ -72,37 +141,28 @@ export function SidebarNav() {
         <div className="fixed inset-0 z-40 lg:hidden" id="mobile-sidebar">
           <button
             type="button"
-            className="absolute inset-0 bg-slate-900/40"
+            className="absolute inset-0 bg-foreground/40"
             aria-label="Close navigation overlay"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="relative flex h-full w-72 max-w-[85vw] flex-col bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4">
+          <aside className="relative flex h-full w-72 max-w-[85vw] flex-col bg-surface-elevated shadow-xl">
+            <div className="flex items-center justify-between border-b border-border px-4 py-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">
                   Workspace
                 </p>
-                <p className="text-sm font-semibold text-slate-900">{APP_NAME}</p>
+                <p className="text-sm font-semibold text-foreground">{APP_NAME}</p>
               </div>
               <button
                 type="button"
-                className="rounded-lg p-2 text-slate-700 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                className="rounded-lg p-2 text-foreground-muted hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => setMobileOpen(false)}
               >
                 <span className="sr-only">Close navigation</span>
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
-              {dashboardNavigation.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  pathname={pathname}
-                  onNavigate={() => setMobileOpen(false)}
-                />
-              ))}
-            </nav>
+            <SidebarContent pathname={pathname} onNavigate={() => setMobileOpen(false)} />
           </aside>
         </div>
       ) : null}
@@ -114,16 +174,14 @@ export function DesktopSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
-      <div className="border-b border-slate-200 px-6 py-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Workspace</p>
-        <p className="mt-1 text-sm font-semibold text-slate-900">{APP_NAME}</p>
+    <aside className="hidden w-64 shrink-0 border-r border-border bg-surface lg:flex lg:flex-col">
+      <div className="border-b border-border px-6 py-5">
+        <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">
+          Workspace
+        </p>
+        <p className="mt-1 text-sm font-semibold text-foreground">{APP_NAME}</p>
       </div>
-      <nav aria-label="Main navigation" className="flex flex-1 flex-col gap-1 overflow-y-auto p-4">
-        {dashboardNavigation.map((item) => (
-          <NavLink key={item.href} item={item} pathname={pathname} />
-        ))}
-      </nav>
+      <SidebarContent pathname={pathname} />
     </aside>
   );
 }

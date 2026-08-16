@@ -18,8 +18,8 @@ export function CampaignEmptyState({
     <Card>
       <CardContent className="flex flex-col items-start gap-4 py-12">
         <div className="space-y-2">
-          <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-          <p className="max-w-xl text-sm text-slate-600">{description}</p>
+          <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+          <p className="max-w-xl text-sm text-foreground-muted">{description}</p>
         </div>
         {actionHref ? (
           <ButtonLink href={actionHref}>{actionLabel}</ButtonLink>

@@ -32,7 +32,7 @@ export default function ProjectsSettingsPage() {
           <Card key={project.id}>
             <CardHeader><CardTitle>{project.name}</CardTitle></CardHeader>
             <CardContent>
-              <Link href={`/settings/projects/${project.id}`} className="text-sm font-medium text-slate-900 hover:underline">
+              <Link href={`/settings/projects/${project.id}`} className="text-sm font-medium text-foreground hover:underline">
                 Manage project
               </Link>
             </CardContent>

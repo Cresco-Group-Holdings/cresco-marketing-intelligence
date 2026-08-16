@@ -25,7 +25,7 @@ export default function MembersSettingsPage() {
         {members.map((member) => (
           <Card key={member.id}>
             <CardHeader><CardTitle>{member.user.displayName ?? member.user.email}</CardTitle></CardHeader>
-            <CardContent className="text-sm text-slate-600">
+            <CardContent className="text-sm text-foreground-muted">
               <p>Role: {member.role}</p>
               <p>Status: {member.status}</p>
             </CardContent>

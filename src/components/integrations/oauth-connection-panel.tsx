@@ -199,7 +199,7 @@ export function OAuthConnectionPanel({
         {connection?.status === "CONNECTED" ? (
           <CheckCircle2 className="h-4 w-4 text-green-600" />
         ) : connection?.status === "REVOKED" ? (
-          <Unplug className="h-4 w-4 text-red-600" />
+          <Unplug className="h-4 w-4 text-danger" />
         ) : needsReauth ? (
           <ShieldAlert className="h-4 w-4 text-amber-600" />
         ) : (
@@ -261,7 +261,7 @@ export function OAuthConnectionPanel({
         </div>
       ) : null}
 
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-danger">{error}</p> : null}
 
       {connection && (connection.status === "CONNECTED" || connection.status === "RECONNECTED") ? (
         <ProviderSyncPanel

@@ -15,7 +15,7 @@ export function WorkspaceSelectors() {
   } = useWorkspace();
 
   if (loading) {
-    return <p className="text-xs text-slate-500">Loading workspace…</p>;
+    return <p className="text-xs text-foreground-subtle">Loading workspace…</p>;
   }
 
   return (
@@ -23,7 +23,7 @@ export function WorkspaceSelectors() {
       <label className="flex flex-col gap-1">
         <span className="sr-only">Select organisation</span>
         <select
-          className="h-9 min-w-[140px] rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+          className="h-9 min-w-[140px] rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground-muted focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={preference.currentOrganisationId ?? ""}
           onChange={(event) => void setOrganisation(event.target.value)}
         >
@@ -41,7 +41,7 @@ export function WorkspaceSelectors() {
       <label className="flex flex-col gap-1">
         <span className="sr-only">Select project</span>
         <select
-          className="h-9 min-w-[140px] rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+          className="h-9 min-w-[140px] rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground-muted focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={preference.currentProjectId ?? ""}
           onChange={(event) => void setProject(event.target.value)}
           disabled={!preference.currentOrganisationId}
@@ -60,7 +60,7 @@ export function WorkspaceSelectors() {
       <label className="flex flex-col gap-1">
         <span className="sr-only">Select brand</span>
         <select
-          className="h-9 min-w-[140px] rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-700 focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+          className="h-9 min-w-[140px] rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground-muted focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={preference.currentBrandId ?? ""}
           onChange={(event) => void setBrand(event.target.value)}
           disabled={!preference.currentProjectId}

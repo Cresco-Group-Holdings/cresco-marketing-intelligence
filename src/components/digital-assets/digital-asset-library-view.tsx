@@ -128,7 +128,7 @@ export function DigitalAssetLibraryView() {
   }
 
   if (!organisationId) {
-    return <p className="text-sm text-slate-600">Select an organisation to manage digital assets.</p>;
+    return <p className="text-sm text-foreground-muted">Select an organisation to manage digital assets.</p>;
   }
 
   return (
@@ -194,23 +194,23 @@ export function DigitalAssetLibraryView() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-slate-500">Loading assets…</p>
+        <p className="text-sm text-foreground-subtle">Loading assets…</p>
       ) : assets.length === 0 ? (
-        <p className="text-sm text-slate-500">No assets yet. Upload your first file.</p>
+        <p className="text-sm text-foreground-subtle">No assets yet. Upload your first file.</p>
       ) : viewMode === "grid" ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {assets.map((asset) => (
             <button
               key={asset.id}
               type="button"
-              className="rounded-lg border p-4 text-left hover:bg-slate-50"
+              className="rounded-lg border p-4 text-left hover:bg-surface-subtle"
               onClick={() => void openAsset(asset)}
             >
               <p className="font-medium">{asset.name}</p>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-foreground-subtle">
                 {DIGITAL_ASSET_TYPE_LABELS[asset.type]} · {DIGITAL_ASSET_STATUS_LABELS[asset.status]}
               </p>
-              <p className="text-xs text-slate-400">{formatBytes(asset.sizeBytes)} · v{asset.version}</p>
+              <p className="text-xs text-foreground-subtle">{formatBytes(asset.sizeBytes)} · v{asset.version}</p>
             </button>
           ))}
         </div>
@@ -220,16 +220,16 @@ export function DigitalAssetLibraryView() {
             <button
               key={asset.id}
               type="button"
-              className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-slate-50"
+              className="flex w-full items-center justify-between px-4 py-3 text-left hover:bg-surface-subtle"
               onClick={() => void openAsset(asset)}
             >
               <div>
                 <p className="font-medium">{asset.name}</p>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-foreground-subtle">
                   {DIGITAL_ASSET_TYPE_LABELS[asset.type]} · {DIGITAL_ASSET_STATUS_LABELS[asset.status]} · v{asset.version}
                 </p>
               </div>
-              <span className="text-xs text-slate-400">{formatBytes(asset.sizeBytes)}</span>
+              <span className="text-xs text-foreground-subtle">{formatBytes(asset.sizeBytes)}</span>
             </button>
           ))}
         </div>
@@ -248,7 +248,7 @@ export function DigitalAssetLibraryView() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={previewUrl} alt={selected.name} className="max-h-64 rounded border" />
             ) : null}
-            <div className="grid gap-2 text-sm text-slate-600 md:grid-cols-2">
+            <div className="grid gap-2 text-sm text-foreground-muted md:grid-cols-2">
               <p>MIME: {selected.mimeType}</p>
               <p>Size: {formatBytes(selected.sizeBytes)}</p>
               <p>Checksum: {selected.checksum.slice(0, 16)}…</p>

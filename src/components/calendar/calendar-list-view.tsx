@@ -51,7 +51,7 @@ export function CalendarListView({
     <Card>
       <CardContent className="space-y-4 py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-900">{rangeLabel}</h2>
+          <h2 className="text-lg font-semibold text-foreground">{rangeLabel}</h2>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={onPrevious} aria-label="Previous range">
               <ChevronLeft className="h-4 w-4" />
@@ -66,7 +66,7 @@ export function CalendarListView({
         </div>
 
         {!hasEvents ? (
-          <p className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-600">
+          <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-foreground-muted">
             No events in this 30-day range. Adjust filters or create a manual event.
           </p>
         ) : (

@@ -123,10 +123,10 @@ export function AttributionAnalyticsView({ mode }: { mode: AttributionMode }) {
           {running ? "Running…" : "Run attribution"}
         </Button>
       </div>
-      <p className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
+      <p className="rounded border border-border bg-surface-subtle p-3 text-sm text-foreground-muted">
         {ATTRIBUTION_DISCLAIMER}
       </p>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
 
       {mode === "overview" && overview && (
         <>

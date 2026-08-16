@@ -53,9 +53,9 @@ function TextArea({
 }) {
   return (
     <div className="space-y-2">
-      <label className="block text-sm font-medium text-slate-700">{label}</label>
+      <label className="block text-sm font-medium text-foreground-muted">{label}</label>
       <textarea
-        className="block min-h-24 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+        className="block min-h-24 w-full rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
@@ -172,11 +172,11 @@ export default function BrandKnowledgePage() {
           <div className="flex items-center gap-4">
             <Link
               href={`/brands/${brandId}/knowledge-bases`}
-              className="text-sm font-medium text-slate-900 hover:underline"
+              className="text-sm font-medium text-foreground hover:underline"
             >
               Intelligence KB
             </Link>
-            <Link href={`/brands/${brandId}/profile`} className="text-sm font-medium text-slate-900 hover:underline">
+            <Link href={`/brands/${brandId}/profile`} className="text-sm font-medium text-foreground hover:underline">
               Brand profile
             </Link>
           </div>
@@ -215,7 +215,7 @@ export default function BrandKnowledgePage() {
               </CardHeader>
               {category.missing.length > 0 ? (
                 <CardContent>
-                  <ul className="list-disc space-y-1 pl-5 text-sm text-slate-600">
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-foreground-muted">
                     {category.missing.map((field) => (
                       <li key={field.field}>
                         {field.label}
@@ -232,7 +232,7 @@ export default function BrandKnowledgePage() {
               <CardTitle>Human-readable summary</CardTitle>
             </CardHeader>
             <CardContent>
-              <pre className="whitespace-pre-wrap text-sm text-slate-700">{summary}</pre>
+              <pre className="whitespace-pre-wrap text-sm text-foreground-muted">{summary}</pre>
             </CardContent>
           </Card>
         </div>
@@ -265,9 +265,9 @@ export default function BrandKnowledgePage() {
               </Button>
             </div>
             {audiences.map((audience) => (
-              <div key={audience.id} className="rounded-lg border border-slate-200 p-4">
+              <div key={audience.id} className="rounded-lg border border-border p-4">
                 <p className="font-medium">{audience.name as string}</p>
-                <p className="text-sm text-slate-600">{(audience.description as string) || "No description yet."}</p>
+                <p className="text-sm text-foreground-muted">{(audience.description as string) || "No description yet."}</p>
               </div>
             ))}
           </CardContent>
@@ -301,9 +301,9 @@ export default function BrandKnowledgePage() {
               </Button>
             </div>
             {personas.map((persona) => (
-              <div key={persona.id} className="rounded-lg border border-slate-200 p-4">
+              <div key={persona.id} className="rounded-lg border border-border p-4">
                 <p className="font-medium">{persona.name as string}</p>
-                <p className="text-sm text-slate-600">{(persona.roleTitle as string) || "Role not specified."}</p>
+                <p className="text-sm text-foreground-muted">{(persona.roleTitle as string) || "Role not specified."}</p>
               </div>
             ))}
           </CardContent>
@@ -336,9 +336,9 @@ export default function BrandKnowledgePage() {
               </Button>
             </div>
             {offers.map((offer) => (
-              <div key={offer.id} className="rounded-lg border border-slate-200 p-4">
+              <div key={offer.id} className="rounded-lg border border-border p-4">
                 <p className="font-medium">{offer.name as string}</p>
-                <p className="text-sm text-slate-600">{(offer.shortDescription as string) || "No description yet."}</p>
+                <p className="text-sm text-foreground-muted">{(offer.shortDescription as string) || "No description yet."}</p>
               </div>
             ))}
           </CardContent>
@@ -447,9 +447,9 @@ export default function BrandKnowledgePage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {competitors.map((competitor) => (
-              <div key={competitor.id} className="rounded-lg border border-slate-200 p-4">
+              <div key={competitor.id} className="rounded-lg border border-border p-4">
                 <p className="font-medium">{competitor.name as string}</p>
-                <p className="text-sm text-slate-600">{(competitor.website as string) || "No website recorded."}</p>
+                <p className="text-sm text-foreground-muted">{(competitor.website as string) || "No website recorded."}</p>
               </div>
             ))}
           </CardContent>
@@ -464,9 +464,9 @@ export default function BrandKnowledgePage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {assets.map((asset) => (
-              <div key={asset.id} className="rounded-lg border border-slate-200 p-4">
+              <div key={asset.id} className="rounded-lg border border-border p-4">
                 <p className="font-medium">{asset.name as string}</p>
-                <p className="text-sm text-slate-600">{asset.assetType as string}</p>
+                <p className="text-sm text-foreground-muted">{asset.assetType as string}</p>
               </div>
             ))}
           </CardContent>
@@ -480,9 +480,9 @@ export default function BrandKnowledgePage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {complianceRules.map((rule) => (
-              <div key={rule.id} className="rounded-lg border border-slate-200 p-4">
+              <div key={rule.id} className="rounded-lg border border-border p-4">
                 <p className="font-medium">{rule.title as string}</p>
-                <p className="text-sm text-slate-600">{rule.ruleType as string}</p>
+                <p className="text-sm text-foreground-muted">{rule.ruleType as string}</p>
               </div>
             ))}
           </CardContent>
@@ -509,7 +509,7 @@ export default function BrandKnowledgePage() {
                 Load export
               </Button>
               <textarea
-                className="min-h-48 w-full rounded-lg border border-slate-300 p-3 font-mono text-xs"
+                className="min-h-48 w-full rounded-lg border border-border-strong p-3 font-mono text-xs"
                 readOnly
                 value={exportJson}
               />
@@ -522,7 +522,7 @@ export default function BrandKnowledgePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <textarea
-                className="min-h-48 w-full rounded-lg border border-slate-300 p-3 font-mono text-xs"
+                className="min-h-48 w-full rounded-lg border border-border-strong p-3 font-mono text-xs"
                 value={importJson}
                 onChange={(event) => setImportJson(event.target.value)}
                 placeholder='{"version":"1.0.0","personas":[{"name":"Retail investor"}]}'
@@ -549,7 +549,7 @@ export default function BrandKnowledgePage() {
       ) : null}
 
       {message ? <p className="mt-4 text-sm text-green-700">{message}</p> : null}
-      {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
     </>
   );
 }

@@ -72,19 +72,19 @@ export function NotificationBell() {
       </Button>
 
       {open ? (
-        <div className="absolute right-0 z-40 mt-2 w-80 rounded-lg border border-slate-200 bg-white shadow-lg">
-          <div className="flex items-center justify-between border-b border-slate-200 px-3 py-2">
-            <p className="text-sm font-semibold text-slate-900">Notifications</p>
+        <div className="absolute right-0 z-40 mt-2 w-80 rounded-lg border border-border bg-surface-elevated shadow-lg">
+          <div className="flex items-center justify-between border-b border-border px-3 py-2">
+            <p className="text-sm font-semibold text-foreground">Notifications</p>
             <Link
               href="/notifications"
-              className="text-xs text-slate-600 underline"
+              className="text-xs text-foreground-muted underline"
               onClick={() => setOpen(false)}
             >
               View all
             </Link>
             <Link
               href="/settings/notifications"
-              className="text-xs text-slate-600 underline"
+              className="text-xs text-foreground-muted underline"
               onClick={() => setOpen(false)}
             >
               Preferences
@@ -92,17 +92,17 @@ export function NotificationBell() {
           </div>
           <ul className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
-              <li className="px-3 py-4 text-sm text-slate-600">You are all caught up.</li>
+              <li className="px-3 py-4 text-sm text-foreground-muted">You are all caught up.</li>
             ) : (
               items.map((item) => (
-                <li key={item.id} className="border-b border-slate-100 px-3 py-2 text-sm">
-                  <p className="font-medium text-slate-900">{item.title}</p>
-                  <p className="mt-0.5 text-slate-600">{item.body}</p>
+                <li key={item.id} className="border-b border-border-subtle px-3 py-2 text-sm">
+                  <p className="font-medium text-foreground">{item.title}</p>
+                  <p className="mt-0.5 text-foreground-muted">{item.body}</p>
                   <div className="mt-2 flex items-center gap-2">
                     {item.actionUrl ? (
                       <a
                         href={item.actionUrl}
-                        className="text-xs font-medium text-slate-900 underline"
+                        className="text-xs font-medium text-foreground underline"
                         onClick={() => void markRead(item.id)}
                       >
                         Open
@@ -111,7 +111,7 @@ export function NotificationBell() {
                     {!item.readAt ? (
                       <button
                         type="button"
-                        className="text-xs text-slate-500 underline"
+                        className="text-xs text-foreground-subtle underline"
                         onClick={() => void markRead(item.id)}
                       >
                         Mark read

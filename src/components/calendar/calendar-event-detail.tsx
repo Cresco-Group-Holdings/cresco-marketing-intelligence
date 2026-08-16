@@ -67,7 +67,7 @@ export function CalendarEventDetail({
     <div className="fixed inset-0 z-50 flex justify-end">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/40"
+        className="absolute inset-0 bg-foreground/40"
         aria-label="Close event details"
         onClick={onClose}
       />
@@ -75,12 +75,12 @@ export function CalendarEventDetail({
         role="dialog"
         aria-modal="true"
         aria-labelledby="calendar-event-detail-title"
-        className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-slate-200 bg-white shadow-xl"
+        className="relative z-10 flex h-full w-full max-w-md flex-col border-l border-border bg-surface-elevated shadow-xl"
       >
-        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4">
+        <div className="flex items-start justify-between border-b border-border-subtle px-6 py-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Event details</p>
-            <h2 id="calendar-event-detail-title" className="mt-1 text-lg font-semibold text-slate-900">
+            <p className="text-xs font-medium uppercase tracking-wide text-foreground-subtle">Event details</p>
+            <h2 id="calendar-event-detail-title" className="mt-1 text-lg font-semibold text-foreground">
               {event?.title ?? "Loading event…"}
             </h2>
           </div>
@@ -90,9 +90,9 @@ export function CalendarEventDetail({
         </div>
 
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          {loading ? <p className="text-sm text-slate-600">Loading event details…</p> : null}
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          {actionError ? <p className="text-sm text-red-600">{actionError}</p> : null}
+          {loading ? <p className="text-sm text-foreground-muted">Loading event details…</p> : null}
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          {actionError ? <p className="text-sm text-danger">{actionError}</p> : null}
 
           {event ? (
             <>
@@ -104,17 +104,17 @@ export function CalendarEventDetail({
 
               {event.description ? (
                 <div>
-                  <h3 className="text-sm font-medium text-slate-700">Description</h3>
-                  <p className="mt-1 text-sm text-slate-600">{event.description}</p>
+                  <h3 className="text-sm font-medium text-foreground-muted">Description</h3>
+                  <p className="mt-1 text-sm text-foreground-muted">{event.description}</p>
                 </div>
               ) : null}
 
               <div className="space-y-3 text-sm">
                 <div>
-                  <h3 className="font-medium text-slate-700">Schedule</h3>
-                  <p className="mt-1 text-slate-600">{formatEventTime(event)}</p>
+                  <h3 className="font-medium text-foreground-muted">Schedule</h3>
+                  <p className="mt-1 text-foreground-muted">{formatEventTime(event)}</p>
                   {event.endsAt ? (
-                    <p className="text-slate-500">
+                    <p className="text-foreground-subtle">
                       Ends{" "}
                       {formatInTimezone(event.endsAt, event.timezone, {
                         weekday: "short",
@@ -125,34 +125,34 @@ export function CalendarEventDetail({
                       })}
                     </p>
                   ) : null}
-                  <p className="text-slate-500">Timezone: {event.timezone}</p>
+                  <p className="text-foreground-subtle">Timezone: {event.timezone}</p>
                 </div>
 
                 {channelLabel ? (
                   <div>
-                    <h3 className="font-medium text-slate-700">Channel</h3>
-                    <p className="mt-1 text-slate-600">{channelLabel}</p>
+                    <h3 className="font-medium text-foreground-muted">Channel</h3>
+                    <p className="mt-1 text-foreground-muted">{channelLabel}</p>
                   </div>
                 ) : null}
 
                 {event.brandName ? (
                   <div>
-                    <h3 className="font-medium text-slate-700">Brand</h3>
-                    <p className="mt-1 text-slate-600">{event.brandName}</p>
+                    <h3 className="font-medium text-foreground-muted">Brand</h3>
+                    <p className="mt-1 text-foreground-muted">{event.brandName}</p>
                   </div>
                 ) : null}
 
                 {event.campaignName ? (
                   <div>
-                    <h3 className="font-medium text-slate-700">Campaign</h3>
-                    <p className="mt-1 text-slate-600">{event.campaignName}</p>
+                    <h3 className="font-medium text-foreground-muted">Campaign</h3>
+                    <p className="mt-1 text-foreground-muted">{event.campaignName}</p>
                   </div>
                 ) : null}
 
                 {event.contentTitle ? (
                   <div>
-                    <h3 className="font-medium text-slate-700">Content</h3>
-                    <p className="mt-1 text-slate-600">{event.contentTitle}</p>
+                    <h3 className="font-medium text-foreground-muted">Content</h3>
+                    <p className="mt-1 text-foreground-muted">{event.contentTitle}</p>
                   </div>
                 ) : null}
               </div>
@@ -161,7 +161,7 @@ export function CalendarEventDetail({
         </div>
 
         {event ? (
-          <div className="flex flex-wrap gap-2 border-t border-slate-100 px-6 py-4">
+          <div className="flex flex-wrap gap-2 border-t border-border-subtle px-6 py-4">
             {onRefresh ? (
               <Button variant="outline" size="sm" onClick={() => onRefresh(event)}>
                 Refresh

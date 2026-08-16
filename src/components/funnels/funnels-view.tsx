@@ -177,8 +177,8 @@ export function FunnelsAnalyticsView({ mode }: { mode: FunnelMode }) {
         </div>
       ) : null}
 
-      <p className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">{FUNNEL_DISCLAIMER}</p>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      <p className="rounded border border-border bg-surface-subtle p-3 text-sm text-foreground-muted">{FUNNEL_DISCLAIMER}</p>
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
 
       {mode === "list" && data && typeof data === "object" && "funnels" in data ? (
         <Card>
@@ -287,7 +287,7 @@ export function FunnelsAnalyticsView({ mode }: { mode: FunnelMode }) {
                     <span>{String(step.stepName)}</span>
                     <span>{Number(step.completions)} ({Number(step.cumulativeConversion).toFixed(1)}%)</span>
                   </div>
-                  <div className="h-3 rounded bg-slate-100">
+                  <div className="h-3 rounded bg-surface-hover">
                     <div
                       className="h-3 rounded bg-blue-500"
                       style={{ width: `${(Number(step.completions) / maxCompletions) * 100}%` }}

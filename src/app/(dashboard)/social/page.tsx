@@ -21,7 +21,7 @@ export default function SocialPage() {
         <CardContent>
           <Link
             href="/social/connections"
-            className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
           >
             Manage social connections
           </Link>

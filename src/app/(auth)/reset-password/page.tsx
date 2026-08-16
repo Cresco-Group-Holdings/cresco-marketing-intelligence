@@ -10,14 +10,14 @@ export const metadata: Metadata = {
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-surface-subtle px-4 py-12">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <Link href="/" className="text-sm font-semibold text-slate-900">
+          <Link href="/" className="text-sm font-semibold text-foreground">
             {APP_NAME}
           </Link>
-          <h1 className="mt-4 text-2xl font-semibold text-slate-900">Choose a new password</h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <h1 className="mt-4 text-2xl font-semibold text-foreground">Choose a new password</h1>
+          <p className="mt-2 text-sm text-foreground-muted">
             Enter a new password for your account.
           </p>
         </div>

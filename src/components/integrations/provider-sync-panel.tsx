@@ -127,7 +127,7 @@ export function ProviderSyncPanel({ connectionId, connectionStatus }: SyncPanelP
         </div>
       ) : null}
 
-      {error ? <p className="text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="text-xs text-danger">{error}</p> : null}
 
       <div className="flex flex-wrap gap-2">
         <button

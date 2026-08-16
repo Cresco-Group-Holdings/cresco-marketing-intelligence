@@ -61,10 +61,10 @@ function AudienceNav({ audienceId, active }: { audienceId: string; active: Audie
     { mode: "history" as const, label: "History", href: `/advertising/audiences/${audienceId}/history` },
   ];
   return (
-    <nav className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+    <nav className="flex flex-wrap gap-2 border-b border-border pb-3">
       {tabs.map((tab) => (
         <Link key={tab.mode} href={tab.href}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium ${active === tab.mode ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"}`}>
+          className={`rounded-md px-3 py-1.5 text-sm font-medium ${active === tab.mode ? "bg-primary text-primary-foreground" : "text-foreground-muted hover:bg-surface-hover"}`}>
           {tab.label}
         </Link>
       ))}
@@ -136,7 +136,7 @@ export function AudienceIntelligenceView({ mode, audienceId }: { mode: AudienceI
   }
 
   if (!brandId || !organisationId) {
-    return <Card><CardContent className="py-8 text-center text-sm text-slate-600">Select a brand workspace.</CardContent></Card>;
+    return <Card><CardContent className="py-8 text-center text-sm text-foreground-muted">Select a brand workspace.</CardContent></Card>;
   }
 
   if (mode === "list") {
@@ -145,10 +145,10 @@ export function AudienceIntelligenceView({ mode, audienceId }: { mode: AudienceI
         <PageHeader title="Audience Intelligence" description="Privacy-conscious audience planning without external activation."
           actions={<ButtonLink href="/advertising/audiences/new">New audience</ButtonLink>} />
         <Card><CardContent className="divide-y p-0">
-          {audiences.length === 0 ? <p className="p-6 text-sm text-slate-600">No audiences yet.</p> :
+          {audiences.length === 0 ? <p className="p-6 text-sm text-foreground-muted">No audiences yet.</p> :
             audiences.map((a) => (
-              <Link key={a.id} href={`/advertising/audiences/${a.id}`} className="flex justify-between px-6 py-4 hover:bg-slate-50">
-                <div><p className="font-medium">{a.name}</p><p className="text-xs text-slate-500">{a.audienceType.replace(/_/g, " ")}</p></div>
+              <Link key={a.id} href={`/advertising/audiences/${a.id}`} className="flex justify-between px-6 py-4 hover:bg-surface-subtle">
+                <div><p className="font-medium">{a.name}</p><p className="text-xs text-foreground-subtle">{a.audienceType.replace(/_/g, " ")}</p></div>
                 <Badge variant={STATUS_VARIANT[a.status] ?? "muted"}>{a.status}</Badge>
               </Link>
             ))}
@@ -164,13 +164,13 @@ export function AudienceIntelligenceView({ mode, audienceId }: { mode: AudienceI
         <Card><CardContent className="space-y-4 pt-6">
           <Input label="Audience name" value={newName} onChange={(e) => setNewName(e.target.value)} />
           <div>
-            <label className="text-sm font-medium text-slate-700">Audience type</label>
+            <label className="text-sm font-medium text-foreground-muted">Audience type</label>
             <select className="mt-1 w-full rounded-md border px-3 py-2 text-sm" value={newType} onChange={(e) => setNewType(e.target.value)}>
               {AUDIENCE_TYPES.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-700">Retargeting window (days)</label>
+            <label className="text-sm font-medium text-foreground-muted">Retargeting window (days)</label>
             <select className="mt-1 w-full rounded-md border px-3 py-2 text-sm" value={retargetingDays} onChange={(e) => setRetargetingDays(e.target.value)}>
               {RETARGETING_WINDOWS.map((d) => <option key={d} value={d}>{d} days</option>)}
             </select>
@@ -181,14 +181,14 @@ export function AudienceIntelligenceView({ mode, audienceId }: { mode: AudienceI
     );
   }
 
-  if (!audience) return <p className="text-sm text-slate-600">Loading…</p>;
+  if (!audience) return <p className="text-sm text-foreground-muted">Loading…</p>;
 
   return (
     <div className="space-y-6">
       <PageHeader title={audience.name} description={audience.audienceType.replace(/_/g, " ")}
         actions={<Badge variant={STATUS_VARIANT[audience.status] ?? "muted"}>{audience.status}</Badge>} />
       {audienceId ? <AudienceNav audienceId={audienceId} active={mode} /> : null}
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-foreground-muted">{message}</p> : null}
 
       {mode === "detail" && (
         <div className="grid gap-4 md:grid-cols-2">
@@ -251,7 +251,7 @@ export function AudienceIntelligenceView({ mode, audienceId }: { mode: AudienceI
                 <li key={c.id} className="rounded border px-3 py-2">
                   <div className="flex justify-between"><span className="font-medium">{c.title}</span>
                     <Badge variant={c.status === "NOT_ELIGIBLE" ? "warning" : "muted"}>{c.status}</Badge></div>
-                  <p className="text-slate-500">{c.description}</p>
+                  <p className="text-foreground-subtle">{c.description}</p>
                 </li>
               ))}
             </ul>
