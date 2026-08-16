@@ -1,15 +1,25 @@
 "use client";
 
-import { Bell, Bot, Calendar, Search } from "lucide-react";
+import { Bot } from "lucide-react";
 import { AppearanceMenu } from "@/components/theme/appearance-menu";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { DateRangeSelector } from "@/components/marketing/date-range-selector";
+import { ButtonLink } from "@/components/ui/button";
 import { APP_NAME } from "@/lib/constants";
 
 type CommandCentreHeaderProps = {
   dateLabel?: string;
+  freshness?: {
+    paid: string;
+    organic: string;
+  };
+  coverage?: {
+    paid: string;
+    organic: string;
+    note?: string;
+  };
 };
 
-export function CommandCentreHeader({ dateLabel }: CommandCentreHeaderProps) {
+export function CommandCentreHeader({ dateLabel, freshness, coverage }: CommandCentreHeaderProps) {
   return (
     <header className="rounded-2xl border border-border bg-surface-elevated p-5 shadow-sm sm:p-6">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
@@ -23,35 +33,30 @@ export function CommandCentreHeader({ dateLabel }: CommandCentreHeaderProps) {
           <p className="mt-2 max-w-2xl text-sm text-foreground-muted">
             Command center for paid media and organic social performance.
           </p>
+          {coverage ? (
+            <div className="mt-3 flex flex-wrap gap-3 text-xs text-foreground-subtle">
+              <span>{coverage.paid}</span>
+              <span>{coverage.organic}</span>
+              {coverage.note ? <span>{coverage.note}</span> : null}
+            </div>
+          ) : null}
+          {freshness ? (
+            <div className="mt-2 flex flex-wrap gap-3 text-xs text-foreground-subtle">
+              <span>Paid: {freshness.paid}</span>
+              <span>Organic: {freshness.organic}</span>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <label className="relative min-w-[12rem] flex-1 sm:flex-none">
-            <span className="sr-only">Global search</span>
-            <Search
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground-subtle"
-              aria-hidden="true"
-            />
-            <input
-              type="search"
-              placeholder="Search campaigns, content, channels…"
-              className="h-10 w-full rounded-lg border border-border bg-surface py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </label>
-
           <ButtonLink href="/analyst" variant="outline" size="sm">
             <Bot className="h-4 w-4" aria-hidden="true" />
             Ask Cresco AI
           </ButtonLink>
 
-          <Button variant="outline" size="sm" type="button" aria-label="Date range selector">
-            <Calendar className="h-4 w-4" aria-hidden="true" />
-            {dateLabel ?? "Last 30 days"}
-          </Button>
+          <DateRangeSelector />
 
-          <ButtonLink href="/notifications" variant="ghost" size="sm" aria-label="Notifications">
-            <Bell className="h-4 w-4" aria-hidden="true" />
-          </ButtonLink>
+          <span className="text-xs text-foreground-subtle">{dateLabel}</span>
 
           <AppearanceMenu />
         </div>

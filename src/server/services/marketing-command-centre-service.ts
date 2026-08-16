@@ -1,17 +1,43 @@
 import type { ConnectorType, SocialProvider } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { buildTenantContextForUser } from "@/lib/tenancy/guards";
-import type { AIInsight } from "@/components/marketing/ai-insight-card";
 import type { PublishingQueueItem } from "@/components/marketing/publishing-queue";
-import type { PaidChartMetric, PaidChartPeriod, PaidChartPoint } from "@/components/marketing/paid-performance-chart";
+import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart";
 import type { ChannelConnectionState } from "@/components/marketing/channel-card";
+import type { MarketingMetric } from "@/components/marketing/marketing-metric-card";
 import { CONNECTOR_TO_PROVIDER } from "@/lib/paid-ads/constants";
+import {
+  resolveMarketingDateRange,
+  type ResolvedMarketingDateRange,
+} from "@/lib/marketing/date-range";
+import { evaluateMarketingSignals } from "@/lib/marketing-intelligence/engine";
+import { calculateMarketingHealth } from "@/lib/marketing-intelligence/scoring/health-score";
+import {
+  formatFreshnessLabel,
+  formatMetricValue,
+  percentChange,
+  resolveDataFreshness,
+  unavailableValue,
+} from "@/lib/marketing-intelligence/format";
+import type {
+  MarketingIntelligenceContext,
+  MarketingSignal,
+  OrganicChannelPerformance,
+  PaidProviderMetrics,
+} from "@/lib/marketing-intelligence/types";
 import { paidAdsConnectionService } from "@/server/services/paid-ads-connection-service";
 import { paidAdsDashboardService } from "@/server/services/paid-ads-dashboard-service";
 import { socialConnectionService } from "@/server/services/social-connection-service";
+import { socialAnalyticsQueryService } from "@/server/services/social-analytics-query-service";
 import { calendarService } from "@/server/services/calendar-service";
 import { publicationService } from "@/server/services/publication-service";
 import { workspaceService } from "@/server/services/workspace-service";
+import {
+  buildPaidMetricSeries,
+  latestOrganicSyncAt,
+  latestPaidSyncAt,
+  sumPaidRevenue,
+} from "@/server/services/marketing-command-centre-metrics";
 
 const PAID_CONNECTOR_HREFS: Partial<Record<ConnectorType, string>> = {
   GOOGLE_ADS: "/connectors/google-ads",
@@ -116,145 +142,163 @@ function publicationStatusLabel(status: string): PublishingQueueItem["status"] {
   }
 }
 
-async function buildPaidChartData(
-  brandId: string,
-  organisationId: string,
-  days: number,
-): Promise<Record<PaidChartMetric, PaidChartPoint[]>> {
-  const from = new Date();
-  from.setDate(from.getDate() - days);
 
-  const costs = await prisma.marketingCostRecord.findMany({
-    where: {
-      brandId,
-      organisationId,
-      periodStart: { gte: from },
-    },
-    select: {
-      amount: true,
-      periodStart: true,
-    },
-    orderBy: { periodStart: "asc" },
-  });
-
-  const grouped = new Map<string, number>();
-  for (const row of costs) {
-    const key = row.periodStart.toISOString().slice(0, 10);
-    grouped.set(key, (grouped.get(key) ?? 0) + Number(row.amount));
-  }
-
-  const spendPoints: PaidChartPoint[] = Array.from(grouped.entries()).map(([label, value]) => ({
-    label: new Date(label).toLocaleDateString("en-GB", { day: "numeric", month: "short" }),
-    value,
-  }));
-
+function buildEmptyResponse(
+  workspace: Awaited<ReturnType<typeof workspaceService.getResolvedWorkspace>>,
+  range: ResolvedMarketingDateRange,
+) {
   return {
-    spend: spendPoints,
-    revenue: [],
-    conversions: [],
-    roas: [],
-    cpa: [],
+    workspace,
+    hasBrandContext: false,
+    dateRange: {
+      preset: range.preset,
+      from: range.from.toISOString(),
+      to: range.to.toISOString(),
+      label: range.label,
+      comparisonLabel: range.comparisonLabel,
+    },
+    executiveKpis: [] as MarketingMetric[],
+    paidSummary: null,
+    organicSummary: null,
+    paidChannels: PAID_CONNECTORS.map((channel) => ({
+      ...channel,
+      connectHref: PAID_CONNECTOR_HREFS[channel.key] ?? "/connectors",
+      connectionState: "disconnected" as ChannelConnectionState,
+      metrics: [],
+      statusLabel: undefined,
+      emptyMessage: "No paid advertising accounts connected yet.",
+      ctaLabel: "View Performance",
+    })),
+    organicChannels: ORGANIC_CHANNELS.map((channel) => ({
+      ...channel,
+      connectHref: "/social/connections",
+      connectionState: "disconnected" as ChannelConnectionState,
+      metrics: [],
+      emptyMessage: "Connect your social channels to start publishing content.",
+    })),
+    paidChart: {
+      spend: [],
+      revenue: [],
+      conversions: [],
+      roas: [],
+      cpa: [],
+    } satisfies Record<PaidChartMetric, PaidChartPoint[]>,
+    publishingQueue: [],
+    calendarPreview: [],
+    insights: [] as MarketingSignal[],
+    health: null,
+    coverage: {
+      paid: "0 of 4 paid channels connected",
+      organic: "0 organic channels connected",
+    },
+    freshness: {
+      paid: "Connection required",
+      organic: "Connection required",
+    },
+    currency: "GBP",
+    hasPaidConnections: false,
+    hasOrganicConnections: false,
   };
 }
 
-function buildInsights(input: {
-  hasPaidData: boolean;
-  hasOrganicData: boolean;
-  paidRoasChange?: number | null;
-}): AIInsight[] {
-  if (!input.hasPaidData && !input.hasOrganicData) {
-    return [];
+async function safePaidOverview(
+  brandId: string,
+  organisationId: string,
+  from: Date,
+  to: Date,
+  tenant: Awaited<ReturnType<typeof buildTenantContextForUser>>,
+) {
+  try {
+    return await paidAdsDashboardService.getOverview(brandId, organisationId, from, to, tenant);
+  } catch {
+    return {
+      spend: 0,
+      impressions: 0,
+      clicks: 0,
+      conversions: 0,
+      ctr: 0,
+      roasDisclaimer: "",
+      byProvider: {} as Record<string, Record<string, number>>,
+      currencies: ["GBP"],
+      mixedCurrencyWarning: false,
+    };
   }
+}
 
-  const insights: AIInsight[] = [];
-
-  if (input.hasPaidData && input.paidRoasChange != null && input.paidRoasChange > 0) {
-    insights.push({
-      id: "paid-roas-opportunity",
-      type: "budget-recommendation",
-      title: "TikTok Ads ROAS momentum",
-      explanation:
-        "TikTok Ads ROAS has increased during the last 7 days. Consider reallocating 10% of the Meta budget.",
-      impact: "Potential +8–12% blended ROAS",
-      ctaLabel: "Adjust Budget",
-      ctaHref: "/advertising/budgets",
-      category: "paid",
-    });
+async function safeSocialOverview(
+  brandId: string,
+  organisationId: string,
+  from: Date,
+  to: Date,
+  tenant: Awaited<ReturnType<typeof buildTenantContextForUser>>,
+) {
+  try {
+    return await socialAnalyticsQueryService.overview(brandId, organisationId, { from, to }, tenant);
+  } catch {
+    return null;
   }
+}
 
-  if (input.hasOrganicData) {
-    insights.push({
-      id: "organic-content-opportunity",
-      type: "content-opportunity",
-      title: "High-performing Reels theme",
-      explanation:
-        "Instagram Reels about AI financial analysis are generating higher engagement than your channel average.",
-      impact: "Estimated +34% engagement",
-      ctaLabel: "Create Content",
-      ctaHref: "/content/studio/new",
-      category: "organic",
-    });
+function mapOrganicChannels(
+  publications: Awaited<ReturnType<typeof publicationService.list>>,
+  connectedOrganicProviders: Set<SocialProvider>,
+  socialOverview: Awaited<ReturnType<typeof safeSocialOverview>>,
+): Array<
+  (typeof ORGANIC_CHANNELS)[number] & {
+    connectHref: string;
+    connectionState: ChannelConnectionState;
+    metrics: Array<{ label: string; value: string }>;
+    emptyMessage: string;
   }
+> {
+  return ORGANIC_CHANNELS.map((channel) => {
+    const connected = connectedOrganicProviders.has(channel.provider);
+    const providerMetrics = socialOverview?.byProvider?.[channel.provider];
+    const scheduledCount = publications.filter(
+      (item) => item.status === "SCHEDULED" && item.providerKey.includes(channel.provider),
+    ).length;
+    const engagement =
+      providerMetrics != null
+        ? (providerMetrics.likes ?? 0) +
+          (providerMetrics.comments ?? 0) +
+          (providerMetrics.shares ?? 0) +
+          (providerMetrics.saves ?? 0)
+        : null;
 
-  if (input.hasPaidData && input.hasOrganicData) {
-    insights.push({
-      id: "cross-channel-repurpose",
-      type: "opportunity",
-      title: "Repurpose top ad creative",
-      explanation:
-        "Your best-performing ad concept also performs strongly as an organic Reel. Consider repurposing it.",
-      impact: "Lower CAC via organic reach",
-      ctaLabel: "Create Content",
-      ctaHref: "/content/studio/new",
-      category: "cross-channel",
-    });
-  }
-
-  return insights;
+    return {
+      ...channel,
+      connectHref: "/social/connections",
+      connectionState: toConnectionState(connected),
+      metrics: connected
+        ? [
+            {
+              label: "Reach",
+              value: formatMetricValue(providerMetrics?.reach ?? null, formatNumber),
+            },
+            {
+              label: "Engagement",
+              value: formatMetricValue(engagement, formatNumber),
+            },
+            { label: "Scheduled", value: String(scheduledCount) },
+          ]
+        : [],
+      emptyMessage: `Connect ${channel.title} to start publishing content.`,
+    };
+  });
 }
 
 export const marketingCommandCentreService = {
-  async getDashboard(userProfileId: string) {
+  async getDashboard(
+    userProfileId: string,
+    rangeInput?: Partial<ResolvedMarketingDateRange>,
+  ) {
+    const range = resolveMarketingDateRange(rangeInput ?? { preset: "30d" });
     const workspace = await workspaceService.getResolvedWorkspace(userProfileId);
     const organisationId = workspace.preference.currentOrganisationId;
     const brandId = workspace.preference.currentBrandId;
 
     if (!organisationId || !brandId) {
-      return {
-        workspace,
-        hasBrandContext: false,
-        executiveKpis: [],
-        paidSummary: null,
-        organicSummary: null,
-        paidChannels: PAID_CONNECTORS.map((channel) => ({
-          ...channel,
-          connectHref: PAID_CONNECTOR_HREFS[channel.key] ?? "/connectors",
-          connectionState: "disconnected" as ChannelConnectionState,
-          metrics: [],
-          statusLabel: undefined,
-          emptyMessage: "No paid advertising accounts connected yet.",
-          ctaLabel: "View Performance",
-        })),
-        organicChannels: ORGANIC_CHANNELS.map((channel) => ({
-          ...channel,
-          connectHref: "/social/connections",
-          connectionState: "disconnected" as ChannelConnectionState,
-          metrics: [],
-          emptyMessage: "Connect your social channels to start publishing content.",
-        })),
-        paidChart: {
-          "7D": { spend: [], revenue: [], conversions: [], roas: [], cpa: [] },
-          "30D": { spend: [], revenue: [], conversions: [], roas: [], cpa: [] },
-          "90D": { spend: [], revenue: [], conversions: [], roas: [], cpa: [] },
-        },
-        publishingQueue: [],
-        calendarPreview: [],
-        insights: [],
-        dateLabel: "Last 30 days",
-        currency: "GBP",
-        hasPaidConnections: false,
-        hasOrganicConnections: false,
-      };
+      return buildEmptyResponse(workspace, range);
     }
 
     const tenant = await buildTenantContextForUser(userProfileId, {
@@ -263,158 +307,271 @@ export const marketingCommandCentreService = {
       brandId,
     });
 
-    const now = new Date();
-    const from = new Date(now);
-    from.setDate(from.getDate() - 30);
-    const previousFrom = new Date(from);
-    previousFrom.setDate(previousFrom.getDate() - 30);
-
     const [
       paidOverview,
       previousPaidOverview,
+      previousRevenue,
+      currentRevenue,
       paidConnections,
       socialCatalogue,
       publications,
       upcomingCalendar,
-      chart7d,
-      chart30d,
-      chart90d,
+      paidChart,
+      socialOverview,
+      previousSocialOverview,
+      paidSyncAt,
+      organicSyncAt,
     ] = await Promise.all([
-      paidAdsDashboardService.getOverview(brandId, organisationId, from, now, tenant),
-      paidAdsDashboardService.getOverview(brandId, organisationId, previousFrom, from, tenant),
+      safePaidOverview(brandId, organisationId, range.from, range.to, tenant),
+      safePaidOverview(brandId, organisationId, range.comparisonFrom, range.comparisonTo, tenant),
+      sumPaidRevenue(brandId, organisationId, range.comparisonFrom, range.comparisonTo),
+      sumPaidRevenue(brandId, organisationId, range.from, range.to),
       Promise.all(
         PAID_CONNECTORS.map(async (connector) => ({
           connector: connector.key,
-          status: await paidAdsConnectionService.getConnectionStatus(
-            brandId,
-            organisationId,
-            connector.key,
-            tenant,
-          ),
+          status: await paidAdsConnectionService
+            .getConnectionStatus(brandId, organisationId, connector.key, tenant)
+            .catch(() => ({ connected: false, accountSelected: false, account: null })),
         })),
       ),
-      socialConnectionService.getCatalogue(brandId, organisationId, tenant),
-      publicationService.list(brandId, organisationId, tenant),
-      calendarService.listUpcoming(organisationId, { brandId, limit: 8 }, tenant),
-      buildPaidChartData(brandId, organisationId, 7),
-      buildPaidChartData(brandId, organisationId, 30),
-      buildPaidChartData(brandId, organisationId, 90),
+      socialConnectionService.getCatalogue(brandId, organisationId, tenant).catch(() => []),
+      publicationService.list(brandId, organisationId, tenant).catch(() => []),
+      calendarService.listUpcoming(organisationId, { brandId, limit: 8 }, tenant).catch(() => []),
+      buildPaidMetricSeries({
+        brandId,
+        organisationId,
+        from: range.from,
+        to: range.to,
+      }).catch(() => ({
+        spend: [],
+        revenue: [],
+        conversions: [],
+        roas: [],
+        cpa: [],
+      })),
+      safeSocialOverview(brandId, organisationId, range.from, range.to, tenant),
+      safeSocialOverview(brandId, organisationId, range.comparisonFrom, range.comparisonTo, tenant),
+      latestPaidSyncAt(brandId, organisationId),
+      latestOrganicSyncAt(brandId, organisationId),
     ]);
 
     const connectedPaidCount = paidConnections.filter((item) => item.status.connected).length;
-    const hasPaidData = connectedPaidCount > 0 && paidOverview.spend > 0;
     const connectedOrganicProviders = new Set(
       socialCatalogue
         .filter((item) => item.connection?.status === "CONNECTED")
         .map((item) => item.provider),
     );
-    const hasOrganicData = connectedOrganicProviders.size > 0;
+    const hasPaidConnections = connectedPaidCount > 0;
+    const hasOrganicConnections = connectedOrganicProviders.size > 0;
+    const hasPaidData = hasPaidConnections && paidOverview.spend > 0;
+    const hasOrganicData =
+      hasOrganicConnections &&
+      ((socialOverview?.totals?.reach ?? 0) > 0 ||
+        (socialOverview?.totals?.likes ?? 0) > 0 ||
+        publications.some((item) => item.status === "PUBLISHED"));
 
-    const spendChange =
-      previousPaidOverview.spend > 0
-        ? ((paidOverview.spend - previousPaidOverview.spend) / previousPaidOverview.spend) * 100
-        : null;
-
-    const conversionsChange =
-      previousPaidOverview.conversions > 0
-        ? ((paidOverview.conversions - previousPaidOverview.conversions) /
-            previousPaidOverview.conversions) *
-          100
-        : null;
-
-    const activeCampaigns = await prisma.marketingCampaign.count({
-      where: {
-        brandId,
-        organisationId,
-        status: "ACTIVE",
-      },
-    });
-
-    const organicReach = await prisma.marketingMetricObservation.aggregate({
-      where: {
-        brandId,
-        organisationId,
-        metricKey: "reach",
-        observedAt: { gte: from, lte: now },
-      },
-      _sum: { metricValue: true },
-    });
-
-    const organicEngagement = await prisma.marketingMetricObservation.aggregate({
-      where: {
-        brandId,
-        organisationId,
-        metricKey: { in: ["engagement", "engagements"] },
-        observedAt: { gte: from, lte: now },
-      },
-      _sum: { metricValue: true },
-    });
-
-    const publishedContentCount = publications.filter((item) =>
-      ["SCHEDULED", "PUBLISHING", "PUBLISHED", "APPROVED"].includes(item.status),
-    ).length;
-
+    const spendChange = percentChange(paidOverview.spend, previousPaidOverview.spend);
+    const conversionsChange = percentChange(paidOverview.conversions, previousPaidOverview.conversions);
     const cpa =
       paidOverview.conversions > 0 ? paidOverview.spend / paidOverview.conversions : null;
+    const previousCpa =
+      previousPaidOverview.conversions > 0
+        ? previousPaidOverview.spend / previousPaidOverview.conversions
+        : null;
+    const roas = paidOverview.spend > 0 ? currentRevenue / paidOverview.spend : null;
+    const previousRoas =
+      previousPaidOverview.spend > 0 ? previousRevenue / previousPaidOverview.spend : null;
+
+    const activeCampaigns = await prisma.marketingCampaign.count({
+      where: { brandId, organisationId, status: "ACTIVE" },
+    });
+
+    const paidByProvider: PaidProviderMetrics[] = PAID_CONNECTORS.map((channel) => {
+      const providerKey = CONNECTOR_TO_PROVIDER[channel.key];
+      const metrics = providerKey ? paidOverview.byProvider[providerKey] : undefined;
+      const spend = metrics?.cost ?? 0;
+      const conversions = metrics?.conversions ?? 0;
+      const revenue = metrics?.conversion_value ?? metrics?.revenue ?? 0;
+      return {
+        provider: channel.label,
+        spend,
+        conversions,
+        revenue: Number(revenue),
+        clicks: metrics?.clicks ?? 0,
+        impressions: metrics?.impressions ?? 0,
+      };
+    });
+
+    const organicChannelsDetailed: OrganicChannelPerformance[] = ORGANIC_CHANNELS.map((channel) => {
+      const providerMetrics = socialOverview?.byProvider?.[channel.provider];
+      const connected = connectedOrganicProviders.has(channel.provider);
+      const engagement =
+        providerMetrics != null
+          ? (providerMetrics.likes ?? 0) +
+            (providerMetrics.comments ?? 0) +
+            (providerMetrics.shares ?? 0) +
+            (providerMetrics.saves ?? 0)
+          : null;
+
+      return {
+        provider: channel.provider,
+        channel: channel.title,
+        connected,
+        reach: providerMetrics?.reach ?? null,
+        views: providerMetrics?.views ?? providerMetrics?.videoViews ?? null,
+        engagement,
+        engagementRate:
+          providerMetrics?.impressions && providerMetrics.impressions > 0 && engagement != null
+            ? (engagement / providerMetrics.impressions) * 100
+            : socialOverview?.derived?.engagementRate ?? null,
+        followers: providerMetrics?.follows ?? providerMetrics?.subscribers ?? null,
+        followerGrowth: socialOverview?.derived?.followerGrowth ?? null,
+        shares: providerMetrics?.shares ?? null,
+        saves: providerMetrics?.saves ?? null,
+        published: publications.filter(
+          (item) => item.status === "PUBLISHED" && item.providerKey.includes(channel.provider),
+        ).length,
+        scheduled: publications.filter(
+          (item) => item.status === "SCHEDULED" && item.providerKey.includes(channel.provider),
+        ).length,
+        dataFreshness: organicSyncAt,
+        unavailableMetrics: connected && !providerMetrics ? ["reach", "engagement"] : [],
+      };
+    });
+
+    const publishedInRange = publications.filter((item) => item.status === "PUBLISHED").length;
+    const scheduledUpcoming = publications.filter((item) => item.status === "SCHEDULED").length;
+    const paidFreshness = resolveDataFreshness(paidSyncAt);
+    const organicFreshness = resolveDataFreshness(organicSyncAt);
+
+    const intelligenceContext: MarketingIntelligenceContext = {
+      rangeLabel: range.label,
+      comparisonLabel: range.comparisonLabel,
+      paid: {
+        connectedCount: connectedPaidCount,
+        totalProviders: PAID_CONNECTORS.length,
+        spend: paidOverview.spend,
+        previousSpend: previousPaidOverview.spend,
+        conversions: paidOverview.conversions,
+        previousConversions: previousPaidOverview.conversions,
+        revenue: currentRevenue,
+        previousRevenue,
+        roas,
+        previousRoas,
+        cpa,
+        previousCpa,
+        byProvider: paidByProvider,
+        freshness: paidFreshness,
+        lastSyncedAt: paidSyncAt,
+      },
+      organic: {
+        connectedCount: connectedOrganicProviders.size,
+        totalProviders: ORGANIC_CHANNELS.length,
+        reach: socialOverview?.totals?.reach ?? null,
+        previousReach: previousSocialOverview?.totals?.reach ?? null,
+        engagement:
+          socialOverview?.totals != null
+            ? (socialOverview.totals.likes ?? 0) +
+              (socialOverview.totals.comments ?? 0) +
+              (socialOverview.totals.shares ?? 0) +
+              (socialOverview.totals.saves ?? 0)
+            : null,
+        previousEngagement:
+          previousSocialOverview?.totals != null
+            ? (previousSocialOverview.totals.likes ?? 0) +
+              (previousSocialOverview.totals.comments ?? 0) +
+              (previousSocialOverview.totals.shares ?? 0) +
+              (previousSocialOverview.totals.saves ?? 0)
+            : null,
+        engagementRate: socialOverview?.derived?.engagementRate ?? null,
+        published: publishedInRange,
+        scheduled: scheduledUpcoming,
+        channels: organicChannelsDetailed,
+        freshness: organicFreshness,
+        lastSyncedAt: organicSyncAt,
+        partialCoverageNote:
+          connectedOrganicProviders.size > 0 && !socialOverview
+            ? "Organic analytics unavailable for one or more connected providers."
+            : undefined,
+      },
+      publishing: {
+        publishedInRange,
+        scheduledUpcoming,
+        daysWithoutScheduled: scheduledUpcoming === 0 ? 5 : 0,
+        strongestOrganicFormat:
+          organicChannelsDetailed
+            .filter((channel) => channel.connected)
+            .sort((a, b) => (b.engagementRate ?? 0) - (a.engagementRate ?? 0))[0]?.channel ?? null,
+      },
+      connectivity: {
+        paidConnected: connectedPaidCount,
+        paidTotal: PAID_CONNECTORS.length,
+        organicConnected: connectedOrganicProviders.size,
+        organicTotal: ORGANIC_CHANNELS.length,
+      },
+    };
+
+    const health = calculateMarketingHealth(intelligenceContext);
+    const insights = evaluateMarketingSignals(intelligenceContext);
 
     const paidChannels = PAID_CONNECTORS.map((channel) => {
       const connection = paidConnections.find((item) => item.connector === channel.key);
       const connected = connection?.status.connected ?? false;
-      const providerKey = CONNECTOR_TO_PROVIDER[channel.key];
-      const providerMetrics = providerKey ? paidOverview.byProvider[providerKey] : undefined;
-      const spend = providerMetrics?.cost ?? 0;
-      const conversions = providerMetrics?.conversions ?? 0;
+      const providerMetrics = paidByProvider.find((item) => item.provider === channel.label);
 
       return {
         ...channel,
         connectHref: PAID_CONNECTOR_HREFS[channel.key] ?? "/connectors",
-        connectionState: toConnectionState(connected, Boolean(connection?.status.account?.lastErrorMessage)),
+        connectionState: toConnectionState(
+          connected,
+          Boolean(connection?.status.account?.lastErrorMessage),
+        ),
         metrics: connected
           ? [
-              { label: "Spend", value: formatCurrency(spend) },
-              { label: "ROAS", value: "—" },
-              { label: "Conversions", value: formatNumber(conversions) },
+              {
+                label: "Spend",
+                value: formatMetricValue(providerMetrics?.spend ?? null, (value) =>
+                  formatCurrency(value),
+                ),
+              },
+              {
+                label: "ROAS",
+                value:
+                  providerMetrics && providerMetrics.spend > 0
+                    ? `${(providerMetrics.revenue / providerMetrics.spend).toFixed(2)}x`
+                    : unavailableValue(),
+              },
+              {
+                label: "Conversions",
+                value: formatMetricValue(providerMetrics?.conversions ?? null, formatNumber),
+              },
               {
                 label: "CPA",
-                value: conversions > 0 ? formatCurrency(spend / conversions) : "—",
+                value:
+                  providerMetrics && providerMetrics.conversions > 0
+                    ? formatCurrency(providerMetrics.spend / providerMetrics.conversions)
+                    : unavailableValue(),
               },
             ]
           : [],
-        statusLabel: connected
-          ? connection?.status.account?.status ?? "Connected"
-          : undefined,
+        statusLabel: connected ? connection?.status.account?.status ?? "Connected" : undefined,
         emptyMessage: "No paid advertising accounts connected yet.",
         ctaLabel: "View Performance",
       };
     });
 
-    const organicChannels = ORGANIC_CHANNELS.map((channel) => {
-      const connected = connectedOrganicProviders.has(channel.provider);
-      return {
-        ...channel,
-        connectHref: "/social/connections",
-        connectionState: toConnectionState(connected),
-        metrics: connected
-          ? [
-              { label: "Reach", value: formatNumber(Number(organicReach._sum.metricValue ?? 0)) },
-              { label: "Engagement", value: formatNumber(Number(organicEngagement._sum.metricValue ?? 0)) },
-              {
-                label: "Scheduled",
-                value: String(
-                  publications.filter(
-                    (item) =>
-                      item.status === "SCHEDULED" && item.providerKey.includes(channel.provider),
-                  ).length,
-                ),
-              },
-            ]
-          : [],
-        emptyMessage: `Connect ${channel.title} to start publishing content.`,
-      };
-    });
+    const organicChannels = mapOrganicChannels(
+      publications,
+      connectedOrganicProviders,
+      socialOverview,
+    );
 
     const publishingQueue: PublishingQueueItem[] = publications
-      .filter((item) => ["DRAFT", "APPROVED", "SCHEDULED", "PUBLISHING", "PUBLISHED", "FAILED"].includes(item.status))
+      .filter((item) =>
+        ["DRAFT", "APPROVED", "SCHEDULED", "PUBLISHING", "PUBLISHED", "FAILED"].includes(
+          item.status,
+        ),
+      )
       .slice(0, 6)
       .map((item) => ({
         id: item.id,
@@ -452,77 +609,95 @@ export const marketingCommandCentreService = {
       .slice(0, 4)
       .map(([dateLabel, items]) => ({ dateLabel, items }));
 
-    const insights = buildInsights({
-      hasPaidData,
-      hasOrganicData,
-      paidRoasChange: spendChange,
-    });
+    const currency = paidOverview.currencies[0] ?? "GBP";
 
     return {
       workspace,
       hasBrandContext: true,
+      dateRange: {
+        preset: range.preset,
+        from: range.from.toISOString(),
+        to: range.to.toISOString(),
+        label: range.label,
+        comparisonLabel: range.comparisonLabel,
+      },
       executiveKpis: [
         {
           label: "Total Spend",
-          value: hasPaidData ? formatCurrency(paidOverview.spend) : "—",
+          value: hasPaidData ? formatCurrency(paidOverview.spend, currency) : unavailableValue(),
           change: spendChange,
-          comparisonLabel: "vs previous 30 days",
+          comparisonLabel: range.comparisonLabel,
         },
         {
           label: "Organic Reach",
-          value: hasOrganicData ? formatNumber(Number(organicReach._sum.metricValue ?? 0)) : "—",
-          change: null,
-          comparisonLabel: "last 30 days",
+          value: formatMetricValue(
+            hasOrganicData ? (socialOverview?.totals?.reach ?? null) : null,
+            formatNumber,
+          ),
+          change: percentChange(
+            socialOverview?.totals?.reach ?? 0,
+            previousSocialOverview?.totals?.reach ?? 0,
+          ),
+          comparisonLabel: range.comparisonLabel,
         },
         {
           label: "Conversions",
-          value: hasPaidData ? formatNumber(paidOverview.conversions) : "—",
+          value: hasPaidData ? formatNumber(paidOverview.conversions) : unavailableValue(),
           change: conversionsChange,
-          comparisonLabel: "vs previous 30 days",
+          comparisonLabel: range.comparisonLabel,
         },
         {
           label: "Content Output",
-          value: String(publishedContentCount),
+          value: String(publishedInRange + scheduledUpcoming),
           change: null,
-          comparisonLabel: "scheduled or published",
+          comparisonLabel: "published + scheduled",
         },
         {
           label: "Marketing Health",
-          value: hasPaidData || hasOrganicData ? "87 / 100" : "—",
-          change: hasPaidData || hasOrganicData ? 4.2 : null,
-          comparisonLabel: "composite score",
+          value:
+            health.total > 0 || hasPaidConnections || hasOrganicConnections
+              ? `${health.total} / 100`
+              : unavailableValue(),
+          change: null,
+          comparisonLabel: "deterministic composite score",
         },
       ],
       paidSummary: {
-        spend: hasPaidData ? formatCurrency(paidOverview.spend) : "—",
-        roas: "—",
-        conversions: hasPaidData ? formatNumber(paidOverview.conversions) : "—",
-        cpa: cpa != null ? formatCurrency(cpa) : "—",
+        spend: hasPaidData ? formatCurrency(paidOverview.spend, currency) : unavailableValue(),
+        roas: roas != null ? `${roas.toFixed(2)}x` : unavailableValue(),
+        conversions: hasPaidData ? formatNumber(paidOverview.conversions) : unavailableValue(),
+        cpa: cpa != null ? formatCurrency(cpa, currency) : unavailableValue(),
         activeCampaigns: String(activeCampaigns),
       },
       organicSummary: {
-        reach: hasOrganicData ? formatNumber(Number(organicReach._sum.metricValue ?? 0)) : "—",
-        engagement: hasOrganicData ? formatNumber(Number(organicEngagement._sum.metricValue ?? 0)) : "—",
-        profileVisits: "—",
-        shares: "—",
-        postsPublished: String(
-          publications.filter((item) => item.status === "PUBLISHED").length,
+        reach: formatMetricValue(
+          hasOrganicData ? (socialOverview?.totals?.reach ?? null) : null,
+          formatNumber,
         ),
+        engagement: formatMetricValue(intelligenceContext.organic.engagement, formatNumber),
+        profileVisits: formatMetricValue(socialOverview?.totals?.profileVisits ?? null, formatNumber),
+        shares: formatMetricValue(socialOverview?.totals?.shares ?? null, formatNumber),
+        postsPublished: String(publishedInRange),
       },
       paidChannels,
       organicChannels,
-      paidChart: {
-        "7D": chart7d,
-        "30D": chart30d,
-        "90D": chart90d,
-      } satisfies Record<PaidChartPeriod, Record<PaidChartMetric, PaidChartPoint[]>>,
+      paidChart,
       publishingQueue,
       calendarPreview,
       insights,
-      dateLabel: "Last 30 days",
-      currency: paidOverview.currencies[0] ?? "GBP",
-      hasPaidConnections: connectedPaidCount > 0,
-      hasOrganicConnections: connectedOrganicProviders.size > 0,
+      health,
+      coverage: {
+        paid: `${connectedPaidCount} of ${PAID_CONNECTORS.length} paid channels connected`,
+        organic: `${connectedOrganicProviders.size} of ${ORGANIC_CHANNELS.length} organic channels connected`,
+        note: intelligenceContext.organic.partialCoverageNote,
+      },
+      freshness: {
+        paid: formatFreshnessLabel(paidFreshness, paidSyncAt),
+        organic: formatFreshnessLabel(organicFreshness, organicSyncAt),
+      },
+      currency,
+      hasPaidConnections,
+      hasOrganicConnections,
     };
   },
 };

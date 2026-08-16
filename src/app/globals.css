@@ -25,8 +25,31 @@
 
   --paid-accent: #6366f1;
   --paid-accent-muted: #e0e7ff;
+  --paid-accent-soft: #eef2ff;
   --organic-accent: #0d9488;
   --organic-accent-muted: #ccfbf1;
+  --organic-accent-soft: #ecfdf9;
+  --ai-accent: #7c3aed;
+  --ai-accent-soft: #ede9fe;
+
+  --positive: #15803d;
+  --negative: #b91c1c;
+  --neutral-signal: #78716c;
+
+  --surface-subtle: #f3ebdd;
+  --surface-active: #e7dfd2;
+  --surface-selected: #efe6d8;
+
+  --foreground-disabled: #a8a29e;
+
+  --border-subtle: #efe6d8;
+  --border-interactive: #d6cbb9;
+
+  --chart-1: #6366f1;
+  --chart-2: #0d9488;
+  --chart-3: #7c3aed;
+  --chart-4: #b45309;
+  --chart-5: #15803d;
 
   --success: #15803d;
   --success-muted: #dcfce7;
@@ -121,8 +144,31 @@
 
   --color-paid-accent: var(--paid-accent);
   --color-paid-accent-muted: var(--paid-accent-muted);
+  --color-paid-accent-soft: var(--paid-accent-soft);
   --color-organic-accent: var(--organic-accent);
   --color-organic-accent-muted: var(--organic-accent-muted);
+  --color-organic-accent-soft: var(--organic-accent-soft);
+  --color-ai-accent: var(--ai-accent);
+  --color-ai-accent-soft: var(--ai-accent-soft);
+
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --color-neutral-signal: var(--neutral-signal);
+
+  --color-surface-subtle: var(--surface-subtle);
+  --color-surface-active: var(--surface-active);
+  --color-surface-selected: var(--surface-selected);
+
+  --color-foreground-disabled: var(--foreground-disabled);
+
+  --color-border-subtle: var(--border-subtle);
+  --color-border-interactive: var(--border-interactive);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
   --color-success: var(--success);
   --color-success-muted: var(--success-muted);
@@ -136,6 +182,7 @@
   /* Legacy aliases for gradual migration */
   --color-card: var(--surface-elevated);
   --color-muted: var(--foreground-muted);
+  --color-muted-foreground: var(--foreground-muted);
   --color-accent: var(--primary);
 
   --font-sans: var(--font-geist-sans);
