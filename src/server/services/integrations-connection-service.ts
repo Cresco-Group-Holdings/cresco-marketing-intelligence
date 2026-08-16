@@ -55,6 +55,14 @@ export const integrationsConnectionService = {
   },
 
   async revoke(context: TenantContext, connectionId: string) {
+    return this.disconnect(context, connectionId, { remoteRevoke: true });
+  },
+
+  async disconnect(
+    context: TenantContext,
+    connectionId: string,
+    options?: { remoteRevoke?: boolean },
+  ) {
     const connection = await prisma.providerConnection.findFirst({
       where: { id: connectionId, organisationId: context.organisationId },
     });
@@ -65,11 +73,16 @@ export const integrationsConnectionService = {
       actorUserId: context.userId,
       providerKey: connection.providerKey,
     });
-    if (accessToken) {
-      await oauthAdapterRegistry.revokeToken({
-        providerKey: connection.providerKey,
-        accessToken,
-      });
+
+    if (options?.remoteRevoke !== false && accessToken) {
+      try {
+        await oauthAdapterRegistry.revokeToken({
+          providerKey: connection.providerKey,
+          accessToken,
+        });
+      } catch {
+        // Local disconnect must proceed even if remote revoke fails.
+      }
     }
 
     await credentialVault.revokeAll(connectionId, {
@@ -80,16 +93,25 @@ export const integrationsConnectionService = {
 
     await connectionLifecycleService.transition(context, connectionId, "REVOKED");
 
+    await prisma.providerConnection.update({
+      where: { id: connectionId },
+      data: {
+        disconnectedAt: new Date(),
+        revokedAt: new Date(),
+      },
+    });
+
     await providerAuditService.recordEvent({
       organisationId: context.organisationId,
       providerKey: connection.providerKey,
-      action: "CREDENTIAL_REVOKED",
+      action: options?.remoteRevoke === false ? "CONNECTION_STATUS_CHANGED" : "CREDENTIAL_REVOKED",
       connectionId,
       actorUserId: context.userId,
       result: "success",
+      metadata: options?.remoteRevoke === false ? { category: "connection_disconnected" } : undefined,
     });
 
-    return { revoked: true };
+    return { disconnected: true, remoteRevokeAttempted: options?.remoteRevoke !== false };
   },
 
   async verify(context: TenantContext, connectionId: string) {
@@ -113,7 +135,15 @@ export const integrationsConnectionService = {
       providerKey: connection.providerKey,
     });
 
-    const healthy = Boolean(accessToken || apiKey);
+    let healthy = Boolean(accessToken || apiKey);
+    if (accessToken) {
+      const validation = await oauthAdapterRegistry.validateConnection({
+        providerKey: connection.providerKey,
+        accessToken,
+      });
+      healthy = validation.healthy;
+    }
+
     const status = healthy ? "CONNECTED" : "DEGRADED";
 
     await prisma.providerConnection.update({

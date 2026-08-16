@@ -16,10 +16,13 @@ import { ProviderSyncPanel } from "@/components/integrations/provider-sync-panel
 type OAuthConnectionPanelProps = {
   providerKey: string;
   displayName: string;
+  oauthConfigStatus?: string | null;
+  missingEnv?: string[];
   connection?: {
     id: string;
     status: string;
     displayName: string | null;
+    externalLabel?: string | null;
     lastHealthCheckAt: string | null;
     lastSuccessfulAt: string | null;
     reauthorizationRequired: boolean;
@@ -37,6 +40,8 @@ function orgHeaders(): Record<string, string> {
 export function OAuthConnectionPanel({
   providerKey,
   displayName,
+  oauthConfigStatus,
+  missingEnv = [],
   connection,
   onUpdated,
 }: OAuthConnectionPanelProps) {
@@ -189,6 +194,9 @@ export function OAuthConnectionPanel({
     connection?.status === "REAUTH_REQUIRED" ||
     connection?.status === "ACTION_REQUIRED";
 
+  const connectDisabled =
+    submitting || oauthConfigStatus === "MISCONFIGURED" || oauthConfigStatus === "DISABLED";
+
   return (
     <div className="rounded-lg border p-4 space-y-3">
       <div className="flex items-start justify-between gap-2">
@@ -214,6 +222,23 @@ export function OAuthConnectionPanel({
       ) : (
         <p className="text-sm text-muted-foreground">Not connected</p>
       )}
+
+      {oauthConfigStatus === "MISCONFIGURED" && !connection ? (
+        <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
+          Provider OAuth is not configured
+          {missingEnv.length > 0 ? `: ${missingEnv.join(", ")}` : ""}.
+        </div>
+      ) : null}
+
+      {connection?.externalLabel ? (
+        <p className="text-sm text-muted-foreground">{connection.externalLabel}</p>
+      ) : null}
+
+      {connection?.lastSuccessfulAt ? (
+        <p className="text-xs text-muted-foreground">
+          Last verified: {new Date(connection.lastSuccessfulAt).toLocaleString()}
+        </p>
+      ) : null}
 
       {scopes && scopes.missingScopes.length > 0 ? (
         <div className="rounded-md border border-amber-200 bg-amber-50 p-2 text-xs text-amber-900">
@@ -275,12 +300,12 @@ export function OAuthConnectionPanel({
         {!connection || connection.status === "REVOKED" ? (
           <button
             type="button"
-            disabled={submitting}
+            disabled={connectDisabled}
             onClick={() => void connect()}
             className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm disabled:opacity-50"
           >
             {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plug className="h-3.5 w-3.5" />}
-            Connect
+            {oauthConfigStatus === "MISCONFIGURED" ? "Not configured" : "Connect"}
           </button>
         ) : null}
 

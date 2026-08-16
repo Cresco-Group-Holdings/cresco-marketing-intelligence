@@ -10,6 +10,11 @@ export type ProviderCatalogueItem = {
   supportsPolling: boolean;
   supportsPush: boolean;
   capabilities: string[];
+  metadata?: {
+    requiresApproval?: boolean;
+    oauthConfigStatus?: string | null;
+    missingEnv?: string[];
+  };
 };
 
 export type IntegrationConnectionView = {
