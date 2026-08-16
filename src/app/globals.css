@@ -1,21 +1,143 @@
 @import "tailwindcss";
 
-:root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --card: #ffffff;
-  --muted: #64748b;
-  --border: #e2e8f0;
-  --accent: #0f172a;
+/* -------------------------------------------------------------------------- */
+/* Semantic design tokens — consumed via Tailwind and CSS variables           */
+/* -------------------------------------------------------------------------- */
+
+:root,
+[data-theme="light"][data-background="beige"] {
+  --background: #f6f0e7;
+  --background-secondary: #f3ebdd;
+  --surface: #faf6ef;
+  --surface-elevated: #fffdf9;
+  --surface-hover: #efe6d8;
+
+  --foreground: #1c1917;
+  --foreground-muted: #57534e;
+  --foreground-subtle: #78716c;
+
+  --border: #e7dfd2;
+  --border-strong: #d6cbb9;
+
+  --primary: #1c1917;
+  --primary-hover: #292524;
+  --primary-foreground: #faf6ef;
+
+  --paid-accent: #6366f1;
+  --paid-accent-muted: #e0e7ff;
+  --organic-accent: #0d9488;
+  --organic-accent-muted: #ccfbf1;
+
+  --success: #15803d;
+  --success-muted: #dcfce7;
+  --warning: #b45309;
+  --warning-muted: #fef3c7;
+  --danger: #b91c1c;
+  --danger-muted: #fee2e2;
+
+  --ring: #a8a29e;
+  --shadow-color: 28 25 23;
+}
+
+[data-theme="light"][data-background="warm-ivory"] {
+  --background: #faf6ef;
+  --background-secondary: #f3ebdd;
+  --surface: #fffdf9;
+  --surface-elevated: #ffffff;
+  --surface-hover: #f0e8da;
+}
+
+[data-theme="light"][data-background="neutral"] {
+  --background: #f4f4f5;
+  --background-secondary: #ececee;
+  --surface: #fafafa;
+  --surface-elevated: #ffffff;
+  --surface-hover: #e4e4e7;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
+}
+
+[data-theme="dark"][data-background="graphite"] {
+  --background: #16181d;
+  --background-secondary: #1c1f26;
+  --surface: #22262e;
+  --surface-elevated: #2a2f38;
+  --surface-hover: #313742;
+
+  --foreground: #f4f4f5;
+  --foreground-muted: #a1a1aa;
+  --foreground-subtle: #71717a;
+
+  --border: #343a46;
+  --border-strong: #454c59;
+
+  --primary: #f4f4f5;
+  --primary-hover: #e4e4e7;
+  --primary-foreground: #16181d;
+
+  --paid-accent: #818cf8;
+  --paid-accent-muted: #312e81;
+  --organic-accent: #2dd4bf;
+  --organic-accent-muted: #134e4a;
+
+  --success: #4ade80;
+  --success-muted: #14532d;
+  --warning: #fbbf24;
+  --warning-muted: #78350f;
+  --danger: #f87171;
+  --danger-muted: #7f1d1d;
+
+  --ring: #71717a;
+  --shadow-color: 0 0 0;
+}
+
+[data-theme="dark"][data-background="charcoal"] {
+  --background: #121417;
+  --background-secondary: #181b20;
+  --surface: #1e2228;
+  --surface-elevated: #262b33;
+  --surface-hover: #2d333d;
+  --border: #303640;
+  --border-strong: #3d4550;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-background-secondary: var(--background-secondary);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-surface-hover: var(--surface-hover);
+
   --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-muted: var(--muted);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-foreground-subtle: var(--foreground-subtle);
+
   --color-border: var(--border);
-  --color-accent: var(--accent);
+  --color-border-strong: var(--border-strong);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-paid-accent: var(--paid-accent);
+  --color-paid-accent-muted: var(--paid-accent-muted);
+  --color-organic-accent: var(--organic-accent);
+  --color-organic-accent-muted: var(--organic-accent-muted);
+
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-warning: var(--warning);
+  --color-warning-muted: var(--warning-muted);
+  --color-danger: var(--danger);
+  --color-danger-muted: var(--danger-muted);
+
+  --color-ring: var(--ring);
+
+  /* Legacy aliases for gradual migration */
+  --color-card: var(--surface-elevated);
+  --color-muted: var(--foreground-muted);
+  --color-accent: var(--primary);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -28,4 +150,9 @@ body {
 
 * {
   box-sizing: border-box;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
 }

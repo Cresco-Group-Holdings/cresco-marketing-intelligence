@@ -1,9 +1,10 @@
 import { requireAuthenticatedUser } from "@/lib/tenancy/guards";
-import { prisma } from "@/lib/database/prisma";
 import { UserMenu } from "@/components/auth/user-menu";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { WorkspaceSelectors } from "@/components/workspace/workspace-selectors";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
+import { AppearanceMenu } from "@/components/theme/appearance-menu";
+import { prisma } from "@/lib/database/prisma";
 import { APP_NAME } from "@/lib/constants";
 
 export async function DashboardHeader() {
@@ -14,14 +15,14 @@ export async function DashboardHeader() {
   });
 
   return (
-    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
       <div className="flex h-auto min-h-16 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div className="flex items-center gap-3">
           <div className="lg:hidden">
             <SidebarNav />
           </div>
           <div className="min-w-0 lg:hidden">
-            <p className="truncate text-sm font-semibold text-slate-900">{APP_NAME}</p>
+            <p className="truncate text-sm font-semibold text-foreground">{APP_NAME}</p>
           </div>
           <div className="hidden lg:block">
             <WorkspaceSelectors />
@@ -32,6 +33,7 @@ export async function DashboardHeader() {
           <div className="lg:hidden">
             <WorkspaceSelectors />
           </div>
+          <AppearanceMenu />
           <NotificationBell />
           <UserMenu
             email={profile?.email ?? user.email}
