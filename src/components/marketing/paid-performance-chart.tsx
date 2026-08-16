@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart";
+import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart.types";
 
 const METRIC_LABELS: Record<PaidChartMetric, string> = {
   spend: "Spend",
@@ -107,4 +107,4 @@ export function PaidPerformanceChart({
   );
 }
 
-export type { PaidChartMetric, PaidChartPoint };
+export type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart.types";

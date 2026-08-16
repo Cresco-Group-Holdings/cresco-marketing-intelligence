@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
 import { PAID_ADS_PROVIDERS } from "@/lib/paid-ads/constants";
-import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart";
+import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart.types";
 import { chartGranularityForRange } from "@/lib/marketing/date-range";
 
 type SeriesInput = {
