@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { ChartBarGroup } from "@/components/marketing/chart-bar";
 
 export type PaidChartMetric = "spend" | "revenue" | "conversions" | "roas" | "cpa";
 
@@ -48,16 +48,24 @@ export function PaidPerformanceChart({
 }: PaidPerformanceChartProps) {
   const [metric, setMetric] = useState<PaidChartMetric>("spend");
   const points = useMemo(() => data[metric] ?? [], [data, metric]);
-  const maxValue = useMemo(() => Math.max(...points.map((point) => point.value), 1), [points]);
+  const chartPoints = useMemo(
+    () =>
+      points.map((point) => ({
+        label: point.label,
+        value: point.value,
+        formattedValue: formatValue(metric, point.value, currency),
+      })),
+    [points, metric, currency],
+  );
 
   if (loading) {
-    return <div className="h-64 animate-pulse rounded-xl border border-border bg-surface-elevated" />;
+    return <div className="h-64 min-h-[16rem] animate-pulse rounded-xl border border-border bg-surface-elevated" />;
   }
 
   if (points.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-surface-elevated p-6 text-sm text-foreground-muted">
-        {emptyMessage ?? "Connect paid advertising accounts to view performance trends."}
+      <div className="flex min-h-[12rem] items-center justify-center rounded-xl border border-dashed border-border bg-surface-elevated p-6 text-center text-sm text-foreground-muted">
+        {emptyMessage ?? "No performance data for this period."}
       </div>
     );
   }
@@ -86,28 +94,12 @@ export function PaidPerformanceChart({
         </div>
       </div>
 
-      <div
-        className="mt-6 flex h-48 items-end gap-2 sm:gap-3"
-        role="img"
-        aria-label={`${METRIC_LABELS[metric]} chart`}
-      >
-        {points.map((point) => {
-          const height = Math.max((point.value / maxValue) * 100, 4);
-          return (
-            <div key={point.label} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-              <div className="flex h-40 w-full items-end">
-                <div
-                  className={cn("w-full rounded-t-md bg-paid-accent/80 transition-all")}
-                  style={{ height: `${height}%` }}
-                  title={`${point.label}: ${formatValue(metric, point.value, currency)}`}
-                />
-              </div>
-              <span className="truncate text-[10px] text-foreground-subtle sm:text-xs">
-                {point.label}
-              </span>
-            </div>
-          );
-        })}
+      <div className="mt-6 min-h-[12rem]">
+        <ChartBarGroup
+          points={chartPoints}
+          accentClassName="bg-paid-accent/80 hover:bg-paid-accent"
+          ariaLabel={`${METRIC_LABELS[metric]} chart`}
+        />
       </div>
     </div>
   );
