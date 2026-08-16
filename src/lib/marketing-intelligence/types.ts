@@ -62,6 +62,31 @@ export type OrganicChannelPerformance = {
 
 export type DataFreshnessState = "fresh" | "delayed" | "stale" | "unavailable";
 
+export type FormatPerformanceMetric = {
+  format: string;
+  contentCount: number;
+  averageEngagementRate: number | null;
+  averageReach: number | null;
+};
+
+export type TopOrganicContentMetric = {
+  id: string;
+  title: string;
+  channel: string;
+  format: string | null;
+  engagement: number;
+  engagementRate: number | null;
+  reach: number | null;
+};
+
+export type TopPaidCreativeMetric = {
+  id: string;
+  name: string;
+  provider: string;
+  roas: number | null;
+  conversions: number;
+};
+
 export type MarketingIntelligenceContext = {
   rangeLabel: string;
   comparisonLabel: string;
@@ -109,6 +134,10 @@ export type MarketingIntelligenceContext = {
     organicConnected: number;
     organicTotal: number;
   };
+  formatPerformance?: FormatPerformanceMetric[];
+  topOrganicContent?: TopOrganicContentMetric[];
+  topPaidCreatives?: TopPaidCreativeMetric[];
+  scheduleGaps?: Array<{ channel: string; message: string }>;
 };
 
 export type MarketingHealthBreakdown = {
