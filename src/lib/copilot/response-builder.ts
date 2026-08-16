@@ -23,6 +23,7 @@ export function buildCopilotResponse(input: {
   sampleSize?: number | null;
   coverage?: number | null;
   truncated?: boolean;
+  briefSections?: CopilotResponse["briefSections"];
 }): CopilotResponse {
   const limitations = input.limitations ?? [];
   const confidence = computeCopilotConfidence({
@@ -46,6 +47,7 @@ export function buildCopilotResponse(input: {
     limitations,
     intent: input.intent,
     outputSource: input.outputSource ?? "deterministic",
+    briefSections: input.briefSections,
   };
 }
 

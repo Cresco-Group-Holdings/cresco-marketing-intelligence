@@ -8,13 +8,13 @@ const STARTERS: Record<CopilotModule, string[]> = {
   ],
   advertising: [
     "Why did ROAS change?",
-    "Where is budget underperforming?",
-    "Which creative needs attention?",
+    "Which campaigns need attention?",
+    "Where is budget inefficient?",
   ],
   social: [
     "What should I publish next?",
-    "Which format is growing fastest?",
     "What should I repurpose?",
+    "Which format performs best?",
   ],
   content: [
     "What content should become an ad?",
@@ -22,9 +22,9 @@ const STARTERS: Record<CopilotModule, string[]> = {
     "What should we publish next week?",
   ],
   analytics: [
-    "Which channel drives revenue?",
-    "What is our attribution coverage?",
-    "Which content assists conversions?",
+    "Which content drives revenue?",
+    "What is attribution coverage?",
+    "Why did conversions decline?",
   ],
   calendar: [
     "Are there publishing gaps this week?",

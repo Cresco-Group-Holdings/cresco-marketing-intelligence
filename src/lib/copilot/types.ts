@@ -112,6 +112,7 @@ export type CopilotResponse = {
   limitations: string[];
   intent: CopilotIntent;
   outputSource: "deterministic" | "ai" | "hybrid";
+  briefSections?: Array<{ title: string; items: string[] }>;
 };
 
 export type CopilotToolName =
