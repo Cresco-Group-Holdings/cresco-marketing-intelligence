@@ -1,13 +1,17 @@
 import { cn } from "@/lib/utils";
 
 type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {
-  variant?: "default" | "muted" | "warning";
+  variant?: "default" | "muted" | "warning" | "success" | "danger" | "paid" | "organic";
 };
 
 const variants: Record<NonNullable<BadgeProps["variant"]>, string> = {
-  default: "bg-slate-900 text-white",
-  muted: "bg-slate-100 text-slate-700",
-  warning: "bg-amber-100 text-amber-800",
+  default: "bg-primary text-primary-foreground",
+  muted: "bg-surface-hover text-foreground-muted",
+  warning: "bg-warning-muted text-warning",
+  success: "bg-success-muted text-success",
+  danger: "bg-danger-muted text-danger",
+  paid: "bg-paid-accent-muted text-paid-accent",
+  organic: "bg-organic-accent-muted text-organic-accent",
 };
 
 export function Badge({ className, variant = "default", ...props }: BadgeProps) {

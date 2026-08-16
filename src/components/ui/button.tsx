@@ -2,18 +2,21 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: "primary" | "secondary" | "ghost" | "outline";
+  variant?: "primary" | "secondary" | "ghost" | "outline" | "paid" | "organic";
   size?: "sm" | "md" | "lg";
 };
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
   primary:
-    "bg-slate-900 text-white hover:bg-slate-800 focus-visible:ring-slate-900 disabled:bg-slate-400",
+    "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-ring disabled:opacity-50",
   secondary:
-    "bg-slate-100 text-slate-900 hover:bg-slate-200 focus-visible:ring-slate-500 disabled:bg-slate-50",
-  ghost: "bg-transparent text-slate-700 hover:bg-slate-100 focus-visible:ring-slate-500",
+    "bg-surface-hover text-foreground hover:bg-border focus-visible:ring-ring disabled:opacity-50",
+  ghost:
+    "bg-transparent text-foreground-muted hover:bg-surface-hover hover:text-foreground focus-visible:ring-ring",
   outline:
-    "border border-slate-300 bg-white text-slate-900 hover:bg-slate-50 focus-visible:ring-slate-500",
+    "border border-border bg-surface-elevated text-foreground hover:bg-surface-hover focus-visible:ring-ring",
+  paid: "bg-paid-accent text-white hover:opacity-90 focus-visible:ring-paid-accent",
+  organic: "bg-organic-accent text-white hover:opacity-90 focus-visible:ring-organic-accent",
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -33,7 +36,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed",
         variantClasses[variant],
         sizeClasses[size],
         className,
@@ -57,7 +60,7 @@ export function ButtonLink({
   return (
     <Link
       className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         variantClasses[variant],
         sizeClasses[size],
         className,
