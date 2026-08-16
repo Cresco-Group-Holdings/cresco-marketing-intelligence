@@ -53,6 +53,10 @@ export type UsageDashboardSummary = {
   requestsToday: number;
   totalTokensToday: number;
   estimatedCostUsdToday: Prisma.Decimal | number | null;
+  activeAutomations: number;
+  pendingApprovals: number;
+  completedActionsToday: number;
+  failedActionsToday: number;
 };
 
 export async function getOrganisationUsageDashboard(
@@ -60,15 +64,38 @@ export async function getOrganisationUsageDashboard(
 ): Promise<UsageDashboardSummary> {
   const since = new Date();
   since.setUTCHours(0, 0, 0, 0);
-  const aggregate = await prisma.aIUsageRecord.aggregate({
-    where: { organisationId, recordedAt: { gte: since } },
-    _sum: { totalTokens: true, estimatedCostUsd: true },
-    _count: true,
-  });
+  const [aggregate, activeAutomations, pendingApprovals, completedActionsToday, failedActionsToday] =
+    await Promise.all([
+      prisma.aIUsageRecord.aggregate({
+        where: { organisationId, recordedAt: { gte: since } },
+        _sum: { totalTokens: true, estimatedCostUsd: true },
+        _count: true,
+      }),
+      prisma.automationWorkflow.count({
+        where: { organisationId, status: "ACTIVE", archivedAt: null },
+      }),
+      prisma.agentPlatformApproval.count({
+        where: { organisationId, status: "PENDING" },
+      }),
+      prisma.automationExecution.count({
+        where: { organisationId, status: "COMPLETED", completedAt: { gte: since } },
+      }),
+      prisma.automationExecution.count({
+        where: {
+          organisationId,
+          status: { in: ["FAILED", "DEAD_LETTER"] },
+          completedAt: { gte: since },
+        },
+      }),
+    ]);
 
   return {
     requestsToday: aggregate._count,
     totalTokensToday: aggregate._sum.totalTokens ?? 0,
     estimatedCostUsdToday: aggregate._sum.estimatedCostUsd ?? 0,
+    activeAutomations,
+    pendingApprovals,
+    completedActionsToday,
+    failedActionsToday,
   };
 }

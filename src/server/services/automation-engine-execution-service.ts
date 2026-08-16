@@ -1,6 +1,6 @@
-import type { AutomationActionType, OrganisationRole, Prisma } from "@prisma/client";
+import type { AutomationActionType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
-import { buildDryRunPlan, canTransitionCampaignStatus, validateActionConfig } from "@/lib/automation-engine/actions";
+import { buildDryRunPlan, validateActionConfig } from "@/lib/automation-engine/actions";
 import { evaluateAllConditions } from "@/lib/automation-engine/conditions";
 import {
   buildIdempotencyKey,
@@ -15,11 +15,8 @@ import { matchesEventTrigger } from "@/lib/automation-engine/triggers";
 import { MAX_ACTIONS_PER_EXECUTION } from "@/lib/automation-engine/constants";
 import { AppError } from "@/lib/errors";
 import type { TenantContext } from "@/lib/tenancy/context";
-import { crmActivityService } from "@/server/services/crm-activity-service";
-import { crmService } from "@/server/services/crm-service";
-import { crmTaskService } from "@/server/services/crm-task-service";
-import { notificationService } from "@/server/services/notification-service";
 import { recordAuditEvent } from "@/server/services/audit-service";
+import { automationActionExecutor } from "@/server/services/automation-action-executor";
 import { brandService } from "@/server/services/workspace-service";
 
 type ActionContext = {
@@ -36,165 +33,7 @@ async function executeAction(
   config: Record<string, unknown>,
   ctx: ActionContext,
 ): Promise<Record<string, unknown>> {
-  if (ctx.dryRun) {
-    return { dryRun: true, actionType, configKeys: Object.keys(config) };
-  }
-
-  const tenant: TenantContext = {
-    userId: ctx.userProfileId,
-    userProfileId: ctx.userProfileId,
-    organisationId: ctx.organisationId,
-    organisationRole: "OWNER" as OrganisationRole,
-  };
-
-  switch (actionType) {
-    case "CREATE_TASK": {
-      const task = await crmTaskService.createTask(
-        ctx.brandId,
-        ctx.organisationId,
-        {
-          title: String(config.title),
-          description: config.description ? String(config.description) : undefined,
-          taskTypeCode: (config.taskTypeCode as "FOLLOW_UP") ?? "FOLLOW_UP",
-          ownerUserId: config.ownerUserId ? String(config.ownerUserId) : ctx.userProfileId,
-          leadId: config.leadId ? String(config.leadId) : (ctx.payload.leadId as string | undefined),
-          campaignId: config.campaignId ? String(config.campaignId) : undefined,
-        },
-        tenant,
-      );
-      return { taskId: task.id };
-    }
-    case "UPDATE_CAMPAIGN_STATUS": {
-      const campaign = await prisma.contentCampaign.findFirst({
-        where: { id: String(config.campaignId), organisationId: ctx.organisationId, brandId: ctx.brandId },
-      });
-      if (!campaign) throw new AppError("NOT_FOUND", "Campaign not found.");
-      const nextStatus = String(config.status);
-      if (!canTransitionCampaignStatus(campaign.status, nextStatus)) {
-        throw new AppError("VALIDATION_ERROR", `Cannot transition campaign from ${campaign.status} to ${nextStatus}.`);
-      }
-      const updated = await prisma.contentCampaign.update({
-        where: { id: campaign.id },
-        data: { status: nextStatus as Prisma.ContentCampaignUpdateInput["status"] },
-      });
-      return { campaignId: updated.id, status: updated.status };
-    }
-    case "ASSIGN_USER": {
-      const userId = String(config.userId);
-      const resourceType = String(config.resourceType);
-      const resourceId = String(config.resourceId);
-      if (resourceType === "LEAD") {
-        await crmService.assignOwner(resourceId, ctx.brandId, ctx.organisationId, userId, tenant);
-        return { resourceType, resourceId, userId };
-      }
-      if (resourceType === "TASK") {
-        await prisma.crmTask.update({
-          where: { id: resourceId },
-          data: { ownerUserId: userId },
-        });
-        return { resourceType, resourceId, userId };
-      }
-      if (resourceType === "CAMPAIGN") {
-        await prisma.contentCampaign.update({
-          where: { id: resourceId },
-          data: { ownerUserId: userId },
-        });
-        return { resourceType, resourceId, userId };
-      }
-      throw new AppError("VALIDATION_ERROR", `Unsupported assign resource type: ${resourceType}`);
-    }
-    case "REQUEST_APPROVAL": {
-      const approverUserId = String(config.approverUserId);
-      const contentItemId = config.contentItemId ? String(config.contentItemId) : undefined;
-      if (contentItemId) {
-        const approval = await prisma.contentApproval.create({
-          data: {
-            organisationId: ctx.organisationId,
-            projectId: ctx.projectId,
-            brandId: ctx.brandId,
-            contentItemId,
-            approvalMode: "ONE_APPROVER",
-            requestedByUserId: ctx.userProfileId,
-            approverUserId,
-          },
-        });
-        return { approvalId: approval.id };
-      }
-      await notificationService.emit({
-        organisationId: ctx.organisationId,
-        projectId: ctx.projectId,
-        brandId: ctx.brandId,
-        eventType: "APPROVAL_REQUESTED",
-        title: String(config.title ?? "Approval requested"),
-        body: String(config.body ?? "An automation workflow requested approval."),
-        recipientUserIds: [approverUserId],
-        idempotencyKey: `automation-approval:${ctx.brandId}:${approverUserId}:${Date.now()}`,
-      });
-      return { notified: approverUserId };
-    }
-    case "CREATE_NOTIFICATION": {
-      const recipientUserIds = (config.recipientUserIds as string[]) ?? [];
-      await notificationService.emit({
-        organisationId: ctx.organisationId,
-        projectId: ctx.projectId,
-        brandId: ctx.brandId,
-        eventType: String(config.eventType ?? "SYSTEM"),
-        title: String(config.title),
-        body: String(config.body ?? ""),
-        recipientUserIds,
-        actionPath: config.actionPath ? String(config.actionPath) : undefined,
-        idempotencyKey: String(config.idempotencyKey ?? `automation-notify:${Date.now()}`),
-      });
-      return { recipientCount: recipientUserIds.length };
-    }
-    case "ADD_CRM_ACTIVITY": {
-      const activity = await crmActivityService.logActivity(
-        ctx.brandId,
-        ctx.organisationId,
-        {
-          activityType: (config.activityType as "NOTE") ?? "NOTE",
-          title: String(config.title),
-          summary: config.summary ? String(config.summary) : undefined,
-          leadId: config.leadId ? String(config.leadId) : (ctx.payload.leadId as string | undefined),
-          campaignId: config.campaignId ? String(config.campaignId) : undefined,
-        },
-        tenant,
-      );
-      return { activityId: activity.id };
-    }
-    case "UPDATE_LEAD_STATUS": {
-      const leadId = String(config.leadId ?? ctx.payload.leadId);
-      const lead = await crmService.updateLeadStatus(
-        leadId,
-        ctx.brandId,
-        ctx.organisationId,
-        String(config.status),
-        config.reason ? String(config.reason) : "Automation workflow",
-        tenant,
-      );
-      return { leadId: lead.id, status: lead.status };
-    }
-    case "CREATE_CALENDAR_EVENT": {
-      const activity = await crmActivityService.logActivity(
-        ctx.brandId,
-        ctx.organisationId,
-        {
-          activityType: "MEETING",
-          title: String(config.title),
-          leadId: config.leadId ? String(config.leadId) : (ctx.payload.leadId as string | undefined),
-          meeting: {
-            scheduledAt: String(config.scheduledAt),
-            durationMinutes: config.durationMinutes ? Number(config.durationMinutes) : 30,
-            location: config.location ? String(config.location) : undefined,
-          },
-        },
-        tenant,
-      );
-      return { activityId: activity.id };
-    }
-    default:
-      throw new AppError("VALIDATION_ERROR", `Unsupported action type: ${actionType}`);
-  }
+  return automationActionExecutor.execute(actionType, config, ctx);
 }
 
 export const automationEngineExecutionService = {

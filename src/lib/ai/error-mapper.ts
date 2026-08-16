@@ -10,7 +10,7 @@ export class AIErrorMapper {
       case "TIMEOUT":
         return new AppError("VALIDATION_ERROR", "AI request timed out.");
       case "CONFIGURATION_ERROR":
-        return new AppError("VALIDATION_ERROR", error.message);
+        return new AppError("AI_CONFIGURATION_REQUIRED", error.message);
       case "SAFETY_FILTER":
         return new AppError("VALIDATION_ERROR", "AI output was blocked by safety filters.");
       case "PROVIDER_ERROR":
@@ -43,6 +43,14 @@ export class AIErrorMapper {
 
   mapValidationError(message: string): AppError {
     return new AppError("VALIDATION_ERROR", message);
+  }
+
+  mapConfigurationRequired(message?: string): AppError {
+    return new AppError(
+      "AI_CONFIGURATION_REQUIRED",
+      message ??
+        "AI provider is not configured. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GOOGLE_AI_API_KEY on the server.",
+    );
   }
 }
 

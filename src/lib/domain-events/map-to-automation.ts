@@ -1,0 +1,22 @@
+import type { AutomationEventType } from "@/lib/automation-engine/constants";
+import { DOMAIN_EVENT_TYPES, type DomainEventType } from "@/lib/domain-events/constants";
+
+/** Maps canonical domain events to automation engine trigger event types. */
+export const DOMAIN_TO_AUTOMATION_EVENT: Partial<Record<DomainEventType, AutomationEventType>> = {
+  [DOMAIN_EVENT_TYPES.PUBLICATION_FAILED]: "PUBLICATION_FAILED",
+  [DOMAIN_EVENT_TYPES.PUBLICATION_SUCCEEDED]: "PUBLICATION_SUCCEEDED",
+  [DOMAIN_EVENT_TYPES.PUBLICATION_REAUTH_REQUIRED]: "PUBLICATION_REAUTH_REQUIRED",
+  [DOMAIN_EVENT_TYPES.LEAD_QUALIFIED]: "LEAD_QUALIFIED",
+  [DOMAIN_EVENT_TYPES.LEAD_CREATED]: "LEAD_CREATED",
+  [DOMAIN_EVENT_TYPES.BUDGET_THRESHOLD_REACHED]: "BUDGET_THRESHOLD_REACHED",
+  [DOMAIN_EVENT_TYPES.PROVIDER_SYNC_FAILED]: "PROVIDER_SYNC_FAILED",
+  [DOMAIN_EVENT_TYPES.ANALYTICS_UPDATED]: "ANALYTICS_THRESHOLD_BREACHED",
+  [DOMAIN_EVENT_TYPES.CAMPAIGN_CREATED]: "CAMPAIGN_ACTIVATED",
+  [DOMAIN_EVENT_TYPES.CONTENT_APPROVED]: "CONTENT_ENTERED_REVIEW",
+};
+
+export function mapDomainEventToAutomation(
+  eventType: DomainEventType,
+): AutomationEventType | null {
+  return DOMAIN_TO_AUTOMATION_EVENT[eventType] ?? null;
+}
