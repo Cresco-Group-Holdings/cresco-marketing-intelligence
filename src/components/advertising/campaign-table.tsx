@@ -64,6 +64,8 @@ export function CampaignTable({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Input
           type="search"
+          label="Search campaigns"
+          labelClassName="sr-only"
           placeholder="Search campaigns…"
           value={search}
           onChange={(event) => {
@@ -71,7 +73,6 @@ export function CampaignTable({
             setPage(0);
           }}
           className="sm:max-w-xs"
-          aria-label="Search campaigns"
         />
         <select
           value={provider}

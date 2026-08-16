@@ -151,30 +151,20 @@ export function DateRangeSelector() {
 
             {showCustom ? (
               <div className="mt-2 space-y-2 rounded-lg border border-border bg-surface p-3">
-                <div>
-                  <label htmlFor="date-from" className="text-xs text-foreground-subtle">
-                    From
-                  </label>
-                  <Input
-                    id="date-from"
-                    type="date"
-                    value={fromValue}
-                    onChange={(event) => setFromValue(event.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="date-to" className="text-xs text-foreground-subtle">
-                    To
-                  </label>
-                  <Input
-                    id="date-to"
-                    type="date"
-                    value={toValue}
-                    onChange={(event) => setToValue(event.target.value)}
-                    className="mt-1"
-                  />
-                </div>
+                <Input
+                  id="date-from"
+                  label="From"
+                  type="date"
+                  value={fromValue}
+                  onChange={(event) => setFromValue(event.target.value)}
+                />
+                <Input
+                  id="date-to"
+                  label="To"
+                  type="date"
+                  value={toValue}
+                  onChange={(event) => setToValue(event.target.value)}
+                />
                 {customError ? (
                   <p className="text-xs text-danger" role="alert">
                     {customError}

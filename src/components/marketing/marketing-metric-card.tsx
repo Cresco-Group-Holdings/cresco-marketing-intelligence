@@ -86,11 +86,17 @@ export function MarketingMetricCard({ metric, accent = "neutral", className }: M
   );
 }
 
-export function ExecutiveKpiStrip({ metrics }: { metrics: MarketingMetric[] }) {
+export function ExecutiveKpiStrip({
+  metrics,
+  accent = "neutral",
+}: {
+  metrics: MarketingMetric[];
+  accent?: "paid" | "organic" | "neutral";
+}) {
   return (
     <section aria-label="Executive KPIs" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
       {metrics.map((metric) => (
-        <MarketingMetricCard key={metric.label} metric={metric} />
+        <MarketingMetricCard key={metric.label} metric={metric} accent={accent} />
       ))}
     </section>
   );
