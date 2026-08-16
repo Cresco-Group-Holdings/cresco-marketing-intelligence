@@ -8,7 +8,7 @@ export type MarketingDatePreset =
   | "previous_month"
   | "custom";
 
-export type MarketingComparison = "previous_period" | "previous_month";
+export type MarketingComparison = "previous_period" | "previous_month" | "none";
 
 export type MarketingDateRange = {
   from: Date;
@@ -112,7 +112,11 @@ export function resolveMarketingDateRange(
   let comparisonTo: Date;
   let comparisonLabel: string;
 
-  if (comparison === "previous_month") {
+  if (comparison === "none") {
+    comparisonFrom = from;
+    comparisonTo = to;
+    comparisonLabel = "";
+  } else if (comparison === "previous_month") {
     comparisonTo = endOfDay(new Date(from.getFullYear(), from.getMonth(), 0));
     comparisonFrom = startOfDay(new Date(comparisonTo.getFullYear(), comparisonTo.getMonth(), 1));
     comparisonLabel = "vs previous month";
@@ -144,8 +148,12 @@ export function parseMarketingDateRangeSearchParams(
   const comparisonParam = params.get("comparison");
 
   const preset = isMarketingDatePreset(presetParam) ? presetParam : "30d";
-  const comparison =
-    comparisonParam === "previous_month" ? "previous_month" : "previous_period";
+  const comparison: MarketingComparison =
+    comparisonParam === "previous_month"
+      ? "previous_month"
+      : comparisonParam === "none"
+        ? "none"
+        : "previous_period";
 
   return resolveMarketingDateRange({
     preset,
@@ -169,6 +177,20 @@ export function marketingDateRangeToSearchParams(range: MarketingDateRange): URL
     params.set("comparison", range.comparison);
   }
   return params;
+}
+
+export function validateCustomDateRange(from: Date, to: Date, now = new Date()): string | null {
+  if (from.getTime() > to.getTime()) {
+    return "Start date must be before end date.";
+  }
+  if (to.getTime() > endOfDay(now).getTime()) {
+    return "End date cannot be in the future.";
+  }
+  const maxRangeMs = 366 * 86_400_000;
+  if (to.getTime() - from.getTime() > maxRangeMs) {
+    return "Date range cannot exceed 366 days.";
+  }
+  return null;
 }
 
 export function isMarketingDatePreset(value: string | null): value is MarketingDatePreset {

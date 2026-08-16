@@ -3,7 +3,13 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart";
+
+export type PaidChartMetric = "spend" | "revenue" | "conversions" | "roas" | "cpa";
+
+export type PaidChartPoint = {
+  label: string;
+  value: number;
+};
 
 const METRIC_LABELS: Record<PaidChartMetric, string> = {
   spend: "Spend",
@@ -41,7 +47,7 @@ export function PaidPerformanceChart({
   emptyMessage,
 }: PaidPerformanceChartProps) {
   const [metric, setMetric] = useState<PaidChartMetric>("spend");
-  const points = data[metric] ?? [];
+  const points = useMemo(() => data[metric] ?? [], [data, metric]);
   const maxValue = useMemo(() => Math.max(...points.map((point) => point.value), 1), [points]);
 
   if (loading) {
@@ -106,5 +112,3 @@ export function PaidPerformanceChart({
     </div>
   );
 }
-
-export type { PaidChartMetric, PaidChartPoint };

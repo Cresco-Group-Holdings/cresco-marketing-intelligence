@@ -23,10 +23,10 @@ export function CalendarOverduePanel({
         <CardTitle className="text-base">Overdue</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2">
-        {loading ? <p className="text-sm text-slate-600">Loading overdue events…</p> : null}
+        {loading ? <p className="text-sm text-foreground-muted">Loading overdue events…</p> : null}
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         {!loading && !error && events.length === 0 ? (
-          <p className="text-sm text-slate-600">No overdue events.</p>
+          <p className="text-sm text-foreground-muted">No overdue events.</p>
         ) : null}
         {events.map((event) => (
           <CalendarEventCard
