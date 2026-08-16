@@ -4,6 +4,7 @@ import { apiSuccess } from "@/lib/api/handler";
 import { isAuthorisedSchedulerRequest } from "@/lib/api/worker-auth";
 import { getPublishingConfig } from "@/lib/publishing/config";
 import { publishingSchedulerService } from "@/server/services/publishing-scheduler-service";
+import { publicationAnalyticsSyncService } from "@/server/services/publication-analytics-sync-service";
 
 async function handleProcessDue(request: NextRequest) {
   const requestId = randomUUID();

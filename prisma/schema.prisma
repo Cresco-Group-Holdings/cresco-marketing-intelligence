@@ -3201,11 +3201,11 @@ model PublishingJob {
   manualConfirmedAt       DateTime?
   manualConfirmedByUserId String?
 
-  createdAt DateTime            @default(now())
-  updatedAt DateTime            @updatedAt
-  schedule    ContentSchedule?  @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
-  publication Publication?      @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  attempts  PublishingAttempt[]
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  schedule    ContentSchedule?    @relation(fields: [contentScheduleId], references: [id], onDelete: Cascade)
+  publication Publication?        @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  attempts    PublishingAttempt[]
 
   @@unique([contentScheduleId, idempotencyKey])
   @@unique([publicationId, idempotencyKey])
@@ -3236,8 +3236,18 @@ enum PublicationStatus {
   PUBLISHED
   PARTIALLY_PUBLISHED
   FAILED
+  REQUIRES_REAUTH
   CANCELLED
   REMOVED
+}
+
+enum PublicationAnalyticsSyncStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+  RATE_LIMITED
 }
 
 enum PublicationOperationType {
@@ -3308,16 +3318,18 @@ model Publication {
   cancelledAt           DateTime?
   publishedAt           DateTime?
 
-  organisation  Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
-  project       Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  brand         Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  contentItem   ContentItem               @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
-  connection    ProviderConnection        @relation(fields: [connectionId], references: [id], onDelete: Restrict)
-  approvedBy    UserProfile?              @relation("PublicationApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
-  requestedBy   UserProfile               @relation("PublicationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
-  attempts      PublicationAttempt[]
-  budgetChanges PublicationBudgetChange[]
+  organisation   Organisation              @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project        Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  brand          Brand                     @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  contentItem    ContentItem               @relation(fields: [contentItemId], references: [id], onDelete: Cascade)
+  connection     ProviderConnection        @relation(fields: [connectionId], references: [id], onDelete: Restrict)
+  approvedBy     UserProfile?              @relation("PublicationApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  requestedBy    UserProfile               @relation("PublicationRequester", fields: [requestedByUserId], references: [id], onDelete: Restrict)
+  attempts       PublicationAttempt[]
+  budgetChanges  PublicationBudgetChange[]
   publishingJobs PublishingJob[]
+  metrics        PublicationMetric[]
+  analyticsSync  PublicationAnalyticsSync?
 
   @@unique([organisationId, brandId, idempotencyKey])
   @@index([organisationId, brandId, status, updatedAt])
@@ -3325,6 +3337,51 @@ model Publication {
   @@index([contentItemId])
   @@index([scheduledFor])
   @@index([status, scheduledFor])
+  @@index([externalPublicationId])
+}
+
+model PublicationMetric {
+  id                    String   @id @default(cuid())
+  organisationId        String
+  brandId               String
+  publicationId         String
+  connectionId          String
+  externalPublicationId String
+  metricKey             String
+  metricValue           Decimal  @db.Decimal(18, 6)
+  metricPeriod          String   @default("lifetime")
+  measuredAt            DateTime
+  idempotencyKey        String   @unique
+  providerMetadata      Json?
+  createdAt             DateTime @default(now())
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@index([publicationId, measuredAt])
+  @@index([organisationId, brandId, metricKey])
+  @@index([externalPublicationId])
+}
+
+model PublicationAnalyticsSync {
+  id               String                         @id @default(cuid())
+  organisationId   String
+  brandId          String
+  publicationId    String                         @unique
+  connectionId     String
+  status           PublicationAnalyticsSyncStatus @default(QUEUED)
+  syncCursor       Json?
+  lastSyncedAt     DateTime?
+  nextSyncAt       DateTime?
+  lastErrorCode    String?
+  lastErrorMessage String?
+  attemptCount     Int                            @default(0)
+  createdAt        DateTime                       @default(now())
+  updatedAt        DateTime                       @updatedAt
+
+  publication Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, status, nextSyncAt])
+  @@index([connectionId])
 }
 
 model PublicationAttempt {

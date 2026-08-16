@@ -15,6 +15,8 @@ import { providerGateway } from "@/server/services/provider-gateway-service";
 import { providerAuditService } from "@/server/services/provider-audit-service";
 import { createObjectStorageProvider } from "@/lib/storage/supabase-storage-provider";
 import { tokenLifecycleService } from "@/server/services/token-lifecycle-service";
+import { publicationAnalyticsSyncService } from "@/server/services/publication-analytics-sync-service";
+import { evaluateMediaReadiness } from "@/lib/publishing/media-readiness";
 
 const MAX_ATTEMPTS = 3;
 const MEDIA_URL_TTL_SECONDS = 3600;
@@ -119,8 +121,8 @@ export async function processPublicationPublishingJob(
     const tenantContext = context ?? {
       organisationId: publication.organisationId,
       userProfileId: publication.requestedByUserId,
+      userId: publication.requestedByUserId,
       organisationRole: "ADMIN" as const,
-      authUserId: publication.requestedByUserId,
       projectId: publication.projectId,
       brandId: publication.brandId,
     };
@@ -148,6 +150,18 @@ export async function processPublicationPublishingJob(
         where: { id: jobId },
         data: { status: "FAILED", lastProviderError: mapped.errorCode },
       });
+
+      notificationEventService
+        .publicationFailed({
+          organisationId: publication.organisationId,
+          brandId: publication.brandId,
+          publicationId: publication.id,
+          recipientUserIds: [tenantContext.userProfileId],
+          reason: "Reconnect your Instagram account to continue publishing.",
+          idempotencyKey: `pub-reauth:${publication.idempotencyKey}`,
+        })
+        .catch(() => undefined);
+
       return { state: "REAUTH_REQUIRED", reason: mapped.errorCode };
     }
 
@@ -184,6 +198,37 @@ export async function processPublicationPublishingJob(
       (publication.providerPayload as { mediaUrls?: string[] } | null)?.mediaUrls ??
       (await resolveContentMediaUrls(publication.contentItemId));
 
+    const assets = await tx.contentAsset.findMany({
+      where: { contentItemId: publication.contentItemId },
+      include: { marketingAsset: true },
+      orderBy: { sortOrder: "asc" },
+    });
+    const readiness = evaluateMediaReadiness({
+      assets: assets.map((row) => row.marketingAsset),
+      signedUrls: mediaUrls,
+    });
+    if (!readiness.ready) {
+      const reason = readiness.issues[0]?.message ?? "Media is not ready for publishing.";
+      await tx.publicationAttempt.update({
+        where: { id: attempt.id },
+        data: {
+          status: "FAILED",
+          errorCode: "MEDIA_NOT_READY",
+          errorMessageSafe: reason,
+          completedAt: new Date(),
+        },
+      });
+      await tx.publication.update({
+        where: { id: publication.id },
+        data: { status: "FAILED", lastErrorCode: "MEDIA_NOT_READY", lastErrorMessage: reason },
+      });
+      await tx.publishingJob.update({
+        where: { id: jobId },
+        data: { status: "FAILED", lastProviderError: reason },
+      });
+      return { state: "FAILED", reason, category: "NON_RETRYABLE" };
+    }
+
     const capability = operationToCapability(publication.operationType);
     const gatewayOperation = mapOperationToGatewayOperation(publication.operationType);
 
@@ -207,6 +252,7 @@ export async function processPublicationPublishingJob(
             destinationId: publication.destinationId,
             caption: variant?.caption ?? publication.contentItem.primaryMessage,
             mediaUrls,
+            mediaType: readiness.mediaType ?? undefined,
             scheduledFor: publication.scheduledFor?.toISOString(),
             timezone: publication.timezone,
           },
@@ -266,6 +312,10 @@ export async function processPublicationPublishingJob(
       });
 
       if (classification.category === "REAUTH_REQUIRED") {
+        await tx.publication.update({
+          where: { id: publication.id },
+          data: { status: "REQUIRES_REAUTH" },
+        });
         await recordAuditEvent({
           organisationId: publication.organisationId,
           actorUserId: tenantContext.userProfileId,
@@ -346,6 +396,12 @@ export async function processPublicationPublishingJob(
       resourceId: publication.id,
       metadata: { externalPublicationId: externalId },
     }).catch(() => undefined);
+
+    if (!duplicate && !isScheduledFuture) {
+      publicationAnalyticsSyncService
+        .enqueueForPublication(publication.id, publication.organisationId)
+        .catch(() => undefined);
+    }
 
     // Notification is best-effort — must not reverse publication success
     if (!duplicate) {

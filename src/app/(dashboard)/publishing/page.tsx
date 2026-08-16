@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { apiFetch } from "@/lib/api/client";
 import { PublicationComposer } from "@/components/publishing/publication-composer";
+import {
+  publicationStatusLabel,
+  publicationStatusVariant,
+} from "@/lib/publishing/publication-status-labels";
 
 type PublicationView = {
   id: string;
@@ -20,12 +24,21 @@ type PublicationView = {
   lastErrorCode: string | null;
   lastErrorMessage: string | null;
   providerPermalink: string | null;
+  externalPublicationId: string | null;
+  publishedAt: string | null;
   createdAt: string;
 };
 
-function statusVariant(status: string): "default" | "muted" | "warning" {
-  if (status === "PUBLISHED" || status === "APPROVED") return "default";
-  if (status === "FAILED" || status === "PENDING_APPROVAL" || status === "PARTIALLY_PUBLISHED") return "warning";
+type PublicationMetrics = {
+  metrics: Array<{ key: string; value: number; period: string; measuredAt: string }>;
+  awaitingProviderData: boolean;
+  sync: { status: string; lastSyncedAt: string | null } | null;
+};
+
+function statusBadgeVariant(status: string): "default" | "muted" | "warning" {
+  const variant = publicationStatusVariant(status);
+  if (variant === "success") return "default";
+  if (variant === "warning") return "warning";
   return "muted";
 }
 
@@ -34,6 +47,7 @@ export default function PublishingPage() {
   const organisationId = preference.currentOrganisationId;
   const brandId = preference.currentBrandId;
   const [publications, setPublications] = useState<PublicationView[]>([]);
+  const [metricsByPublication, setMetricsByPublication] = useState<Record<string, PublicationMetrics>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -51,6 +65,24 @@ export default function PublishingPage() {
         { organisationId },
       );
       setPublications(data.publications);
+
+      const published = data.publications.filter((row) => row.status === "PUBLISHED");
+      const metricEntries = await Promise.all(
+        published.slice(0, 10).map(async (publication) => {
+          try {
+            const metrics = await apiFetch<PublicationMetrics>(
+              `/api/brands/${brandId}/publications/${publication.id}/metrics?organisationId=${organisationId}`,
+              { organisationId },
+            );
+            return [publication.id, metrics] as const;
+          } catch {
+            return [publication.id, null] as const;
+          }
+        }),
+      );
+      setMetricsByPublication(
+        Object.fromEntries(metricEntries.filter((entry) => entry[1] !== null)),
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load publications.");
     } finally {
@@ -62,7 +94,7 @@ export default function PublishingPage() {
     void loadPublications();
   }, [loadPublications]);
 
-  async function runAction(publicationId: string, action: "approve" | "execute" | "validate" | "retry" | "cancel") {
+  async function runAction(publicationId: string, action: "approve" | "execute" | "validate" | "retry" | "cancel" | "sync-metrics") {
     if (!organisationId || !brandId) return;
     setActionLoading(`${publicationId}:${action}`);
     setError(null);
@@ -70,6 +102,8 @@ export default function PublishingPage() {
       const path =
         action === "cancel"
           ? `/api/brands/${brandId}/publications/${publicationId}?organisationId=${organisationId}`
+          : action === "sync-metrics"
+            ? `/api/brands/${brandId}/publications/${publicationId}/metrics/sync?organisationId=${organisationId}`
           : `/api/brands/${brandId}/publications/${publicationId}/${action}?organisationId=${organisationId}`;
       await apiFetch(path, {
         method: "POST",
@@ -88,7 +122,7 @@ export default function PublishingPage() {
     <>
       <PageHeader
         title="Publishing"
-        description="Governed outbound provider operations with approval, validation, and audit trails."
+        description="Organic social publishing queue with real provider execution, scheduling, and performance sync."
         breadcrumbs={[{ label: "Overview", href: "/dashboard" }, { label: "Publishing" }]}
       />
 
@@ -110,28 +144,45 @@ export default function PublishingPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Publication queue</CardTitle>
-            <CardDescription>Pending, scheduled, and recent outbound operations.</CardDescription>
+            <CardTitle>Publishing history</CardTitle>
+            <CardDescription>Real publication records from the canonical ProviderConnection path.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {loading ? <p className="text-sm text-muted-foreground">Loading queue...</p> : null}
             {!loading && publications.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No publications yet. Create one using the composer.</p>
+              <p className="text-sm text-muted-foreground">
+                No publications yet. Approve content in Content Studio and publish via Instagram.
+              </p>
             ) : null}
-            {publications.map((publication) => (
+            {publications.map((publication) => {
+              const metrics = metricsByPublication[publication.id];
+              return (
               <div key={publication.id} className="rounded-md border p-3 text-sm">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <Badge variant={statusVariant(publication.status)}>{publication.status}</Badge>
+                  <Badge variant={statusBadgeVariant(publication.status)}>
+                    {publicationStatusLabel(publication.status)}
+                  </Badge>
                   <span className="font-medium">{publication.operationType.replace(/_/g, " ")}</span>
                   <span className="text-muted-foreground">{publication.providerKey}</span>
                 </div>
                 <p className="text-muted-foreground">
                   Content {publication.contentItemId.slice(0, 8)}…
-                  {publication.scheduledFor ? ` · Scheduled ${publication.scheduledFor}` : ""}
+                  {publication.scheduledFor
+                    ? ` · Scheduled ${new Date(publication.scheduledFor).toLocaleString()} (${publication.timezone})`
+                    : ""}
+                  {publication.publishedAt
+                    ? ` · Published ${new Date(publication.publishedAt).toLocaleString()}`
+                    : ""}
                 </p>
+                {publication.externalPublicationId ? (
+                  <p className="text-xs text-muted-foreground">
+                    External ID {publication.externalPublicationId}
+                  </p>
+                ) : null}
                 {publication.lastErrorMessage ? (
                   <p className="mt-1 text-amber-700">
                     {publication.lastErrorCode}: {publication.lastErrorMessage}
+                    {publication.status === "REQUIRES_REAUTH" ? " · Reconnect in Integrations." : ""}
                   </p>
                 ) : null}
                 {publication.providerPermalink ? (
@@ -141,8 +192,27 @@ export default function PublishingPage() {
                     rel="noreferrer"
                     className="mt-1 inline-block text-blue-600 hover:underline"
                   >
-                    View on provider
+                    View on Instagram
                   </a>
+                ) : null}
+                {metrics ? (
+                  <div className="mt-2 rounded bg-muted/30 p-2 text-xs">
+                    {metrics.awaitingProviderData ? (
+                      <p>Awaiting provider metrics…</p>
+                    ) : (
+                      <p>
+                        {metrics.metrics
+                          .slice(0, 6)
+                          .map((m) => `${m.key}: ${m.value}`)
+                          .join(" · ") || "No metrics yet"}
+                      </p>
+                    )}
+                    {metrics.sync?.lastSyncedAt ? (
+                      <p className="text-muted-foreground">
+                        Last sync {new Date(metrics.sync.lastSyncedAt).toLocaleString()}
+                      </p>
+                    ) : null}
+                  </div>
                 ) : null}
                 <div className="mt-2 flex flex-wrap gap-2">
                   {publication.status === "PENDING_APPROVAL" ? (
@@ -174,7 +244,9 @@ export default function PublishingPage() {
                       </Button>
                     </>
                   ) : null}
-                  {publication.status === "FAILED" || publication.status === "PARTIALLY_PUBLISHED" ? (
+                  {publication.status === "FAILED" ||
+                  publication.status === "PARTIALLY_PUBLISHED" ||
+                  publication.status === "REQUIRES_REAUTH" ? (
                     <Button
                       size="sm"
                       variant="outline"
@@ -182,6 +254,16 @@ export default function PublishingPage() {
                       onClick={() => void runAction(publication.id, "retry")}
                     >
                       Retry
+                    </Button>
+                  ) : null}
+                  {publication.status === "PUBLISHED" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={actionLoading !== null}
+                      onClick={() => void runAction(publication.id, "sync-metrics")}
+                    >
+                      Refresh metrics
                     </Button>
                   ) : null}
                   {["PENDING_APPROVAL", "APPROVED", "SCHEDULED", "QUEUED"].includes(publication.status) ? (
@@ -196,7 +278,8 @@ export default function PublishingPage() {
                   ) : null}
                 </div>
               </div>
-            ))}
+            );
+            })}
           </CardContent>
         </Card>
       </div>

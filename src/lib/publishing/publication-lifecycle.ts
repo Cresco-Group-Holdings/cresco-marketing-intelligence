@@ -7,11 +7,12 @@ const ALLOWED_TRANSITIONS: Record<PublicationStatus, PublicationStatus[]> = {
   PENDING_APPROVAL: ["APPROVED", "SCHEDULED", "CANCELLED"],
   APPROVED: ["QUEUED", "SCHEDULED", "PUBLISHING", "CANCELLED"],
   SCHEDULED: ["QUEUED", "PUBLISHING", "CANCELLED"],
-  QUEUED: ["PUBLISHING", "CANCELLED", "FAILED"],
-  PUBLISHING: ["PUBLISHED", "PARTIALLY_PUBLISHED", "FAILED", "SCHEDULED"],
+  QUEUED: ["PUBLISHING", "CANCELLED", "FAILED", "REQUIRES_REAUTH"],
+  PUBLISHING: ["PUBLISHED", "PARTIALLY_PUBLISHED", "FAILED", "SCHEDULED", "REQUIRES_REAUTH"],
   PUBLISHED: ["REMOVED"],
-  PARTIALLY_PUBLISHED: ["QUEUED", "FAILED", "PUBLISHED"],
-  FAILED: ["QUEUED", "CANCELLED"],
+  PARTIALLY_PUBLISHED: ["QUEUED", "FAILED", "PUBLISHED", "REQUIRES_REAUTH"],
+  FAILED: ["QUEUED", "CANCELLED", "REQUIRES_REAUTH"],
+  REQUIRES_REAUTH: ["QUEUED", "CANCELLED"],
   CANCELLED: [],
   REMOVED: [],
 };
@@ -47,10 +48,10 @@ export function mapTokenFailureToPublicationStatus(
   tokenStatus: string,
 ): { status: PublicationStatus; errorCode: string } {
   if (tokenStatus === "REAUTH_REQUIRED" || tokenStatus === "REVOKED") {
-    return { status: "FAILED", errorCode: "REAUTH_REQUIRED" };
+    return { status: "REQUIRES_REAUTH", errorCode: "REAUTH_REQUIRED" };
   }
   if (tokenStatus === "REFRESH_FAILED") {
-    return { status: "FAILED", errorCode: "TOKEN_REFRESH_FAILED" };
+    return { status: "REQUIRES_REAUTH", errorCode: "TOKEN_REFRESH_FAILED" };
   }
-  return { status: "FAILED", errorCode: "PROVIDER_AUTH_FAILED" };
+  return { status: "REQUIRES_REAUTH", errorCode: "PROVIDER_AUTH_FAILED" };
 }

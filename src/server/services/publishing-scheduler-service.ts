@@ -10,6 +10,7 @@ import {
 import { incrementPublishingCounter } from "@/lib/publishing/observability";
 import { processPublishingJob } from "@/server/services/publishing-worker";
 import { canonicalPublicationService } from "@/server/services/canonical-publication-service";
+import { publicationAnalyticsSyncService } from "@/server/services/publication-analytics-sync-service";
 
 export type PublishingSchedulerSkipReason =
   | "SCHEDULER_DISABLED"
@@ -201,6 +202,7 @@ export const publishingSchedulerService = {
       input?.limit ?? getPublishingConfig().maxJobsPerWorkerRun,
       input?.workerId,
     );
-    return { scheduled, publicationIds, processed };
+    const metricsSynced = await publicationAnalyticsSyncService.processDueSyncs();
+    return { scheduled, publicationIds, processed, metricsSynced };
   },
 };

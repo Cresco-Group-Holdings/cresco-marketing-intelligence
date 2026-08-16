@@ -14,6 +14,7 @@ import {
 } from "@/components/content-studio/content-studio-editor";
 import { ContentStudioReviewPanel } from "@/components/content-studio/content-studio-review-panel";
 import { ContentStudioCompliancePanel } from "@/components/content-studio/content-studio-compliance-panel";
+import { CanonicalPublishPanel } from "@/components/publishing/canonical-publish-panel";
 
 type StudioDetail = {
   id: string;
@@ -348,6 +349,22 @@ export default function ContentStudioDetailPage() {
             findings={item.complianceChecks}
             onRunCheck={handleRunCompliance}
           />
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Publish to Instagram</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <CanonicalPublishPanel
+                brandId={brandId}
+                organisationId={organisationId}
+                contentId={contentId}
+                contentVariantId={item.variants.find((v) => v.marketingChannel === "INSTAGRAM")?.id}
+                contentStatus={item.status}
+                onPublished={() => void loadItem()}
+              />
+            </CardContent>
+          </Card>
 
           <Card>
             <CardHeader>
