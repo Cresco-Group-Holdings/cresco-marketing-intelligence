@@ -1,5 +1,7 @@
 "use client";
 
+import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { CommandCentreHeader } from "@/components/marketing/command-centre-header";
 import { ExecutiveKpiStrip } from "@/components/marketing/marketing-metric-card";
 import { MarketingSection } from "@/components/marketing/marketing-section";
@@ -7,12 +9,11 @@ import { PaidChannelCard, OrganicChannelCard } from "@/components/marketing/chan
 import { PaidPerformanceChart } from "@/components/marketing/paid-performance-chart";
 import { PublishingQueue, ContentCalendarPreview } from "@/components/marketing/publishing-queue";
 import { AIIntelligenceFeed } from "@/components/marketing/ai-insight-card";
+import { MarketingDateRangeProvider } from "@/components/marketing/marketing-date-range-provider";
 import { ButtonLink } from "@/components/ui/button";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { apiFetch } from "@/lib/api/client";
 import type { MarketingCommandCentreData } from "@/server/services/marketing-command-centre-service";
-
-type CommandCentreDashboardProps = {
-  data: MarketingCommandCentreData;
-};
 
 function SummaryMetrics({ metrics }: { metrics: Array<{ label: string; value: string }> }) {
   return (
@@ -27,12 +28,84 @@ function SummaryMetrics({ metrics }: { metrics: Array<{ label: string; value: st
   );
 }
 
-export function CommandCentreDashboard({ data }: CommandCentreDashboardProps) {
+function HealthBreakdown({
+  health,
+}: {
+  health: NonNullable<MarketingCommandCentreData["health"]>;
+}) {
+  return (
+    <div className="mt-4 rounded-xl border border-border bg-surface-elevated p-4">
+      <p className="text-sm font-semibold text-foreground">Marketing Health breakdown</p>
+      <dl className="mt-3 space-y-2">
+        {health.components.map((component) => (
+          <div key={component.key} className="flex items-start justify-between gap-4 text-sm">
+            <div>
+              <dt className="font-medium text-foreground">{component.label}</dt>
+              <dd className="text-xs text-foreground-muted">{component.detail}</dd>
+            </div>
+            <dd className="shrink-0 font-semibold text-foreground">
+              {component.score} / {component.maxScore}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+function CommandCentreDashboardContent() {
+  const searchParams = useSearchParams();
+  const [data, setData] = useState<MarketingCommandCentreData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const query = searchParams.toString();
+      const response = await apiFetch<{ dashboard: MarketingCommandCentreData }>(
+        `/api/dashboard/command-centre${query ? `?${query}` : ""}`,
+      );
+      setData(response.dashboard);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load dashboard.");
+    } finally {
+      setLoading(false);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
+
+  if (loading && !data) {
+    return <DashboardSkeleton />;
+  }
+
+  if (error && !data) {
+    return (
+      <div className="rounded-xl border border-danger/30 bg-danger-muted p-6 text-sm text-danger">
+        {error}
+      </div>
+    );
+  }
+
+  if (!data) {
+    return null;
+  }
+
   return (
     <div className="space-y-6">
-      <CommandCentreHeader dateLabel={data.dateLabel} />
+      <CommandCentreHeader
+        dateLabel={data.dateRange.label}
+        freshness={data.freshness}
+        coverage={data.coverage}
+      />
 
       <ExecutiveKpiStrip metrics={data.executiveKpis} />
+
+      {data.health ? <HealthBreakdown health={data.health} /> : null}
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <div className="space-y-6">
@@ -90,6 +163,7 @@ export function CommandCentreDashboard({ data }: CommandCentreDashboardProps) {
               <PaidPerformanceChart
                 data={data.paidChart}
                 currency={data.currency}
+                loading={loading}
                 emptyMessage={
                   data.hasPaidConnections
                     ? "Paid performance trends will appear after sync completes."
@@ -173,12 +247,17 @@ export function CommandCentreDashboard({ data }: CommandCentreDashboardProps) {
 
       <MarketingSection
         title="Cresco AI Intelligence"
-        subtitle="Contextual recommendations across paid, organic, and cross-channel opportunities."
+        subtitle="Deterministic recommendations with evidence from your connected marketing data."
         accent="neutral"
         actions={
-          <ButtonLink href="/analyst" variant="outline" size="sm">
-            Ask Cresco AI
-          </ButtonLink>
+          <>
+            <ButtonLink href="/growth" variant="outline" size="sm">
+              View all intelligence
+            </ButtonLink>
+            <ButtonLink href="/analyst" variant="outline" size="sm">
+              Ask Cresco AI
+            </ButtonLink>
+          </>
         }
       >
         <AIIntelligenceFeed
@@ -187,5 +266,13 @@ export function CommandCentreDashboard({ data }: CommandCentreDashboardProps) {
         />
       </MarketingSection>
     </div>
+  );
+}
+
+export function CommandCentreDashboard() {
+  return (
+    <MarketingDateRangeProvider>
+      <CommandCentreDashboardContent />
+    </MarketingDateRangeProvider>
   );
 }

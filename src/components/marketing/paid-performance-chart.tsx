@@ -3,21 +3,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-
-export type PaidChartMetric = "spend" | "revenue" | "conversions" | "roas" | "cpa";
-export type PaidChartPeriod = "7D" | "30D" | "90D";
-
-export type PaidChartPoint = {
-  label: string;
-  value: number;
-};
-
-type PaidPerformanceChartProps = {
-  data: Record<PaidChartPeriod, Record<PaidChartMetric, PaidChartPoint[]>>;
-  currency?: string;
-  loading?: boolean;
-  emptyMessage?: string;
-};
+import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart.types";
 
 const METRIC_LABELS: Record<PaidChartMetric, string> = {
   spend: "Spend",
@@ -25,6 +11,13 @@ const METRIC_LABELS: Record<PaidChartMetric, string> = {
   conversions: "Conversions",
   roas: "ROAS",
   cpa: "CPA",
+};
+
+type PaidPerformanceChartProps = {
+  data: Record<PaidChartMetric, PaidChartPoint[]>;
+  currency?: string;
+  loading?: boolean;
+  emptyMessage?: string;
 };
 
 function formatValue(metric: PaidChartMetric, value: number, currency: string): string {
@@ -48,15 +41,11 @@ export function PaidPerformanceChart({
   emptyMessage,
 }: PaidPerformanceChartProps) {
   const [metric, setMetric] = useState<PaidChartMetric>("spend");
-  const [period, setPeriod] = useState<PaidChartPeriod>("30D");
-
-  const points = useMemo(() => data[period]?.[metric] ?? [], [data, metric, period]);
+  const points = data[metric] ?? [];
   const maxValue = useMemo(() => Math.max(...points.map((point) => point.value), 1), [points]);
 
   if (loading) {
-    return (
-      <div className="h-64 animate-pulse rounded-xl border border-border bg-surface-elevated" />
-    );
+    return <div className="h-64 animate-pulse rounded-xl border border-border bg-surface-elevated" />;
   }
 
   if (points.length === 0) {
@@ -72,7 +61,9 @@ export function PaidPerformanceChart({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Paid performance trend</h3>
-          <p className="text-xs text-foreground-muted">Select a metric and period to explore trends.</p>
+          <p className="text-xs text-foreground-muted">
+            Metric series for the selected global date range.
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {(Object.keys(METRIC_LABELS) as PaidChartMetric[]).map((option) => (
@@ -89,21 +80,11 @@ export function PaidPerformanceChart({
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(["7D", "30D", "90D"] as PaidChartPeriod[]).map((option) => (
-          <Button
-            key={option}
-            type="button"
-            size="sm"
-            variant={period === option ? "secondary" : "ghost"}
-            onClick={() => setPeriod(option)}
-          >
-            {option}
-          </Button>
-        ))}
-      </div>
-
-      <div className="mt-6 flex h-48 items-end gap-2 sm:gap-3" role="img" aria-label={`${METRIC_LABELS[metric]} chart for ${period}`}>
+      <div
+        className="mt-6 flex h-48 items-end gap-2 sm:gap-3"
+        role="img"
+        aria-label={`${METRIC_LABELS[metric]} chart`}
+      >
         {points.map((point) => {
           const height = Math.max((point.value / maxValue) * 100, 4);
           return (
@@ -115,7 +96,9 @@ export function PaidPerformanceChart({
                   title={`${point.label}: ${formatValue(metric, point.value, currency)}`}
                 />
               </div>
-              <span className="truncate text-[10px] text-foreground-subtle sm:text-xs">{point.label}</span>
+              <span className="truncate text-[10px] text-foreground-subtle sm:text-xs">
+                {point.label}
+              </span>
             </div>
           );
         })}
@@ -123,3 +106,5 @@ export function PaidPerformanceChart({
     </div>
   );
 }
+
+export type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart.types";
