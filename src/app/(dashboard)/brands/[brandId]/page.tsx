@@ -45,25 +45,25 @@ export default function BrandDetailPage() {
         ]}
         actions={
           <div className="flex gap-4">
-            <Link href={`/brands/${params.brandId}/assets`} className="text-sm font-medium text-slate-900 hover:underline">
+            <Link href={`/brands/${params.brandId}/assets`} className="text-sm font-medium text-foreground hover:underline">
               Asset library
             </Link>
-            <Link href={`/brands/${params.brandId}/knowledge`} className="text-sm font-medium text-slate-900 hover:underline">
+            <Link href={`/brands/${params.brandId}/knowledge`} className="text-sm font-medium text-foreground hover:underline">
               Knowledge base
             </Link>
-            <Link href={`/brands/${params.brandId}/profile`} className="text-sm font-medium text-slate-900 hover:underline">
+            <Link href={`/brands/${params.brandId}/profile`} className="text-sm font-medium text-foreground hover:underline">
               Edit brand profile
             </Link>
           </div>
         }
       />
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
       {brand ? (
         <Card>
           <CardHeader>
             <CardTitle>{brand.name}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-slate-600">
+          <CardContent className="space-y-2 text-sm text-foreground-muted">
             <p>Slug: {brand.slug}</p>
             <p>Status: {brand.status}</p>
             {brand.website ? <p>Website: {brand.website}</p> : null}

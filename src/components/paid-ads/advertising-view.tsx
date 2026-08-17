@@ -269,7 +269,7 @@ export function AdvertisingAnalyticsView({ mode }: { mode: AdvertisingMode }) {
           {["7", "14", "28", "90"].map((v) => <option key={v} value={v}>Last {v} days</option>)}
         </select>
       )}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
       {mode === "overview" && overview && (
         <>
           {(overview.mixedCurrencyWarning as boolean) && (

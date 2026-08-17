@@ -83,7 +83,7 @@ export default function AiDiagnosticsPage() {
         ]}
       />
 
-      {error ? <p className="mb-4 text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="mb-4 text-sm text-danger">{error}</p> : null}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -91,7 +91,7 @@ export default function AiDiagnosticsPage() {
             <CardTitle>Provider configuration</CardTitle>
             <CardDescription>Server-side provider status. Keys are never exposed to the browser.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2 text-sm text-slate-700">
+          <CardContent className="space-y-2 text-sm text-foreground-muted">
             {config?.providers.map((provider) => (
               <p key={provider.provider}>
                 {provider.provider}: {provider.configured ? "configured" : "not configured"}
@@ -113,10 +113,10 @@ export default function AiDiagnosticsPage() {
             <CardDescription>Harmless diagnostics request with audit and usage recording.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-foreground-muted">
               Mode
               <select
-                className="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="mt-2 block w-full rounded-lg border border-border-strong px-3 py-2 text-sm"
                 value={mode}
                 onChange={(event) => setMode(event.target.value as "text" | "structured")}
               >
@@ -142,10 +142,10 @@ export default function AiDiagnosticsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <pre className="overflow-x-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-100">
+            <pre className="overflow-x-auto rounded-lg bg-background-secondary p-4 text-xs text-foreground">
               {JSON.stringify(result.result.output, null, 2)}
             </pre>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-foreground-muted">
               Tokens today — organisation: {result.usage.organisationTokensToday} (remaining{" "}
               {result.usage.organisationBudgetRemaining}), user: {result.usage.userTokensToday} (remaining{" "}
               {result.usage.userBudgetRemaining})

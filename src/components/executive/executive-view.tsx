@@ -251,7 +251,7 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
         </Button>
       </div>
 
-      <p className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">{EXECUTIVE_DISCLAIMER}</p>
+      <p className="rounded border border-border bg-surface-subtle p-3 text-sm text-foreground-muted">{EXECUTIVE_DISCLAIMER}</p>
 
       {warnings.length > 0 ? (
         <Card>
@@ -267,7 +267,7 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
         </Card>
       ) : null}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
 
       {mode === "overview" && overview ? (
@@ -308,7 +308,7 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
             {sectionResult.error ? (
               <p className="text-sm text-amber-700">{sectionResult.error}</p>
             ) : (
-              <pre className="max-h-96 overflow-auto rounded bg-slate-50 p-4 text-xs">
+              <pre className="max-h-96 overflow-auto rounded bg-surface-subtle p-4 text-xs">
                 {JSON.stringify(sectionResult.data, null, 2)}
               </pre>
             )}

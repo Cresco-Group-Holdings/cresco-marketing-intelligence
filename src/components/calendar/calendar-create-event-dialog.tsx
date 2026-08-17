@@ -111,13 +111,13 @@ export function CalendarCreateEventDialog({
   }
 
   const selectClassName =
-    "block w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
+    "block w-full rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-background/60"
+        className="absolute inset-0 bg-foreground/40"
         aria-label="Close create event dialog"
         onClick={onClose}
       />
@@ -152,7 +152,7 @@ export function CalendarCreateEventDialog({
             </label>
             <textarea
               id="calendar-event-description"
-              className="block min-h-[88px] w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm placeholder:text-foreground-subtle focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="block min-h-[88px] w-full rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm placeholder:text-foreground-subtle focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Optional notes for the team"
@@ -224,13 +224,13 @@ export function CalendarCreateEventDialog({
               type="checkbox"
               checked={allDay}
               onChange={(event) => setAllDay(event.target.checked)}
-              className="rounded border-border"
+              className="rounded border-border-strong"
             />
             All-day event
           </label>
 
-          {validationError ? <p className="text-sm text-red-600">{validationError}</p> : null}
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {validationError ? <p className="text-sm text-danger">{validationError}</p> : null}
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
           {!defaultBrandId ? (
             <p className="text-xs text-foreground-subtle">
               Select a brand in the workspace header to associate this event with a brand context.

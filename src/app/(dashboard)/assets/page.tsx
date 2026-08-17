@@ -19,7 +19,7 @@ export default function AssetsHubPage() {
   }, [brandId, loading, router]);
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Loading workspace...</p>;
+    return <p className="text-sm text-foreground-muted">Loading workspace...</p>;
   }
 
   if (error) {
@@ -34,7 +34,7 @@ export default function AssetsHubPage() {
   }
 
   if (brandId) {
-    return <p className="text-sm text-slate-600">Opening asset library...</p>;
+    return <p className="text-sm text-foreground-muted">Opening asset library...</p>;
   }
 
   return (

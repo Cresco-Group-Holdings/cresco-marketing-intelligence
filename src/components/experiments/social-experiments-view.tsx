@@ -93,11 +93,11 @@ export function SocialExperimentsView({ experimentId }: { experimentId?: string 
         ]}
       />
 
-      <p className="mb-4 text-sm text-slate-600">
+      <p className="mb-4 text-sm text-foreground-muted">
         Platforms do not deliver randomised tests to equivalent audiences. Results are observational and include validity warnings.
       </p>
 
-      {message ? <p className="mb-3 text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="mb-3 text-sm text-foreground-muted">{message}</p> : null}
 
       <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
         <Card>
@@ -106,16 +106,16 @@ export function SocialExperimentsView({ experimentId }: { experimentId?: string 
           </CardHeader>
           <CardContent className="space-y-2">
             {items.length === 0 ? (
-              <p className="text-sm text-slate-600">No experiments yet.</p>
+              <p className="text-sm text-foreground-muted">No experiments yet.</p>
             ) : (
               items.map((item) => (
                 <Link
                   key={item.id}
                   href={`/experiments/${item.id}`}
-                  className="block rounded border p-2 text-sm hover:bg-slate-50"
+                  className="block rounded border p-2 text-sm hover:bg-surface-subtle"
                 >
                   <div className="font-medium">{item.title}</div>
-                  <div className="text-xs text-slate-500">{item.status}</div>
+                  <div className="text-xs text-foreground-subtle">{item.status}</div>
                 </Link>
               ))
             )}
@@ -134,7 +134,7 @@ export function SocialExperimentsView({ experimentId }: { experimentId?: string 
                 <Badge variant="muted">{active.targetProvider}</Badge>
               </div>
               {active.hypothesis ? <p>{active.hypothesis.statement}</p> : null}
-              <p className="text-slate-600">
+              <p className="text-foreground-muted">
                 {new Date(active.startDate).toLocaleDateString()} –{" "}
                 {new Date(active.endDate).toLocaleDateString()} · {active.variants.length} variants
               </p>
@@ -154,7 +154,7 @@ export function SocialExperimentsView({ experimentId }: { experimentId?: string 
                   {active.decision.percentageDifference ? (
                     <p>Difference: {Number(active.decision.percentageDifference).toFixed(1)}%</p>
                   ) : null}
-                  <p className="text-slate-600">{active.decision.limitations}</p>
+                  <p className="text-foreground-muted">{active.decision.limitations}</p>
                 </div>
               ) : null}
               <div className="flex flex-wrap gap-2">

@@ -237,7 +237,7 @@ export function RecentActivityCard({ data }: { data: FoundationDashboardData }) 
         ) : (
           <ul className="space-y-3" role="list">
             {data.recentActivity.map((event) => (
-              <li key={event.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
+              <li key={event.id} className="border-b border-border-subtle pb-3 last:border-0 last:pb-0">
                 <p className="text-sm font-medium text-foreground">{event.label}</p>
                 <p className="text-xs text-foreground-subtle">
                   {new Date(event.createdAt).toLocaleString()}

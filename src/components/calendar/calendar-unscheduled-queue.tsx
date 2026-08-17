@@ -24,7 +24,7 @@ export function CalendarUnscheduledQueue({
       </CardHeader>
       <CardContent className="space-y-2">
         {loading ? <p className="text-sm text-foreground-muted">Loading unscheduled items…</p> : null}
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
         {!loading && !error && events.length === 0 ? (
           <p className="text-sm text-foreground-muted">All content is scheduled.</p>
         ) : null}

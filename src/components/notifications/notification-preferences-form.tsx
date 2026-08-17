@@ -63,7 +63,7 @@ export function NotificationPreferencesForm() {
 
   return (
     <div className="space-y-4">
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-foreground-muted">{message}</p> : null}
       {CATEGORIES.map((category) => {
         const row = rows.find((item) => item.category === category && item.channel === "EMAIL");
         const locked = CRITICAL_NOTIFICATION_CATEGORIES.includes(category);
@@ -73,11 +73,11 @@ export function NotificationPreferencesForm() {
               <CardTitle className="text-base">{category}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p className="text-slate-600">
+              <p className="text-foreground-muted">
                 Delivery: {row?.deliveryMode ?? "IMMEDIATE"}
                 {locked ? " · Critical notifications cannot be fully disabled." : ""}
               </p>
-              <p className="text-slate-600">
+              <p className="text-foreground-muted">
                 Quiet hours: {row?.quietHoursStart ?? "22:00"} – {row?.quietHoursEnd ?? "07:00"} (
                 {row?.timezone ?? "UTC"})
               </p>

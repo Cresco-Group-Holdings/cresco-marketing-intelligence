@@ -141,7 +141,7 @@ export function CalendarMonthGrid({
                           <span
                             className={cn(
                               "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm",
-                              isToday && "bg-foreground font-semibold text-white",
+                              isToday && "bg-primary font-semibold text-primary-foreground",
                               !isToday && inCurrentMonth && "text-foreground",
                               !inCurrentMonth && "text-foreground-subtle",
                             )}

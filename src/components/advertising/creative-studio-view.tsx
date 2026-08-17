@@ -67,13 +67,13 @@ function CreativeNav({ creativeId, active }: { creativeId: string; active: Creat
   ];
 
   return (
-    <nav className="flex flex-wrap gap-2 border-b border-slate-200 pb-3" aria-label="Creative project sections">
+    <nav className="flex flex-wrap gap-2 border-b border-border pb-3" aria-label="Creative project sections">
       {tabs.map((tab) => (
         <Link
           key={tab.mode}
           href={tab.href}
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
-            active === tab.mode ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+            active === tab.mode ? "bg-primary text-primary-foreground" : "text-foreground-muted hover:bg-surface-hover"
           }`}
         >
           {tab.label}
@@ -175,7 +175,7 @@ export function AdvertisingCreativeStudioView({
   if (!brandId || !organisationId) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-slate-600">
+        <CardContent className="py-8 text-center text-sm text-foreground-muted">
           Select a brand workspace to manage advertising creatives.
         </CardContent>
       </Card>
@@ -190,21 +190,21 @@ export function AdvertisingCreativeStudioView({
           description="Generate, review and approve ad copy and creative packages."
           actions={<ButtonLink href="/advertising/creatives/new">New creative project</ButtonLink>}
         />
-        {message ? <p className="text-sm text-red-600">{message}</p> : null}
+        {message ? <p className="text-sm text-danger">{message}</p> : null}
         <Card>
-          <CardContent className="divide-y divide-slate-100 p-0">
+          <CardContent className="divide-y divide-border-subtle p-0">
             {projects.length === 0 ? (
-              <p className="p-6 text-sm text-slate-600">No creative projects yet.</p>
+              <p className="p-6 text-sm text-foreground-muted">No creative projects yet.</p>
             ) : (
               projects.map((p) => (
                 <Link
                   key={p.id}
                   href={`/advertising/creatives/${p.id}`}
-                  className="flex items-center justify-between px-6 py-4 hover:bg-slate-50"
+                  className="flex items-center justify-between px-6 py-4 hover:bg-surface-subtle"
                 >
                   <div>
-                    <p className="font-medium text-slate-900">{p.name}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-medium text-foreground">{p.name}</p>
+                    <p className="text-xs text-foreground-subtle">
                       {p.primaryFormat?.replace(/_/g, " ") ?? "No format"} · {p.campaignPlan?.name ?? "No plan"}
                     </p>
                   </div>
@@ -227,9 +227,9 @@ export function AdvertisingCreativeStudioView({
             <Input label="Project name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Q1 Lead Gen — Meta Carousel" />
             <Input label="Campaign plan ID (optional)" value={campaignPlanId} onChange={(e) => setCampaignPlanId(e.target.value)} placeholder="Link to existing plan" />
             <div>
-              <label className="text-sm font-medium text-slate-700">Primary format</label>
+              <label className="text-sm font-medium text-foreground-muted">Primary format</label>
               <select
-                className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm"
                 value={newFormat}
                 onChange={(e) => setNewFormat(e.target.value)}
               >
@@ -245,7 +245,7 @@ export function AdvertisingCreativeStudioView({
     );
   }
 
-  if (!project) return <p className="text-sm text-slate-600">Loading creative project…</p>;
+  if (!project) return <p className="text-sm text-foreground-muted">Loading creative project…</p>;
 
   return (
     <div className="space-y-6">
@@ -255,18 +255,18 @@ export function AdvertisingCreativeStudioView({
         actions={<Badge variant={STATUS_VARIANT[project.status] ?? "muted"}>{project.status}</Badge>}
       />
       {creativeId ? <CreativeNav creativeId={creativeId} active={mode} /> : null}
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-foreground-muted">{message}</p> : null}
 
       {mode === "detail" ? (
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader><CardTitle className="text-base">Project summary</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <p><span className="text-slate-500">Format:</span> {project.primaryFormat ?? "—"}</p>
-              <p><span className="text-slate-500">Channel:</span> {project.channelType ?? "—"}</p>
-              <p><span className="text-slate-500">Campaign plan:</span> {project.campaignPlan?.name ?? "—"}</p>
-              <p><span className="text-slate-500">Concepts:</span> {project.concepts?.length ?? 0}</p>
-              <p><span className="text-slate-500">Variants:</span> {project.variants?.length ?? 0}</p>
+              <p><span className="text-foreground-subtle">Format:</span> {project.primaryFormat ?? "—"}</p>
+              <p><span className="text-foreground-subtle">Channel:</span> {project.channelType ?? "—"}</p>
+              <p><span className="text-foreground-subtle">Campaign plan:</span> {project.campaignPlan?.name ?? "—"}</p>
+              <p><span className="text-foreground-subtle">Concepts:</span> {project.concepts?.length ?? 0}</p>
+              <p><span className="text-foreground-subtle">Variants:</span> {project.variants?.length ?? 0}</p>
             </CardContent>
           </Card>
           <Card>
@@ -293,9 +293,9 @@ export function AdvertisingCreativeStudioView({
               <CardHeader><CardTitle className="text-base">Concepts</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 {project.concepts!.map((c) => (
-                  <div key={c.id} className="rounded border border-slate-200 px-3 py-2">
+                  <div key={c.id} className="rounded border border-border px-3 py-2">
                     <p className="font-medium">{c.category.replace(/_/g, " ")}</p>
-                    <p className="text-slate-600">{c.message}</p>
+                    <p className="text-foreground-muted">{c.message}</p>
                     {c.complianceRisk ? <p className="mt-1 text-xs text-amber-700">Risk: {c.complianceRisk}</p> : null}
                   </div>
                 ))}
@@ -307,12 +307,12 @@ export function AdvertisingCreativeStudioView({
               <CardHeader><CardTitle className="text-base">Copy fields</CardTitle></CardHeader>
               <CardContent className="space-y-2 text-sm">
                 {project.copies!.map((c) => (
-                  <div key={c.id} className="flex justify-between rounded border border-slate-200 px-3 py-2">
+                  <div key={c.id} className="flex justify-between rounded border border-border px-3 py-2">
                     <div>
                       <span className="font-medium">{c.fieldKey}</span>: {c.fieldValue}
                       {c.isLocked ? <Badge className="ml-2">Locked</Badge> : null}
                     </div>
-                    <span className={c.truncationWarning ? "text-red-600" : "text-slate-500"}>
+                    <span className={c.truncationWarning ? "text-danger" : "text-foreground-subtle"}>
                       {c.characterCount}{c.maxLength ? `/${c.maxLength}` : ""}
                     </span>
                   </div>
@@ -329,9 +329,9 @@ export function AdvertisingCreativeStudioView({
           <CardContent className="space-y-4">
             <ul className="space-y-2 text-sm">
               {(project.variants ?? []).map((v) => (
-                <li key={v.id} className="rounded border border-slate-200 px-3 py-2">
+                <li key={v.id} className="rounded border border-border px-3 py-2">
                   <p className="font-medium">{v.variantLabel}</p>
-                  {v.hypothesis ? <p className="text-slate-500">Hypothesis: {v.hypothesis}</p> : null}
+                  {v.hypothesis ? <p className="text-foreground-subtle">Hypothesis: {v.hypothesis}</p> : null}
                   {v.headline ? <p>Headline: {v.headline}</p> : null}
                 </li>
               ))}
@@ -355,10 +355,10 @@ export function AdvertisingCreativeStudioView({
         <Card>
           <CardHeader><CardTitle className="text-base">Creative review</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-slate-600">Reviews by marketer, brand owner, compliance, budget owner, and client approver.</p>
+            <p className="text-sm text-foreground-muted">Reviews by marketer, brand owner, compliance, budget owner, and client approver.</p>
             <ul className="space-y-2 text-sm">
               {(project.reviews ?? []).map((r) => (
-                <li key={r.id} className="flex justify-between rounded border border-slate-200 px-3 py-2">
+                <li key={r.id} className="flex justify-between rounded border border-border px-3 py-2">
                   <span>{r.reviewerRole}</span>
                   <Badge variant={r.decision === "APPROVED" ? "default" : "muted"}>{r.decision}</Badge>
                 </li>
@@ -398,15 +398,15 @@ export function AdvertisingCreativeStudioView({
             </div>
           </CardHeader>
           <CardContent>
-            <p className="mb-4 text-xs text-slate-500">Local pre-check only — not provider approval.</p>
+            <p className="mb-4 text-xs text-foreground-subtle">Local pre-check only — not provider approval.</p>
             <ul className="space-y-2 text-sm">
               {(project.validations ?? []).map((v) => (
-                <li key={v.id} className="rounded border border-slate-200 px-3 py-2">
+                <li key={v.id} className="rounded border border-border px-3 py-2">
                   <div className="flex justify-between">
                     <span className="font-medium">{v.provider}</span>
                     <Badge variant={v.validationStatus === "FAILED" ? "warning" : "default"}>{v.validationStatus}</Badge>
                   </div>
-                  {v.errors.length > 0 ? <p className="mt-1 text-red-600">{v.errors.join("; ")}</p> : null}
+                  {v.errors.length > 0 ? <p className="mt-1 text-danger">{v.errors.join("; ")}</p> : null}
                   {v.warnings.length > 0 ? <p className="mt-1 text-amber-700">{v.warnings.join("; ")}</p> : null}
                 </li>
               ))}
@@ -426,9 +426,9 @@ export function AdvertisingCreativeStudioView({
           <CardContent>
             <ul className="space-y-2 text-sm">
               {(project.versions ?? []).map((v) => (
-                <li key={v.id} className="rounded border border-slate-200 px-3 py-2">
+                <li key={v.id} className="rounded border border-border px-3 py-2">
                   <span className="font-medium">v{v.versionNumber}</span>
-                  {v.changeNote ? <span className="text-slate-500"> — {v.changeNote}</span> : null}
+                  {v.changeNote ? <span className="text-foreground-subtle"> — {v.changeNote}</span> : null}
                 </li>
               ))}
             </ul>

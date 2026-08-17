@@ -69,7 +69,7 @@ function OutputView({ output, evidence }: { output: MarketingAnalystOutput; evid
         {showEvidence ? "Hide" : "Show"} evidence package
       </Button>
       {showEvidence && evidence ? (
-        <pre className="max-h-96 overflow-auto rounded bg-slate-50 p-4 text-xs">{JSON.stringify(evidence, null, 2)}</pre>
+        <pre className="max-h-96 overflow-auto rounded bg-surface-subtle p-4 text-xs">{JSON.stringify(evidence, null, 2)}</pre>
       ) : null}
     </div>
   );
@@ -203,8 +203,8 @@ export function AnalystView({ mode }: { mode: AnalystMode }) {
           </Link>
         ))}
       </nav>
-      <p className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">{ANALYST_DISCLAIMER}</p>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      <p className="rounded border border-border bg-surface-subtle p-3 text-sm text-foreground-muted">{ANALYST_DISCLAIMER}</p>
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
 
       {mode === "ask" ? (
         <>

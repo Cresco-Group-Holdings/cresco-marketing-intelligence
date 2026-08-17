@@ -12,7 +12,7 @@ export function CampaignModulePlaceholder({ title, description }: CampaignModule
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <p className="text-sm text-slate-600">{description}</p>
+        <p className="text-sm text-foreground-muted">{description}</p>
       </CardContent>
     </Card>
   );

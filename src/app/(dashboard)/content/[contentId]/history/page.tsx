@@ -66,18 +66,18 @@ export default function ContentHistoryPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {revisions.length === 0 ? (
-            <p className="text-sm text-slate-600">No revisions recorded yet.</p>
+            <p className="text-sm text-foreground-muted">No revisions recorded yet.</p>
           ) : (
             revisions.map((revision) => (
               <div key={revision.id} className="rounded-md border p-4 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">Revision {revision.revisionNumber}</p>
-                    <p className="text-slate-600">
+                    <p className="text-foreground-muted">
                       {revision.source} · {new Date(revision.createdAt).toLocaleString()}
                     </p>
                     {revision.changeNote ? <p>{revision.changeNote}</p> : null}
-                    <pre className="mt-2 overflow-x-auto rounded bg-slate-50 p-2 text-xs">
+                    <pre className="mt-2 overflow-x-auto rounded bg-surface-subtle p-2 text-xs">
                       {JSON.stringify(revision.changedFields, null, 2)}
                     </pre>
                   </div>

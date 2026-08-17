@@ -54,13 +54,13 @@ export default function InvitationsSettingsPage() {
           <Input label="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
           <Button className="self-end" onClick={() => void invite()}>Send invitation</Button>
         </CardContent>
-        {devUrl ? <CardContent className="text-sm text-slate-600">Development invite URL: {devUrl}</CardContent> : null}
+        {devUrl ? <CardContent className="text-sm text-foreground-muted">Development invite URL: {devUrl}</CardContent> : null}
       </Card>
       <div className="space-y-4">
         {invitations.map((invitation) => (
           <Card key={invitation.id}>
             <CardHeader><CardTitle>{invitation.email}</CardTitle></CardHeader>
-            <CardContent className="text-sm text-slate-600">
+            <CardContent className="text-sm text-foreground-muted">
               <p>Role: {invitation.role}</p>
               <p>Status: {invitation.status}</p>
               <p>Expires: {new Date(invitation.expiresAt).toLocaleString()}</p>

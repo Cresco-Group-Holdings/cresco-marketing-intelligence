@@ -1,27 +1,33 @@
 @import "tailwindcss";
 
 /* -------------------------------------------------------------------------- */
-/* Semantic design tokens — consumed via Tailwind and CSS variables           */
+/* Cresco semantic design tokens                                              */
 /* -------------------------------------------------------------------------- */
 
 :root,
 [data-theme="light"][data-background="beige"] {
-  --background: #f6f0e7;
+  --background: #f4eee5;
   --background-secondary: #f3ebdd;
-  --surface: #faf6ef;
-  --surface-elevated: #fffdf9;
+  --surface: #f7f2ea;
+  --surface-subtle: #f3ebdd;
+  --surface-elevated: #fbf8f3;
   --surface-hover: #efe6d8;
+  --surface-active: #e8e0d5;
+  --surface-selected: #efe6d8;
 
   --foreground: #1c1917;
   --foreground-muted: #57534e;
   --foreground-subtle: #78716c;
+  --foreground-disabled: #a8a29e;
 
-  --border: #e7dfd2;
+  --border: #e8e0d5;
+  --border-subtle: #efe6d8;
   --border-strong: #d6cbb9;
+  --border-interactive: #d6cbb9;
 
   --primary: #1c1917;
   --primary-hover: #292524;
-  --primary-foreground: #faf6ef;
+  --primary-foreground: #fbf8f3;
 
   --paid-accent: #6366f1;
   --paid-accent-muted: #e0e7ff;
@@ -35,15 +41,6 @@
   --positive: #15803d;
   --negative: #b91c1c;
   --neutral-signal: #78716c;
-
-  --surface-subtle: #f3ebdd;
-  --surface-active: #e7dfd2;
-  --surface-selected: #efe6d8;
-
-  --foreground-disabled: #a8a29e;
-
-  --border-subtle: #efe6d8;
-  --border-interactive: #d6cbb9;
 
   --chart-1: #6366f1;
   --chart-2: #0d9488;
@@ -60,6 +57,11 @@
 
   --ring: #a8a29e;
   --shadow-color: 28 25 23;
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
 }
 
 [data-theme="light"][data-background="warm-ivory"] {
@@ -84,15 +86,21 @@
   --background: #16181d;
   --background-secondary: #1c1f26;
   --surface: #22262e;
+  --surface-subtle: #1c1f26;
   --surface-elevated: #2a2f38;
   --surface-hover: #313742;
+  --surface-active: #343a46;
+  --surface-selected: #313742;
 
   --foreground: #f4f4f5;
   --foreground-muted: #a1a1aa;
   --foreground-subtle: #71717a;
+  --foreground-disabled: #52525b;
 
   --border: #343a46;
+  --border-subtle: #2a2f38;
   --border-strong: #454c59;
+  --border-interactive: #454c59;
 
   --primary: #f4f4f5;
   --primary-hover: #e4e4e7;
@@ -100,8 +108,22 @@
 
   --paid-accent: #818cf8;
   --paid-accent-muted: #312e81;
+  --paid-accent-soft: #1e1b4b;
   --organic-accent: #2dd4bf;
   --organic-accent-muted: #134e4a;
+  --organic-accent-soft: #042f2e;
+  --ai-accent: #a78bfa;
+  --ai-accent-soft: #2e1065;
+
+  --positive: #4ade80;
+  --negative: #f87171;
+  --neutral-signal: #a1a1aa;
+
+  --chart-1: #818cf8;
+  --chart-2: #2dd4bf;
+  --chart-3: #a78bfa;
+  --chart-4: #fbbf24;
+  --chart-5: #4ade80;
 
   --success: #4ade80;
   --success-muted: #14532d;
@@ -128,15 +150,21 @@
   --color-background: var(--background);
   --color-background-secondary: var(--background-secondary);
   --color-surface: var(--surface);
+  --color-surface-subtle: var(--surface-subtle);
   --color-surface-elevated: var(--surface-elevated);
   --color-surface-hover: var(--surface-hover);
+  --color-surface-active: var(--surface-active);
+  --color-surface-selected: var(--surface-selected);
 
   --color-foreground: var(--foreground);
   --color-foreground-muted: var(--foreground-muted);
   --color-foreground-subtle: var(--foreground-subtle);
+  --color-foreground-disabled: var(--foreground-disabled);
 
   --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
   --color-border-strong: var(--border-strong);
+  --color-border-interactive: var(--border-interactive);
 
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
@@ -155,15 +183,6 @@
   --color-negative: var(--negative);
   --color-neutral-signal: var(--neutral-signal);
 
-  --color-surface-subtle: var(--surface-subtle);
-  --color-surface-active: var(--surface-active);
-  --color-surface-selected: var(--surface-selected);
-
-  --color-foreground-disabled: var(--foreground-disabled);
-
-  --color-border-subtle: var(--border-subtle);
-  --color-border-interactive: var(--border-interactive);
-
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -179,7 +198,6 @@
 
   --color-ring: var(--ring);
 
-  /* Legacy aliases for gradual migration */
   --color-card: var(--surface-elevated);
   --color-muted: var(--foreground-muted);
   --color-muted-foreground: var(--foreground-muted);
@@ -187,6 +205,11 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
 }
 
 body {
@@ -202,4 +225,53 @@ body {
 :focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* Typography scale */
+.text-page-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  color: var(--foreground);
+}
+
+@media (min-width: 640px) {
+  .text-page-title {
+    font-size: 1.75rem;
+  }
+}
+
+.text-section-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.text-card-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.text-kpi-value {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--foreground);
+  font-variant-numeric: tabular-nums;
+}
+
+.text-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--foreground-subtle);
+}
+
+.text-table {
+  font-size: 0.8125rem;
+  color: var(--foreground);
 }

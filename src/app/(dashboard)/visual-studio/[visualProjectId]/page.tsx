@@ -87,7 +87,7 @@ export default function VisualProjectPage() {
       setExporting(false);
     }
   }
-  if (!project) return <p className="text-sm text-slate-600">Loading visual project…</p>;
+  if (!project) return <p className="text-sm text-foreground-muted">Loading visual project…</p>;
   const page = project.pages[active];
   return (
     <>
@@ -139,10 +139,10 @@ export default function VisualProjectPage() {
                   />
                 </div>
               ))}
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-foreground-subtle">
               Safe-area guides, contrast, minimum-text-size, and overflow checks run when exporting.
             </p>
-            {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+            {message ? <p className="text-sm text-foreground-muted">{message}</p> : null}
           </CardContent>
         </Card>
       </div>

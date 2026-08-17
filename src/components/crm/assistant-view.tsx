@@ -155,7 +155,7 @@ function SafetyWarnings({
   return (
     <div className="space-y-2">
       {allErrors.map((msg, i) => (
-        <p key={`err-${i}`} className="text-sm text-red-600">{msg}</p>
+        <p key={`err-${i}`} className="text-sm text-danger">{msg}</p>
       ))}
       {allWarnings.map((msg, i) => (
         <p key={`warn-${i}`} className="text-sm text-amber-700">{msg}</p>

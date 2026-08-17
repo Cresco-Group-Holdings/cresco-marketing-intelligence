@@ -19,7 +19,7 @@ export default function KnowledgeHubPage() {
   }, [brandId, loading, router]);
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Loading workspace...</p>;
+    return <p className="text-sm text-foreground-muted">Loading workspace...</p>;
   }
 
   if (error) {
@@ -34,7 +34,7 @@ export default function KnowledgeHubPage() {
   }
 
   if (brandId) {
-    return <p className="text-sm text-slate-600">Opening knowledge base...</p>;
+    return <p className="text-sm text-foreground-muted">Opening knowledge base...</p>;
   }
 
   return (

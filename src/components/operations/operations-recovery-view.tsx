@@ -118,13 +118,13 @@ export function OperationsRecoveryView({ mode }: { mode: Mode }) {
         </div>
       ) : null}
 
-      {message ? <p className="mb-3 text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="mb-3 text-sm text-foreground-muted">{message}</p> : null}
 
       <Card>
         <CardHeader><CardTitle>Operational alerts</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {alerts.length === 0 ? (
-            <p className="text-sm text-slate-600">No active operational alerts.</p>
+            <p className="text-sm text-foreground-muted">No active operational alerts.</p>
           ) : null}
           {alerts.map((alert) => (
             <div key={alert.id} className="rounded-lg border p-3 text-sm">
@@ -136,15 +136,15 @@ export function OperationsRecoveryView({ mode }: { mode: Mode }) {
                 <Badge variant="muted">{alert.status}</Badge>
                 {alert.provider ? <Badge variant="muted">{alert.provider}</Badge> : null}
               </div>
-              <p className="text-slate-600">{alert.safeErrorMessage}</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="text-foreground-muted">{alert.safeErrorMessage}</p>
+              <p className="mt-1 text-xs text-foreground-subtle">
                 {alert.resourceType} · {alert.resourceId}
                 {alert.brand ? ` · ${alert.brand.name}` : ""}
                 {alert.lastAttemptAt ? ` · Last attempt ${new Date(alert.lastAttemptAt).toLocaleString()}` : ""}
                 {alert.nextRetryAt ? ` · Next retry ${new Date(alert.nextRetryAt).toLocaleString()}` : ""}
               </p>
               {alert.recommendedAction ? (
-                <p className="mt-1 text-slate-600">Recommended: {alert.recommendedAction}</p>
+                <p className="mt-1 text-foreground-muted">Recommended: {alert.recommendedAction}</p>
               ) : null}
               <div className="mt-2 flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" onClick={() => void runAction(alert.id, "retry")}>
