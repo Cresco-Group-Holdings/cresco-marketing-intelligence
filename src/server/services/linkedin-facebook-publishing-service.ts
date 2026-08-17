@@ -18,6 +18,7 @@ import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities
 import { isProviderPublishingDisabled } from "@/lib/publishing/config";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { socialCredentialService } from "@/server/services/social-credential-service";
+import { hasPublishingSchedule, nullToUndefined, resolveContentScheduleId } from "@/lib/publishing/schedule";
 import { brandService } from "@/server/services/workspace-service";
 
 type ProviderSettings =
@@ -231,7 +232,13 @@ export const linkedInFacebookPublishingService = {
     const settings = job.providerSettings as ProviderSettings | null;
     if (!settings)
       throw new AppError("VALIDATION_ERROR", "Provider publishing settings are missing.");
-    const { schedule } = job;
+    if (!hasPublishingSchedule(job)) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Publishing job requires a content schedule for legacy provider execution.",
+      );
+    }
+    const schedule = job.schedule;
     if (
       schedule.organisationId !== job.organisationId ||
       schedule.brandId !== job.brandId ||

@@ -69,9 +69,9 @@ function NavLink({
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "relative flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         isActive
-          ? "bg-primary text-primary-foreground"
+          ? "bg-surface-selected text-foreground before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-paid-accent"
           : "text-foreground-muted hover:bg-surface-hover hover:text-foreground",
       )}
       aria-current={isActive ? "page" : undefined}

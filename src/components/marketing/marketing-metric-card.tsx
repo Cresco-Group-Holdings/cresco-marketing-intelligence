@@ -86,11 +86,30 @@ export function MarketingMetricCard({ metric, accent = "neutral", className }: M
   );
 }
 
-export function ExecutiveKpiStrip({ metrics }: { metrics: MarketingMetric[] }) {
+export function ExecutiveKpiStrip({
+  metrics,
+  accent = "neutral",
+  mobilePriorityLabels,
+}: {
+  metrics: MarketingMetric[];
+  accent?: "paid" | "organic" | "neutral";
+  mobilePriorityLabels?: string[];
+}) {
+  const orderedMetrics =
+    mobilePriorityLabels && mobilePriorityLabels.length > 0
+      ? [
+          ...metrics.filter((metric) => mobilePriorityLabels.includes(metric.label)),
+          ...metrics.filter((metric) => !mobilePriorityLabels.includes(metric.label)),
+        ]
+      : metrics;
+
   return (
-    <section aria-label="Executive KPIs" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
-      {metrics.map((metric) => (
-        <MarketingMetricCard key={metric.label} metric={metric} />
+    <section
+      aria-label="Executive KPIs"
+      className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 2xl:grid-cols-6"
+    >
+      {orderedMetrics.map((metric) => (
+        <MarketingMetricCard key={metric.label} metric={metric} accent={accent} />
       ))}
     </section>
   );

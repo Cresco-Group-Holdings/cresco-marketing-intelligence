@@ -117,7 +117,7 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
   if (!organisationId) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-slate-600">
+        <CardContent className="py-8 text-center text-sm text-foreground-muted">
           Select an organisation workspace to view campaign details.
         </CardContent>
       </Card>
@@ -125,16 +125,16 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Loading campaign…</p>;
+    return <p className="text-sm text-foreground-muted">Loading campaign…</p>;
   }
 
   if (error && !campaign) {
     return (
       <Card>
         <CardContent className="space-y-3 py-8 text-center">
-          <p className="text-sm text-red-600">{error}</p>
+          <p className="text-sm text-danger">{error}</p>
           {versionConflict ? (
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-foreground-muted">
               Another update changed this campaign. Reload to continue with the latest version.
             </p>
           ) : null}
@@ -175,10 +175,10 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
       {error ? (
         <Card>
           <CardContent className="space-y-2 py-4">
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-danger">{error}</p>
             {versionConflict ? (
               <div className="flex flex-wrap gap-2">
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-foreground-muted">
                   This campaign was updated elsewhere. Reload to get the latest version before saving again.
                 </p>
                 <Button size="sm" variant="outline" onClick={() => void loadCampaign()}>
@@ -190,7 +190,7 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
         </Card>
       ) : null}
 
-      <nav className="flex flex-wrap gap-2 border-b border-slate-200 pb-3" aria-label="Campaign sections">
+      <nav className="flex flex-wrap gap-2 border-b border-border pb-3" aria-label="Campaign sections">
         {TABS.map((tab) => (
           <button
             key={tab.id}
@@ -198,8 +198,8 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
             onClick={() => setActiveTab(tab.id)}
             className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
               activeTab === tab.id
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                ? "bg-primary text-primary-foreground"
+                : "text-foreground-muted hover:bg-surface-hover hover:text-foreground"
             }`}
           >
             {tab.label}
@@ -213,26 +213,26 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
             <CardHeader>
               <CardTitle className="text-base">Summary</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3 text-sm text-slate-700">
+            <CardContent className="space-y-3 text-sm text-foreground-muted">
               <p>
-                <span className="font-medium text-slate-900">Objective:</span>{" "}
+                <span className="font-medium text-foreground">Objective:</span>{" "}
                 {objectiveLabel(campaign.primaryObjective)}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Schedule:</span>{" "}
+                <span className="font-medium text-foreground">Schedule:</span>{" "}
                 {formatDateRange(campaign.startAt, campaign.endAt)}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Budget:</span>{" "}
+                <span className="font-medium text-foreground">Budget:</span>{" "}
                 {campaign.budgetAmount != null
                   ? `${campaign.budgetCurrency ?? "USD"} ${campaign.budgetAmount.toLocaleString()}`
                   : "Not set"}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Version:</span> v{campaign.version}
+                <span className="font-medium text-foreground">Version:</span> v{campaign.version}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Updated:</span>{" "}
+                <span className="font-medium text-foreground">Updated:</span>{" "}
                 {new Date(campaign.updatedAt).toLocaleString()}
               </p>
             </CardContent>
@@ -241,7 +241,7 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
             <CardHeader>
               <CardTitle className="text-base">Counts</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-slate-700">
+            <CardContent className="space-y-2 text-sm text-foreground-muted">
               <p>{(campaign.channels?.length ?? campaign.channelCount ?? 0).toLocaleString()} channels</p>
               <p>{(campaign.kpis?.length ?? campaign.kpiCount ?? 0).toLocaleString()} KPIs</p>
               <p>{(campaign.members?.length ?? campaign.memberCount ?? 0).toLocaleString()} team members</p>
@@ -257,7 +257,7 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="strategy-narrative" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="strategy-narrative" className="block text-sm font-medium text-foreground-muted">
                 Strategy narrative
               </label>
               <textarea
@@ -265,14 +265,14 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
                 value={strategyDraft}
                 onChange={(event) => setStrategyDraft(event.target.value)}
                 rows={6}
-                className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+                className="block w-full rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm placeholder:text-foreground-subtle focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 placeholder="Describe the campaign strategy, messaging pillars, and key bets."
               />
             </div>
             {campaign.strategy?.targetOutcomes?.length ? (
               <div>
-                <p className="text-sm font-medium text-slate-900">Target outcomes</p>
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">
+                <p className="text-sm font-medium text-foreground">Target outcomes</p>
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-foreground-muted">
                   {campaign.strategy.targetOutcomes.map((outcome) => (
                     <li key={outcome}>{outcome}</li>
                   ))}
@@ -295,15 +295,15 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
           <CardHeader>
             <CardTitle className="text-base">Budget</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-700">
+          <CardContent className="space-y-3 text-sm text-foreground-muted">
             <p>
-              <span className="font-medium text-slate-900">Total budget:</span>{" "}
+              <span className="font-medium text-foreground">Total budget:</span>{" "}
               {campaign.budgetAmount != null
                 ? `${campaign.budgetCurrency ?? "USD"} ${campaign.budgetAmount.toLocaleString()}`
                 : "Not set"}
             </p>
             {(campaign.channels ?? []).some((channel) => channel.budgetAmount != null) ? (
-              <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+              <div className="divide-y divide-border-subtle rounded-lg border border-border">
                 {(campaign.channels ?? [])
                   .filter((channel) => channel.budgetAmount != null)
                   .map((channel) => (
@@ -314,7 +314,7 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
                   ))}
               </div>
             ) : (
-              <p className="text-slate-600">No channel-level budget allocations yet.</p>
+              <p className="text-foreground-muted">No channel-level budget allocations yet.</p>
             )}
           </CardContent>
         </Card>
@@ -325,7 +325,7 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
           <CardHeader>
             <CardTitle className="text-base">Audience</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-slate-700">
+          <CardContent className="space-y-3 text-sm text-foreground-muted">
             <p>{campaign.audience?.description ?? "No audience description provided."}</p>
             {campaign.audience?.segments?.length ? (
               <ul className="list-disc space-y-1 pl-5">
@@ -334,7 +334,7 @@ export function CampaignDetailView({ campaignId }: { campaignId: string }) {
                 ))}
               </ul>
             ) : (
-              <p className="text-slate-600">No audience segments defined.</p>
+              <p className="text-foreground-muted">No audience segments defined.</p>
             )}
           </CardContent>
         </Card>

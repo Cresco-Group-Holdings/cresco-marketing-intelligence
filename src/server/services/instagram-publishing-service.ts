@@ -14,6 +14,7 @@ import { complianceAgentService } from "@/server/services/compliance-agent-servi
 import { socialCredentialService } from "@/server/services/social-credential-service";
 import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities";
 import { isProviderPublishingDisabled } from "@/lib/publishing/config";
+import { hasPublishingSchedule, nullToUndefined, resolveContentScheduleId } from "@/lib/publishing/schedule";
 import { brandService } from "@/server/services/workspace-service";
 import { notifyPublishingFailed, notifyPublishingSucceeded } from "@/lib/notifications/publishing-hooks";
 
@@ -59,10 +60,13 @@ async function failJob(job: PublishingJob, reason: string): Promise<PublishOutco
     where: { id: job.id },
     data: { status: "FAILED", lastProviderError: reason },
   });
-  await prisma.contentSchedule.update({
-    where: { id: job.contentScheduleId },
-    data: { status: "FAILED" },
-  });
+  const scheduleId = resolveContentScheduleId(job);
+  if (scheduleId) {
+    await prisma.contentSchedule.update({
+      where: { id: scheduleId },
+      data: { status: "FAILED" },
+    });
+  }
   await notifyPublishingFailed(job, "INSTAGRAM", reason).catch(() => undefined);
   return { state: "FAILED", reason };
 }
@@ -195,7 +199,11 @@ export const instagramPublishingService = {
       return { state: "ALREADY_PUBLISHED", postId: job.publishedMediaId, permalink: job.permalink };
     }
 
-    const { schedule } = job;
+    const scheduleId = resolveContentScheduleId(job);
+    if (!hasPublishingSchedule(job) || !scheduleId) {
+      return failJob(job, "Publishing job requires a content schedule for legacy provider execution.");
+    }
+    const schedule = job.schedule;
 
     // Every related record must belong to the same tenant as the job itself.
     if (

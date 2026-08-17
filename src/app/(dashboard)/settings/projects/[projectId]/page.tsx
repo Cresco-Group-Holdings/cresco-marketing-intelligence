@@ -25,7 +25,7 @@ export default function ProjectSettingsDetailPage() {
       <PageHeader title={project.name ?? "Project"} breadcrumbs={[{ label: "Settings", href: "/settings" }, { label: "Projects", href: "/settings/projects" }, { label: project.name ?? "Project" }]} />
       <Card>
         <CardHeader><CardTitle>{project.name}</CardTitle></CardHeader>
-        <CardContent className="space-y-2 text-sm text-slate-600">
+        <CardContent className="space-y-2 text-sm text-foreground-muted">
           <p>Slug: {project.slug}</p>
           <p>Status: {project.status}</p>
           {project.description ? <p>{project.description}</p> : null}

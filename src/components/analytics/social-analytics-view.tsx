@@ -284,11 +284,11 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
         </Button>
       </div>
       {reportingTimezone ? (
-        <p className="mb-3 text-sm text-slate-600">
+        <p className="mb-3 text-sm text-foreground-muted">
           Reporting timezone: {reportingTimezone}. Provider timestamps are stored in UTC.
         </p>
       ) : null}
-      {syncMessage ? <p className="mb-3 text-sm text-slate-600">{syncMessage}</p> : null}
+      {syncMessage ? <p className="mb-3 text-sm text-foreground-muted">{syncMessage}</p> : null}
 
       {error ? <p className="text-sm text-red-700">{error}</p> : null}
       {!brandId ? <p>Select a brand to view analytics.</p> : null}
@@ -343,7 +343,7 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {attribution.groups.length === 0 ? (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-foreground-muted">
                 No provider observations are available for this range.
               </p>
             ) : (
@@ -393,7 +393,7 @@ export function SocialAnalyticsView({ mode }: { mode: Mode }) {
           </CardHeader>
           <CardContent className="overflow-x-auto">
             {rows.length === 0 ? (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-foreground-muted">
                 No provider observations are available for this range.
               </p>
             ) : (

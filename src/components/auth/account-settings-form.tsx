@@ -98,7 +98,7 @@ export function AccountSettingsForm({ initialProfile }: AccountSettingsFormProps
           onChange={(event) => setProfile({ ...profile, locale: event.target.value })}
         />
       </div>
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
       {message ? <p className="text-sm text-green-700">{message}</p> : null}
       <Button type="submit" disabled={loading}>
         {loading ? "Saving..." : "Save changes"}

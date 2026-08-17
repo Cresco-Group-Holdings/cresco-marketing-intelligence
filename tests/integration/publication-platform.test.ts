@@ -166,6 +166,8 @@ describe("publication execution integration", () => {
 
     expect(result.success).toBe(true);
     expect(result.result?.state).toBe("PUBLISHED");
-    expect(result.result?.externalPublicationId).toBeTruthy();
+    if (result.result?.state === "PUBLISHED") {
+      expect(result.result.externalPublicationId).toBeTruthy();
+    }
   });
 });

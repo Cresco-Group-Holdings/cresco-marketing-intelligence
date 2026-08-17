@@ -178,7 +178,7 @@ export function CampaignCreateWizard() {
   if (!organisationId || !brandId) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-slate-600">
+        <CardContent className="py-8 text-center text-sm text-foreground-muted">
           Select an organisation and brand workspace before creating a campaign.
         </CardContent>
       </Card>
@@ -216,9 +216,9 @@ export function CampaignCreateWizard() {
       {error ? (
         <Card>
           <CardContent className="py-4">
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-sm text-danger">{error}</p>
             {versionConflict ? (
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-foreground-muted">
                 Reload this page if another session updated campaign data while you were editing.
               </p>
             ) : null}
@@ -240,7 +240,7 @@ export function CampaignCreateWizard() {
                 onChange={(event) => updateForm("name", event.target.value)}
               />
               <div className="space-y-2">
-                <label htmlFor="campaign-description" className="block text-sm font-medium text-slate-700">
+                <label htmlFor="campaign-description" className="block text-sm font-medium text-foreground-muted">
                   Description
                 </label>
                 <textarea
@@ -248,7 +248,7 @@ export function CampaignCreateWizard() {
                   value={form.description}
                   onChange={(event) => updateForm("description", event.target.value)}
                   rows={4}
-                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+                  className="block w-full rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm placeholder:text-foreground-subtle focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   placeholder="What is this campaign trying to achieve?"
                 />
               </div>
@@ -264,8 +264,8 @@ export function CampaignCreateWizard() {
                   onClick={() => updateForm("primaryObjective", objective)}
                   className={`rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
                     form.primaryObjective === objective
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-foreground-muted hover:bg-surface-subtle"
                   }`}
                 >
                   {CAMPAIGN_OBJECTIVE_LABELS[objective]}
@@ -283,8 +283,8 @@ export function CampaignCreateWizard() {
                   onClick={() => toggleChannel(channel)}
                   className={`rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
                     form.channels.includes(channel)
-                      ? "border-slate-900 bg-slate-900 text-white"
-                      : "border-slate-200 text-slate-700 hover:bg-slate-50"
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border text-foreground-muted hover:bg-surface-subtle"
                   }`}
                 >
                   {CAMPAIGN_CHANNEL_LABELS[channel]}
@@ -333,7 +333,7 @@ export function CampaignCreateWizard() {
           {currentStep === "Audience" ? (
             <>
               <div className="space-y-2">
-                <label htmlFor="audience-description" className="block text-sm font-medium text-slate-700">
+                <label htmlFor="audience-description" className="block text-sm font-medium text-foreground-muted">
                   Audience description
                 </label>
                 <textarea
@@ -341,7 +341,7 @@ export function CampaignCreateWizard() {
                   value={form.audienceDescription}
                   onChange={(event) => updateForm("audienceDescription", event.target.value)}
                   rows={4}
-                  className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+                  className="block w-full rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm placeholder:text-foreground-subtle focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   placeholder="Describe the primary audience for this campaign."
                 />
               </div>
@@ -358,7 +358,7 @@ export function CampaignCreateWizard() {
           {currentStep === "KPIs" ? (
             <div className="space-y-4">
               {form.kpis.map((kpi, index) => (
-                <div key={`kpi-${index}`} className="grid gap-3 rounded-lg border border-slate-200 p-4 md:grid-cols-3">
+                <div key={`kpi-${index}`} className="grid gap-3 rounded-lg border border-border p-4 md:grid-cols-3">
                   <Input
                     label="KPI name"
                     placeholder="Qualified leads"
@@ -387,35 +387,35 @@ export function CampaignCreateWizard() {
           ) : null}
 
           {currentStep === "Review" ? (
-            <div className="space-y-4 text-sm text-slate-700">
+            <div className="space-y-4 text-sm text-foreground-muted">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="font-medium text-slate-900">{form.name || "Untitled campaign"}</span>
+                <span className="font-medium text-foreground">{form.name || "Untitled campaign"}</span>
                 <CampaignStatusBadge status="DRAFT" />
               </div>
               {form.description ? <p>{form.description}</p> : null}
               <p>
-                <span className="font-medium text-slate-900">Objective:</span>{" "}
+                <span className="font-medium text-foreground">Objective:</span>{" "}
                 {CAMPAIGN_OBJECTIVE_LABELS[form.primaryObjective]}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Channels:</span>{" "}
+                <span className="font-medium text-foreground">Channels:</span>{" "}
                 {form.channels.map((channel) => CAMPAIGN_CHANNEL_LABELS[channel]).join(", ") || "None selected"}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Schedule:</span> {form.startAt} – {form.endAt}
+                <span className="font-medium text-foreground">Schedule:</span> {form.startAt} – {form.endAt}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Budget:</span>{" "}
+                <span className="font-medium text-foreground">Budget:</span>{" "}
                 {form.budgetAmount
                   ? `${form.budgetCurrency} ${Number(form.budgetAmount).toLocaleString()}`
                   : "Not set"}
               </p>
               <p>
-                <span className="font-medium text-slate-900">Audience:</span>{" "}
+                <span className="font-medium text-foreground">Audience:</span>{" "}
                 {form.audienceDescription || "Not described"}
               </p>
               <p>
-                <span className="font-medium text-slate-900">KPIs:</span>{" "}
+                <span className="font-medium text-foreground">KPIs:</span>{" "}
                 {form.kpis.filter((kpi) => kpi.name.trim()).length || 0} defined
               </p>
             </div>

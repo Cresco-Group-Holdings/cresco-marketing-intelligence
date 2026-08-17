@@ -308,7 +308,7 @@ export function ContentOperationsView({
                   <div key={task.id} className="rounded-md border p-2 text-sm">
                     <p className="font-medium">{task.title}</p>
                     {task.dueAt && (
-                      <p className={`text-xs ${task.isOverdue ? "text-red-600" : "text-muted-foreground"}`}>
+                      <p className={`text-xs ${task.isOverdue ? "text-danger" : "text-muted-foreground"}`}>
                         Due {new Date(task.dueAt).toLocaleDateString()}
                       </p>
                     )}
@@ -476,7 +476,7 @@ export function ContentOperationsView({
                 {campaignDetail.deadlines.map((deadline) => (
                   <div key={deadline.id} className="flex items-center justify-between text-sm">
                     <span>{deadline.deadlineType.replace(/_/g, " ").toLowerCase()}</span>
-                    <span className={deadline.isOverdue ? "text-red-600" : ""}>
+                    <span className={deadline.isOverdue ? "text-danger" : ""}>
                       {new Date(deadline.dueAt).toLocaleDateString()}
                     </span>
                   </div>

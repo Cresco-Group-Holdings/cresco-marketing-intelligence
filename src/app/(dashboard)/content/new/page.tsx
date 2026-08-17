@@ -187,12 +187,12 @@ export default function NewContentPage() {
                   value={sourceText}
                   onChange={(e) => setSourceText(e.target.value)}
                 />
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-foreground-subtle">
                   URLs are not scraped. Paste approved or manually retrieved source material.
                 </p>
               </div>
             ) : null}
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="text-sm text-danger">{error}</p> : null}
             <div className="flex gap-2">
               <Button type="submit" disabled={loading || !brandId || platforms.length === 0}>
                 Generate draft
@@ -217,7 +217,7 @@ export default function NewContentPage() {
                 <button
                   key={idea.title}
                   type="button"
-                  className="block w-full rounded-md border p-3 text-left text-sm hover:bg-slate-50"
+                  className="block w-full rounded-md border p-3 text-left text-sm hover:bg-surface-subtle"
                   onClick={() => {
                     setTitle(idea.title);
                     setPrimaryMessage(idea.angle);
@@ -225,7 +225,7 @@ export default function NewContentPage() {
                 >
                   <span className="font-medium">{idea.title}</span>
                   <br />
-                  <span className="text-slate-600">{idea.angle}</span>
+                  <span className="text-foreground-muted">{idea.angle}</span>
                 </button>
               ))}
             </div>

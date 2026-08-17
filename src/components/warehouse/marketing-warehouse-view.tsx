@@ -214,8 +214,8 @@ export function MarketingWarehouseView({ mode }: { mode: WarehouseViewMode }) {
         ))}
       </div>
 
-      {message ? <p className="mb-3 text-sm text-slate-600">{message}</p> : null}
-      {loading ? <p className="mb-3 text-sm text-slate-500">Loading…</p> : null}
+      {message ? <p className="mb-3 text-sm text-foreground-muted">{message}</p> : null}
+      {loading ? <p className="mb-3 text-sm text-foreground-subtle">Loading…</p> : null}
 
       {(mode === "sources" || mode === "lineage") && (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -225,12 +225,12 @@ export function MarketingWarehouseView({ mode }: { mode: WarehouseViewMode }) {
             </CardHeader>
             <CardContent className="space-y-2">
               {sources.length === 0 ? (
-                <p className="text-sm text-slate-600">No sources registered.</p>
+                <p className="text-sm text-foreground-muted">No sources registered.</p>
               ) : (
                 sources.map((source) => (
                   <div key={String(source.id)} className="rounded border p-2 text-sm">
                     <div className="font-medium">{String(source.displayName)}</div>
-                    <div className="text-xs text-slate-500">{String(source.provider)}</div>
+                    <div className="text-xs text-foreground-subtle">{String(source.provider)}</div>
                     <Badge variant={source.isConnected ? "default" : "muted"}>
                       {source.isConnected ? "Connected" : "Not connected"}
                     </Badge>
@@ -246,18 +246,18 @@ export function MarketingWarehouseView({ mode }: { mode: WarehouseViewMode }) {
             </CardHeader>
             <CardContent className="space-y-2">
               {mode === "lineage" ? (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-foreground-muted">
                   Lineage records are written during normalisation. A dedicated lineage explorer ships in Task 3.2.
                 </p>
               ) : accounts.length === 0 ? (
-                <p className="text-sm text-slate-600">No source accounts for this brand yet.</p>
+                <p className="text-sm text-foreground-muted">No source accounts for this brand yet.</p>
               ) : (
                 accounts.map((account) => (
                   <div key={String(account.id)} className="rounded border p-2 text-sm">
                     <div className="font-medium">
                       {String((account.marketingDataSource as { displayName?: string })?.displayName ?? account.id)}
                     </div>
-                    <div className="text-xs text-slate-500">{String(account.status)}</div>
+                    <div className="text-xs text-foreground-subtle">{String(account.status)}</div>
                   </div>
                 ))
               )}
@@ -273,9 +273,9 @@ export function MarketingWarehouseView({ mode }: { mode: WarehouseViewMode }) {
           </CardHeader>
           <CardContent>
             {health ? (
-              <pre className="overflow-auto rounded bg-slate-50 p-3 text-xs">{JSON.stringify(health, null, 2)}</pre>
+              <pre className="overflow-auto rounded bg-surface-subtle p-3 text-xs">{JSON.stringify(health, null, 2)}</pre>
             ) : (
-              <p className="text-sm text-slate-600">No health records yet.</p>
+              <p className="text-sm text-foreground-muted">No health records yet.</p>
             )}
           </CardContent>
         </Card>
@@ -291,12 +291,12 @@ export function MarketingWarehouseView({ mode }: { mode: WarehouseViewMode }) {
           </CardHeader>
           <CardContent className="space-y-2">
             {batches.length === 0 ? (
-              <p className="text-sm text-slate-600">No batches yet.</p>
+              <p className="text-sm text-foreground-muted">No batches yet.</p>
             ) : (
               batches.map((batch) => (
                 <div key={String(batch.id)} className="rounded border p-2 text-sm">
                   <div className="font-medium">{String(batch.id)}</div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-foreground-subtle">
                     {String(batch.status)} · {String(batch.recordsReceived)} received
                   </div>
                 </div>
@@ -316,12 +316,12 @@ export function MarketingWarehouseView({ mode }: { mode: WarehouseViewMode }) {
           </CardHeader>
           <CardContent className="space-y-2">
             {qualityIssues.length === 0 ? (
-              <p className="text-sm text-slate-600">No open quality issues.</p>
+              <p className="text-sm text-foreground-muted">No open quality issues.</p>
             ) : (
               qualityIssues.map((issue) => (
                 <div key={String(issue.id)} className="rounded border p-2 text-sm">
                   <div className="font-medium">{String(issue.message)}</div>
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-foreground-subtle">
                     {String(issue.severity)} · {String(issue.status)}
                   </div>
                 </div>
@@ -338,12 +338,12 @@ export function MarketingWarehouseView({ mode }: { mode: WarehouseViewMode }) {
           </CardHeader>
           <CardContent className="space-y-2">
             {conversions.length === 0 ? (
-              <p className="text-sm text-slate-600">No conversion definitions yet.</p>
+              <p className="text-sm text-foreground-muted">No conversion definitions yet.</p>
             ) : (
               conversions.map((conversion) => (
                 <div key={String(conversion.id)} className="rounded border p-2 text-sm">
                   <div className="font-medium">{String(conversion.displayName)}</div>
-                  <div className="text-xs text-slate-500">{String(conversion.conversionKey)}</div>
+                  <div className="text-xs text-foreground-subtle">{String(conversion.conversionKey)}</div>
                 </div>
               ))
             )}
@@ -358,14 +358,14 @@ export function MarketingWarehouseView({ mode }: { mode: WarehouseViewMode }) {
           </CardHeader>
           <CardContent className="space-y-2">
             {metrics.length === 0 ? (
-              <p className="text-sm text-slate-600">No metrics in range. Create a test batch to seed data.</p>
+              <p className="text-sm text-foreground-muted">No metrics in range. Create a test batch to seed data.</p>
             ) : (
               metrics.map((metric) => (
                 <div key={String(metric.id)} className="rounded border p-2 text-sm">
                   <div className="font-medium">
                     {String(metric.metricKey)} = {String(metric.metricValue)}
                   </div>
-                  <div className="text-xs text-slate-500">{String(metric.observedAt)}</div>
+                  <div className="text-xs text-foreground-subtle">{String(metric.observedAt)}</div>
                 </div>
               ))
             )}

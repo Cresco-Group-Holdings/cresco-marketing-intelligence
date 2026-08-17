@@ -15,7 +15,7 @@ export default function IntegrationsCallbackPage() {
       <div className="w-full max-w-md space-y-4 rounded-lg border p-6 text-center">
         {isError ? (
           <>
-            <AlertCircle className="mx-auto h-10 w-10 text-red-600" />
+            <AlertCircle className="mx-auto h-10 w-10 text-danger" />
             <h1 className="text-lg font-semibold">Connection failed</h1>
             {provider ? <p className="text-sm text-muted-foreground">Provider: {provider}</p> : null}
             <p className="text-sm text-red-700">{message}</p>

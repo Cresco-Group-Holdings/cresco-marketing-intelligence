@@ -395,7 +395,7 @@ export function SocialInboxView({
         </Button>
       </div>
 
-      {actionMessage ? <p className="mb-3 text-sm text-slate-600">{actionMessage}</p> : null}
+      {actionMessage ? <p className="mb-3 text-sm text-foreground-muted">{actionMessage}</p> : null}
       {error ? <p className="mb-3 text-sm text-red-700">{error}</p> : null}
       {!brandId ? <p>Select a brand to view the inbox.</p> : null}
 
@@ -406,16 +406,16 @@ export function SocialInboxView({
               <CardTitle>Conversations</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              {loading ? <p className="text-sm text-slate-600">Loading conversations…</p> : null}
+              {loading ? <p className="text-sm text-foreground-muted">Loading conversations…</p> : null}
               {!loading && (list?.items.length ?? 0) === 0 ? (
-                <p className="text-sm text-slate-600">No conversations match these filters.</p>
+                <p className="text-sm text-foreground-muted">No conversations match these filters.</p>
               ) : null}
               {list?.items.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  className={`w-full rounded-lg border p-3 text-left text-sm transition hover:bg-slate-50 ${
-                    selectedId === item.id ? "border-slate-900 bg-slate-50" : "border-slate-200"
+                  className={`w-full rounded-lg border p-3 text-left text-sm transition hover:bg-surface-subtle ${
+                    selectedId === item.id ? "border-primary bg-surface-subtle" : "border-border"
                   }`}
                   onClick={() => setSelectedId(item.id)}
                 >
@@ -431,7 +431,7 @@ export function SocialInboxView({
                       ] ?? item.status}
                     </Badge>
                   </div>
-                  <p className="text-slate-600">
+                  <p className="text-foreground-muted">
                     {item.socialAccount.displayName ?? item.socialAccount.username ?? item.provider}
                     {item.lastMessageAt
                       ? ` · ${new Date(item.lastMessageAt).toLocaleString()}`
@@ -459,9 +459,9 @@ export function SocialInboxView({
               <CardTitle>Conversation detail</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {detailLoading ? <p className="text-sm text-slate-600">Loading conversation…</p> : null}
+              {detailLoading ? <p className="text-sm text-foreground-muted">Loading conversation…</p> : null}
               {!detailLoading && !detail ? (
-                <p className="text-sm text-slate-600">Select a conversation to view details.</p>
+                <p className="text-sm text-foreground-muted">Select a conversation to view details.</p>
               ) : null}
               {detail ? (
                 <>
@@ -484,7 +484,7 @@ export function SocialInboxView({
                         ))}
                       </div>
                     ) : null}
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-foreground-muted">
                       Replying as{" "}
                       <strong>
                         {detail.socialAccount.displayName ??
@@ -495,14 +495,14 @@ export function SocialInboxView({
                   </div>
 
                   {detail.postPreview ? (
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                    <div className="rounded-lg border border-border bg-surface-subtle p-3 text-sm">
                       <p className="font-medium">Related post</p>
                       {detail.postPreview.title ? <p>{detail.postPreview.title}</p> : null}
                       {detail.postPreview.caption ? (
-                        <p className="text-slate-600">{detail.postPreview.caption}</p>
+                        <p className="text-foreground-muted">{detail.postPreview.caption}</p>
                       ) : null}
                       {detail.postPreview.providerPostId ? (
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-foreground-subtle">
                           Provider post: {detail.postPreview.providerPostId}
                         </p>
                       ) : null}
@@ -512,7 +512,7 @@ export function SocialInboxView({
                   <div className="max-h-80 space-y-3 overflow-y-auto rounded-lg border p-3">
                     {detail.messages.map((message) => (
                       <div key={message.id} className="text-sm">
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-foreground-subtle">
                           {message.direction} · {new Date(message.providerCreatedAt).toLocaleString()}
                           {message.sentBy ? ` · ${message.sentBy.displayName ?? message.sentBy.email}` : ""}
                           {message.participant
@@ -524,7 +524,7 @@ export function SocialInboxView({
                     ))}
                     {detail.comments.map((comment) => (
                       <div key={comment.id} className="text-sm">
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-foreground-subtle">
                           Comment · {new Date(comment.providerCreatedAt).toLocaleString()}
                           {comment.participant
                             ? ` · ${comment.participant.displayName ?? comment.participant.username}`
@@ -536,7 +536,7 @@ export function SocialInboxView({
                     ))}
                     {detail.mentions.map((mention) => (
                       <div key={mention.id} className="text-sm">
-                        <p className="text-xs text-slate-500">
+                        <p className="text-xs text-foreground-subtle">
                           Mention · {new Date(mention.providerCreatedAt).toLocaleString()}
                           {mention.participant
                             ? ` · ${mention.participant.displayName ?? mention.participant.username}`
@@ -548,12 +548,12 @@ export function SocialInboxView({
                   </div>
 
                   <div className="space-y-2">
-                    <label htmlFor="inbox-reply" className="block text-sm font-medium text-slate-700">
+                    <label htmlFor="inbox-reply" className="block text-sm font-medium text-foreground-muted">
                       Reply
                     </label>
                     <textarea
                       id="inbox-reply"
-                      className="min-h-28 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                      className="min-h-28 w-full rounded-lg border border-border-strong px-3 py-2 text-sm"
                       value={replyBody}
                       onChange={(event) => setReplyBody(event.target.value)}
                       placeholder="Write a reply…"

@@ -23,7 +23,7 @@ export default function BrandsPage() {
         }
       />
 
-      {loading ? <p className="text-sm text-slate-600">Loading brands…</p> : null}
+      {loading ? <p className="text-sm text-foreground-muted">Loading brands…</p> : null}
 
       {!loading && !preference.currentProjectId ? (
         <ModuleEmptyState
@@ -55,12 +55,12 @@ export default function BrandsPage() {
                 <CardTitle>{brand.name}</CardTitle>
               </CardHeader>
               <CardContent className="flex gap-3">
-                <Link href={`/brands/${brand.id}`} className="text-sm font-medium text-slate-900 hover:underline">
+                <Link href={`/brands/${brand.id}`} className="text-sm font-medium text-foreground hover:underline">
                   View brand
                 </Link>
                 <Link
                   href={`/brands/${brand.id}/profile`}
-                  className="text-sm font-medium text-slate-600 hover:underline"
+                  className="text-sm font-medium text-foreground-muted hover:underline"
                 >
                   Brand profile
                 </Link>

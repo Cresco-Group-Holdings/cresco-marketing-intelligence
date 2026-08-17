@@ -2,6 +2,7 @@ import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logging";
 import { incrementPublishingCounter } from "@/lib/publishing/observability";
+import { buildWorkerTenantContext } from "@/lib/workers/tenant-context";
 import { operationToCapability } from "@/lib/publishing/outbound-operations";
 import {
   assertPublicationTransition,
@@ -117,10 +118,7 @@ export async function processPublicationPublishingJob(
 
     const publication = job.publication;
     const tenantContext = context ?? {
-      organisationId: publication.organisationId,
-      userProfileId: publication.requestedByUserId,
-      organisationRole: "ADMIN" as const,
-      authUserId: publication.requestedByUserId,
+      ...(await buildWorkerTenantContext(publication.organisationId, publication.requestedByUserId)),
       projectId: publication.projectId,
       brandId: publication.brandId,
     };
@@ -186,12 +184,6 @@ export async function processPublicationPublishingJob(
 
     const capability = operationToCapability(publication.operationType);
     const gatewayOperation = mapOperationToGatewayOperation(publication.operationType);
-
-    incrementPublishingCounter("publishing.job_started", 1, {
-      jobId,
-      publicationId: publication.id,
-      providerKey: publication.providerKey,
-    });
 
     let result;
     try {
@@ -259,7 +251,7 @@ export async function processPublicationPublishingJob(
         },
       });
 
-      incrementPublishingCounter("publishing.job_failed", 1, {
+      incrementPublishingCounter("publishing.jobs_failed", 1, {
         jobId,
         category: classification.category,
         providerKey: publication.providerKey,
@@ -365,7 +357,7 @@ export async function processPublicationPublishingJob(
         });
     }
 
-    incrementPublishingCounter("publishing.job_succeeded", 1, {
+    incrementPublishingCounter("publishing.completed_jobs", 1, {
       jobId,
       publicationId: publication.id,
       providerKey: publication.providerKey,

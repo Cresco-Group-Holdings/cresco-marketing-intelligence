@@ -48,34 +48,34 @@ function KpiCard({ label, metric }: { label: string; metric: MetricComparison })
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-foreground-muted">{label}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-2xl font-semibold">
           {metric.available ? formatMetricDisplay(metric) : (
-            <span className="text-base text-muted-foreground">Unavailable</span>
+            <span className="text-base text-foreground-muted">Unavailable</span>
           )}
         </p>
         {metric.available && metric.changePercent != null ? (
-          <p className={`text-sm ${metric.changePercent >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+          <p className={`text-sm ${metric.changePercent >= 0 ? "text-success" : "text-danger"}`}>
             {metric.changeAbsolute != null && metric.changeAbsolute >= 0 ? "+" : ""}
             {metric.changePercent}% vs previous
           </p>
         ) : null}
         {!metric.available && metric.unavailableReason ? (
-          <p className="text-xs text-muted-foreground">{metric.unavailableReason}</p>
+          <p className="text-xs text-foreground-muted">{metric.unavailableReason}</p>
         ) : null}
         {metric.formula ? (
           <button
             type="button"
-            className="mt-2 text-xs text-blue-600 underline"
+            className="mt-2 text-xs text-paid-accent underline"
             onClick={() => setShowHow((v) => !v)}
           >
             How calculated
           </button>
         ) : null}
         {showHow && metric.formula ? (
-          <p className="mt-1 text-xs text-muted-foreground">{metric.formula}</p>
+          <p className="mt-1 text-xs text-foreground-muted">{metric.formula}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -251,7 +251,7 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
         </Button>
       </div>
 
-      <p className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">{EXECUTIVE_DISCLAIMER}</p>
+      <p className="rounded border border-border bg-surface-subtle p-3 text-sm text-foreground-muted">{EXECUTIVE_DISCLAIMER}</p>
 
       {warnings.length > 0 ? (
         <Card>
@@ -267,7 +267,7 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
         </Card>
       ) : null}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
       {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
 
       {mode === "overview" && overview ? (
@@ -308,7 +308,7 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
             {sectionResult.error ? (
               <p className="text-sm text-amber-700">{sectionResult.error}</p>
             ) : (
-              <pre className="max-h-96 overflow-auto rounded bg-slate-50 p-4 text-xs">
+              <pre className="max-h-96 overflow-auto rounded bg-surface-subtle p-4 text-xs">
                 {JSON.stringify(sectionResult.data, null, 2)}
               </pre>
             )}

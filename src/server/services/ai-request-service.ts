@@ -17,6 +17,7 @@ import { LEADS_OUTPUT_SCHEMAS } from "@/lib/ai/leads-output-schemas";
 import { SOCIAL_REPORT_OUTPUT_SCHEMAS } from "@/lib/ai/social-report-output-schemas";
 import { INBOX_OUTPUT_SCHEMAS } from "@/lib/ai/inbox-output-schemas";
 import { AGENT_OUTPUT_SCHEMAS } from "@/lib/agent-platform/output-schemas";
+import { COPILOT_OUTPUT_SCHEMAS } from "@/lib/copilot/output-schemas";
 import {
   AI_MAX_INPUT_CHARACTERS,
   AI_MAX_OUTPUT_TOKENS_DEFAULT,
@@ -62,6 +63,7 @@ const OUTPUT_SCHEMAS = {
   ...COMPLIANCE_OUTPUT_SCHEMAS,
   ...INBOX_OUTPUT_SCHEMAS,
   ...AGENT_OUTPUT_SCHEMAS,
+  ...COPILOT_OUTPUT_SCHEMAS,
   "diagnostics.ping": z.object({
     ok: z.boolean(),
     message: z.string(),

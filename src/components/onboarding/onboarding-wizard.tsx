@@ -350,7 +350,7 @@ export function OnboardingWizard() {
 
   if (loading && !state) {
     return (
-      <div className="space-y-3 text-sm text-slate-600">
+      <div className="space-y-3 text-sm text-foreground-muted">
         <p>Loading onboarding...</p>
         {loadTimedOut ? (
           <p className="text-amber-700">
@@ -381,11 +381,11 @@ export function OnboardingWizard() {
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
       <div className="space-y-2">
-        <p className="text-sm font-medium text-slate-500">
+        <p className="text-sm font-medium text-foreground-subtle">
           Step {ONBOARDING_STEPS.indexOf(step) + 1} of {ONBOARDING_STEPS.length}
         </p>
-        <h1 className="text-3xl font-semibold text-slate-900">Set up your workspace</h1>
-        <p className="text-sm text-slate-600">
+        <h1 className="text-3xl font-semibold text-foreground">Set up your workspace</h1>
+        <p className="text-sm text-foreground-muted">
           Progress is saved after each step so you can resume later.
         </p>
       </div>
@@ -445,9 +445,9 @@ export function OnboardingWizard() {
           </CardHeader>
           <CardContent className="space-y-4">
             {!state.progress.templateKey ? (
-              <div className="rounded-lg border border-dashed border-slate-300 p-4">
-                <p className="text-sm font-medium text-slate-900">{CRESCO_INTERNAL_TEMPLATE.label}</p>
-                <p className="mt-1 text-sm text-slate-600">{CRESCO_INTERNAL_TEMPLATE.description}</p>
+              <div className="rounded-lg border border-dashed border-border-strong p-4">
+                <p className="text-sm font-medium text-foreground">{CRESCO_INTERNAL_TEMPLATE.label}</p>
+                <p className="mt-1 text-sm text-foreground-muted">{CRESCO_INTERNAL_TEMPLATE.description}</p>
                 <Button className="mt-3" variant="outline" disabled={saving} onClick={() => void applyTemplate()}>
                   Use Cresco internal template
                 </Button>
@@ -499,7 +499,7 @@ export function OnboardingWizard() {
           <CardContent className="space-y-4">
             {state.progress.templateKey && state.templateProjects.length > 1 ? (
               <div className="space-y-2">
-                <p className="text-sm font-medium text-slate-700">Cresco projects</p>
+                <p className="text-sm font-medium text-foreground-muted">Cresco projects</p>
                 {state.templateProjects.map((templateProject) => {
                   const brand = templateProject.brands[0];
                   if (!brand) return null;
@@ -509,12 +509,12 @@ export function OnboardingWizard() {
                       key={templateProject.id}
                       type="button"
                       className={`w-full rounded-lg border px-4 py-3 text-left text-sm ${
-                        isActive ? "border-slate-900 bg-slate-50" : "border-slate-200"
+                        isActive ? "border-primary bg-surface-subtle" : "border-border"
                       }`}
                       onClick={() => void switchTemplateProject(templateProject.id, brand.id)}
                     >
-                      <span className="font-medium text-slate-900">{templateProject.name}</span>
-                      <span className="mt-1 block text-slate-600">{brand.name}</span>
+                      <span className="font-medium text-foreground">{templateProject.name}</span>
+                      <span className="mt-1 block text-foreground-muted">{brand.name}</span>
                     </button>
                   );
                 })}
@@ -607,7 +607,7 @@ export function OnboardingWizard() {
             <Input label="Target audience (recommended)" value={targetAudience} onChange={(e) => setTargetAudience(e.target.value)} />
             <Input label="Value proposition (recommended)" value={valueProposition} onChange={(e) => setValueProposition(e.target.value)} />
             <Input label="Mission (optional)" value={mission} onChange={(e) => setMission(e.target.value)} />
-            <p className="text-sm text-slate-600">Profile completeness: {profileCompleteness}%</p>
+            <p className="text-sm text-foreground-muted">Profile completeness: {profileCompleteness}%</p>
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" disabled={saving} onClick={() => void saveStep(step, {}, "back")}>
                 Back
@@ -640,8 +640,8 @@ export function OnboardingWizard() {
           </CardHeader>
           <CardContent className="space-y-4">
             {objectiveDrafts.map((objective, index) => (
-              <div key={objective.objectiveType} className="rounded-lg border border-slate-200 p-4">
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-900">
+              <div key={objective.objectiveType} className="rounded-lg border border-border p-4">
+                <label className="flex items-center gap-2 text-sm font-medium text-foreground">
                   <input
                     type="checkbox"
                     checked={objective.selected}
@@ -688,9 +688,9 @@ export function OnboardingWizard() {
                       }}
                     />
                     <label className="space-y-2 text-sm">
-                      <span className="block font-medium text-slate-700">Target period (required)</span>
+                      <span className="block font-medium text-foreground-muted">Target period (required)</span>
                       <select
-                        className="block w-full rounded-lg border border-slate-300 px-3 py-2"
+                        className="block w-full rounded-lg border border-border-strong px-3 py-2"
                         value={objective.targetPeriod}
                         onChange={(event) => {
                           const next = [...objectiveDrafts];
@@ -752,7 +752,7 @@ export function OnboardingWizard() {
                   <label
                     key={channel}
                     className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
-                      checked ? "border-slate-900 bg-slate-50" : "border-slate-200"
+                      checked ? "border-primary bg-surface-subtle" : "border-border"
                     }`}
                   >
                     <input
@@ -796,8 +796,8 @@ export function OnboardingWizard() {
             <CardTitle>Review and completion</CardTitle>
             <CardDescription>Confirm your workspace configuration before entering the dashboard.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-slate-700">
-            <div className="rounded-lg border border-slate-200 p-4">
+          <CardContent className="space-y-4 text-sm text-foreground-muted">
+            <div className="rounded-lg border border-border p-4">
               <p><strong>Organisation:</strong> {state.organisation?.name ?? "—"}</p>
               <p><strong>Project:</strong> {state.project?.name ?? "—"}</p>
               <p><strong>Brand:</strong> {state.brand?.name ?? "—"}</p>

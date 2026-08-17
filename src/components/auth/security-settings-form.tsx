@@ -53,14 +53,14 @@ export function SecuritySettingsForm({
     <div className="space-y-8">
       <section className="space-y-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Connected providers</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-lg font-semibold text-foreground">Connected providers</h2>
+          <p className="text-sm text-foreground-muted">
             Providers linked to your account for sign-in.
           </p>
         </div>
         <ul className="space-y-2">
           {hasPasswordIdentity ? (
-            <li className="rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-700">
+            <li className="rounded-lg border border-border px-4 py-3 text-sm text-foreground-muted">
               Email and password
             </li>
           ) : null}
@@ -69,7 +69,7 @@ export function SecuritySettingsForm({
             .map((identity) => (
               <li
                 key={`${identity.provider}-${identity.id ?? "connected"}`}
-                className="rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-700"
+                className="rounded-lg border border-border px-4 py-3 text-sm text-foreground-muted"
               >
                 {identity.provider.charAt(0).toUpperCase()}
                 {identity.provider.slice(1)}
@@ -82,8 +82,8 @@ export function SecuritySettingsForm({
       {hasPasswordIdentity ? (
         <section className="space-y-4">
           <div>
-            <h2 className="text-lg font-semibold text-slate-900">Change password</h2>
-            <p className="text-sm text-slate-600">
+            <h2 className="text-lg font-semibold text-foreground">Change password</h2>
+            <p className="text-sm text-foreground-muted">
               Re-enter your current password before setting a new one.
             </p>
           </div>
@@ -115,7 +115,7 @@ export function SecuritySettingsForm({
               onChange={(event) => setConfirmPassword(event.target.value)}
               required
             />
-            {error ? <p className="text-sm text-red-600">{error}</p> : null}
+            {error ? <p className="text-sm text-danger">{error}</p> : null}
             {message ? <p className="text-sm text-green-700">{message}</p> : null}
             <Button type="submit" disabled={loading}>
               {loading ? "Updating..." : "Update password"}

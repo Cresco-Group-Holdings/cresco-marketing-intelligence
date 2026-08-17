@@ -97,7 +97,7 @@ export const canonicalPublicationService = {
     });
 
     const job = await createPublishingJobForPublication(row);
-    incrementPublishingCounter("publishing.publication_queued", 1, {
+    incrementPublishingCounter("publishing.scheduled_jobs_enqueued", 1, {
       publicationId: row.id,
       providerKey: row.providerKey,
     });

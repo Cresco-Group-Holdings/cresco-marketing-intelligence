@@ -9,12 +9,12 @@ export function CampaignActivityFeed({ activities }: { activities: CampaignActiv
       </CardHeader>
       <CardContent className="space-y-3">
         {activities.length === 0 ? (
-          <p className="text-sm text-slate-600">No activity recorded yet.</p>
+          <p className="text-sm text-foreground-muted">No activity recorded yet.</p>
         ) : (
           activities.map((activity) => (
-            <div key={activity.id} className="rounded-lg border border-slate-200 px-4 py-3">
-              <p className="text-sm text-slate-900">{activity.summary}</p>
-              <p className="mt-1 text-xs text-slate-500">
+            <div key={activity.id} className="rounded-lg border border-border px-4 py-3">
+              <p className="text-sm text-foreground">{activity.summary}</p>
+              <p className="mt-1 text-xs text-foreground-subtle">
                 {activity.actor.displayName ?? activity.actor.email} ·{" "}
                 {new Date(activity.createdAt).toLocaleString()}
               </p>

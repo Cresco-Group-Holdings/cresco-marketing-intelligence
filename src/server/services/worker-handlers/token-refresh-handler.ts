@@ -20,7 +20,7 @@ export const tokenRefreshWorkerHandler: WorkerHandler = async (input) => {
     connection.id,
   );
 
-  if (result.status === "VALID" || result.status === "ACTIVE" || result.status === "EXPIRING") {
+  if (result.status === "ACTIVE" || result.status === "EXPIRING") {
     return { outcome: "success" };
   }
 

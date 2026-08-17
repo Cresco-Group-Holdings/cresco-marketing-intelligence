@@ -112,7 +112,7 @@ export function YouTubeXPublishPanel({
             />
             <p
               className={
-                posts.some((post) => post.length > 280) ? "text-red-700" : "text-slate-500"
+                posts.some((post) => post.length > 280) ? "text-red-700" : "text-foreground-subtle"
               }
             >
               {posts.length} post(s) · separate thread posts with a line containing --- ·{" "}

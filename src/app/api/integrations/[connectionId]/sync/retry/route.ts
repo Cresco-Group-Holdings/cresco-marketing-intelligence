@@ -7,10 +7,10 @@ import {
 import { retryFailuresSchema } from "@/lib/validation/integrations-sync";
 import { providerSyncService } from "@/server/services/provider-sync-service";
 
-type Params = { params: Promise<{ resourceId: string }> };
+type Params = { params: Promise<{ connectionId: string }> };
 
 export async function POST(request: NextRequest, { params }: Params) {
-  const { resourceId: connectionId } = await params;
+  const { connectionId } = await params;
   const organisationId = requireOrganisationId(request);
   const body = await request.json().catch(() => ({}));
 

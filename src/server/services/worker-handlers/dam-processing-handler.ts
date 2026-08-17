@@ -17,7 +17,7 @@ export const damProcessingWorkerHandler: WorkerHandler = async (input) => {
   }
 
   const results = await digitalAssetProcessingService.processDueJobs(new Date(), 1);
-  const processed = results.find((entry) => entry.jobId === job.id);
+  const processed = results.outcomes.find((entry) => entry.jobId === job.id);
   if (!processed) {
     return { outcome: "skipped", reason: "DAM job not due." };
   }

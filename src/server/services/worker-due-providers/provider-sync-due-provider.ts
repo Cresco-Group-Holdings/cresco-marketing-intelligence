@@ -7,7 +7,9 @@ export async function discoverProviderSyncDueWork(now: Date, limit: number): Pro
     where: {
       status: { in: ["QUEUED", "RETRYING"] },
       OR: [{ nextRetryAt: null }, { nextRetryAt: { lte: now } }],
-      organisation: { status: "ACTIVE", archivedAt: null },
+      connection: {
+        organisation: { status: "ACTIVE", archivedAt: null },
+      },
     },
     orderBy: { createdAt: "asc" },
     take: limit,

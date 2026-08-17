@@ -28,7 +28,7 @@ export default function SharedReportPage() {
       .catch((caught) => setError(caught instanceof Error ? caught.message : "Report unavailable."));
   }, [token]);
 
-  if (error) return <p className="p-8 text-sm text-red-600">{error}</p>;
+  if (error) return <p className="p-8 text-sm text-danger">{error}</p>;
   if (!report) return <p className="p-8 text-sm text-muted-foreground">Loading shared report…</p>;
 
   return (
