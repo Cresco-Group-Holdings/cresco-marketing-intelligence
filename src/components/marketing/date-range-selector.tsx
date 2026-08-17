@@ -152,14 +152,14 @@ export function DateRangeSelector() {
             {showCustom ? (
               <div className="mt-2 space-y-2 rounded-lg border border-border bg-surface p-3">
                 <Input
-                  label="From date"
+                  label="Start date"
                   id="date-from"
                   type="date"
                   value={fromValue}
                   onChange={(event) => setFromValue(event.target.value)}
                 />
                 <Input
-                  label="To date"
+                  label="End date"
                   id="date-to"
                   type="date"
                   value={toValue}

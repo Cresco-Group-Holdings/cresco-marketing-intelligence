@@ -1,5 +1,5 @@
-import { RevenueAnalyticsView } from "@/components/revenue/revenue-view";
+import { UnifiedAnalyticsWorkspace } from "@/components/analytics/unified-analytics-workspace";
 
 export default function RevenueOverviewPage() {
-  return <RevenueAnalyticsView mode="overview" />;
+  return <UnifiedAnalyticsWorkspace tab="revenue" />;
 }

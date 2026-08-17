@@ -45,6 +45,10 @@ function isNavItemActive(pathname: string, href: string): boolean {
     return true;
   }
 
+  if (href === "/copilot" && pathname.startsWith("/copilot")) {
+    return true;
+  }
+
   if (href === "/growth" && pathname.startsWith("/growth")) {
     return true;
   }

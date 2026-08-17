@@ -1,6 +1,6 @@
 import type { DataFreshnessState } from "@/lib/marketing-intelligence/types";
 import type { MarketingMetric } from "@/components/marketing/marketing-metric-card";
-import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart";
+import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart.types";
 
 export type CampaignStatus =
   | "Draft"
