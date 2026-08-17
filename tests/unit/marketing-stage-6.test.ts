@@ -31,6 +31,145 @@ describe("copilot intent routing", () => {
   });
 });
 
+describe("ROAS diagnostics", () => {
+  const baseInput = {
+    currentSpend: 10000,
+    previousSpend: 9000,
+    currentRevenue: 35000,
+    previousRevenue: 38700,
+    periodLabel: "the last 30 days",
+  };
+
+  const metaProvider = {
+    provider: "META",
+    currentSpend: 6000,
+    previousSpend: 5000,
+    currentRevenue: 18000,
+    previousRevenue: 22000,
+    currentRoas: 3,
+    previousRoas: 4.4,
+    currentCpa: 68,
+    previousCpa: 54,
+    currentCtr: 0.02,
+    previousCtr: 0.025,
+    conversions: 88,
+  };
+
+  it("diagnoses a valid positive ROAS decline with evidence", () => {
+    const result = diagnoseRoasChange({
+      ...baseInput,
+      currentRoas: 3.5,
+      previousRoas: 4.3,
+      providerBreakdown: [metaProvider],
+    });
+
+    expect(result.facts.length).toBeGreaterThan(0);
+    expect(result.facts.every((fact) => fact.evidenceIds.length > 0)).toBe(true);
+    expect(result.summary).toContain("declined");
+  });
+
+  it("treats zero ROAS as a calculable value when spend and prior ROAS exist", () => {
+    const result = diagnoseRoasChange({
+      ...baseInput,
+      currentRoas: 0,
+      previousRoas: 2,
+      currentSpend: 5000,
+      previousSpend: 4000,
+      currentRevenue: 0,
+      previousRevenue: 8000,
+      providerBreakdown: [],
+    });
+
+    expect(result.summary).toContain("declined");
+    expect(result.facts.some((fact) => fact.statement.includes("0.00x"))).toBe(true);
+    expect(result.recommendations.some((rec) => rec.statement.includes("below-average ROAS"))).toBe(
+      false,
+    );
+  });
+
+  it("returns insufficient-data response when current ROAS is unavailable", () => {
+    const result = diagnoseRoasChange({
+      ...baseInput,
+      currentRoas: null,
+      previousRoas: 4,
+      providerBreakdown: [metaProvider],
+    });
+
+    expect(result.summary).toContain("cannot diagnose ROAS");
+    expect(result.facts[0]?.statement).toContain("cannot be calculated");
+    expect(result.recommendations[0]?.statement).toContain("Connect paid ad accounts");
+    expect(result.recommendations.some((rec) => rec.statement.includes("below-average ROAS"))).toBe(
+      false,
+    );
+    expect(result.inferences).toHaveLength(0);
+  });
+
+  it("returns insufficient-data response when previous ROAS is unavailable", () => {
+    const result = diagnoseRoasChange({
+      ...baseInput,
+      currentRoas: 3.2,
+      previousRoas: null,
+      providerBreakdown: [],
+    });
+
+    expect(result.summary).toContain("cannot diagnose ROAS");
+    expect(result.recommendations.some((rec) => rec.statement.includes("below-average ROAS"))).toBe(
+      false,
+    );
+  });
+
+  it("reports healthy ROAS improvement", () => {
+    const result = diagnoseRoasChange({
+      ...baseInput,
+      currentRoas: 5,
+      previousRoas: 3.5,
+      currentSpend: 8000,
+      previousSpend: 8000,
+      currentRevenue: 40000,
+      previousRevenue: 28000,
+      providerBreakdown: [
+        {
+          ...metaProvider,
+          currentRoas: 5,
+          previousRoas: 3.5,
+        },
+      ],
+    });
+
+    expect(result.summary).toContain("improved");
+    expect(result.recommendations.some((rec) => rec.statement.includes("below-average ROAS"))).toBe(
+      false,
+    );
+  });
+
+  it("recommends reviewing a materially weaker provider", () => {
+    const result = diagnoseRoasChange({
+      ...baseInput,
+      currentRoas: 4,
+      previousRoas: 4.2,
+      providerBreakdown: [
+        metaProvider,
+        {
+          provider: "GOOGLE_ADS",
+          currentSpend: 4000,
+          previousSpend: 4000,
+          currentRevenue: 4000,
+          previousRevenue: 12000,
+          currentRoas: 1,
+          previousRoas: 3,
+          currentCpa: 90,
+          previousCpa: 40,
+          currentCtr: 0.03,
+          previousCtr: 0.04,
+          conversions: 44,
+        },
+      ],
+    });
+
+    expect(result.recommendations.some((rec) => rec.statement.includes("GOOGLE_ADS"))).toBe(true);
+  });
+});
+
 describe("copilot evidence and confidence", () => {
   it("requires evidence-backed facts in diagnostics", () => {
     const result = diagnoseRoasChange({

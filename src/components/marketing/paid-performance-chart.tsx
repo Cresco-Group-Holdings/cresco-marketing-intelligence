@@ -3,13 +3,10 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ChartBarGroup } from "@/components/marketing/chart-bar";
-
-export type PaidChartMetric = "spend" | "revenue" | "conversions" | "roas" | "cpa";
-
-export type PaidChartPoint = {
-  label: string;
-  value: number;
-};
+import type {
+  PaidChartMetric,
+  PaidChartPoint,
+} from "@/components/marketing/paid-performance-chart.types";
 
 const METRIC_LABELS: Record<PaidChartMetric, string> = {
   spend: "Spend",
@@ -104,3 +101,8 @@ export function PaidPerformanceChart({
     </div>
   );
 }
+
+export type {
+  PaidChartMetric,
+  PaidChartPoint,
+} from "@/components/marketing/paid-performance-chart.types";
