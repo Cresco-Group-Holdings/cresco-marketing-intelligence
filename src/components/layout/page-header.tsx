@@ -16,11 +16,11 @@ type PageHeaderProps = {
 
 export function PageHeader({ title, description, breadcrumbs, actions }: PageHeaderProps) {
   return (
-    <div className="mb-8 flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-start lg:justify-between">
+    <div className="mb-8 flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-start lg:justify-between">
       <div className="space-y-3">
         {breadcrumbs && breadcrumbs.length > 0 ? (
           <nav aria-label="Breadcrumb">
-            <ol className="flex flex-wrap items-center gap-1 text-sm text-slate-500">
+            <ol className="flex flex-wrap items-center gap-1 text-sm text-foreground-subtle">
               {breadcrumbs.map((item, index) => {
                 const isLast = index === breadcrumbs.length - 1;
                 return (
@@ -28,13 +28,13 @@ export function PageHeader({ title, description, breadcrumbs, actions }: PageHea
                     {item.href && !isLast ? (
                       <Link
                         href={item.href}
-                        className="rounded-sm hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                        className="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         {item.label}
                       </Link>
                     ) : (
                       <span
-                        className={cn(isLast && "font-medium text-slate-700")}
+                        className={cn(isLast && "font-medium text-foreground-muted")}
                         aria-current={isLast ? "page" : undefined}
                       >
                         {item.label}
@@ -48,13 +48,13 @@ export function PageHeader({ title, description, breadcrumbs, actions }: PageHea
           </nav>
         ) : null}
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            {title}
-          </h1>
-          {description ? <p className="mt-2 max-w-3xl text-sm text-slate-600">{description}</p> : null}
+          <h1 className="text-page-title">{title}</h1>
+          {description ? (
+            <p className="mt-2 max-w-3xl text-sm text-foreground-muted">{description}</p>
+          ) : null}
         </div>
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

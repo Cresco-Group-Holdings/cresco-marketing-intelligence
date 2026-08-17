@@ -154,7 +154,7 @@ export function TikTokPublishPanel({
 
   if (!context) {
     return (
-      <p className="text-sm text-slate-600">{error ?? "Loading TikTok publishing options…"}</p>
+      <p className="text-sm text-foreground-muted">{error ?? "Loading TikTok publishing options…"}</p>
     );
   }
 
@@ -168,7 +168,7 @@ export function TikTokPublishPanel({
           <p className="font-medium">
             @{context.account.username} · {context.account.nickname}
           </p>
-          <p className="text-slate-600">Caption: {context.caption}</p>
+          <p className="text-foreground-muted">Caption: {context.caption}</p>
         </div>
 
         <video src={context.previewUrl} controls className="max-h-72 w-full rounded-md border" />
@@ -187,7 +187,7 @@ export function TikTokPublishPanel({
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-foreground-subtle">
             Only the options this TikTok account currently offers are listed. Nothing is
             preselected.
           </p>
@@ -267,7 +267,7 @@ export function TikTokPublishPanel({
         </label>
 
         {error ? <p className="text-red-700">{error}</p> : null}
-        {message ? <p className="text-slate-600">{message}</p> : null}
+        {message ? <p className="text-foreground-muted">{message}</p> : null}
 
         <div className="flex flex-wrap gap-2">
           <Button size="sm" disabled={busy} onClick={() => void saveAndPublish()}>

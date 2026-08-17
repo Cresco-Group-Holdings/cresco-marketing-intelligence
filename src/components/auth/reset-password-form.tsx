@@ -53,7 +53,7 @@ export function ResetPasswordForm() {
         onChange={(event) => setConfirmPassword(event.target.value)}
         required
       />
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Updating password..." : "Update password"}
       </Button>

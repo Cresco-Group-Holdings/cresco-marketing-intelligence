@@ -60,8 +60,8 @@ export default function DigitalAssetDetailPage() {
     void load();
   }, [load]);
 
-  if (loading) return <p className="text-sm text-slate-500">Loading…</p>;
-  if (!asset) return <p className="text-sm text-red-600">{error ?? "Not found"}</p>;
+  if (loading) return <p className="text-sm text-foreground-subtle">Loading…</p>;
+  if (!asset) return <p className="text-sm text-danger">{error ?? "Not found"}</p>;
 
   return (
     <div className="space-y-6">
@@ -78,7 +78,7 @@ export default function DigitalAssetDetailPage() {
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardHeader><CardTitle>Details</CardTitle></CardHeader>
-          <CardContent className="space-y-2 text-sm text-slate-600">
+          <CardContent className="space-y-2 text-sm text-foreground-muted">
             <p>MIME: {asset.mimeType}</p>
             <p>Size: {(asset.sizeBytes / 1024).toFixed(1)} KB</p>
             <p>Checksum: {asset.checksum}</p>
@@ -94,7 +94,7 @@ export default function DigitalAssetDetailPage() {
                 <p key={u.id}>{u.entityType}: {u.entityId}{u.usageRole ? ` (${u.usageRole})` : ""}</p>
               ))
             ) : (
-              <p className="text-slate-500">Not referenced anywhere.</p>
+              <p className="text-foreground-subtle">Not referenced anywhere.</p>
             )}
           </CardContent>
         </Card>

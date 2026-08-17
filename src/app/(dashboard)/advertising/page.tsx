@@ -1,5 +1,5 @@
-import { CampaignPlanView } from "@/components/advertising/campaign-plan-view";
+import { PaidAdvertisingWorkspace } from "@/components/advertising/paid-advertising-workspace";
 
 export default function AdvertisingOverviewPage() {
-  return <CampaignPlanView mode="overview" />;
+  return <PaidAdvertisingWorkspace />;
 }

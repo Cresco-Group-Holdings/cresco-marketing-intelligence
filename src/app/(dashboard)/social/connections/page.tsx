@@ -262,7 +262,7 @@ export default function SocialConnectionsPage() {
               >
                 <div>
                   <p className="font-medium">{account.displayName ?? account.username}</p>
-                  <p className="text-sm text-slate-600">{account.accountType}</p>
+                  <p className="text-sm text-foreground-muted">{account.accountType}</p>
                 </div>
                 <Button
                   size="sm"
@@ -281,7 +281,7 @@ export default function SocialConnectionsPage() {
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-4">
-          {loading ? <p className="text-sm text-slate-600">Loading providers...</p> : null}
+          {loading ? <p className="text-sm text-foreground-muted">Loading providers...</p> : null}
           <div className="grid gap-4 md:grid-cols-2">
             {groupedCatalogue.map((item) => (
               <Card key={item.provider} className="flex flex-col">
@@ -301,11 +301,11 @@ export default function SocialConnectionsPage() {
                 </CardHeader>
                 <CardContent className="mt-auto space-y-3">
                   {item.connection?.account ? (
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-foreground-muted">
                       Connected: @{item.connection.account.username ?? item.connection.account.displayName}
                     </p>
                   ) : null}
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-foreground-subtle">
                     Required permissions: {item.requiredScopes.join(", ") || "None"}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -342,12 +342,12 @@ export default function SocialConnectionsPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {!selected ? (
-              <p className="text-slate-600">Select a provider to inspect its connection.</p>
+              <p className="text-foreground-muted">Select a provider to inspect its connection.</p>
             ) : (
               <>
                 <div>
                   <p className="font-medium">{selected.name}</p>
-                  <p className="text-slate-600">{selected.description}</p>
+                  <p className="text-foreground-muted">{selected.description}</p>
                 </div>
                 <div>
                   <p className="font-medium">Status</p>
@@ -357,7 +357,7 @@ export default function SocialConnectionsPage() {
                 </div>
                 <div>
                   <p className="font-medium">Granted permissions</p>
-                  <ul className="list-disc pl-5 text-slate-600">
+                  <ul className="list-disc pl-5 text-foreground-muted">
                     {(selected.connection?.grantedScopes ?? []).map((scope) => (
                       <li key={scope}>{scope}</li>
                     ))}
@@ -380,24 +380,24 @@ export default function SocialConnectionsPage() {
                   <>
                     <div>
                       <p className="font-medium">Token expiry</p>
-                      <p className="text-slate-600">
+                      <p className="text-foreground-muted">
                         {selected.connection.tokenExpiresAt ?? "Unknown"}
                       </p>
                     </div>
                     <div>
                       <p className="font-medium">Last validation</p>
-                      <p className="text-slate-600">
+                      <p className="text-foreground-muted">
                         {selected.connection.lastValidatedAt ?? "Never"}
                       </p>
                     </div>
                     {selected.connection.account ? (
                       <div>
                         <p className="font-medium">Assigned account</p>
-                        <p className="text-slate-600">
+                        <p className="text-foreground-muted">
                           {selected.connection.account.displayName} (
                           {selected.connection.account.accountType})
                         </p>
-                        <p className="text-slate-600">
+                        <p className="text-foreground-muted">
                           Capabilities: {selected.connection.account.capabilities.join(", ")}
                         </p>
                       </div>

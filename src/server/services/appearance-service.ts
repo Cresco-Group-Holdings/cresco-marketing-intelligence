@@ -27,6 +27,10 @@ function toAppearancePreference(
   };
 }
 
+/**
+ * Appearance preferences are stored on WorkspacePreference keyed by userId (unique).
+ * Despite the table name, this is a per-user preference — not shared across workspace members.
+ */
 export const appearanceService = {
   async getAppearance(userProfileId: string): Promise<AppearancePreferences> {
     const preference = await prisma.workspacePreference.findUnique({

@@ -317,7 +317,7 @@ export function CalendarView() {
   if (workspaceLoading) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-slate-600">
+        <CardContent className="py-8 text-center text-sm text-foreground-muted">
           Loading workspace…
         </CardContent>
       </Card>
@@ -327,7 +327,7 @@ export function CalendarView() {
   if (workspaceError) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-red-600">{workspaceError}</CardContent>
+        <CardContent className="py-8 text-center text-sm text-danger">{workspaceError}</CardContent>
       </Card>
     );
   }
@@ -341,7 +341,7 @@ export function CalendarView() {
           breadcrumbs={[{ label: "Overview", href: "/dashboard" }, { label: "Content Calendar" }]}
         />
         <Card>
-          <CardContent className="py-8 text-center text-sm text-slate-600">
+          <CardContent className="py-8 text-center text-sm text-foreground-muted">
             Select an organisation workspace to view the content calendar.
           </CardContent>
         </Card>
@@ -397,14 +397,14 @@ export function CalendarView() {
         <div className={cn(eventsLoading && "opacity-70")}>
           {eventsLoading ? (
             <Card>
-              <CardContent className="py-12 text-center text-sm text-slate-600">
+              <CardContent className="py-12 text-center text-sm text-foreground-muted">
                 Loading calendar events…
               </CardContent>
             </Card>
           ) : eventsError ? (
             <Card>
               <CardContent className="space-y-3 py-8 text-center">
-                <p className="text-sm text-red-600">{eventsError}</p>
+                <p className="text-sm text-danger">{eventsError}</p>
                 <Button variant="outline" size="sm" onClick={() => void loadEvents()}>
                   Retry
                 </Button>

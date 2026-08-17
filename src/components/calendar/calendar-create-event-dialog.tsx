@@ -111,13 +111,13 @@ export function CalendarCreateEventDialog({
   }
 
   const selectClassName =
-    "block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200";
+    "block w-full rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <button
         type="button"
-        className="absolute inset-0 bg-slate-900/40"
+        className="absolute inset-0 bg-foreground/40"
         aria-label="Close create event dialog"
         onClick={onClose}
       />
@@ -125,12 +125,12 @@ export function CalendarCreateEventDialog({
         role="dialog"
         aria-modal="true"
         aria-labelledby="calendar-create-event-title"
-        className="relative z-10 w-full max-w-lg rounded-xl border border-slate-200 bg-white shadow-xl"
+        className="relative z-10 w-full max-w-lg rounded-xl border border-border bg-surface-elevated shadow-xl"
       >
-        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4">
+        <div className="flex items-start justify-between border-b border-border-subtle px-6 py-4">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">New event</p>
-            <h2 id="calendar-create-event-title" className="mt-1 text-lg font-semibold text-slate-900">
+            <p className="text-xs font-medium uppercase tracking-wide text-foreground-subtle">New event</p>
+            <h2 id="calendar-create-event-title" className="mt-1 text-lg font-semibold text-foreground">
               Create manual calendar event
             </h2>
           </div>
@@ -147,12 +147,12 @@ export function CalendarCreateEventDialog({
             placeholder="Launch announcement"
           />
           <div className="space-y-2">
-            <label htmlFor="calendar-event-description" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="calendar-event-description" className="block text-sm font-medium text-foreground-muted">
               Description
             </label>
             <textarea
               id="calendar-event-description"
-              className="block min-h-[88px] w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm placeholder:text-slate-400 focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+              className="block min-h-[88px] w-full rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm placeholder:text-foreground-subtle focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               value={description}
               onChange={(event) => setDescription(event.target.value)}
               placeholder="Optional notes for the team"
@@ -161,7 +161,7 @@ export function CalendarCreateEventDialog({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <label htmlFor="calendar-event-type" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="calendar-event-type" className="block text-sm font-medium text-foreground-muted">
                 Event type
               </label>
               <select
@@ -178,7 +178,7 @@ export function CalendarCreateEventDialog({
               </select>
             </div>
             <div className="space-y-2">
-              <label htmlFor="calendar-event-channel" className="block text-sm font-medium text-slate-700">
+              <label htmlFor="calendar-event-channel" className="block text-sm font-medium text-foreground-muted">
                 Channel
               </label>
               <select
@@ -219,27 +219,27 @@ export function CalendarCreateEventDialog({
             hint="Events display in this timezone (IANA identifier)."
           />
 
-          <label className="flex items-center gap-2 text-sm text-slate-700">
+          <label className="flex items-center gap-2 text-sm text-foreground-muted">
             <input
               type="checkbox"
               checked={allDay}
               onChange={(event) => setAllDay(event.target.checked)}
-              className="rounded border-slate-300"
+              className="rounded border-border-strong"
             />
             All-day event
           </label>
 
-          {validationError ? <p className="text-sm text-red-600">{validationError}</p> : null}
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {validationError ? <p className="text-sm text-danger">{validationError}</p> : null}
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
           {!defaultBrandId ? (
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-foreground-subtle">
               Select a brand in the workspace header to associate this event with a brand context.
             </p>
           ) : null}
-          <p className="text-xs text-slate-400">Organisation: {organisationId}</p>
+          <p className="text-xs text-foreground-subtle">Organisation: {organisationId}</p>
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-100 px-6 py-4">
+        <div className="flex justify-end gap-2 border-t border-border-subtle px-6 py-4">
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancel
           </Button>

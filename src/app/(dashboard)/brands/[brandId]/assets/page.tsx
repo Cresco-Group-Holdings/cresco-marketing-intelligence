@@ -206,10 +206,10 @@ export default function BrandAssetLibraryPage() {
         ]}
         actions={
           <div className="flex items-center gap-4">
-            <Link href={`/brands/${brandId}/digital-assets`} className="text-sm font-medium text-slate-900 hover:underline">
+            <Link href={`/brands/${brandId}/digital-assets`} className="text-sm font-medium text-foreground hover:underline">
               Digital asset library
             </Link>
-            <Link href={`/brands/${brandId}/knowledge`} className="text-sm font-medium text-slate-900 hover:underline">
+            <Link href={`/brands/${brandId}/knowledge`} className="text-sm font-medium text-foreground hover:underline">
               Knowledge base
             </Link>
           </div>
@@ -247,10 +247,10 @@ export default function BrandAssetLibraryPage() {
             <CardTitle>Filters</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-foreground-muted">
               Asset type
               <select
-                className="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="mt-2 block w-full rounded-lg border border-border-strong px-3 py-2 text-sm"
                 value={assetTypeFilter}
                 onChange={(event) => setAssetTypeFilter(event.target.value)}
               >
@@ -261,10 +261,10 @@ export default function BrandAssetLibraryPage() {
                 <option value="DOCUMENT">Document</option>
               </select>
             </label>
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-sm font-medium text-foreground-muted">
               Tag
               <select
-                className="mt-2 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="mt-2 block w-full rounded-lg border border-border-strong px-3 py-2 text-sm"
                 value={tagFilter}
                 onChange={(event) => setTagFilter(event.target.value)}
               >
@@ -276,7 +276,7 @@ export default function BrandAssetLibraryPage() {
                 ))}
               </select>
             </label>
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-foreground-muted">
               <input
                 type="checkbox"
                 checked={approvedOnly}
@@ -307,11 +307,11 @@ export default function BrandAssetLibraryPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm text-slate-600">{asset.originalFilename}</p>
+                <p className="text-sm text-foreground-muted">{asset.originalFilename}</p>
                 {asset.tags.length > 0 ? (
                   <div className="flex flex-wrap gap-2">
                     {asset.tags.map((tag) => (
-                      <span key={tag} className="rounded-full bg-slate-100 px-2 py-1 text-xs text-slate-700">
+                      <span key={tag} className="rounded-full bg-surface-hover px-2 py-1 text-xs text-foreground-muted">
                         {tag}
                       </span>
                     ))}
@@ -331,12 +331,12 @@ export default function BrandAssetLibraryPage() {
         </div>
       ) : (
         <Card>
-          <CardContent className="divide-y divide-slate-200 p-0">
+          <CardContent className="divide-y divide-border p-0">
             {assets.map((asset) => (
               <div key={asset.id} className="flex items-center justify-between gap-4 p-4">
                 <div>
-                  <p className="font-medium text-slate-900">{asset.title}</p>
-                  <p className="text-sm text-slate-600">
+                  <p className="font-medium text-foreground">{asset.title}</p>
+                  <p className="text-sm text-foreground-muted">
                     {asset.assetType} · {asset.mimeType} · {formatBytes(asset.sizeBytes)}
                   </p>
                 </div>
@@ -362,7 +362,7 @@ export default function BrandAssetLibraryPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {previewUrl ? (
-              <div className="rounded-lg border border-slate-200 p-4">
+              <div className="rounded-lg border border-border p-4">
                 {selectedAsset.assetType === "IMAGE" ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={previewUrl} alt={selectedAsset.title} className="max-h-80 rounded-md object-contain" />
@@ -371,7 +371,7 @@ export default function BrandAssetLibraryPage() {
                 ) : selectedAsset.assetType === "AUDIO" ? (
                   <audio src={previewUrl} controls className="w-full" />
                 ) : (
-                  <a href={previewUrl} className="text-sm font-medium text-slate-900 hover:underline" target="_blank" rel="noreferrer">
+                  <a href={previewUrl} className="text-sm font-medium text-foreground hover:underline" target="_blank" rel="noreferrer">
                     Open signed preview
                   </a>
                 )}
@@ -396,7 +396,7 @@ export default function BrandAssetLibraryPage() {
                 })
               }
             />
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-foreground-muted">
               <input
                 type="checkbox"
                 checked={selectedAsset.approvedForMarketing}
@@ -429,7 +429,7 @@ export default function BrandAssetLibraryPage() {
               value={selectedAsset.licenceNotes ?? ""}
               onChange={(event) => setSelectedAsset({ ...selectedAsset, licenceNotes: event.target.value })}
             />
-            <label className="flex items-center gap-2 text-sm text-slate-700">
+            <label className="flex items-center gap-2 text-sm text-foreground-muted">
               <input
                 type="checkbox"
                 checked={selectedAsset.attributionRequired}
@@ -457,7 +457,7 @@ export default function BrandAssetLibraryPage() {
       ) : null}
 
       {message ? <p className="mt-4 text-sm text-green-700">{message}</p> : null}
-      {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
     </>
   );
 }

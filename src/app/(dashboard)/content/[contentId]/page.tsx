@@ -113,7 +113,7 @@ export default function ContentDetailPage() {
   }
 
   if (!item) {
-    return <p className="text-sm text-slate-600">{error ?? "Loading content..."}</p>;
+    return <p className="text-sm text-foreground-muted">{error ?? "Loading content..."}</p>;
   }
 
   return (
@@ -156,7 +156,7 @@ export default function ContentDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <p>{item.primaryMessage ?? "No primary message yet."}</p>
-            <p className="text-slate-600">Type: {item.contentType}</p>
+            <p className="text-foreground-muted">Type: {item.contentType}</p>
           </CardContent>
         </Card>
 
@@ -168,7 +168,7 @@ export default function ContentDetailPage() {
             {item.variants.map((variant) => (
               <div key={variant.id} className="rounded-md border p-3">
                 <p className="font-medium">{variant.provider}</p>
-                <p className="text-slate-600">{variant.format}</p>
+                <p className="text-foreground-muted">{variant.format}</p>
                 <p>{variant.caption}</p>
               </div>
             ))}
@@ -257,14 +257,14 @@ export default function ContentDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {item.complianceChecks.length === 0 ? (
-              <p className="text-slate-600">No compliance findings yet.</p>
+              <p className="text-foreground-muted">No compliance findings yet.</p>
             ) : (
               item.complianceChecks.map((check, index) => (
                 <div key={`${check.checkType}-${index}`} className="rounded-md border p-3">
                   <p className="font-medium">
                     {check.checkType} · {check.result}
                   </p>
-                  <p className={check.blocking ? "text-red-700" : "text-slate-600"}>
+                  <p className={check.blocking ? "text-red-700" : "text-foreground-muted"}>
                     {check.message}
                   </p>
                 </div>
@@ -281,10 +281,10 @@ export default function ContentDetailPage() {
               <p>
                 {item.provenance.aiProvider} · {item.provenance.aiModel}
               </p>
-              <p className="text-slate-600">
+              <p className="text-foreground-muted">
                 Estimated cost: ${item.provenance.metadata?.estimatedCostUsd ?? 0}
               </p>
-              <p className="text-slate-600">
+              <p className="text-foreground-muted">
                 Generated content remains a draft and requires review before approval.
               </p>
               {(item.provenance.metadata?.safetyFlags?.length ?? 0) > 0 ? (

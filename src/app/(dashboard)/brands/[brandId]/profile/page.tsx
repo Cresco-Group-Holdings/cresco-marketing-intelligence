@@ -119,7 +119,7 @@ export default function BrandProfilePage() {
       </div>
 
       {message ? <p className="mt-4 text-sm text-green-700">{message}</p> : null}
-      {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="mt-4 text-sm text-danger">{error}</p> : null}
       <Button className="mt-6" onClick={() => void saveProfile()} disabled={loading}>
         Save brand profile
       </Button>

@@ -22,11 +22,11 @@ export default function AuditLogSettingsPage() {
     <>
       <PageHeader title="Audit log" breadcrumbs={[{ label: "Settings", href: "/settings" }, { label: "Audit log" }]} />
       <div className="space-y-3">
-        {events.length === 0 ? <p className="text-sm text-slate-600">No audit events yet.</p> : null}
+        {events.length === 0 ? <p className="text-sm text-foreground-muted">No audit events yet.</p> : null}
         {events.map((event) => (
           <Card key={event.id}>
             <CardHeader><CardTitle>{event.action}</CardTitle></CardHeader>
-            <CardContent className="text-sm text-slate-600">
+            <CardContent className="text-sm text-foreground-muted">
               <p>{event.resourceType}</p>
               <p>{new Date(event.createdAt).toLocaleString()}</p>
             </CardContent>

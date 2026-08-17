@@ -67,7 +67,7 @@ export function CalendarWeekGrid({
     <Card>
       <CardContent className="space-y-4 py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-900">Week of {weekLabel}</h2>
+          <h2 className="text-lg font-semibold text-foreground">Week of {weekLabel}</h2>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={onPrevious} aria-label="Previous week">
               <ChevronLeft className="h-4 w-4" />
@@ -82,24 +82,24 @@ export function CalendarWeekGrid({
         </div>
 
         {rescheduling ? (
-          <p className="text-sm text-slate-600">Rescheduling event…</p>
+          <p className="text-sm text-foreground-muted">Rescheduling event…</p>
         ) : (
-          <p className="text-xs text-slate-500">Drag events between days to reschedule.</p>
+          <p className="text-xs text-foreground-subtle">Drag events between days to reschedule.</p>
         )}
 
         <div className="overflow-x-auto">
           <div className="min-w-[840px]">
-            <div className="grid grid-cols-7 border-b border-slate-200 pb-2">
+            <div className="grid grid-cols-7 border-b border-border pb-2">
               {days.map((day, index) => {
                 const dateKey = toDateKey(day);
                 const isToday = dateKey === toDateKey(new Date());
                 return (
                   <div key={dateKey} className="px-2 text-center">
-                    <p className="text-xs font-medium uppercase text-slate-500">{WEEKDAY_LABELS[index]}</p>
+                    <p className="text-xs font-medium uppercase text-foreground-subtle">{WEEKDAY_LABELS[index]}</p>
                     <p
                       className={cn(
                         "mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm",
-                        isToday && "bg-slate-900 font-semibold text-white",
+                        isToday && "bg-primary font-semibold text-primary-foreground",
                       )}
                     >
                       {day.getDate()}
@@ -119,7 +119,7 @@ export function CalendarWeekGrid({
                   <div
                     key={dateKey}
                     className={cn(
-                      "min-h-[320px] border-r border-slate-100 p-2 last:border-r-0",
+                      "min-h-[320px] border-r border-border-subtle p-2 last:border-r-0",
                       isDropTarget && "bg-sky-50 ring-2 ring-inset ring-sky-300",
                     )}
                     onDragOver={(dragEvent) => {
@@ -135,7 +135,7 @@ export function CalendarWeekGrid({
                   >
                     <div className="space-y-2">
                       {dayEvents.length === 0 ? (
-                        <p className="text-xs text-slate-400">No events</p>
+                        <p className="text-xs text-foreground-subtle">No events</p>
                       ) : (
                         dayEvents.map((event) => (
                           <CalendarEventCard
@@ -157,7 +157,7 @@ export function CalendarWeekGrid({
         </div>
 
         {draggingEventId ? (
-          <p className="text-xs text-slate-500">Drop on a day to move the selected event.</p>
+          <p className="text-xs text-foreground-subtle">Drop on a day to move the selected event.</p>
         ) : null}
       </CardContent>
     </Card>

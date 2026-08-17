@@ -57,13 +57,13 @@ export function CalendarFiltersBar({
   }
 
   const selectClassName =
-    "block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:border-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200";
+    "block w-full rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm text-foreground shadow-sm focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
 
   return (
     <Card>
       <CardContent className="grid gap-4 py-5 md:grid-cols-2 xl:grid-cols-5">
         <div className="space-y-2">
-          <label htmlFor="calendar-project-filter" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="calendar-project-filter" className="block text-sm font-medium text-foreground-muted">
             Project
           </label>
           <select
@@ -82,7 +82,7 @@ export function CalendarFiltersBar({
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="calendar-brand-filter" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="calendar-brand-filter" className="block text-sm font-medium text-foreground-muted">
             Brand
           </label>
           <select
@@ -101,7 +101,7 @@ export function CalendarFiltersBar({
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="calendar-campaign-filter" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="calendar-campaign-filter" className="block text-sm font-medium text-foreground-muted">
             Campaign
           </label>
           <select
@@ -121,7 +121,7 @@ export function CalendarFiltersBar({
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="calendar-channel-filter" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="calendar-channel-filter" className="block text-sm font-medium text-foreground-muted">
             Channel
           </label>
           <select
@@ -140,7 +140,7 @@ export function CalendarFiltersBar({
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="calendar-type-filter" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="calendar-type-filter" className="block text-sm font-medium text-foreground-muted">
             Event type
           </label>
           <select

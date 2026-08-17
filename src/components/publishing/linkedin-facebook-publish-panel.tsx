@@ -87,7 +87,7 @@ export function LinkedInFacebookPublishPanel({
         {variant.headline ? <p className="font-semibold">{variant.headline}</p> : null}
         <p className="whitespace-pre-wrap">{variant.caption}</p>
         {variant.destinationUrl ? <p className="text-blue-700">{variant.destinationUrl}</p> : null}
-        <p className="text-slate-500">Format: {variant.format}</p>
+        <p className="text-foreground-subtle">Format: {variant.format}</p>
         {variant.provider === "LINKEDIN" ? (
           <div>
             <label className="mb-1 block font-medium">Post as</label>
@@ -102,7 +102,7 @@ export function LinkedInFacebookPublishPanel({
                 <option value="ORGANISATION">Organisation — {identity}</option>
               )}
             </select>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-foreground-subtle">
               Only the identity explicitly connected to this variant can be selected.
             </p>
           </div>
@@ -116,7 +116,7 @@ export function LinkedInFacebookPublishPanel({
             Publish as a Facebook Reel where available for this Page
           </label>
         ) : null}
-        {message ? <p className="text-slate-600">{message}</p> : null}
+        {message ? <p className="text-foreground-muted">{message}</p> : null}
         <Button size="sm" disabled={busy} onClick={() => void publish()}>
           {busy
             ? "Queuing…"

@@ -145,11 +145,11 @@ export function BillingSettingsPanel() {
   }
 
   if (!organisationId) {
-    return <p className="text-sm text-slate-600">Select an organisation to manage billing.</p>;
+    return <p className="text-sm text-foreground-muted">Select an organisation to manage billing.</p>;
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Loading billing…</p>;
+    return <p className="text-sm text-foreground-muted">Loading billing…</p>;
   }
 
   const currentPlanKey = account?.summary.plan?.key ?? "free";
@@ -181,12 +181,12 @@ export function BillingSettingsPanel() {
               <Badge variant={statusBadgeVariant(subscriptionStatus)}>{subscriptionStatus}</Badge>
             </div>
             {account?.summary.trial ? (
-              <p className="text-slate-600">
+              <p className="text-foreground-muted">
                 Trial ends {new Date(account.summary.trial.endsAt).toLocaleDateString()}
               </p>
             ) : null}
             {account?.summary.subscription ? (
-              <p className="text-slate-600">
+              <p className="text-foreground-muted">
                 Current period ends{" "}
                 {new Date(account.summary.subscription.currentPeriodEnd).toLocaleDateString()}
                 {account.summary.subscription.cancelAtPeriodEnd ? " (cancels at period end)" : ""}
@@ -219,13 +219,13 @@ export function BillingSettingsPanel() {
                   <div key={meter.meterKey}>
                     <div className="mb-1 flex justify-between text-sm">
                       <span>{meter.displayName}</span>
-                      <span className={atLimit ? "font-medium text-amber-700" : "text-slate-600"}>
+                      <span className={atLimit ? "font-medium text-amber-700" : "text-foreground-muted"}>
                         {meter.used.toLocaleString()} / {meter.allowance.toLocaleString()} {meter.unit}
                       </span>
                     </div>
-                    <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div className="h-2 overflow-hidden rounded-full bg-surface-hover">
                       <div
-                        className={`h-full rounded-full ${atLimit ? "bg-amber-500" : "bg-slate-900"}`}
+                        className={`h-full rounded-full ${atLimit ? "bg-amber-500" : "bg-primary"}`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -233,7 +233,7 @@ export function BillingSettingsPanel() {
                 );
               })
             ) : (
-              <p className="text-sm text-slate-600">No usage meters configured for this plan.</p>
+              <p className="text-sm text-foreground-muted">No usage meters configured for this plan.</p>
             )}
           </CardContent>
         </Card>
@@ -271,7 +271,7 @@ export function BillingSettingsPanel() {
                     : plan.version?.monthlyPriceCents ?? 0;
                 const isCurrent = plan.key === currentPlanKey;
                 return (
-                  <Card key={plan.key} className={isCurrent ? "border-slate-900" : ""}>
+                  <Card key={plan.key} className={isCurrent ? "border-primary" : ""}>
                     <CardHeader>
                       <CardTitle className="text-base">{plan.displayName}</CardTitle>
                       <CardDescription>{plan.description}</CardDescription>
@@ -311,7 +311,7 @@ export function BillingSettingsPanel() {
           <ul className="grid gap-2 text-sm md:grid-cols-2">
             {account?.entitlements.map((e) => (
               <li key={e.entitlementKey} className="flex items-center justify-between rounded border px-3 py-2">
-                <span className="text-slate-700">{e.entitlementKey}</span>
+                <span className="text-foreground-muted">{e.entitlementKey}</span>
                 <span className="font-medium">
                   {e.valueType === "BOOLEAN"
                     ? e.booleanValue

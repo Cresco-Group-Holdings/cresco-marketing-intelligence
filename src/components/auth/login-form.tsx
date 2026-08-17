@@ -67,7 +67,7 @@ export function LoginForm() {
           onChange={(event) => setPassword(event.target.value)}
           required
         />
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
         {searchParams.get("reset") === "success" ? (
           <p className="text-sm text-green-700">
             Your password was reset. Sign in with your new password.

@@ -39,25 +39,25 @@ export function WorkspaceOverviewCard({ data }: { data: FoundationDashboardData 
       </CardHeader>
       <CardContent className="grid gap-4 sm:grid-cols-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Organisation</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">Organisation</p>
+          <p className="mt-1 text-sm font-medium text-foreground">
             {data.workspace.organisation?.name ?? "Not selected"}
           </p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Project</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">Project</p>
+          <p className="mt-1 text-sm font-medium text-foreground">
             {data.workspace.project?.name ?? "Not selected"}
           </p>
         </div>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Active brand</p>
-          <p className="mt-1 text-sm font-medium text-slate-900">
+          <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">Active brand</p>
+          <p className="mt-1 text-sm font-medium text-foreground">
             {data.workspace.brand?.name ?? "Not selected"}
           </p>
         </div>
         <div className="sm:col-span-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">
             Onboarding
           </p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -65,7 +65,7 @@ export function WorkspaceOverviewCard({ data }: { data: FoundationDashboardData 
               {data.onboarding.completed ? "Completed" : "Incomplete"}
             </Badge>
             {!data.onboarding.completed ? (
-              <Link href="/onboarding" className="text-sm text-slate-700 hover:underline">
+              <Link href="/onboarding" className="text-sm text-foreground-muted hover:underline">
                 Resume onboarding
               </Link>
             ) : null}
@@ -90,16 +90,16 @@ export function ReadinessGrid({ items }: { items: FoundationReadinessItem[] }) {
           {items.map((item) => (
             <li
               key={item.category}
-              className="rounded-lg border border-slate-200 p-4 focus-within:ring-2 focus-within:ring-slate-400"
+              className="rounded-lg border border-border p-4 focus-within:ring-2 focus-within:ring-ring"
               tabIndex={0}
             >
               <div className="flex items-start justify-between gap-3">
-                <p className="text-sm font-medium text-slate-900">{item.label}</p>
+                <p className="text-sm font-medium text-foreground">{item.label}</p>
                 <Badge variant={readinessBadgeVariant(item.status)}>{readinessLabel(item.status)}</Badge>
               </div>
-              <p className="mt-2 text-sm text-slate-600">{item.summary}</p>
+              <p className="mt-2 text-sm text-foreground-muted">{item.summary}</p>
               {typeof item.score === "number" ? (
-                <p className="mt-2 text-xs text-slate-500">Score: {item.score}%</p>
+                <p className="mt-2 text-xs text-foreground-subtle">Score: {item.score}%</p>
               ) : null}
             </li>
           ))}
@@ -118,7 +118,7 @@ export function NextActionsCard({ actions }: { actions: FoundationNextAction[] }
       </CardHeader>
       <CardContent className="space-y-3">
         {actions.length === 0 ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-foreground-muted">
             Foundation setup looks complete for the active brand. Review connectors when platforms
             become available.
           </p>
@@ -126,10 +126,10 @@ export function NextActionsCard({ actions }: { actions: FoundationNextAction[] }
           actions.map((action) => (
             <div
               key={action.id}
-              className="rounded-lg border border-slate-200 p-4"
+              className="rounded-lg border border-border p-4"
             >
-              <p className="text-sm font-medium text-slate-900">{action.title}</p>
-              <p className="mt-1 text-sm text-slate-600">{action.description}</p>
+              <p className="text-sm font-medium text-foreground">{action.title}</p>
+              <p className="mt-1 text-sm text-foreground-muted">{action.description}</p>
               <ButtonLink href={action.href} className="mt-3" variant="outline" size="sm">
                 Open
               </ButtonLink>
@@ -167,9 +167,9 @@ export function FoundationMetricsCard({ data }: { data: FoundationDashboardData 
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{value}</p>
+    <div className="rounded-lg border border-border p-4">
+      <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-foreground">{value}</p>
     </div>
   );
 }
@@ -193,16 +193,16 @@ export function ObjectivesCard({
       </CardHeader>
       <CardContent>
         {objectives.length === 0 ? (
-          <p className="text-sm text-slate-600">No objectives configured yet.</p>
+          <p className="text-sm text-foreground-muted">No objectives configured yet.</p>
         ) : (
           <ul className="space-y-2" role="list">
             {objectives.map((objective) => (
               <li
                 key={objective.id}
-                className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-sm"
               >
-                <span className="font-medium text-slate-900">{objective.label}</span>
-                <span className="text-slate-500">Priority {objective.priority}</span>
+                <span className="font-medium text-foreground">{objective.label}</span>
+                <span className="text-foreground-subtle">Priority {objective.priority}</span>
               </li>
             ))}
           </ul>
@@ -210,7 +210,7 @@ export function ObjectivesCard({
         {brandId ? (
           <Link
             href={`/brands/${brandId}/profile`}
-            className="mt-4 inline-block text-sm text-slate-700 hover:underline"
+            className="mt-4 inline-block text-sm text-foreground-muted hover:underline"
           >
             Review brand profile
           </Link>
@@ -229,24 +229,24 @@ export function RecentActivityCard({ data }: { data: FoundationDashboardData }) 
       </CardHeader>
       <CardContent>
         {!data.canViewAuditActivity ? (
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-foreground-muted">
             Audit activity is available to roles with audit log access.
           </p>
         ) : data.recentActivity.length === 0 ? (
-          <p className="text-sm text-slate-600">No recent workspace activity yet.</p>
+          <p className="text-sm text-foreground-muted">No recent workspace activity yet.</p>
         ) : (
           <ul className="space-y-3" role="list">
             {data.recentActivity.map((event) => (
-              <li key={event.id} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-                <p className="text-sm font-medium text-slate-900">{event.label}</p>
-                <p className="text-xs text-slate-500">
+              <li key={event.id} className="border-b border-border-subtle pb-3 last:border-0 last:pb-0">
+                <p className="text-sm font-medium text-foreground">{event.label}</p>
+                <p className="text-xs text-foreground-subtle">
                   {new Date(event.createdAt).toLocaleString()}
                 </p>
               </li>
             ))}
           </ul>
         )}
-        <Link href="/settings/audit-log" className="mt-4 inline-block text-sm text-slate-700 hover:underline">
+        <Link href="/settings/audit-log" className="mt-4 inline-block text-sm text-foreground-muted hover:underline">
           View full audit log
         </Link>
       </CardContent>

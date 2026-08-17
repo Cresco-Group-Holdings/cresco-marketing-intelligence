@@ -78,7 +78,7 @@ export function CalendarMonthGrid({
     <Card>
       <CardContent className="space-y-4 py-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-slate-900">{monthLabel}</h2>
+          <h2 className="text-lg font-semibold text-foreground">{monthLabel}</h2>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={onPrevious} aria-label="Previous month">
               <ChevronLeft className="h-4 w-4" />
@@ -93,22 +93,22 @@ export function CalendarMonthGrid({
         </div>
 
         {rescheduling ? (
-          <p className="text-sm text-slate-600">Rescheduling event…</p>
+          <p className="text-sm text-foreground-muted">Rescheduling event…</p>
         ) : (
-          <p className="text-xs text-slate-500">Drag events between days to reschedule.</p>
+          <p className="text-xs text-foreground-subtle">Drag events between days to reschedule.</p>
         )}
 
         <div className="overflow-x-auto">
           <div className="min-w-[720px]">
-            <div className="grid grid-cols-7 border-b border-slate-200 pb-2">
+            <div className="grid grid-cols-7 border-b border-border pb-2">
               {WEEKDAY_LABELS.map((label) => (
-                <div key={label} className="px-2 text-center text-xs font-medium uppercase text-slate-500">
+                <div key={label} className="px-2 text-center text-xs font-medium uppercase text-foreground-subtle">
                   {label}
                 </div>
               ))}
             </div>
 
-            <div className="divide-y divide-slate-200">
+            <div className="divide-y divide-border">
               {weeks.map((week) => (
                 <div key={toDateKey(week[0])} className="grid grid-cols-7">
                   {week.map((day) => {
@@ -122,8 +122,8 @@ export function CalendarMonthGrid({
                       <div
                         key={dateKey}
                         className={cn(
-                          "min-h-[120px] border-r border-slate-100 p-2 last:border-r-0",
-                          !inCurrentMonth && "bg-slate-50/80",
+                          "min-h-[120px] border-r border-border-subtle p-2 last:border-r-0",
+                          !inCurrentMonth && "bg-surface-subtle/80",
                           isDropTarget && "bg-sky-50 ring-2 ring-inset ring-sky-300",
                         )}
                         onDragOver={(dragEvent) => {
@@ -141,15 +141,15 @@ export function CalendarMonthGrid({
                           <span
                             className={cn(
                               "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm",
-                              isToday && "bg-slate-900 font-semibold text-white",
-                              !isToday && inCurrentMonth && "text-slate-900",
-                              !inCurrentMonth && "text-slate-400",
+                              isToday && "bg-primary font-semibold text-primary-foreground",
+                              !isToday && inCurrentMonth && "text-foreground",
+                              !inCurrentMonth && "text-foreground-subtle",
                             )}
                           >
                             {day.getDate()}
                           </span>
                           {dayEvents.length > 0 ? (
-                            <span className="text-[11px] text-slate-500">{dayEvents.length}</span>
+                            <span className="text-[11px] text-foreground-subtle">{dayEvents.length}</span>
                           ) : null}
                         </div>
                         <div className="space-y-1">
@@ -167,7 +167,7 @@ export function CalendarMonthGrid({
                           {dayEvents.length > 3 ? (
                             <button
                               type="button"
-                              className="text-xs text-slate-500 hover:text-slate-800"
+                              className="text-xs text-foreground-subtle hover:text-foreground"
                               onClick={() => onSelectEvent(dayEvents[3])}
                             >
                               +{dayEvents.length - 3} more
@@ -184,7 +184,7 @@ export function CalendarMonthGrid({
         </div>
 
         {draggingEventId ? (
-          <p className="text-xs text-slate-500">Drop on a day to move the selected event.</p>
+          <p className="text-xs text-foreground-subtle">Drop on a day to move the selected event.</p>
         ) : null}
       </CardContent>
     </Card>

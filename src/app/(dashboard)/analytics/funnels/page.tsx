@@ -1,5 +1,5 @@
-import { FunnelsAnalyticsView } from "@/components/funnels/funnels-view";
+import { UnifiedAnalyticsWorkspace } from "@/components/analytics/unified-analytics-workspace";
 
 export default function FunnelsListPage() {
-  return <FunnelsAnalyticsView mode="list" />;
+  return <UnifiedAnalyticsWorkspace tab="funnels" />;
 }

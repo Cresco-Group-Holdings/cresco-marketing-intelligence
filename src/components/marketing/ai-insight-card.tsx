@@ -1,61 +1,67 @@
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import type { MarketingSignal } from "@/lib/marketing-intelligence/types";
 import { cn } from "@/lib/utils";
 
-export type AIInsightType =
-  | "opportunity"
-  | "anomaly"
-  | "audience-signal"
-  | "content-opportunity"
-  | "budget-recommendation"
-  | "creative-fatigue"
-  | "recommended-action";
-
-export type AIInsight = {
-  id: string;
-  type: AIInsightType;
-  title: string;
-  explanation: string;
-  impact?: string;
-  ctaLabel: string;
-  ctaHref?: string;
-  category: "paid" | "organic" | "cross-channel";
+const TYPE_LABELS: Record<MarketingSignal["type"], string> = {
+  opportunity: "Opportunity",
+  anomaly: "Anomaly",
+  budget: "Recommendation",
+  "creative-fatigue": "Risk",
+  audience: "Recommendation",
+  organic: "Opportunity",
+  "cross-channel": "Opportunity",
 };
 
-const TYPE_LABELS: Record<AIInsightType, string> = {
-  opportunity: "Opportunity detected",
-  anomaly: "Performance anomaly",
-  "audience-signal": "Audience signal",
-  "content-opportunity": "Content opportunity",
-  "budget-recommendation": "Budget recommendation",
-  "creative-fatigue": "Creative fatigue",
-  "recommended-action": "Recommended next action",
-};
-
-export function AIInsightCard({ insight }: { insight: AIInsight }) {
+export function AIInsightCard({ signal }: { signal: MarketingSignal }) {
   return (
-    <article className="rounded-xl border border-border bg-surface-elevated p-4 shadow-sm">
+    <article className="rounded-xl border border-border bg-surface-elevated p-4 transition-colors hover:border-border-strong">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant={insight.category === "paid" ? "paid" : insight.category === "organic" ? "organic" : "muted"}>
-          {insight.category === "cross-channel" ? "Cross-channel" : insight.category === "paid" ? "Paid" : "Organic"}
-        </Badge>
-        <span className="text-xs font-medium uppercase tracking-wide text-foreground-subtle">
-          {TYPE_LABELS[insight.type]}
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-ai-accent">
+          Cresco Intelligence
         </span>
+        <Badge
+          variant={
+            signal.category === "paid"
+              ? "paid"
+              : signal.category === "organic"
+                ? "organic"
+                : "muted"
+          }
+        >
+          {signal.category === "cross-channel"
+            ? "Cross-channel"
+            : signal.category === "paid"
+              ? "Paid"
+              : "Organic"}
+        </Badge>
+        <span className="text-xs font-medium text-foreground-subtle">{TYPE_LABELS[signal.type]}</span>
       </div>
-      <h3 className="mt-3 text-sm font-semibold text-foreground">{insight.title}</h3>
-      <p className="mt-2 text-sm text-foreground-muted">{insight.explanation}</p>
-      {insight.impact ? (
-        <p className={cn("mt-2 text-xs font-medium text-success")}>Estimated impact: {insight.impact}</p>
+      <h3 className="mt-3 text-sm font-semibold text-foreground">{signal.title}</h3>
+      <p className="mt-2 text-sm text-foreground-muted">{signal.explanation}</p>
+      {signal.evidence.length > 0 ? (
+        <dl className="mt-3 space-y-1 rounded-lg bg-surface-subtle px-3 py-2">
+          {signal.evidence.map((item) => (
+            <div key={item.label} className="flex items-center justify-between gap-3 text-xs">
+              <dt className="text-foreground-subtle">{item.label}</dt>
+              <dd className="font-medium text-foreground">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+      {signal.estimatedImpact ? (
+        <p className={cn("mt-2 text-xs font-medium text-positive")}>
+          Estimated impact: {signal.estimatedImpact}
+        </p>
       ) : null}
       <div className="mt-4">
-        {insight.ctaHref ? (
-          <ButtonLink href={insight.ctaHref} variant="outline" size="sm">
-            {insight.ctaLabel}
+        {signal.action?.href ? (
+          <ButtonLink href={signal.action.href} variant="outline" size="sm">
+            {signal.action.label}
           </ButtonLink>
         ) : (
-          <ButtonLink href="/analyst" variant="outline" size="sm">
-            {insight.ctaLabel}
+          <ButtonLink href="/growth" variant="outline" size="sm">
+            {signal.action?.label ?? "Review"}
           </ButtonLink>
         )}
       </div>
@@ -67,13 +73,13 @@ export function AIIntelligenceFeed({
   insights,
   emptyMessage,
 }: {
-  insights: AIInsight[];
+  insights: MarketingSignal[];
   emptyMessage?: string;
 }) {
   if (insights.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-surface p-6 text-sm text-foreground-muted">
-        {emptyMessage ?? "Connect marketing data sources to unlock Cresco AI recommendations."}
+      <div className="rounded-xl border border-dashed border-border bg-surface-subtle p-6 text-sm text-foreground-muted">
+        {emptyMessage ?? "Connect marketing data sources to unlock Cresco Intelligence."}
       </div>
     );
   }
@@ -81,7 +87,7 @@ export function AIIntelligenceFeed({
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       {insights.map((insight) => (
-        <AIInsightCard key={insight.id} insight={insight} />
+        <AIInsightCard key={insight.id} signal={insight} />
       ))}
     </div>
   );

@@ -162,7 +162,7 @@ export function MarketingLeadsView({
         />
         <Card>
           <CardContent className="space-y-3 pt-6">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-foreground-muted">
               Exports include only necessary fields and respect consent state. Leads are never
               automatically subscribed to email marketing.
             </p>
@@ -214,19 +214,19 @@ export function MarketingLeadsView({
         <Button variant="outline" onClick={() => void loadList()}>Refresh</Button>
       </div>
 
-      {actionMessage ? <p className="mb-3 text-sm text-slate-600">{actionMessage}</p> : null}
+      {actionMessage ? <p className="mb-3 text-sm text-foreground-muted">{actionMessage}</p> : null}
 
       <div className={`grid gap-4 ${mode === "detail" || selectedId ? "lg:grid-cols-2" : ""}`}>
         {mode !== "detail" ? (
           <Card>
             <CardHeader><CardTitle>Leads</CardTitle></CardHeader>
             <CardContent className="space-y-2">
-              {loading ? <p className="text-sm text-slate-600">Loading…</p> : null}
+              {loading ? <p className="text-sm text-foreground-muted">Loading…</p> : null}
               {list?.items.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  className={`w-full rounded-lg border p-3 text-left text-sm ${selectedId === item.id ? "border-slate-900 bg-slate-50" : "border-slate-200"}`}
+                  className={`w-full rounded-lg border p-3 text-left text-sm ${selectedId === item.id ? "border-primary bg-surface-subtle" : "border-border"}`}
                   onClick={() => setSelectedId(item.id)}
                 >
                   <div className="mb-1 flex flex-wrap gap-2">
@@ -234,7 +234,7 @@ export function MarketingLeadsView({
                     <Badge variant="muted">{MARKETING_LEAD_STATUS_LABELS[item.status as keyof typeof MARKETING_LEAD_STATUS_LABELS] ?? item.status}</Badge>
                     {item.isDuplicateWarning ? <Badge variant="warning">Possible duplicate</Badge> : null}
                   </div>
-                  <p className="text-slate-600">
+                  <p className="text-foreground-muted">
                     {item.source ? LEAD_CREATION_SOURCE_LABELS[item.source.creationSource as keyof typeof LEAD_CREATION_SOURCE_LABELS] : "Unknown source"}
                     {item.company ? ` · ${item.company}` : ""}
                   </p>
@@ -257,10 +257,10 @@ export function MarketingLeadsView({
               <p><strong>Email:</strong> {detail.email ?? "—"} · <strong>Phone:</strong> {detail.phone ?? "—"}</p>
               <p><strong>Source:</strong> {detail.source ? LEAD_CREATION_SOURCE_LABELS[detail.source.creationSource as keyof typeof LEAD_CREATION_SOURCE_LABELS] : "—"}</p>
               {detail.contentItem ? (
-                <div className="rounded border bg-slate-50 p-3">
+                <div className="rounded border bg-surface-subtle p-3">
                   <p className="font-medium">Related content</p>
                   <p>{detail.contentItem.title}</p>
-                  {detail.contentItem.campaignName ? <p className="text-slate-600">{detail.contentItem.campaignName}</p> : null}
+                  {detail.contentItem.campaignName ? <p className="text-foreground-muted">{detail.contentItem.campaignName}</p> : null}
                 </div>
               ) : null}
               {detail.socialConversationId ? (
@@ -270,7 +270,7 @@ export function MarketingLeadsView({
                 <p className="mb-2 font-medium">Activity</p>
                 <div className="max-h-40 space-y-2 overflow-y-auto">
                   {detail.activities.map((activity) => (
-                    <p key={activity.id} className="text-slate-600">
+                    <p key={activity.id} className="text-foreground-muted">
                       {activity.activityType}: {activity.summary}
                     </p>
                   ))}

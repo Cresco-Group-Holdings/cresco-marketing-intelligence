@@ -272,7 +272,7 @@ export function RankTrackingView({
                     <div className="text-right">
                       <p>Position: {latest?.rank ?? "—"}</p>
                       {prev?.rank != null && latest?.rank != null ? (
-                        <p className={latest.rank < prev.rank ? "text-green-600" : latest.rank > prev.rank ? "text-red-600" : ""}>
+                        <p className={latest.rank < prev.rank ? "text-green-600" : latest.rank > prev.rank ? "text-danger" : ""}>
                           {latest.rank < prev.rank ? "↑" : latest.rank > prev.rank ? "↓" : "—"} from {prev.rank}
                         </p>
                       ) : null}
