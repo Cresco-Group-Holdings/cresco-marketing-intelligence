@@ -42,15 +42,6 @@
   --negative: #b91c1c;
   --neutral-signal: #78716c;
 
-  --surface-subtle: #f3ebdd;
-  --surface-active: #e7dfd2;
-  --surface-selected: #efe6d8;
-
-  --foreground-disabled: #a8a29e;
-
-  --border-subtle: #efe6d8;
-  --border-interactive: #d6cbb9;
-
   --chart-1: #6366f1;
   --chart-2: #0d9488;
   --chart-3: #7c3aed;
@@ -191,15 +182,6 @@
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-neutral-signal: var(--neutral-signal);
-
-  --color-surface-subtle: var(--surface-subtle);
-  --color-surface-active: var(--surface-active);
-  --color-surface-selected: var(--surface-selected);
-
-  --color-foreground-disabled: var(--foreground-disabled);
-
-  --color-border-subtle: var(--border-subtle);
-  --color-border-interactive: var(--border-interactive);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
