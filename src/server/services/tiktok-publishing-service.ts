@@ -66,10 +66,12 @@ async function failJob(job: PublishingJob, reason: string): Promise<TikTokPublis
     where: { id: job.id },
     data: { status: "FAILED", lastProviderError: reason },
   });
-  await prisma.contentSchedule.update({
-    where: { id: job.contentScheduleId },
-    data: { status: "FAILED" },
-  });
+  if (job.contentScheduleId) {
+    await prisma.contentSchedule.update({
+      where: { id: job.contentScheduleId },
+      data: { status: "FAILED" },
+    });
+  }
   await notifyPublishingFailed(job, "TIKTOK", reason).catch(() => undefined);
   return { state: "FAILED", reason };
 }
@@ -94,10 +96,12 @@ async function markManualFallback(
     data: { status: "FAILED", directPublishAvailable: false, lastProviderError: reason },
   });
   // Content is deliberately not marked published; the user must confirm manually.
-  await prisma.contentSchedule.update({
-    where: { id: job.contentScheduleId },
-    data: { status: "FAILED" },
-  });
+  if (job.contentScheduleId) {
+    await prisma.contentSchedule.update({
+      where: { id: job.contentScheduleId },
+      data: { status: "FAILED" },
+    });
+  }
   return { state: "MANUAL_FALLBACK_REQUIRED", reason };
 }
 
@@ -343,6 +347,7 @@ export const tikTokPublishingService = {
       },
     });
     if (!job) return null;
+    if (!job.schedule) return null;
 
     if (job.publishedMediaId) {
       return { state: "ALREADY_PUBLISHED", postId: job.publishedMediaId };
@@ -571,7 +576,7 @@ export const tikTokPublishingService = {
     if (job.publishedMediaId)
       throw new AppError("VALIDATION_ERROR", "Published content cannot be cancelled.");
 
-    if (job.providerContainerId) {
+    if (job.providerContainerId && job.schedule) {
       const tokens = await socialCredentialService.readTokens(
         job.schedule.socialAccount.socialConnectionId,
       );
@@ -584,10 +589,12 @@ export const tikTokPublishingService = {
     }
 
     await prisma.publishingJob.update({ where: { id: job.id }, data: { status: "CANCELLED" } });
-    await prisma.contentSchedule.update({
-      where: { id: job.contentScheduleId },
-      data: { status: "CANCELLED", cancelledAt: new Date() },
-    });
+    if (job.contentScheduleId) {
+      await prisma.contentSchedule.update({
+        where: { id: job.contentScheduleId },
+        data: { status: "CANCELLED", cancelledAt: new Date() },
+      });
+    }
     return { cancelled: true };
   },
 
@@ -643,18 +650,20 @@ export const tikTokPublishingService = {
         manualConfirmedByUserId: context.userProfileId,
       },
     });
-    await prisma.contentSchedule.update({
-      where: { id: job.contentScheduleId },
-      data: { status: "COMPLETED" },
-    });
-    const schedule = await prisma.contentSchedule.findUnique({
-      where: { id: job.contentScheduleId },
-    });
-    if (schedule) {
-      await prisma.contentItem.update({
-        where: { id: schedule.contentItemId },
-        data: { status: "PUBLISHED" },
+    if (job.contentScheduleId) {
+      await prisma.contentSchedule.update({
+        where: { id: job.contentScheduleId },
+        data: { status: "COMPLETED" },
       });
+      const schedule = await prisma.contentSchedule.findUnique({
+        where: { id: job.contentScheduleId },
+      });
+      if (schedule) {
+        await prisma.contentItem.update({
+          where: { id: schedule.contentItemId },
+          data: { status: "PUBLISHED" },
+        });
+      }
     }
     await recordAuditEvent({
       organisationId,

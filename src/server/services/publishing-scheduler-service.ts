@@ -9,6 +9,7 @@ import {
 } from "@/lib/publishing/config";
 import { incrementPublishingCounter } from "@/lib/publishing/observability";
 import { processPublishingJob } from "@/server/services/publishing-worker";
+import { canonicalPublicationService } from "@/server/services/canonical-publication-service";
 
 export type PublishingSchedulerSkipReason =
   | "SCHEDULER_DISABLED"
@@ -190,13 +191,16 @@ export const publishingSchedulerService = {
     return results;
   },
 
-  /** Cron entry point: enqueue due schedules, then drain due publishing jobs. */
+  /** Cron entry point: enqueue due schedules and publications, then drain due publishing jobs. */
   async runSchedulerPass(input?: { now?: Date; limit?: number; workerId?: string }) {
     const scheduled = await this.enqueueDueSchedules(input?.now);
+    const publicationIds = await canonicalPublicationService.enqueueDueScheduledPublications(
+      input?.now ?? new Date(),
+    );
     const processed = await this.processDue(
       input?.limit ?? getPublishingConfig().maxJobsPerWorkerRun,
       input?.workerId,
     );
-    return { scheduled, processed };
+    return { scheduled, publicationIds, processed };
   },
 };

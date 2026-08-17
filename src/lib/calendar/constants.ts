@@ -13,6 +13,7 @@ export const CALENDAR_EVENT_TYPES = {
 
 export const CALENDAR_SOURCE_ENTITY_TYPES = {
   ContentSchedule: "ContentSchedule",
+  Publication: "Publication",
   Campaign: "Campaign",
   ContentTask: "ContentTask",
   ContentDeadline: "ContentDeadline",

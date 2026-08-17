@@ -53,10 +53,19 @@ export const MOCK_SOCIAL_CAPABILITIES: CanonicalProviderCapability[] = [
   "SOCIAL_ACCOUNTS_READ",
 ];
 
+export const META_SOCIAL_CAPABILITIES: CanonicalProviderCapability[] = [
+  "SOCIAL_CONTENT_PUBLISH",
+  "SOCIAL_ACCOUNTS_READ",
+  "SOCIAL_CONTENT_READ",
+];
+
 export function providerSupportsCapability(
   providerKey: string,
   capability: CanonicalProviderCapability,
 ): boolean {
+  if (providerKey === "meta" || providerKey === "meta-ads") {
+    return META_SOCIAL_CAPABILITIES.includes(capability);
+  }
   if (providerKey === "mock-advertising") {
     return MOCK_ADVERTISING_CAPABILITIES.includes(capability);
   }
@@ -70,6 +79,7 @@ export function providerSupportsCapability(
 }
 
 export function listProviderCapabilities(providerKey: string): CanonicalProviderCapability[] {
+  if (providerKey === "meta" || providerKey === "meta-ads") return META_SOCIAL_CAPABILITIES;
   if (providerKey === "mock-advertising") return MOCK_ADVERTISING_CAPABILITIES;
   if (providerKey === "mock-crm") return MOCK_CRM_CAPABILITIES;
   if (providerKey === "mock-social") return MOCK_SOCIAL_CAPABILITIES;

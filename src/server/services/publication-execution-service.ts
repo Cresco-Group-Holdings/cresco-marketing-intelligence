@@ -1,14 +1,11 @@
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { operationToCapability } from "@/lib/publishing/outbound-operations";
-import { canRetryPublication } from "@/lib/publishing/publication-governance";
+import { assertPublicationTransition } from "@/lib/publishing/publication-lifecycle";
 import type { TenantContext } from "@/lib/tenancy/context";
-import { recordAuditEvent } from "@/server/services/audit-service";
-import { notificationEventService } from "@/server/services/notification-event-service";
+import { canonicalPublicationService } from "@/server/services/canonical-publication-service";
+import { processPublicationPublishingJob } from "@/server/services/publication-publishing-worker";
 import { providerGateway } from "@/server/services/provider-gateway-service";
-import { providerAuditService } from "@/server/services/provider-audit-service";
-
-const MAX_ATTEMPTS = 3;
 
 function mapOperationToGatewayOperation(operationType: string): string {
   if (operationType.startsWith("SOCIAL_")) {
@@ -50,52 +47,16 @@ export const publicationExecutionService = {
   ) {
     const publication = await prisma.publication.findFirst({
       where: { id: publicationId, organisationId, brandId },
-      include: { budgetChanges: true },
+      include: { budgetChanges: true, contentItem: { include: { variants: true } } },
     });
     if (!publication) throw new AppError("NOT_FOUND", "Publication not found.");
 
-    const executableStatuses = new Set(["APPROVED", "SCHEDULED", "QUEUED"]);
-    if (!executableStatuses.has(publication.status) && !options?.dryRun) {
-      throw new AppError("VALIDATION_ERROR", `Publication cannot be executed in status ${publication.status}.`);
-    }
-
-    if (publication.operationType === "AD_UPDATE_BUDGET" && publication.budgetChanges.length === 0) {
-      throw new AppError("VALIDATION_ERROR", "Budget change record is required.");
-    }
-
-    const attemptNumber =
-      (await prisma.publicationAttempt.count({ where: { publicationId } })) + 1;
-
-    if (attemptNumber > MAX_ATTEMPTS && !options?.dryRun) {
-      await prisma.publication.update({
-        where: { id: publicationId },
-        data: { status: "FAILED", lastErrorCode: "MAX_ATTEMPTS_EXCEEDED" },
-      });
-      throw new AppError("VALIDATION_ERROR", "Maximum execution attempts exceeded.");
-    }
-
-    const attempt = await prisma.publicationAttempt.create({
-      data: {
-        publicationId,
-        attemptNumber,
-        status: "RUNNING",
-        dryRun: options?.dryRun ?? publication.dryRun,
-        requestId: options?.requestId ?? crypto.randomUUID(),
-        startedAt: new Date(),
-      },
-    });
-
-    if (!options?.dryRun) {
-      await prisma.publication.update({
-        where: { id: publicationId },
-        data: { status: "PUBLISHING" },
-      });
-    }
-
-    const capability = operationToCapability(publication.operationType);
-    const gatewayOperation = mapOperationToGatewayOperation(publication.operationType);
-
-    try {
+    if (options?.dryRun) {
+      const capability = operationToCapability(publication.operationType);
+      const gatewayOperation = mapOperationToGatewayOperation(publication.operationType);
+      const variant = publication.contentVariantId
+        ? publication.contentItem.variants.find((v) => v.id === publication.contentVariantId)
+        : publication.contentItem.variants[0];
       const result = await providerGateway.execute(
         {
           organisationId,
@@ -106,152 +67,62 @@ export const publicationExecutionService = {
             ...(publication.providerPayload as Record<string, unknown> | null),
             externalAccountId: publication.externalAccountId,
             destinationId: publication.destinationId,
-            scheduledFor: publication.scheduledFor?.toISOString(),
-            timezone: publication.timezone,
-            dryRun: options?.dryRun ?? publication.dryRun,
+            caption: variant?.caption,
+            dryRun: true,
           },
           idempotencyKey: publication.idempotencyKey,
-          correlationId: attempt.requestId ?? undefined,
+          correlationId: options.requestId,
         },
         context,
       );
-
-      if (!result.success) {
-        await prisma.publicationAttempt.update({
-          where: { id: attempt.id },
-          data: {
-            status: result.retryable ? "UNKNOWN" : "FAILED",
-            errorCode: result.errorCode,
-            errorMessageSafe: result.errorMessageSafe,
-            completedAt: new Date(),
-          },
-        });
-
-        await prisma.publication.update({
-          where: { id: publicationId },
-          data: {
-            status: result.retryable ? "QUEUED" : "FAILED",
-            lastErrorCode: result.errorCode ?? "PUBLICATION_FAILED",
-            lastErrorMessage: result.errorMessageSafe,
-          },
-        });
-
-        if (!options?.dryRun && !result.retryable) {
-          await notificationEventService
-            .publicationFailed({
-              organisationId,
-              brandId,
-              publicationId,
-              safeError: result.errorMessageSafe ?? "Publication failed.",
-              recipientUserIds: [context.userProfileId],
-              idempotencyKey: `pub-failed:${publication.idempotencyKey}`,
-            })
-            .catch(() => undefined);
-        }
-
-        throw new AppError("VALIDATION_ERROR", result.errorMessageSafe ?? "Publication failed.");
-      }
-
-      const data = result.data as Record<string, unknown> | undefined;
-      const externalId = data?.externalPublicationId ? String(data.externalPublicationId) : undefined;
-      const permalink = data?.permalink ? String(data.permalink) : undefined;
-
-      await prisma.publicationAttempt.update({
-        where: { id: attempt.id },
-        data: {
-          status: options?.dryRun ? "SUCCEEDED" : "SUCCEEDED",
-          providerResponse: data as object,
-          completedAt: new Date(),
-        },
-      });
-
-      if (!options?.dryRun) {
-        await prisma.publication.update({
-          where: { id: publicationId },
-          data: {
-            status: publication.scheduledFor && publication.scheduledFor > new Date() ? "SCHEDULED" : "PUBLISHED",
-            externalPublicationId: externalId,
-            providerPermalink: permalink,
-            publishedAt: publication.scheduledFor && publication.scheduledFor > new Date() ? null : new Date(),
-            lastErrorCode: null,
-            lastErrorMessage: null,
-          },
-        });
-      }
-
-      await providerAuditService.recordEvent({
-        organisationId,
-        providerKey: publication.providerKey,
-        connectionId: publication.connectionId,
-        action: "SYNC_COMPLETED",
-        actorUserId: context.userProfileId,
-        requestId: attempt.requestId ?? undefined,
-        result: "success",
-        metadata: { publicationId, operation: gatewayOperation, dryRun: options?.dryRun },
-      });
-
-      await recordAuditEvent({
-        organisationId,
-        actorUserId: context.userProfileId,
-        action: options?.dryRun ? "publication.validated" : "publication.executed",
-        resourceType: "publication",
-        resourceId: publicationId,
-        requestId: options?.requestId,
-        metadata: { externalPublicationId: externalId },
-      });
-
-      if (!options?.dryRun) {
-        await notificationEventService.publicationSucceeded({
-          organisationId,
-          brandId,
-          publicationId,
-          recipientUserIds: [context.userProfileId],
-          idempotencyKey: `pub-success:${publication.idempotencyKey}`,
-        });
-      }
-
-      return { success: true, data, attemptId: attempt.id, dryRun: options?.dryRun };
-    } catch (error) {
-      if (error instanceof AppError) throw error;
-
-      await prisma.publicationAttempt.update({
-        where: { id: attempt.id },
-        data: {
-          status: "UNKNOWN",
-          errorCode: "PROVIDER_UNAVAILABLE",
-          errorMessageSafe: "Provider outcome unknown — reconciliation required.",
-          completedAt: new Date(),
-        },
-      });
-
-      await prisma.publication.update({
-        where: { id: publicationId },
-        data: {
-          status: "PARTIALLY_PUBLISHED",
-          lastErrorCode: "UNKNOWN_OUTCOME",
-          lastErrorMessage: "Provider outcome could not be confirmed.",
-        },
-      });
-
-      throw new AppError("VALIDATION_ERROR", "Provider outcome unknown.");
-    }
-  },
-
-  async retry(publicationId: string, organisationId: string, brandId: string, context: TenantContext, requestId?: string) {
-    const publication = await prisma.publication.findFirst({
-      where: { id: publicationId, organisationId, brandId },
-    });
-    if (!publication) throw new AppError("NOT_FOUND", "Publication not found.");
-    if (!canRetryPublication(publication.status)) {
-      throw new AppError("VALIDATION_ERROR", "Publication cannot be retried.");
+      return { success: result.success, data: result.data, dryRun: true };
     }
 
+    const executableStatuses = new Set(["APPROVED", "SCHEDULED", "QUEUED"]);
+    if (!executableStatuses.has(publication.status)) {
+      throw new AppError("VALIDATION_ERROR", `Publication cannot be executed in status ${publication.status}.`);
+    }
+
+    if (publication.operationType === "AD_UPDATE_BUDGET" && publication.budgetChanges.length === 0) {
+      throw new AppError("VALIDATION_ERROR", "Budget change record is required.");
+    }
+
+    assertPublicationTransition(publication.status, "QUEUED");
     await prisma.publication.update({
       where: { id: publicationId },
       data: { status: "QUEUED" },
     });
 
-    return this.execute(publicationId, organisationId, brandId, context, { requestId });
+    const idempotencyKey = `publication:${publicationId}:execute`;
+    let job = await prisma.publishingJob.findFirst({
+      where: { publicationId, idempotencyKey },
+    });
+    if (!job) {
+      job = await prisma.publishingJob.create({
+        data: {
+          organisationId,
+          projectId: publication.projectId,
+          brandId,
+          publicationId,
+          idempotencyKey,
+          status: "QUEUED",
+        },
+      });
+    }
+
+    const result = await processPublicationPublishingJob(job.id, context);
+    return { success: result?.state === "PUBLISHED" || result?.state === "DUPLICATE", result };
+  },
+
+  async retry(publicationId: string, organisationId: string, brandId: string, context: TenantContext, requestId?: string) {
+    const result = await canonicalPublicationService.retryPublication(
+      brandId,
+      organisationId,
+      publicationId,
+      context,
+      requestId,
+    );
+    return { success: result.result?.state === "PUBLISHED", ...result };
   },
 
   async preview(publicationId: string, organisationId: string, brandId: string, context: TenantContext) {

@@ -12,7 +12,7 @@ type Props = {
 };
 
 const OPERATION_OPTIONS = [
-  { value: "SOCIAL_PUBLISH_POST", label: "Publish post (mock social)" },
+  { value: "SOCIAL_PUBLISH_POST", label: "Publish post" },
   { value: "SOCIAL_SCHEDULE_POST", label: "Schedule post" },
   { value: "AD_CREATE_DRAFT_CAMPAIGN", label: "Create draft campaign" },
   { value: "AD_UPDATE_BUDGET", label: "Update budget" },
@@ -21,7 +21,7 @@ const OPERATION_OPTIONS = [
 export function PublicationComposer({ brandId, organisationId, onCreated }: Props) {
   const [contentItemId, setContentItemId] = useState("");
   const [connectionId, setConnectionId] = useState("");
-  const [externalAccountId, setExternalAccountId] = useState("mock-acct-1");
+  const [externalAccountId, setExternalAccountId] = useState("");
   const [operationType, setOperationType] = useState("SOCIAL_PUBLISH_POST");
   const [scheduledFor, setScheduledFor] = useState("");
   const [timezone, setTimezone] = useState("UTC");

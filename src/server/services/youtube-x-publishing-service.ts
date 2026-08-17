@@ -216,6 +216,7 @@ export const youtubeXPublishingService = {
       },
     });
     if (!job) return null;
+    if (!job.schedule) return null;
     if (job.publishedMediaId) return { state: "ALREADY_PUBLISHED", postId: job.publishedMediaId };
     const settings = job.providerSettings as Settings;
     const { schedule } = job;

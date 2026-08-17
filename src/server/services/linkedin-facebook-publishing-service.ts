@@ -227,6 +227,7 @@ export const linkedInFacebookPublishingService = {
       },
     });
     if (!job) return null;
+    if (!job.schedule) return null;
     if (job.publishedMediaId) return { state: "ALREADY_PUBLISHED", postId: job.publishedMediaId };
     const settings = job.providerSettings as ProviderSettings | null;
     if (!settings)

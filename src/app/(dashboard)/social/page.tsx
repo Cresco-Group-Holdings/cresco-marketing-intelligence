@@ -1,5 +1,5 @@
-import { OrganicSocialWorkspace } from "@/components/social/organic-social-workspace";
+import { redirect } from "next/navigation";
 
 export default function SocialPage() {
-  return <OrganicSocialWorkspace />;
+  redirect("/publishing");
 }

@@ -9,6 +9,7 @@ export type ProviderExecutionContext = {
   configuration: ProviderConfiguration;
   correlationId: string;
   decryptCredential: (type: string) => Promise<string | null>;
+  getAccessToken?: () => Promise<string | null>;
 };
 
 export type ProviderCapabilityDescriptor = {
