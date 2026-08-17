@@ -63,8 +63,8 @@ export function CampaignTable({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Input
-          type="search"
           label="Search campaigns"
+          type="search"
           labelClassName="sr-only"
           placeholder="Search campaigns…"
           value={search}
