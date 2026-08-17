@@ -65,6 +65,7 @@ export function CampaignTable({
         <Input
           label="Search campaigns"
           type="search"
+          labelClassName="sr-only"
           placeholder="Search campaigns…"
           value={search}
           onChange={(event) => {
