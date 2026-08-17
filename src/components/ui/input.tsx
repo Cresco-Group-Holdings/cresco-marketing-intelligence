@@ -2,16 +2,20 @@ import { cn } from "@/lib/utils";
 
 type InputProps = React.InputHTMLAttributes<HTMLInputElement> & {
   label: string;
+  labelClassName?: string;
   hint?: string;
   error?: string;
 };
 
-export function Input({ label, hint, error, id, className, ...props }: InputProps) {
+export function Input({ label, labelClassName, hint, error, id, className, ...props }: InputProps) {
   const inputId = id ?? props.name;
 
   return (
     <div className="space-y-2">
-      <label htmlFor={inputId} className="block text-sm font-medium text-foreground-muted">
+      <label
+        htmlFor={inputId}
+        className={cn("block text-sm font-medium text-foreground-muted", labelClassName)}
+      >
         {label}
       </label>
       <input
