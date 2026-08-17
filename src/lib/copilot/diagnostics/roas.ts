@@ -71,18 +71,21 @@ export function diagnoseRoasChange(input: RoasDiagnosticInput): RoasDiagnosticRe
     };
   }
 
-  const roasChange = ((input.currentRoas - input.previousRoas) / input.previousRoas) * 100;
+  const currentRoas = input.currentRoas;
+  const previousRoas = input.previousRoas;
+
+  const roasChange = ((currentRoas - previousRoas) / previousRoas) * 100;
   const roasEv = createEvidence({
     label: "Blended ROAS",
     metric: "roas",
-    value: formatMultiplier(input.currentRoas),
-    previousValue: formatMultiplier(input.previousRoas),
+    value: formatMultiplier(currentRoas),
+    previousValue: formatMultiplier(previousRoas),
     source: "Paid performance + attributed revenue",
   });
   evidence.push(roasEv);
   facts.push(
     createFact(
-      `ROAS ${roasChange < 0 ? "declined" : "increased"} from ${formatMultiplier(input.previousRoas)} to ${formatMultiplier(input.currentRoas)} (${formatPercent(roasChange)}) during ${input.periodLabel}.`,
+      `ROAS ${roasChange < 0 ? "declined" : "increased"} from ${formatMultiplier(previousRoas)} to ${formatMultiplier(currentRoas)} (${formatPercent(roasChange)}) during ${input.periodLabel}.`,
       [roasEv.id],
     ),
   );
@@ -174,8 +177,11 @@ export function diagnoseRoasChange(input: RoasDiagnosticInput): RoasDiagnosticRe
     }
   }
 
-  const weakest = drivers.find((row) => row.currentRoas != null && row.currentRoas < input.currentRoas * 0.75);
-  if (weakest && input.currentRoas != null && weakest.currentRoas != null && weakest.currentRoas < input.currentRoas * 0.75) {
+  const underperformanceThreshold = currentRoas * 0.75;
+  const weakest = drivers.find(
+    (row) => row.currentRoas != null && row.currentRoas < underperformanceThreshold,
+  );
+  if (weakest && weakest.currentRoas != null && weakest.currentRoas < underperformanceThreshold) {
     recommendations.push(
       createRecommendation(
         `Review ${weakest.provider} campaigns and creatives with below-average ROAS before increasing spend.`,
