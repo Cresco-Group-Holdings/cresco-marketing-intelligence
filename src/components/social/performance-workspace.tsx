@@ -11,6 +11,7 @@ import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api/client";
 import type { OrganicSocialWorkspaceData } from "@/lib/organic-social/types";
 import { ChartBarGroup } from "@/components/marketing/chart-bar";
+import { cn } from "@/lib/utils";
 
 function OrganicTrendChart({
   data,

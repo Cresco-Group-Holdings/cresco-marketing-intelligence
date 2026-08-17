@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/database/prisma";
 import type { DomainEvent } from "@/lib/domain-events/constants";
+import {
+  readLeadIdFromPayload,
+  readStoredPayload,
+  toInputJsonValue,
+} from "@/lib/domain-events/payload";
 import { mapDomainEventToAutomation } from "@/lib/domain-events/map-to-automation";
 import { automationEngineExecutionService } from "@/server/services/automation-engine-execution-service";
 import { marketingAutomationEnrollmentService } from "@/server/services/marketing-automation-enrollment-service";
@@ -39,7 +44,7 @@ export const domainEventService = {
         eventType: event.type,
         resourceType: event.resourceType,
         resourceId: event.resourceId,
-        payload: event.payload,
+        payload: toInputJsonValue(event.payload),
         idempotencyKey: event.idempotencyKey,
         correlationId: event.correlationId,
         causationId: event.causationId,
@@ -77,8 +82,9 @@ export const domainEventService = {
       }
 
       try {
+        const storedPayload = readStoredPayload(row.payload);
         const payload = {
-          ...(row.payload as Record<string, unknown>),
+          ...storedPayload,
           resourceType: row.resourceType,
           resourceId: row.resourceId,
           domainEventType: row.eventType,
@@ -99,7 +105,7 @@ export const domainEventService = {
         );
 
         if (row.eventType === "lead.created" || row.eventType === "lead.qualified") {
-          const leadId = String(payload.leadId ?? row.resourceId);
+          const leadId = readLeadIdFromPayload(storedPayload, row.resourceId);
           const triggerType = row.eventType === "lead.qualified" ? "LEAD_STATUS_CHANGED" : "LEAD_CREATED";
           await marketingAutomationEnrollmentService.processTriggerEvent(
             brandId,
