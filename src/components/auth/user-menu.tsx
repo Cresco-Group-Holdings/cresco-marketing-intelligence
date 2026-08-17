@@ -52,21 +52,21 @@ export function UserMenu({ email, displayName }: UserMenuProps) {
         <div className="py-1">
           <Link
             href="/settings/account"
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-surface-subtle"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-surface-subtle hover:text-foreground"
           >
             <Settings className="h-4 w-4" />
             Account
           </Link>
           <Link
             href="/settings/security"
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-surface-subtle"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-surface-subtle hover:text-foreground"
           >
             <Shield className="h-4 w-4" />
             Security
           </Link>
           <Link
             href="/settings/sessions"
-            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-surface-subtle"
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground-muted hover:bg-surface-subtle hover:text-foreground"
           >
             <Monitor className="h-4 w-4" />
             Sessions

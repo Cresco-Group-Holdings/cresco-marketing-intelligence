@@ -79,8 +79,15 @@ export const OAUTH_PROVIDER_DEFINITIONS: OAuthProviderDefinition[] = [
     authType: "OAUTH2_PKCE",
     authorizationUrl: META_AUTH,
     tokenUrl: META_TOKEN,
-    defaultScopes: ["pages_show_list", "pages_read_engagement", "business_management"],
-    optionalScopes: ["instagram_basic"],
+    defaultScopes: [
+      "pages_show_list",
+      "pages_read_engagement",
+      "pages_manage_posts",
+      "business_management",
+      "instagram_basic",
+      "instagram_content_publish",
+    ],
+    optionalScopes: ["instagram_manage_insights"],
     accountDiscoveryTypes: ["meta_business", "meta_page", "meta_ad_account"],
   }),
   oauthDef({

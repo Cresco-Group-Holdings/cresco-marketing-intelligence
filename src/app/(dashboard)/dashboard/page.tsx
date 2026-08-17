@@ -1,10 +1,11 @@
-import { requireAuthenticatedUser } from "@/lib/tenancy/guards";
+import { Suspense } from "react";
 import { CommandCentreDashboard } from "@/components/marketing/command-centre-dashboard";
-import { marketingCommandCentreService } from "@/server/services/marketing-command-centre-service";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
 
-export default async function DashboardPage() {
-  const user = await requireAuthenticatedUser();
-  const data = await marketingCommandCentreService.getDashboard(user.userProfileId);
-
-  return <CommandCentreDashboard data={data} />;
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<DashboardSkeleton />}>
+      <CommandCentreDashboard />
+    </Suspense>
+  );
 }
