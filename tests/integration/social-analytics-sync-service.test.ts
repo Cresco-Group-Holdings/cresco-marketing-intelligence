@@ -494,7 +494,8 @@ describe("socialAnalyticsSyncService", () => {
 
     const result = await socialAnalyticsSyncService.process("sync-1", "worker-a");
 
-    expect(result.status).toBe("COMPLETED");
+    expect(result).not.toBeNull();
+    expect(result!.status).toBe("COMPLETED");
     expect(adapter.fetchPostMetrics).toHaveBeenCalledTimes(1);
     expect(adapter.fetchPostMetrics.mock.calls[0]![0].providerPostId).toBe("post-1");
   });
