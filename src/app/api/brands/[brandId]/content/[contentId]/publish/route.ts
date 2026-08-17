@@ -15,7 +15,7 @@ const publishBodySchema = z.object({
   scheduledFor: z.string().datetime().optional(),
   timezone: z.string().default("UTC"),
   idempotencyKey: z.string().min(8),
-  providerPayload: z.record(z.unknown()).optional(),
+  providerPayload: z.record(z.string(), z.unknown()).optional(),
 });
 
 type Params = { params: Promise<{ brandId: string; contentId: string }> };

@@ -25,7 +25,7 @@
 ## Duplicate post prevented
 
 - Idempotency key collision — expected behavior
-- Check `publishing.duplicate_prevented` metric
+- Check `publishing.jobs_processed` metric with `duplicate: true` context
 
 ## Calendar drift
 

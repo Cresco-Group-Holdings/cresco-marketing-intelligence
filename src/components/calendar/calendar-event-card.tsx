@@ -56,25 +56,25 @@ export function CalendarEventCard({
       onDragEnd={() => onDragEnd?.()}
       onClick={() => onSelect?.(event)}
       className={cn(
-        "w-full rounded-md border text-left transition-colors hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400",
-        event.hasConflict ? "border-amber-400 bg-amber-50" : "border-slate-200 bg-white",
+        "w-full rounded-md border text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        event.hasConflict ? "border-amber-400 bg-amber-50" : "border-border bg-surface-elevated",
         compact ? "px-2 py-1" : "px-3 py-2",
       )}
     >
       <div className="flex items-start justify-between gap-2">
-        <p className={cn("font-medium text-slate-900", compact ? "text-xs" : "text-sm")}>{event.title}</p>
+        <p className={cn("font-medium text-foreground", compact ? "text-xs" : "text-sm")}>{event.title}</p>
         {!compact && (event.hasConflict || event.status === "OVERDUE") ? (
           <Badge variant="warning" className="shrink-0">
             {event.hasConflict ? "Conflict" : statusLabel}
           </Badge>
         ) : null}
       </div>
-      <p className={cn("text-slate-600", compact ? "text-[11px]" : "text-xs")}>
+      <p className={cn("text-foreground-muted", compact ? "text-[11px]" : "text-xs")}>
         {formatEventTime(event)}
         {channel ? ` · ${channel}` : ""}
       </p>
       {!compact && event.campaignName ? (
-        <p className="mt-1 truncate text-xs text-slate-500">{event.campaignName}</p>
+        <p className="mt-1 truncate text-xs text-foreground-subtle">{event.campaignName}</p>
       ) : null}
       {compact && event.status !== "SCHEDULED" ? (
         <Badge variant={statusVariant(event.status)} className="mt-1">

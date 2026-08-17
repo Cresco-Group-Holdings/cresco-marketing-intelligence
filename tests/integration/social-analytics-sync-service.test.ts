@@ -479,6 +479,26 @@ describe("socialAnalyticsSyncService", () => {
     );
   });
 
+  it("skips publication-backed publishing jobs without a content schedule", async () => {
+    stageSync(sync());
+    prisma.socialAccount.findFirst.mockResolvedValue(account());
+    prisma.publishingJob.findMany.mockResolvedValue([
+      {
+        id: "job-pub",
+        publishedMediaId: "orphan-post",
+        providerUploadState: null,
+        schedule: null,
+      },
+      publishedJob(),
+    ]);
+
+    const result = await socialAnalyticsSyncService.process("sync-1", "worker-a");
+
+    expect(result.status).toBe("COMPLETED");
+    expect(adapter.fetchPostMetrics).toHaveBeenCalledTimes(1);
+    expect(adapter.fetchPostMetrics.mock.calls[0]![0].providerPostId).toBe("post-1");
+  });
+
   it("collects every X thread post ID independently", async () => {
     stageSync(sync({ provider: "X" }));
     prisma.socialAccount.findFirst.mockResolvedValue(account({ provider: "X" }));
