@@ -178,7 +178,7 @@ export function diagnoseRoasChange(input: RoasDiagnosticInput): RoasDiagnosticRe
   }
 
   const weakest = drivers.find((row) => row.currentRoas != null && row.currentRoas < currentRoas * 0.75);
-  if (weakest && weakest.currentRoas != null && weakest.currentRoas < currentRoas * 0.75) {
+  if (weakest?.currentRoas != null && weakest.currentRoas < currentRoas * 0.75) {
     recommendations.push(
       createRecommendation(
         `Review ${weakest.provider} campaigns and creatives with below-average ROAS before increasing spend.`,
