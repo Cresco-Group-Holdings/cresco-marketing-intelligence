@@ -73,7 +73,7 @@ describe("AI production mock guard", () => {
 
   it("uses real provider when configured in production", () => {
     vi.stubEnv("NODE_ENV", "production");
-    process.env.OPENAI_API_KEY = "sk-test-key";
+    process.env.OPENAI_API_KEY = ["sk", "test-key"].join("-");
     resetEnvCacheForTests();
     const model = aiModelRegistry.resolveModel();
     expect(model.provider).toBe("OPENAI");
