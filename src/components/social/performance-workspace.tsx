@@ -10,7 +10,7 @@ import { OrganicChannelPanel } from "@/components/social/organic-channel-panel";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api/client";
 import type { OrganicSocialWorkspaceData } from "@/lib/organic-social/types";
-import { ChartBarGroup } from "@/components/marketing/chart-bar";
+import { cn } from "@/lib/utils";
 
 function OrganicTrendChart({
   data,
@@ -21,6 +21,7 @@ function OrganicTrendChart({
 }) {
   const [metric, setMetric] = useState<keyof OrganicSocialWorkspaceData["chart"]>("reach");
   const points = data[metric] ?? [];
+  const maxValue = Math.max(...points.map((point) => point.value), 1);
 
   if (points.length === 0) {
     return (
@@ -56,19 +57,24 @@ function OrganicTrendChart({
           </button>
         ))}
       </div>
-      <div className="mt-6 min-h-[12rem]">
-        <ChartBarGroup
-          points={points.map((point) => ({
-            label: point.label,
-            value: point.value,
-            formattedValue:
-              metric === "engagementRate"
-                ? `${point.value.toFixed(1)}%`
-                : point.value.toLocaleString(),
-          }))}
-          accentClassName="bg-organic-accent/80 hover:bg-organic-accent"
-          ariaLabel={`${labels[metric]} chart`}
-        />
+      <div className="mt-6 flex h-48 items-end gap-2" role="img" aria-label={`${labels[metric]} chart`}>
+        {points.map((point) => {
+          const height = Math.max((point.value / maxValue) * 100, 4);
+          return (
+            <div key={point.label} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+              <div className="flex h-40 w-full items-end">
+                <div
+                  className="w-full rounded-t-md bg-organic-accent/80"
+                  style={{ height: `${height}%` }}
+                  title={`${point.label}: ${point.value.toLocaleString()}`}
+                />
+              </div>
+              <span className="truncate text-[10px] text-foreground-subtle sm:text-xs">
+                {point.label}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

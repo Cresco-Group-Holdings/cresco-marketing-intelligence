@@ -1,5 +1,6 @@
 import type { AttributionModelType } from "@prisma/client";
 import { calculateAttributionCredits, filterTouchpointsByLookback } from "@/lib/attribution/models";
+import { mapAttributionTouchpointToInput } from "@/lib/attribution/touchpoint-mapper";
 import type { AttributionTouchpointInput } from "@/lib/attribution/types";
 
 export type ChannelAttributionAggregate = {
@@ -20,10 +21,46 @@ export type JourneyAttributionInput = {
     channel: string | null;
     campaign?: string | null;
     contentKey?: string | null;
-    position: number;
+    position?: number;
     isExcluded: boolean;
   }>;
 };
+
+type PersistedJourneyForAttribution = {
+  journeyEnd: string | null;
+  journeyStart: string;
+  revenueValue: number;
+  status: string;
+  touchpoints: Array<{
+    id: string;
+    occurredAt: string;
+    channel: string | null;
+    campaign?: string | null;
+    contentKey?: string | null;
+    position: number | null;
+    isExcluded: boolean;
+  }>;
+};
+
+export function mapJourneyToAttributionInput(
+  journey: PersistedJourneyForAttribution,
+): JourneyAttributionInput {
+  return {
+    journeyEnd: journey.journeyEnd,
+    journeyStart: journey.journeyStart,
+    revenueValue: journey.revenueValue,
+    status: journey.status,
+    touchpoints: journey.touchpoints.map((touchpoint) => ({
+      id: touchpoint.id,
+      occurredAt: touchpoint.occurredAt,
+      channel: touchpoint.channel,
+      campaign: touchpoint.campaign,
+      contentKey: touchpoint.contentKey,
+      position: touchpoint.position ?? undefined,
+      isExcluded: touchpoint.isExcluded,
+    })),
+  };
+}
 
 export function computeAttributionFromJourneys(
   journeys: JourneyAttributionInput[],
@@ -42,15 +79,13 @@ export function computeAttributionFromJourneys(
 
   for (const journey of journeys) {
     const conversionAt = new Date(journey.journeyEnd ?? journey.journeyStart);
-    const touchpoints: AttributionTouchpointInput[] = journey.touchpoints.map((tp) => ({
-      id: tp.id,
-      occurredAt: new Date(tp.occurredAt),
-      channel: tp.channel,
-      campaign: tp.campaign ?? null,
-      contentKey: tp.contentKey ?? null,
-      position: tp.position,
-      isExcluded: tp.isExcluded,
-    }));
+    const touchpoints: AttributionTouchpointInput[] = journey.touchpoints.map((tp) =>
+      mapAttributionTouchpointToInput({
+        ...tp,
+        occurredAt: tp.occurredAt,
+        position: tp.position ?? null,
+      }),
+    );
 
     const { included } = filterTouchpointsByLookback(
       touchpoints,

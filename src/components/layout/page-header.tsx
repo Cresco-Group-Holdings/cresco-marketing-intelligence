@@ -12,19 +12,11 @@ type PageHeaderProps = {
   description?: string;
   breadcrumbs?: BreadcrumbItem[];
   actions?: React.ReactNode;
-  /** Shown below title on mobile; merged into actions row on desktop */
-  mobileActions?: React.ReactNode;
 };
 
-export function PageHeader({
-  title,
-  description,
-  breadcrumbs,
-  actions,
-  mobileActions,
-}: PageHeaderProps) {
+export function PageHeader({ title, description, breadcrumbs, actions }: PageHeaderProps) {
   return (
-    <div className="mb-6 flex flex-col gap-4 border-b border-border pb-5 sm:mb-8 sm:pb-6">
+    <div className="mb-8 flex flex-col gap-4 border-b border-border pb-6 lg:flex-row lg:items-start lg:justify-between">
       <div className="space-y-3">
         {breadcrumbs && breadcrumbs.length > 0 ? (
           <nav aria-label="Breadcrumb">
@@ -62,14 +54,7 @@ export function PageHeader({
           ) : null}
         </div>
       </div>
-      {mobileActions ? (
-        <div className="flex flex-wrap items-center gap-2 lg:hidden">{mobileActions}</div>
-      ) : null}
-      {actions ? (
-        <div className="flex flex-wrap items-center gap-2 lg:ml-auto lg:justify-end">
-          {actions}
-        </div>
-      ) : null}
+      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

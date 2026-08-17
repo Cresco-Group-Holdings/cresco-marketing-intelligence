@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { PaidEmptyState, WorkspaceErrorState } from "@/components/layout/workspace-empty-state";
 import { ExecutiveKpiStrip } from "@/components/marketing/marketing-metric-card";
 import { PaidPerformanceChart } from "@/components/marketing/paid-performance-chart";
 import { AIIntelligenceFeed } from "@/components/marketing/ai-insight-card";
@@ -106,11 +105,9 @@ function PaidAdvertisingWorkspaceContent() {
 
   if (error && !data) {
     return (
-      <WorkspaceErrorState
-        title="We couldn't load this workspace"
-        description={error}
-        onRetry={loadWorkspace}
-      />
+      <div className="rounded-xl border border-danger/30 bg-danger-muted p-6 text-sm text-danger">
+        {error}
+      </div>
     );
   }
 
@@ -118,36 +115,11 @@ function PaidAdvertisingWorkspaceContent() {
     return null;
   }
 
-  const hasConnections = !data.coverage.startsWith("0 of");
-
-  if (!data.hasBrandContext) {
-    return (
-      <div className="space-y-6">
-        <PaidAdvertisingHeader data={data} onRefresh={loadWorkspace} loading={loading} />
-        <PaidEmptyState />
-      </div>
-    );
-  }
-
-  if (!hasConnections) {
-    return (
-      <div className="space-y-6">
-        <PaidAdvertisingHeader data={data} onRefresh={loadWorkspace} loading={loading} />
-        <WorkspaceMeta data={data} />
-        <PaidEmptyState />
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6">
       <PaidAdvertisingHeader data={data} onRefresh={loadWorkspace} loading={loading} />
       <WorkspaceMeta data={data} />
-      <ExecutiveKpiStrip
-        metrics={data.executiveKpis}
-        accent="paid"
-        mobilePriorityLabels={["ROAS", "Spend", "CPA", "Conversions"]}
-      />
+      <ExecutiveKpiStrip metrics={data.executiveKpis} accent="paid" />
       <PaidPerformanceChart
         data={data.chart}
         currency={data.currency}

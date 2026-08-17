@@ -4,10 +4,8 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button, ButtonLink } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DashboardSkeleton } from "@/components/ui/skeleton";
-import { EmptyState } from "@/components/ui/empty-state";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { apiFetch } from "@/lib/api/client";
 import { EXECUTIVE_DISCLAIMER, EXECUTIVE_SECTIONS } from "@/lib/executive/constants";
@@ -70,7 +68,7 @@ function KpiCard({ label, metric }: { label: string; metric: MetricComparison })
         {metric.formula ? (
           <button
             type="button"
-            className="mt-2 text-xs text-foreground underline decoration-border-strong hover:text-foreground-muted"
+            className="mt-2 text-xs text-paid-accent underline"
             onClick={() => setShowHow((v) => !v)}
           >
             How calculated
@@ -270,11 +268,11 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
       ) : null}
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
-      {loading ? <DashboardSkeleton /> : null}
+      {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
 
-      {!loading && mode === "overview" && overview ? (
+      {mode === "overview" && overview ? (
         <>
-          <div className="flex flex-wrap gap-2 text-sm text-foreground-muted">
+          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
             <span>Reporting: {String(overview.reportingCurrency)}</span>
             <span>
               Period: {String((overview.period as { from: string }).from).slice(0, 10)} –{" "}
@@ -301,32 +299,21 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
         </>
       ) : null}
 
-      {!loading && mode !== "overview" && sectionResult ? (
+      {mode !== "overview" && sectionResult ? (
         <Card>
           <CardHeader>
             <CardTitle>{currentSection?.label}</CardTitle>
           </CardHeader>
           <CardContent>
             {sectionResult.error ? (
-              <p className="text-sm text-warning">{sectionResult.error}</p>
-            ) : sectionResult.data ? (
-              <EmptyState
-                title={`${currentSection?.label ?? "Section"} data available`}
-                description="This legacy executive view is being consolidated into Unified Analytics. Open Unified Analytics for the full experience."
-                action={
-                  <ButtonLink href="/analytics" variant="outline" size="sm">
-                    Open Unified Analytics
-                  </ButtonLink>
-                }
-              />
+              <p className="text-sm text-amber-700">{sectionResult.error}</p>
             ) : (
-              <EmptyState
-                title="No data for this section"
-                description="Connect the required data sources or select a different date range."
-              />
+              <pre className="max-h-96 overflow-auto rounded bg-surface-subtle p-4 text-xs">
+                {JSON.stringify(sectionResult.data, null, 2)}
+              </pre>
             )}
             {sectionResult.confidence ? (
-              <div className="mt-4 space-y-1 text-sm text-foreground-muted">
+              <div className="mt-4 space-y-1 text-sm text-muted-foreground">
                 <p>Source: {String(sectionResult.confidence.source)}</p>
                 {sectionResult.confidence.lastUpdated ? (
                   <p>Last updated: {String(sectionResult.confidence.lastUpdated)}</p>

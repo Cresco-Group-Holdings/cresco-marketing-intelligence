@@ -57,6 +57,7 @@ export const paidAdsDashboardService = {
           _sum: { amount: true },
         });
         const clicks = await this.sumMetricForCampaign(campaign.id, "clicks", from, to);
+        const conversions = await this.sumMetricForCampaign(campaign.id, "conversions", from, to);
         return {
           id: campaign.id,
           name: campaign.name,
@@ -64,6 +65,7 @@ export const paidAdsDashboardService = {
           status: campaign.status,
           spend: Number(spend._sum.amount ?? 0),
           clicks,
+          conversions,
           currency: campaign.budgetCurrency,
         };
       }),

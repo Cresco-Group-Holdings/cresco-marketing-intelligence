@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { FilterInput } from "@/components/ui/filter-bar";
+import { Input } from "@/components/ui/input";
 import type { PaidCampaignPerformance } from "@/lib/paid-advertising/types";
 
 function formatCurrency(value: number | null, currency: string): string {
@@ -62,8 +62,10 @@ export function CampaignTable({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <FilterInput
+        <Input
+          label="Search campaigns"
           type="search"
+          labelClassName="sr-only"
           placeholder="Search campaigns…"
           value={search}
           onChange={(event) => {
@@ -71,7 +73,6 @@ export function CampaignTable({
             setPage(0);
           }}
           className="sm:max-w-xs"
-          aria-label="Search campaigns"
         />
         <select
           value={provider}
@@ -105,58 +106,7 @@ export function CampaignTable({
         </select>
       </div>
 
-      <div className="space-y-3 md:hidden">
-        {pageItems.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border bg-surface-subtle p-6 text-center text-sm text-foreground-muted">
-            No campaigns match the current filters.
-          </div>
-        ) : (
-          pageItems.map((campaign) => (
-            <article
-              key={campaign.id}
-              className="rounded-xl border border-border bg-surface-elevated p-4"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <h3 className="truncate font-medium text-foreground">{campaign.name}</h3>
-                  <p className="text-xs text-foreground-subtle">{campaign.provider}</p>
-                </div>
-                <Badge variant="muted">{campaign.status}</Badge>
-              </div>
-              <dl className="mt-3 grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <dt className="text-foreground-subtle">Spend</dt>
-                  <dd className="font-medium text-foreground">
-                    {formatCurrency(campaign.spend, currency)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-foreground-subtle">ROAS</dt>
-                  <dd className="font-medium text-foreground">
-                    {campaign.roas != null ? `${campaign.roas.toFixed(2)}x` : "—"}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-foreground-subtle">CPA</dt>
-                  <dd className="font-medium text-foreground">
-                    {formatCurrency(campaign.cpa, currency)}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="text-foreground-subtle">Performance</dt>
-                  <dd>
-                    <Badge variant={STATE_VARIANT[campaign.performanceState]}>
-                      {campaign.performanceState}
-                    </Badge>
-                  </dd>
-                </div>
-              </dl>
-            </article>
-          ))
-        )}
-      </div>
-
-      <div className="hidden overflow-x-auto rounded-xl border border-border md:block">
+      <div className="overflow-x-auto rounded-xl border border-border">
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-border bg-surface-subtle text-xs uppercase tracking-wide text-foreground-subtle">
             <tr>
@@ -210,7 +160,7 @@ export function CampaignTable({
       </div>
 
       {filtered.length > pageSize ? (
-        <div className="flex flex-col gap-2 text-sm text-foreground-muted sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center justify-between text-sm text-foreground-muted">
           <span>
             Showing {page * pageSize + 1}–{Math.min((page + 1) * pageSize, filtered.length)} of{" "}
             {filtered.length}
