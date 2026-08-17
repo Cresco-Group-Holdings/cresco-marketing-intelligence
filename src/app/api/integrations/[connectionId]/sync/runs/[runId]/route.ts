@@ -6,10 +6,10 @@ import {
 } from "@/lib/api/integrations-handler";
 import { providerSyncService } from "@/server/services/provider-sync-service";
 
-type Params = { params: Promise<{ resourceId: string; runId: string }> };
+type Params = { params: Promise<{ connectionId: string; runId: string }> };
 
 export async function GET(request: NextRequest, { params }: Params) {
-  const { resourceId: connectionId, runId } = await params;
+  const { connectionId, runId } = await params;
   const organisationId = requireOrganisationId(request);
 
   return withIntegrationsRead(request, organisationId, async ({ requestId, tenant }) => {

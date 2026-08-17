@@ -2,7 +2,7 @@ import type { ConnectorType, SocialProvider } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { buildTenantContextForUser } from "@/lib/tenancy/guards";
 import type { PublishingQueueItem } from "@/components/marketing/publishing-queue";
-import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart";
+import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart.types";
 import type { ChannelConnectionState } from "@/components/marketing/channel-card";
 import type { MarketingMetric } from "@/components/marketing/marketing-metric-card";
 import { CONNECTOR_TO_PROVIDER } from "@/lib/paid-ads/constants";
