@@ -48,34 +48,34 @@ function KpiCard({ label, metric }: { label: string; metric: MetricComparison })
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-foreground-muted">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-2xl font-semibold">
           {metric.available ? formatMetricDisplay(metric) : (
-            <span className="text-base text-foreground-muted">Unavailable</span>
+            <span className="text-base text-muted-foreground">Unavailable</span>
           )}
         </p>
         {metric.available && metric.changePercent != null ? (
-          <p className={`text-sm ${metric.changePercent >= 0 ? "text-success" : "text-danger"}`}>
+          <p className={`text-sm ${metric.changePercent >= 0 ? "text-emerald-600" : "text-danger"}`}>
             {metric.changeAbsolute != null && metric.changeAbsolute >= 0 ? "+" : ""}
             {metric.changePercent}% vs previous
           </p>
         ) : null}
         {!metric.available && metric.unavailableReason ? (
-          <p className="text-xs text-foreground-muted">{metric.unavailableReason}</p>
+          <p className="text-xs text-muted-foreground">{metric.unavailableReason}</p>
         ) : null}
         {metric.formula ? (
           <button
             type="button"
-            className="mt-2 text-xs text-paid-accent underline"
+            className="mt-2 text-xs text-blue-600 underline"
             onClick={() => setShowHow((v) => !v)}
           >
             How calculated
           </button>
         ) : null}
         {showHow && metric.formula ? (
-          <p className="mt-1 text-xs text-foreground-muted">{metric.formula}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{metric.formula}</p>
         ) : null}
       </CardContent>
     </Card>

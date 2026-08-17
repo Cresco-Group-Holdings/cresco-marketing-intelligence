@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { FilterInput } from "@/components/ui/filter-bar";
 import type { PaidCampaignPerformance } from "@/lib/paid-advertising/types";
 
 function formatCurrency(value: number | null, currency: string): string {
@@ -62,10 +62,8 @@ export function CampaignTable({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Input
-          label="Search campaigns"
+        <FilterInput
           type="search"
-          labelClassName="sr-only"
           placeholder="Search campaigns…"
           value={search}
           onChange={(event) => {
@@ -73,6 +71,7 @@ export function CampaignTable({
             setPage(0);
           }}
           className="sm:max-w-xs"
+          aria-label="Search campaigns"
         />
         <select
           value={provider}

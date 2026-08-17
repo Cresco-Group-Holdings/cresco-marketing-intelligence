@@ -15,7 +15,6 @@ import {
 } from "@/components/analytics/unified-analytics-panels";
 import { PageHeader } from "@/components/layout/page-header";
 import { AIIntelligenceFeed } from "@/components/marketing/ai-insight-card";
-import { AnalyticsEmptyState, WorkspaceErrorState } from "@/components/layout/workspace-empty-state";
 import { MarketingDateRangeProvider } from "@/components/marketing/marketing-date-range-provider";
 import { DateRangeSelector } from "@/components/marketing/date-range-selector";
 import { Button } from "@/components/ui/button";
@@ -48,7 +47,7 @@ function ModelSelector({
       <select
         value={selected}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground w-full sm:w-auto"
+        className="rounded-md border border-border bg-surface px-2 py-1.5 text-sm text-foreground"
       >
         {options.map((option) => (
           <option key={option.type} value={option.type}>
@@ -99,32 +98,13 @@ function UnifiedAnalyticsWorkspaceContent({ tab }: { tab: UnifiedAnalyticsTab })
 
   if (error && !data) {
     return (
-      <WorkspaceErrorState
-        title="We couldn't load this workspace"
-        description={error}
-        onRetry={loadWorkspace}
-      />
+      <div className="rounded-xl border border-danger/30 bg-danger-muted p-6 text-sm text-danger">
+        {error}
+      </div>
     );
   }
 
   if (!data) return null;
-
-  const hasMeasurementData =
-    data.coverage.some((item) => item.state === "Strong" || item.state === "Partial") ||
-    data.executiveKpis.some((kpi) => kpi.value !== "—" && kpi.value !== "Unavailable");
-
-  if (!hasMeasurementData) {
-    return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Unified Analytics"
-          description="Understand performance, attribution and revenue across your entire marketing system."
-          actions={<DateRangeSelector />}
-        />
-        <AnalyticsEmptyState />
-      </div>
-    );
-  }
 
   const showModelSelector = tab === "overview" || tab === "attribution" || tab === "revenue";
 

@@ -6,10 +6,9 @@ import {
 } from "@/lib/attribution/constants";
 import { calculateAttributionCredits, filterTouchpointsByLookback } from "@/lib/attribution/models";
 import type { AttributionTouchpointInput } from "@/lib/attribution/types";
-import { mapAttributionTouchpointToInput } from "@/lib/attribution/touchpoint-mapper";
+import { mapAttributionTouchpointToInput } from "@/lib/attribution/mappers";
 import {
   computeAttributionFromJourneys,
-  mapJourneyToAttributionInput,
   resolveCreditedChannel,
 } from "@/lib/unified-analytics/attribution";
 import {
@@ -252,12 +251,12 @@ export const unifiedAnalyticsWorkspaceService = {
     const observedRevenue = revenueOverview?.metrics.totalRevenue ?? null;
 
     const currentAttribution = computeAttributionFromJourneys(
-      journeys.map(mapJourneyToAttributionInput),
+      journeys,
       attributionModel,
       DEFAULT_LOOKBACK_WINDOW_DAYS,
     );
     const previousAttribution = computeAttributionFromJourneys(
-      previousJourneys.map(mapJourneyToAttributionInput),
+      previousJourneys,
       attributionModel,
       DEFAULT_LOOKBACK_WINDOW_DAYS,
     );
@@ -377,7 +376,15 @@ export const unifiedAnalyticsWorkspaceService = {
 
     const journeyAssistInput: JourneyForAssist[] = journeys.map((journey) => {
       const touchpoints: AttributionTouchpointInput[] = journey.touchpoints.map((tp) =>
-        mapAttributionTouchpointToInput(tp),
+        mapAttributionTouchpointToInput({
+          id: tp.id,
+          occurredAt: tp.occurredAt,
+          channel: tp.channel,
+          campaign: tp.campaign,
+          contentKey: tp.contentKey,
+          position: tp.position,
+          isExcluded: tp.isExcluded,
+        }),
       );
       const conversionAt = new Date(journey.journeyEnd ?? journey.journeyStart);
       const credited = resolveCreditedChannel(
@@ -399,7 +406,14 @@ export const unifiedAnalyticsWorkspaceService = {
     const assistedByContent = calculateAssistedMetrics(
       journeys.map((journey) => {
         const touchpoints: AttributionTouchpointInput[] = journey.touchpoints.map((tp) =>
-          mapAttributionTouchpointToInput(tp),
+          mapAttributionTouchpointToInput({
+            id: tp.id,
+            occurredAt: tp.occurredAt,
+            channel: tp.channel,
+            contentKey: tp.contentKey,
+            position: tp.position,
+            isExcluded: tp.isExcluded,
+          }),
         );
         const conversionAt = new Date(journey.journeyEnd ?? journey.journeyStart);
         const { included } = filterTouchpointsByLookback(
@@ -534,7 +548,12 @@ export const unifiedAnalyticsWorkspaceService = {
       const channelCredits = new Map<string, number>();
       for (const journey of journeys.slice(0, 30)) {
         const touchpoints: AttributionTouchpointInput[] = journey.touchpoints.map((tp) =>
-          mapAttributionTouchpointToInput(tp),
+          mapAttributionTouchpointToInput({
+            id: tp.id,
+            occurredAt: tp.occurredAt,
+            channel: tp.channel,
+            isExcluded: tp.isExcluded,
+          }),
         );
         const conversionAt = new Date(journey.journeyEnd ?? journey.journeyStart);
         const { included } = filterTouchpointsByLookback(
@@ -568,7 +587,12 @@ export const unifiedAnalyticsWorkspaceService = {
 
     const journeyFlows = aggregateJourneyFlows(
       journeys.map((journey) => ({
-        touchpoints: journey.touchpoints.map((tp) => mapAttributionTouchpointToInput(tp)),
+        touchpoints: journey.touchpoints.map((tp) => ({
+          id: tp.id,
+          occurredAt: new Date(tp.occurredAt),
+          channel: tp.channel,
+          isExcluded: tp.isExcluded,
+        })),
       })),
     );
 

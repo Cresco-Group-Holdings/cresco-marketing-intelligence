@@ -86,7 +86,7 @@ export function CopilotPanel() {
         onClick={close}
       />
       <aside
-        className="fixed inset-0 z-50 flex w-full flex-col bg-surface-elevated shadow-xl sm:inset-y-0 sm:left-auto sm:right-0 sm:max-w-[480px] sm:border-l sm:border-border"
+        className="fixed inset-y-0 right-0 z-50 flex w-full max-w-[480px] flex-col border-l border-border bg-surface-elevated shadow-xl"
         aria-label="Cresco Copilot"
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
@@ -184,27 +184,15 @@ export function CopilotPanel() {
 export function CopilotHeaderButton() {
   const { toggle } = useCopilot();
   return (
-    <>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon"
-        onClick={toggle}
-        className="sm:hidden"
-        aria-label="Ask Cresco"
-      >
-        <Sparkles className="h-4 w-4 text-ai-accent" aria-hidden="true" />
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={toggle}
-        className="hidden sm:inline-flex"
-      >
-        <Sparkles className="mr-2 h-4 w-4 text-ai-accent" aria-hidden="true" />
-        Ask Cresco
-      </Button>
-    </>
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      onClick={toggle}
+      className="hidden sm:inline-flex"
+    >
+      <Sparkles className="mr-2 h-4 w-4 text-ai-accent" aria-hidden="true" />
+      Ask Cresco
+    </Button>
   );
 }
