@@ -1,6 +1,7 @@
 import type { AttributionModelType } from "@prisma/client";
 import { calculateAttributionCredits, filterTouchpointsByLookback } from "@/lib/attribution/models";
 import type { AttributionTouchpointInput } from "@/lib/attribution/types";
+import { mapAttributionTouchpointToInput } from "@/lib/attribution/mappers";
 
 export type ChannelAttributionAggregate = {
   channel: string;
@@ -20,7 +21,7 @@ export type JourneyAttributionInput = {
     channel: string | null;
     campaign?: string | null;
     contentKey?: string | null;
-    position: number;
+    position?: number | null;
     isExcluded: boolean;
   }>;
 };
@@ -42,15 +43,17 @@ export function computeAttributionFromJourneys(
 
   for (const journey of journeys) {
     const conversionAt = new Date(journey.journeyEnd ?? journey.journeyStart);
-    const touchpoints: AttributionTouchpointInput[] = journey.touchpoints.map((tp) => ({
-      id: tp.id,
-      occurredAt: new Date(tp.occurredAt),
-      channel: tp.channel,
-      campaign: tp.campaign ?? null,
-      contentKey: tp.contentKey ?? null,
-      position: tp.position,
-      isExcluded: tp.isExcluded,
-    }));
+    const touchpoints: AttributionTouchpointInput[] = journey.touchpoints.map((tp) =>
+      mapAttributionTouchpointToInput({
+        id: tp.id,
+        occurredAt: tp.occurredAt,
+        channel: tp.channel,
+        campaign: tp.campaign ?? null,
+        contentKey: tp.contentKey ?? null,
+        position: tp.position,
+        isExcluded: tp.isExcluded,
+      }),
+    );
 
     const { included } = filterTouchpointsByLookback(
       touchpoints,
