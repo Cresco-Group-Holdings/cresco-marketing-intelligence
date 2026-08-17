@@ -398,7 +398,7 @@ export function SearchAnalyticsView({ mode }: { mode: SearchAnalyticsMode }) {
         </div>
       )}
 
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
 
       {mode === "overview" && overview && (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

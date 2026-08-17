@@ -60,14 +60,14 @@ export function SessionsSettings() {
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-600">Loading session details...</p>;
+    return <p className="text-sm text-foreground-muted">Loading session details...</p>;
   }
 
   return (
     <div className="space-y-6">
-      <section className="rounded-lg border border-slate-200 p-4">
-        <h2 className="text-sm font-semibold text-slate-900">Current session</h2>
-        <dl className="mt-3 space-y-2 text-sm text-slate-600">
+      <section className="rounded-lg border border-border p-4">
+        <h2 className="text-sm font-semibold text-foreground">Current session</h2>
+        <dl className="mt-3 space-y-2 text-sm text-foreground-muted">
           <div className="flex justify-between gap-4">
             <dt>Status</dt>
             <dd>{session?.authenticated ? "Active" : "Inactive"}</dd>
@@ -91,12 +91,12 @@ export function SessionsSettings() {
 
       <section className="space-y-3">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Sign out everywhere</h2>
-          <p className="text-sm text-slate-600">
+          <h2 className="text-lg font-semibold text-foreground">Sign out everywhere</h2>
+          <p className="text-sm text-foreground-muted">
             Revoke all active sessions for this account, including this browser.
           </p>
         </div>
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
         {message ? <p className="text-sm text-green-700">{message}</p> : null}
         <Button type="button" variant="outline" onClick={revokeAllSessions} disabled={revoking}>
           {revoking ? "Revoking..." : "Revoke all sessions"}

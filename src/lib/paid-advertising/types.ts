@@ -1,4 +1,6 @@
 import type { DataFreshnessState } from "@/lib/marketing-intelligence/types";
+import type { MarketingMetric } from "@/components/marketing/marketing-metric-card";
+import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart.types";
 
 export type CampaignStatus =
   | "Draft"
@@ -104,13 +106,8 @@ export type PaidAdvertisingWorkspaceData = {
   };
   coverage: string;
   currency: string;
-  executiveKpis: Array<{
-    label: string;
-    value: string;
-    change: number | null;
-    comparisonLabel: string;
-  }>;
-  chart: Record<string, Array<{ label: string; value: number }>>;
+  executiveKpis: MarketingMetric[];
+  chart: Record<PaidChartMetric, PaidChartPoint[]>;
   channels: PaidChannelPerformance[];
   budgetAllocation: BudgetAllocationItem[];
   campaigns: PaidCampaignPerformance[];

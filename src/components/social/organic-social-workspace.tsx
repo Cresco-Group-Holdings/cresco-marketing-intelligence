@@ -60,7 +60,7 @@ function PublishRecommendation({
       <div className="flex items-start gap-3">
         <Sparkles className="mt-0.5 h-5 w-5 text-organic-accent" aria-hidden="true" />
         <div>
-          <h2 className="text-sm font-semibold text-foreground">What should we publish next?</h2>
+          <h2 className="text-sm font-semibold text-foreground">What to publish next</h2>
           <p className="mt-2 text-sm text-foreground-muted">
             <span className="font-medium text-foreground">{recommendation.format}</span> on{" "}
             {recommendation.channel}

@@ -26,13 +26,13 @@ export default function SettingsPage() {
       <div className="grid gap-4 md:grid-cols-2">
         {settingsLinks.map((item) => (
           <Link key={item.href} href={item.href}>
-            <Card className="h-full transition hover:border-slate-300">
+            <Card className="h-full transition hover:border-border-strong">
               <CardHeader>
                 <CardTitle>{item.title}</CardTitle>
                 <CardDescription>{item.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <span className="text-sm font-medium text-slate-900">Open</span>
+                <span className="text-sm font-medium text-foreground">Open</span>
               </CardContent>
             </Card>
           </Link>

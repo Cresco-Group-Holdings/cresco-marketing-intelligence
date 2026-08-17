@@ -95,19 +95,19 @@ export default function ContentPage() {
             <div className="flex gap-2">
               <Link
                 href="/content/studio"
-                className="inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-slate-50"
+                className="inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-surface-subtle"
               >
                 Content Studio
               </Link>
               <Link
                 href="/content/long-form"
-                className="inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-slate-50"
+                className="inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-surface-subtle"
               >
                 Long-form SEO
               </Link>
               <Link
                 href="/content/new"
-                className="inline-flex h-9 items-center justify-center rounded-md bg-slate-900 px-4 text-sm font-medium text-white hover:bg-slate-800"
+                className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
               >
                 New content
               </Link>
@@ -155,7 +155,7 @@ export default function ContentPage() {
         </select>
       </div>
 
-      {loading ? <p className="text-sm text-slate-600">Loading content...</p> : null}
+      {loading ? <p className="text-sm text-foreground-muted">Loading content...</p> : null}
 
       {view === "workflow" ? (
         <div className="grid gap-4 lg:grid-cols-5">
@@ -169,10 +169,10 @@ export default function ContentPage() {
                   <Link
                     key={item.id}
                     href={`/content/${item.id}`}
-                    className="block rounded-md border p-3 text-sm hover:bg-slate-50"
+                    className="block rounded-md border p-3 text-sm hover:bg-surface-subtle"
                   >
                     <p className="font-medium">{item.title}</p>
-                    <p className="text-slate-600">{item.contentType}</p>
+                    <p className="text-foreground-muted">{item.contentType}</p>
                   </Link>
                 ))}
               </CardContent>
@@ -194,7 +194,7 @@ export default function ContentPage() {
                 </div>
                 <CardDescription>{item.campaignName ?? item.contentType}</CardDescription>
               </CardHeader>
-              <CardContent className="text-sm text-slate-600">
+              <CardContent className="text-sm text-foreground-muted">
                 {item.variants.length} variant{item.variants.length === 1 ? "" : "s"}
               </CardContent>
             </Card>
@@ -207,7 +207,7 @@ export default function ContentPage() {
           <CardContent className="overflow-x-auto pt-6">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="border-b text-left text-slate-500">
+                <tr className="border-b text-left text-foreground-subtle">
                   <th className="px-3 py-2">Title</th>
                   <th className="px-3 py-2">Type</th>
                   <th className="px-3 py-2">Status</th>

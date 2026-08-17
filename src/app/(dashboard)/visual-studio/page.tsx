@@ -121,7 +121,7 @@ export default function VisualStudioPage() {
                 required
               />
             </div>
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-foreground-subtle">
               Brand colours and safe margins are locked by default. Add or edit slide text after
               creating the draft.
             </p>

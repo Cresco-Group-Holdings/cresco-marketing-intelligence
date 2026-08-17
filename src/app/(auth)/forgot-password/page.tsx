@@ -11,14 +11,14 @@ export const metadata: Metadata = {
 
 export default function ForgotPasswordPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-surface-subtle px-4 py-12">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <Link href="/" className="text-sm font-semibold text-slate-900">
+          <Link href="/" className="text-sm font-semibold text-foreground">
             {APP_NAME}
           </Link>
-          <h1 className="mt-4 text-2xl font-semibold text-slate-900">Reset your password</h1>
-          <p className="mt-2 text-sm text-slate-600">
+          <h1 className="mt-4 text-2xl font-semibold text-foreground">Reset your password</h1>
+          <p className="mt-2 text-sm text-foreground-muted">
             We will email reset instructions if an account exists for that address.
           </p>
         </div>

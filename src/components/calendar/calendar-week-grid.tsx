@@ -99,7 +99,7 @@ export function CalendarWeekGrid({
                     <p
                       className={cn(
                         "mt-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-sm",
-                        isToday && "bg-foreground font-semibold text-white",
+                        isToday && "bg-primary font-semibold text-primary-foreground",
                       )}
                     >
                       {day.getDate()}

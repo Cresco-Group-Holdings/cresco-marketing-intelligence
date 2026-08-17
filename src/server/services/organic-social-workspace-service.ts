@@ -501,11 +501,15 @@ export const organicSocialWorkspaceService = {
       topPerforming: [],
     };
 
+    const currentBrand = workspace.brands.find(
+      (item) => item.id === workspace.preference.currentBrandId,
+    );
+
     const publishingQueue = publications.slice(0, 50).map((item) => ({
       id: item.id,
       title: contentTitleById.get(item.contentItemId) ?? "Untitled",
       channel: PROVIDER_LABELS[item.providerKey] ?? item.providerKey,
-      brand: workspace.brand?.name ?? "Brand",
+      brand: currentBrand?.name ?? "Brand",
       section: mapPublicationToQueueSection(item.status),
       scheduledAt: item.scheduledFor,
       failureReason: item.lastErrorMessage,
@@ -588,7 +592,7 @@ export const organicSocialWorkspaceService = {
         id: campaign.id,
         name: campaign.name,
         provider: campaign.provider,
-        roas: campaign.spend > 0 ? null : null,
+        roas: null,
         conversions: campaign.conversions,
       }));
 

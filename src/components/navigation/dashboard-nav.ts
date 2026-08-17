@@ -168,6 +168,12 @@ export const dashboardNavigationSections: NavigationSection[] = [
     label: "Intelligence",
     items: [
       {
+        label: "Ask Cresco",
+        href: "/copilot",
+        icon: Bot,
+        description: "Evidence-based marketing intelligence and daily briefs",
+      },
+      {
         label: "AI Agents",
         href: "/ai-agents",
         icon: Bot,

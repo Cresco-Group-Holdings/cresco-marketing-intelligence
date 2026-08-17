@@ -187,7 +187,7 @@ export function KnowledgeBaseView() {
   if (!organisationId) {
     return (
       <Card>
-        <CardContent className="py-8 text-sm text-slate-600">
+        <CardContent className="py-8 text-sm text-foreground-muted">
           Select an organisation to manage the knowledge base.
         </CardContent>
       </Card>
@@ -259,7 +259,7 @@ export function KnowledgeBaseView() {
             </div>
 
             {loading ? (
-              <p className="text-sm text-slate-500">Loading knowledge base…</p>
+              <p className="text-sm text-foreground-subtle">Loading knowledge base…</p>
             ) : null}
 
             {view === "entries" ? (
@@ -272,7 +272,7 @@ export function KnowledgeBaseView() {
                     onChange={(event) => setSearch(event.target.value)}
                   />
                   <select
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-border-strong px-3 py-2 text-sm"
                     value={typeFilter}
                     onChange={(event) => setTypeFilter(event.target.value)}
                   >
@@ -284,7 +284,7 @@ export function KnowledgeBaseView() {
                     ))}
                   </select>
                   <select
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="rounded-lg border border-border-strong px-3 py-2 text-sm"
                     value={statusFilter}
                     onChange={(event) => setStatusFilter(event.target.value)}
                   >
@@ -300,24 +300,24 @@ export function KnowledgeBaseView() {
                   Apply filters
                 </Button>
                 {entries.length === 0 ? (
-                  <p className="text-sm text-slate-500">No entries yet. Create your first knowledge entry.</p>
+                  <p className="text-sm text-foreground-subtle">No entries yet. Create your first knowledge entry.</p>
                 ) : (
                   <div className="divide-y rounded-lg border">
                     {entries.map((entry) => (
                       <Link
                         key={entry.id}
                         href={`/brands/${brandId}/knowledge-bases/${activeKbId}/entries/${entry.id}`}
-                        className="block px-4 py-3 hover:bg-slate-50"
+                        className="block px-4 py-3 hover:bg-surface-subtle"
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div>
-                            <p className="font-medium text-slate-900">{entry.title}</p>
-                            <p className="text-sm text-slate-500">
+                            <p className="font-medium text-foreground">{entry.title}</p>
+                            <p className="text-sm text-foreground-subtle">
                               {KNOWLEDGE_ENTRY_TYPE_LABELS[entry.type]} · v{entry.version} ·{" "}
                               {KNOWLEDGE_ENTRY_STATUS_LABELS[entry.status]}
                             </p>
                           </div>
-                          <span className="text-xs text-slate-400">
+                          <span className="text-xs text-foreground-subtle">
                             {new Date(entry.updatedAt).toLocaleDateString()}
                           </span>
                         </div>
@@ -330,17 +330,17 @@ export function KnowledgeBaseView() {
 
             {view === "approval" ? (
               approvalQueue.length === 0 ? (
-                <p className="text-sm text-slate-500">No entries awaiting approval.</p>
+                <p className="text-sm text-foreground-subtle">No entries awaiting approval.</p>
               ) : (
                 <div className="divide-y rounded-lg border">
                   {approvalQueue.map((entry) => (
                     <Link
                       key={entry.id}
                       href={`/brands/${brandId}/knowledge-bases/${activeKbId}/entries/${entry.id}`}
-                      className="block px-4 py-3 hover:bg-slate-50"
+                      className="block px-4 py-3 hover:bg-surface-subtle"
                     >
                       <p className="font-medium">{entry.title}</p>
-                      <p className="text-sm text-slate-500">
+                      <p className="text-sm text-foreground-subtle">
                         {KNOWLEDGE_ENTRY_TYPE_LABELS[entry.type]} · awaiting review
                       </p>
                     </Link>
@@ -361,14 +361,14 @@ export function KnowledgeBaseView() {
                   }}
                 />
                 {documents.length === 0 ? (
-                  <p className="text-sm text-slate-500">No documents uploaded yet.</p>
+                  <p className="text-sm text-foreground-subtle">No documents uploaded yet.</p>
                 ) : (
                   <div className="divide-y rounded-lg border">
                     {documents.map((doc) => (
                       <div key={doc.id} className="flex items-center justify-between px-4 py-3">
                         <div>
                           <p className="font-medium">{doc.title}</p>
-                          <p className="text-sm text-slate-500">
+                          <p className="text-sm text-foreground-subtle">
                             {doc.filename} · {doc.status} · {(doc.fileSizeBytes / 1024).toFixed(1)} KB
                           </p>
                         </div>
@@ -384,7 +384,7 @@ export function KnowledgeBaseView() {
                 <div className="space-y-3 md:col-span-2">
                   <label className="text-sm font-medium">Type</label>
                   <select
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="w-full rounded-lg border border-border-strong px-3 py-2 text-sm"
                     value={newEntry.type}
                     onChange={(event) => setNewEntry((prev) => ({ ...prev, type: event.target.value }))}
                   >
@@ -414,7 +414,7 @@ export function KnowledgeBaseView() {
                 <div className="space-y-3 md:col-span-2">
                   <label className="text-sm font-medium">Content</label>
                   <textarea
-                    className="min-h-40 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    className="min-h-40 w-full rounded-lg border border-border-strong px-3 py-2 text-sm"
                     value={newEntry.content}
                     onChange={(event) => setNewEntry((prev) => ({ ...prev, content: event.target.value }))}
                   />
@@ -426,7 +426,7 @@ export function KnowledgeBaseView() {
         </Card>
       ) : (
         <Card>
-          <CardContent className="py-8 text-sm text-slate-500">
+          <CardContent className="py-8 text-sm text-foreground-subtle">
             {loading ? "Loading…" : "No knowledge base found for this brand."}
           </CardContent>
         </Card>

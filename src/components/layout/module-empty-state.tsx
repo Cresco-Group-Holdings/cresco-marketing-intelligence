@@ -24,7 +24,7 @@ export function ModuleEmptyState({
         <CardDescription>{description}</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="rounded-lg border border-dashed border-border bg-surface p-6">
+        <div className="rounded-lg border border-dashed border-border bg-surface-subtle p-6">
           <p className="text-sm font-medium text-foreground">This module is not connected yet</p>
           <p className="mt-2 text-sm text-foreground-muted">
             The platform foundation is in place. Configuration and data connections will be added in

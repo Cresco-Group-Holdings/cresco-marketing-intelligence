@@ -56,7 +56,7 @@ export function CalendarEventCard({
       onDragEnd={() => onDragEnd?.()}
       onClick={() => onSelect?.(event)}
       className={cn(
-        "w-full rounded-md border text-left transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "w-full rounded-md border text-left transition-colors hover:bg-surface-subtle focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         event.hasConflict ? "border-amber-400 bg-amber-50" : "border-border bg-surface-elevated",
         compact ? "px-2 py-1" : "px-3 py-2",
       )}

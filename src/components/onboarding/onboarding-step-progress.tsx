@@ -24,10 +24,10 @@ export function OnboardingStepProgress({
               key={step}
               className={`rounded-lg border px-3 py-2 text-sm ${
                 isCurrent
-                  ? "border-slate-900 bg-slate-900 text-white"
+                  ? "border-primary bg-primary text-primary-foreground"
                   : isComplete
                     ? "border-green-200 bg-green-50 text-green-900"
-                    : "border-slate-200 bg-white text-slate-600"
+                    : "border-border bg-surface-elevated text-foreground-muted"
               }`}
             >
               <span className="font-medium">

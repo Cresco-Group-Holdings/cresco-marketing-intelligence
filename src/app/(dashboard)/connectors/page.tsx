@@ -172,10 +172,10 @@ export default function ConnectorsPage() {
 
       <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
         <div className="space-y-6">
-          {loading ? <p className="text-sm text-slate-600">Loading connector catalogue...</p> : null}
+          {loading ? <p className="text-sm text-foreground-muted">Loading connector catalogue...</p> : null}
           {groupedCatalogue.map(([category, items]) => (
             <section key={category} className="space-y-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-foreground-subtle">
                 {category}
               </h2>
               <div className="grid gap-4 md:grid-cols-2">
@@ -193,7 +193,7 @@ export default function ConnectorsPage() {
                       </div>
                     </CardHeader>
                     <CardContent className="mt-auto space-y-3">
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-foreground-subtle">
                         Required scopes: {item.requiredScopes.join(", ") || "None"}
                       </p>
                       <div className="flex flex-wrap gap-2">
@@ -246,12 +246,12 @@ export default function ConnectorsPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm">
             {!selected ? (
-              <p className="text-slate-600">Select a connector to inspect its configuration.</p>
+              <p className="text-foreground-muted">Select a connector to inspect its configuration.</p>
             ) : (
               <>
                 <div>
                   <p className="font-medium">{selected.name}</p>
-                  <p className="text-slate-600">{selected.description}</p>
+                  <p className="text-foreground-muted">{selected.description}</p>
                 </div>
                 <div>
                   <p className="font-medium">Status</p>
@@ -261,7 +261,7 @@ export default function ConnectorsPage() {
                 </div>
                 <div>
                   <p className="font-medium">Required permissions</p>
-                  <ul className="list-disc pl-5 text-slate-600">
+                  <ul className="list-disc pl-5 text-foreground-muted">
                     {selected.requiredScopes.map((scope) => (
                       <li key={scope}>{scope}</li>
                     ))}
@@ -271,7 +271,7 @@ export default function ConnectorsPage() {
                   <>
                     <div>
                       <p className="font-medium">Last successful sync</p>
-                      <p className="text-slate-600">
+                      <p className="text-foreground-muted">
                         {selected.account.lastSuccessfulSyncAt ?? "Never"}
                       </p>
                     </div>
@@ -304,7 +304,7 @@ export default function ConnectorsPage() {
                 {selected.recentSyncs && selected.recentSyncs.length > 0 ? (
                   <div>
                     <p className="font-medium">Recent syncs</p>
-                    <ul className="space-y-2 text-slate-600">
+                    <ul className="space-y-2 text-foreground-muted">
                       {selected.recentSyncs.map((sync) => (
                         <li key={sync.id}>
                           {sync.syncType} · {sync.status} · {sync.recordsProcessed} records

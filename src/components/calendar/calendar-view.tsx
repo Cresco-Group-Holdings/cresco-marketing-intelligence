@@ -327,7 +327,7 @@ export function CalendarView() {
   if (workspaceError) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-red-600">{workspaceError}</CardContent>
+        <CardContent className="py-8 text-center text-sm text-danger">{workspaceError}</CardContent>
       </Card>
     );
   }
@@ -404,7 +404,7 @@ export function CalendarView() {
           ) : eventsError ? (
             <Card>
               <CardContent className="space-y-3 py-8 text-center">
-                <p className="text-sm text-red-600">{eventsError}</p>
+                <p className="text-sm text-danger">{eventsError}</p>
                 <Button variant="outline" size="sm" onClick={() => void loadEvents()}>
                   Retry
                 </Button>

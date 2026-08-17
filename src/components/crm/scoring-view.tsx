@@ -179,7 +179,7 @@ export function LeadScoreExplanationPanel({
               {matchedEvidence.map((e, i) => (
                 <div key={String(e.ruleId ?? i)} className="flex justify-between text-sm border-b py-1">
                   <span>{String(e.label ?? e.signal)}</span>
-                  <span className={Number(e.points) < 0 ? "text-red-600" : ""}>
+                  <span className={Number(e.points) < 0 ? "text-danger" : ""}>
                     {Number(e.points) > 0 ? "+" : ""}{String(e.cappedPoints ?? e.points)}
                   </span>
                 </div>
@@ -587,7 +587,7 @@ export function ScoringView({ mode, modelId }: ScoringViewProps) {
             <CardHeader><CardTitle>Rules (JSON)</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <textarea
-                className="w-full min-h-[240px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono"
+                className="w-full min-h-[240px] rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm font-mono"
                 value={rulesJson}
                 onChange={(e) => setRulesJson(e.target.value)}
               />

@@ -90,7 +90,7 @@ export function SignupForm() {
           onChange={(event) => setPassword(event.target.value)}
           required
         />
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {error ? <p className="text-sm text-danger">{error}</p> : null}
         {message ? <p className="text-sm text-green-700">{message}</p> : null}
         <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Creating account..." : "Create account"}

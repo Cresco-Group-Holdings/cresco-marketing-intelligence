@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { FilterInput } from "@/components/ui/filter-bar";
 import type { PaidCampaignPerformance } from "@/lib/paid-advertising/types";
 
 function formatCurrency(value: number | null, currency: string): string {
@@ -62,7 +62,7 @@ export function CampaignTable({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Input
+        <FilterInput
           type="search"
           placeholder="Search campaigns…"
           value={search}

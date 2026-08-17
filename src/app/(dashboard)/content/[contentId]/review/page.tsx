@@ -63,7 +63,7 @@ export default function ReviewContentPage() {
     setMessage("Comment added.");
   }
 
-  if (!item) return <p className="text-sm text-slate-600">Loading review...</p>;
+  if (!item) return <p className="text-sm text-foreground-muted">Loading review...</p>;
 
   return (
     <>
@@ -82,7 +82,7 @@ export default function ReviewContentPage() {
           <CardTitle>Review actions</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-sm text-slate-600">Current status: {item.status}</p>
+          <p className="text-sm text-foreground-muted">Current status: {item.status}</p>
           <textarea
             className="min-h-24 w-full rounded-md border px-3 py-2 text-sm"
             value={comment}

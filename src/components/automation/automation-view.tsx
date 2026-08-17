@@ -278,7 +278,7 @@ export function AutomationView({ mode, automationId }: Props) {
               <CardHeader><CardTitle>Validation</CardTitle></CardHeader>
               <CardContent className="space-y-2">
                 {validationMessages.map((v, i) => (
-                  <p key={i} className={`text-sm ${v.severity === "error" ? "text-red-600" : "text-muted-foreground"}`}>
+                  <p key={i} className={`text-sm ${v.severity === "error" ? "text-danger" : "text-muted-foreground"}`}>
                     {String(v.message ?? v.code)}
                   </p>
                 ))}
@@ -299,7 +299,7 @@ export function AutomationView({ mode, automationId }: Props) {
               <CardHeader><CardTitle>Graph (JSON)</CardTitle></CardHeader>
               <CardContent>
                 <textarea
-                  className="w-full min-h-[200px] rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-mono"
+                  className="w-full min-h-[200px] rounded-lg border border-border-strong bg-surface-elevated px-3 py-2 text-sm font-mono"
                   value={graphJson}
                   onChange={(e) => setGraphJson(e.target.value)}
                 />

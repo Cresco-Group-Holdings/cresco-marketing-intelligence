@@ -295,7 +295,7 @@ export function GrowthIntelligenceView({ mode }: { mode: Mode }) {
       </Card>
 
       {message ? <p className="text-sm text-green-700">{message}</p> : null}
-      {error ? <p className="text-sm text-red-600">{error}</p> : null}
+      {error ? <p className="text-sm text-danger">{error}</p> : null}
 
       {mode === "overview" && summary ? (
         <div className="grid gap-4 md:grid-cols-4">

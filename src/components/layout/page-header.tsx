@@ -48,15 +48,13 @@ export function PageHeader({ title, description, breadcrumbs, actions }: PageHea
           </nav>
         ) : null}
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            {title}
-          </h1>
+          <h1 className="text-page-title">{title}</h1>
           {description ? (
             <p className="mt-2 max-w-3xl text-sm text-foreground-muted">{description}</p>
           ) : null}
         </div>
       </div>
-      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+      {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   );
 }

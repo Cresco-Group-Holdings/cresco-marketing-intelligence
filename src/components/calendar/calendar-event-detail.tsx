@@ -67,7 +67,7 @@ export function CalendarEventDetail({
     <div className="fixed inset-0 z-50 flex justify-end">
       <button
         type="button"
-        className="absolute inset-0 bg-background/60"
+        className="absolute inset-0 bg-foreground/40"
         aria-label="Close event details"
         onClick={onClose}
       />
@@ -91,8 +91,8 @@ export function CalendarEventDetail({
 
         <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
           {loading ? <p className="text-sm text-foreground-muted">Loading event details…</p> : null}
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          {actionError ? <p className="text-sm text-red-600">{actionError}</p> : null}
+          {error ? <p className="text-sm text-danger">{error}</p> : null}
+          {actionError ? <p className="text-sm text-danger">{actionError}</p> : null}
 
           {event ? (
             <>

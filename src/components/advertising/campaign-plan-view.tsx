@@ -84,15 +84,15 @@ function PlanNav({ planId, active }: { planId: string; active: CampaignPlanViewM
   ];
 
   return (
-    <nav className="flex flex-wrap gap-2 border-b border-slate-200 pb-3" aria-label="Campaign plan sections">
+    <nav className="flex flex-wrap gap-2 border-b border-border pb-3" aria-label="Campaign plan sections">
       {tabs.map((tab) => (
         <Link
           key={tab.mode}
           href={tab.href}
           className={`rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
             active === tab.mode
-              ? "bg-slate-900 text-white"
-              : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              ? "bg-primary text-primary-foreground"
+              : "text-foreground-muted hover:bg-surface-hover hover:text-foreground"
           }`}
         >
           {tab.label}
@@ -212,7 +212,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
   if (!brandId || !organisationId) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-sm text-slate-600">
+        <CardContent className="py-8 text-center text-sm text-foreground-muted">
           Select a brand workspace to manage advertising campaign plans.
         </CardContent>
       </Card>
@@ -232,7 +232,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
               <CardTitle className="text-base">Campaign Plans</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-foreground-muted">
                 Create structured, provider-independent campaign plans with objectives, budgets, audiences, and creatives.
               </p>
               <ButtonLink href="/advertising/plans">View plans</ButtonLink>
@@ -289,9 +289,9 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
                 <Link
                   key={p.id}
                   href={`/advertising/plans/${p.id}`}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3 hover:bg-slate-50"
+                  className="flex items-center justify-between rounded-lg border border-border px-4 py-3 hover:bg-surface-subtle"
                 >
-                  <span className="font-medium text-slate-900">{p.name}</span>
+                  <span className="font-medium text-foreground">{p.name}</span>
                   <Badge variant={STATUS_VARIANT[p.status] ?? "secondary"}>{p.status}</Badge>
                 </Link>
               ))}
@@ -312,24 +312,24 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
             <ButtonLink href="/advertising/plans/new">New plan</ButtonLink>
           }
         />
-        {message ? <p className="text-sm text-red-600">{message}</p> : null}
+        {message ? <p className="text-sm text-danger">{message}</p> : null}
         <Card>
-          <CardContent className="divide-y divide-slate-100 p-0">
+          <CardContent className="divide-y divide-border-subtle p-0">
             {plans.length === 0 ? (
-              <p className="p-6 text-sm text-slate-600">No campaign plans yet.</p>
+              <p className="p-6 text-sm text-foreground-muted">No campaign plans yet.</p>
             ) : (
               plans.map((p) => (
                 <Link
                   key={p.id}
                   href={`/advertising/plans/${p.id}`}
-                  className="flex items-center justify-between px-6 py-4 hover:bg-slate-50"
+                  className="flex items-center justify-between px-6 py-4 hover:bg-surface-subtle"
                 >
                   <div>
-                    <p className="font-medium text-slate-900">{p.name}</p>
-                    <p className="text-xs text-slate-500">{p.internalCampaignId}</p>
+                    <p className="font-medium text-foreground">{p.name}</p>
+                    <p className="text-xs text-foreground-subtle">{p.internalCampaignId}</p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs text-slate-500">
+                    <span className="text-xs text-foreground-subtle">
                       {p._count?.channels ?? 0} channels · {p._count?.budgets ?? 0} budgets
                     </span>
                     <Badge variant={STATUS_VARIANT[p.status] ?? "secondary"}>{p.status}</Badge>
@@ -347,7 +347,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
     return (
       <div className="space-y-6">
         <PageHeader title="New Campaign Plan" description="Start a provider-independent campaign plan." />
-        {message ? <p className="text-sm text-red-600">{message}</p> : null}
+        {message ? <p className="text-sm text-danger">{message}</p> : null}
         <Card>
           <CardContent className="space-y-4 pt-6">
             <div>
@@ -358,9 +358,9 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="text-sm font-medium text-slate-700">Primary objective</label>
+                <label className="text-sm font-medium text-foreground-muted">Primary objective</label>
                 <select
-                  className="mt-1 w-full rounded-md border border-slate-200 px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-md border border-border px-3 py-2 text-sm"
                   value={newObjective}
                   onChange={(e) => setNewObjective(e.target.value)}
                 >
@@ -385,7 +385,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
   }
 
   if (!plan) {
-    return <p className="text-sm text-slate-600">Loading campaign plan…</p>;
+    return <p className="text-sm text-foreground-muted">Loading campaign plan…</p>;
   }
 
   return (
@@ -398,7 +398,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
         }
       />
       {planId ? <PlanNav planId={planId} active={mode} /> : null}
-      {message ? <p className="text-sm text-slate-600">{message}</p> : null}
+      {message ? <p className="text-sm text-foreground-muted">{message}</p> : null}
 
       {mode === "detail" ? (
         <div className="grid gap-4 md:grid-cols-2">
@@ -408,16 +408,16 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p>
-                <span className="text-slate-500">Objective:</span> {plan.primaryObjective ?? "Not set"}
+                <span className="text-foreground-subtle">Objective:</span> {plan.primaryObjective ?? "Not set"}
               </p>
               <p>
-                <span className="text-slate-500">Currency:</span> {plan.reportingCurrency}
+                <span className="text-foreground-subtle">Currency:</span> {plan.reportingCurrency}
               </p>
               <p>
-                <span className="text-slate-500">Channels:</span> {plan.channels?.length ?? 0}
+                <span className="text-foreground-subtle">Channels:</span> {plan.channels?.length ?? 0}
               </p>
               <p>
-                <span className="text-slate-500">Budgets:</span> {plan.budgets?.length ?? 0}
+                <span className="text-foreground-subtle">Budgets:</span> {plan.budgets?.length ?? 0}
               </p>
             </CardContent>
           </Card>
@@ -448,15 +448,15 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
           <CardContent className="space-y-4">
             <ul className="space-y-2 text-sm">
               {(plan.channels ?? []).map((ch) => (
-                <li key={ch.id} className="flex justify-between rounded border border-slate-200 px-3 py-2">
+                <li key={ch.id} className="flex justify-between rounded border border-border px-3 py-2">
                   <span>{ch.channelType}</span>
-                  <span className="text-slate-500">{ch.provider ?? "—"}</span>
+                  <span className="text-foreground-subtle">{ch.provider ?? "—"}</span>
                 </li>
               ))}
             </ul>
             <div className="flex gap-2">
               <select
-                className="rounded-md border border-slate-200 px-3 py-2 text-sm"
+                className="rounded-md border border-border px-3 py-2 text-sm"
                 value={channelType}
                 onChange={(e) => setChannelType(e.target.value)}
               >
@@ -486,8 +486,8 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
           <CardContent className="space-y-4">
             <ul className="space-y-2 text-sm">
               {(plan.audiences ?? []).map((a) => (
-                <li key={a.id} className="rounded border border-slate-200 px-3 py-2">
-                  {a.name} <span className="text-slate-500">({a.audienceType})</span>
+                <li key={a.id} className="rounded border border-border px-3 py-2">
+                  {a.name} <span className="text-foreground-subtle">({a.audienceType})</span>
                 </li>
               ))}
             </ul>
@@ -523,7 +523,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
           <CardContent className="space-y-4">
             <ul className="space-y-2 text-sm">
               {(plan.budgets ?? []).map((b) => (
-                <li key={b.id} className="flex justify-between rounded border border-slate-200 px-3 py-2">
+                <li key={b.id} className="flex justify-between rounded border border-border px-3 py-2">
                   <span>{b.budgetType}</span>
                   <span>
                     {b.currency} {Number(b.amount).toLocaleString()}
@@ -565,7 +565,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
           <CardContent>
             <ul className="space-y-2 text-sm">
               {(plan.creatives ?? []).map((c) => (
-                <li key={c.id} className="flex justify-between rounded border border-slate-200 px-3 py-2">
+                <li key={c.id} className="flex justify-between rounded border border-border px-3 py-2">
                   <span>{c.format}</span>
                   <Badge variant={c.approvalStatus === "APPROVED" ? "default" : "muted"}>
                     {c.approvalStatus}
@@ -573,7 +573,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
                 </li>
               ))}
               {(plan.creatives ?? []).length === 0 ? (
-                <p className="text-slate-500">Attach approved brand assets from the Asset Library via API.</p>
+                <p className="text-foreground-subtle">Attach approved brand assets from the Asset Library via API.</p>
               ) : null}
             </ul>
           </CardContent>
@@ -589,7 +589,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
             <CardContent className="space-y-4">
               <ul className="space-y-2 text-sm">
                 {(plan.destinations ?? []).map((d) => (
-                  <li key={d.id} className="rounded border border-slate-200 px-3 py-2">
+                  <li key={d.id} className="rounded border border-border px-3 py-2">
                     {d.destinationType}: {d.destinationUrl ?? "—"}
                   </li>
                 ))}
@@ -624,7 +624,7 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
             <CardContent className="space-y-4">
               <ul className="space-y-2 text-sm">
                 {(plan.conversionGoals ?? []).map((g) => (
-                  <li key={g.id} className="rounded border border-slate-200 px-3 py-2">
+                  <li key={g.id} className="rounded border border-border px-3 py-2">
                     {g.isPrimary ? "Primary" : "Secondary"} — tracking{" "}
                     {g.trackingVerified ? "verified" : "unverified"}
                   </li>
@@ -648,12 +648,12 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
             <CardTitle className="text-base">Approvals</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-foreground-muted">
               Separate approvals are required for strategy, budget, audience, creative, compliance, and launch.
             </p>
             <ul className="space-y-2 text-sm">
               {(plan.approvals ?? []).map((a) => (
-                <li key={a.id} className="flex justify-between rounded border border-slate-200 px-3 py-2">
+                <li key={a.id} className="flex justify-between rounded border border-border px-3 py-2">
                   <span>{a.approvalType}</span>
                   <Badge variant={a.decision === "APPROVED" ? "default" : "muted"}>{a.decision}</Badge>
                 </li>
@@ -692,16 +692,16 @@ export function CampaignPlanView({ mode, planId }: { mode: CampaignPlanViewMode;
             ) : null}
             <ul className="space-y-2 text-sm">
               {(plan.readinessChecks ?? []).map((c) => (
-                <li key={c.id} className="rounded border border-slate-200 px-3 py-2">
+                <li key={c.id} className="rounded border border-border px-3 py-2">
                   <div className="flex justify-between">
                     <span className="font-medium">{c.title}</span>
                     <Badge variant={c.status === "NOT_READY" ? "warning" : "muted"}>{c.status}</Badge>
                   </div>
-                  <p className="mt-1 text-slate-500">{c.description}</p>
+                  <p className="mt-1 text-foreground-subtle">{c.description}</p>
                 </li>
               ))}
               {(plan.readinessChecks ?? []).length === 0 ? (
-                <p className="text-slate-500">Run readiness checks to validate the plan.</p>
+                <p className="text-foreground-subtle">Run readiness checks to validate the plan.</p>
               ) : null}
             </ul>
           </CardContent>

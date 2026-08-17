@@ -160,15 +160,15 @@ export default function KnowledgeEntryDetailPage() {
   }
 
   if (!organisationId) {
-    return <p className="text-sm text-slate-600">Select an organisation to view this entry.</p>;
+    return <p className="text-sm text-foreground-muted">Select an organisation to view this entry.</p>;
   }
 
   if (loading) {
-    return <p className="text-sm text-slate-500">Loading entry…</p>;
+    return <p className="text-sm text-foreground-subtle">Loading entry…</p>;
   }
 
   if (!entry) {
-    return <p className="text-sm text-red-600">{error ?? "Entry not found."}</p>;
+    return <p className="text-sm text-danger">{error ?? "Entry not found."}</p>;
   }
 
   return (
@@ -203,7 +203,7 @@ export default function KnowledgeEntryDetailPage() {
             <CardContent className="space-y-3">
               <Input label="Title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
               <textarea
-                className="min-h-48 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="min-h-48 w-full rounded-lg border border-border-strong px-3 py-2 text-sm"
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
               />
@@ -274,7 +274,7 @@ export default function KnowledgeEntryDetailPage() {
             <CardHeader>
               <CardTitle>Metadata</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2 text-sm text-slate-600">
+            <CardContent className="space-y-2 text-sm text-foreground-muted">
               <p>Source: {entry.sourceType}</p>
               {entry.sourceReference ? <p>Reference: {entry.sourceReference}</p> : null}
               <p>Created by: {entry.createdBy.displayName ?? entry.createdBy.email}</p>
@@ -296,11 +296,11 @@ export default function KnowledgeEntryDetailPage() {
                   <p className="font-medium">
                     v{version.version} — {version.title}
                   </p>
-                  <p className="text-slate-500">
+                  <p className="text-foreground-subtle">
                     {version.changedBy.displayName ?? version.changedBy.email} ·{" "}
                     {new Date(version.createdAt).toLocaleString()}
                   </p>
-                  {version.changeNote ? <p className="text-slate-600">{version.changeNote}</p> : null}
+                  {version.changeNote ? <p className="text-foreground-muted">{version.changeNote}</p> : null}
                 </div>
               ))}
             </CardContent>
@@ -312,7 +312,7 @@ export default function KnowledgeEntryDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               {activity.length === 0 ? (
-                <p className="text-slate-500">No activity recorded.</p>
+                <p className="text-foreground-subtle">No activity recorded.</p>
               ) : (
                 activity.map((item) => (
                   <p key={item.id}>
@@ -330,7 +330,7 @@ export default function KnowledgeEntryDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               {relationships.length === 0 ? (
-                <p className="text-slate-500">No relationships defined.</p>
+                <p className="text-foreground-subtle">No relationships defined.</p>
               ) : (
                 relationships.map((rel) => (
                   <p key={rel.id}>
