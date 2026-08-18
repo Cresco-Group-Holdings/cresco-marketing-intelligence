@@ -27,6 +27,13 @@ const CATEGORY_LABELS = {
   J: "Other",
 };
 
+const SECURITY_CLASS_LABELS = {
+  A: "Backend/service-role only (Prisma server access)",
+  B: "Authenticated client access required (Supabase Data API)",
+  C: "Intentionally public read",
+  D: "Internal/system/migration table",
+};
+
 function classifyModel(name, body) {
   const lower = name.toLowerCase();
 
@@ -62,17 +69,37 @@ function classifyModel(name, body) {
   return "D";
 }
 
+function securityClassForModel(name, draft) {
+  if (name === "_prisma_migrations" || name.toLowerCase().includes("prisma_migration")) {
+    return "D";
+  }
+  if (draft.dataApiExposure && draft.intentionallyPublicRead) {
+    return "C";
+  }
+  if (draft.dataApiExposure) {
+    return "B";
+  }
+  return "A";
+}
+
 const models = [];
 let match;
 while ((match = modelPattern.exec(schema)) !== null) {
   const [, name, body] = match;
   const category = classifyModel(name, body);
+  const draft = {
+    dataApiExposure: false,
+    intentionallyPublicRead: false,
+  };
+  const securityClass = securityClassForModel(name, draft);
   models.push({
     model: name,
     table: name,
     schema: "public",
     category,
     categoryLabel: CATEGORY_LABELS[category],
+    securityClass,
+    securityClassLabel: SECURITY_CLASS_LABELS[securityClass],
     tenantKey: body.includes("organisationId")
       ? "organisationId"
       : body.includes("brandId")
@@ -82,21 +109,51 @@ while ((match = modelPattern.exec(schema)) !== null) {
           : null,
     rlsRequired: true,
     dataApiExposure: false,
+    intentionallyPublicRead: false,
     prismaAccess: true,
     frontendDirectAccess: false,
-    recommendedPolicy: category === "A" || category === "B" ? "RLS enabled, no client policies (server-only via Prisma)" : "RLS enabled, revoke anon/authenticated grants",
+    recommendedPolicy:
+      securityClass === "A" || securityClass === "D"
+        ? "RLS enabled, revoke anon/authenticated/service_role/PUBLIC grants (server-only via Prisma)"
+        : "RLS enabled with explicit tenant-scoped policies",
   });
 }
 
+models.push({
+  model: "_prisma_migrations",
+  table: "_prisma_migrations",
+  schema: "public",
+  category: "H",
+  categoryLabel: CATEGORY_LABELS.H,
+  securityClass: "D",
+  securityClassLabel: SECURITY_CLASS_LABELS.D,
+  tenantKey: null,
+  rlsRequired: true,
+  dataApiExposure: false,
+  intentionallyPublicRead: false,
+  prismaAccess: true,
+  frontendDirectAccess: false,
+  recommendedPolicy: "RLS enabled, revoke all client grants; Prisma migrate via DIRECT_URL only",
+});
+
 const summary = Object.fromEntries(
   Object.keys(CATEGORY_LABELS).map((key) => [key, models.filter((m) => m.category === key).length]),
+);
+
+const summaryBySecurityClass = Object.fromEntries(
+  Object.keys(SECURITY_CLASS_LABELS).map((key) => [
+    key,
+    models.filter((m) => m.securityClass === key).length,
+  ]),
 );
 
 const inventory = {
   generatedAt: new Date().toISOString(),
   totalModels: models.length,
   summaryByCategory: summary,
+  summaryBySecurityClass,
   categoryLabels: CATEGORY_LABELS,
+  securityClassLabels: SECURITY_CLASS_LABELS,
   accessModel: {
     prisma: "DATABASE_URL / DIRECT_URL (postgres role, bypasses RLS)",
     supabaseClient: "Auth + Storage only (no public table queries)",

@@ -10,6 +10,29 @@ import path from "node:path";
 const errors = [];
 const migrationsDir = path.join(process.cwd(), "prisma", "migrations");
 const hardeningMigration = "20260811120000_supabase_rls_hardening";
+const reinforcementMigration = "20260818210000_supabase_rls_hardening_reinforcement";
+const reinforcementSqlPath = path.join(migrationsDir, reinforcementMigration, "migration.sql");
+
+if (!fs.existsSync(reinforcementSqlPath)) {
+  errors.push(`Missing required migration: ${reinforcementMigration}`);
+} else {
+  const reinforcementSql = fs.readFileSync(reinforcementSqlPath, "utf8");
+  const reinforcementFragments = [
+    "REVOKE ALL ON ALL TABLES IN SCHEMA public FROM PUBLIC",
+    "REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM PUBLIC",
+    "REVOKE ALL ON TABLE %s FROM PUBLIC",
+    "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public",
+  ];
+  for (const fragment of reinforcementFragments) {
+    if (!reinforcementSql.includes(fragment)) {
+      errors.push(`RLS reinforcement migration missing required fragment: ${fragment}`);
+    }
+  }
+  if (/USING\s*\(\s*true\s*\)/i.test(reinforcementSql)) {
+    errors.push("RLS reinforcement migration contains permissive USING (true) policy.");
+  }
+}
+
 const hardeningSqlPath = path.join(migrationsDir, hardeningMigration, "migration.sql");
 
 if (!fs.existsSync(hardeningSqlPath)) {

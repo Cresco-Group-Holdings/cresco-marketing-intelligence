@@ -35,6 +35,7 @@
     "measure:build-stages": "node scripts/measure-build-stages.mjs",
     "verify:rls-staging": "node scripts/verify-rls-staging.mjs",
     "audit:public-functions": "node scripts/audit-public-functions.mjs",
+    "audit:rls-exposure": "node scripts/audit-rls-exposure.mjs",
     "generate:rls-inventory": "node scripts/generate-rls-inventory.mjs",
     "measure:build-memory": "node scripts/measure-build-memory.mjs",
     "deploy:supabase-email-templates": "node scripts/deploy-supabase-auth-email-templates.mjs",
