@@ -13,6 +13,7 @@ import {
 } from "@/lib/social/analytics-adapters";
 import { SOCIAL_METRIC_REGISTRY } from "@/lib/social/metric-registry";
 import type { TenantContext } from "@/lib/tenancy/context";
+import { hasPublishingSchedule } from "@/lib/publishing/schedule";
 import { socialAnalyticsCredentialService } from "@/server/services/social-analytics-credential-service";
 import {
   socialCredentialService,

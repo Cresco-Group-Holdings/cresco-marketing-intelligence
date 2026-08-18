@@ -7,6 +7,8 @@ import {
 } from "@/lib/deployment/scheduling";
 import { getPublishingConfig } from "@/lib/publishing/config";
 import { publishingSchedulerService } from "@/server/services/publishing-scheduler-service";
+import { workerDispatcherService } from "@/server/services/worker-dispatcher-service";
+import { workerExecutorService } from "@/server/services/worker-executor-service";
 
 export type DailyDispatchJobResult = {
   jobId: InternalCronJobId;
@@ -16,6 +18,8 @@ export type DailyDispatchJobResult = {
     scheduledEnqueued: number;
     scheduledSkipped: number;
     jobsProcessed: number;
+    dispatch?: Awaited<ReturnType<typeof workerDispatcherService.dispatchDueJobs>>;
+    worker?: Awaited<ReturnType<typeof workerExecutorService.processAvailableJobs>>;
   };
 };
 
@@ -41,6 +45,12 @@ async function runPublishingPasses(input: {
   let lastPass: DailyDispatchJobResult["lastPass"];
 
   while (passes < input.maxPasses && Date.now() < input.deadlineMs) {
+    const dispatch = await workerDispatcherService.dispatchDueJobs();
+    const worker = await workerExecutorService.processAvailableJobs({
+      workerId: input.workerId,
+      deadlineMs: input.deadlineMs,
+    });
+
     const pass = await publishingSchedulerService.runSchedulerPass({
       limit: config.maxJobsPerWorkerRun,
       workerId: input.workerId,
@@ -51,12 +61,16 @@ async function runPublishingPasses(input: {
       scheduledEnqueued: pass.scheduled.enqueued.length,
       scheduledSkipped: pass.scheduled.skipped.length,
       jobsProcessed: pass.processed.length,
+      dispatch,
+      worker,
     };
 
     const didWork =
       pass.scheduled.enqueued.length > 0 ||
       pass.scheduled.skipped.length > 0 ||
-      pass.processed.length > 0;
+      pass.processed.length > 0 ||
+      dispatch.created > 0 ||
+      worker.claimed > 0;
 
     if (!didWork) {
       return { jobId: "publishing", passes, stoppedReason: "IDLE", lastPass };

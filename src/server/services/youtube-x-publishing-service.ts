@@ -16,6 +16,7 @@ import {
 import { xPublishSchema, youtubePublishSchema } from "@/lib/validation/youtube-x-publishing";
 import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities";
 import { isProviderPublishingDisabled } from "@/lib/publishing/config";
+import { hasPublishingSchedule } from "@/lib/publishing/schedule";
 import { socialCredentialService } from "@/server/services/social-credential-service";
 import { brandService } from "@/server/services/workspace-service";
 
@@ -219,7 +220,13 @@ export const youtubeXPublishingService = {
     if (!job.schedule) return null;
     if (job.publishedMediaId) return { state: "ALREADY_PUBLISHED", postId: job.publishedMediaId };
     const settings = job.providerSettings as Settings;
-    const { schedule } = job;
+    if (!hasPublishingSchedule(job)) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Publishing job requires a content schedule for legacy provider execution.",
+      );
+    }
+    const schedule = job.schedule;
     if (
       schedule.organisationId !== job.organisationId ||
       schedule.socialAccount.organisationId !== job.organisationId

@@ -4,6 +4,8 @@ import { apiSuccess } from "@/lib/api/handler";
 import { isAuthorisedSchedulerRequest } from "@/lib/api/worker-auth";
 import { getPublishingConfig } from "@/lib/publishing/config";
 import { publishingSchedulerService } from "@/server/services/publishing-scheduler-service";
+import { workerDispatcherService } from "@/server/services/worker-dispatcher-service";
+import { workerExecutorService } from "@/server/services/worker-executor-service";
 
 async function handleProcessDue(request: NextRequest) {
   const requestId = randomUUID();
@@ -16,12 +18,14 @@ async function handleProcessDue(request: NextRequest) {
 
   const config = getPublishingConfig();
   const limitParam = Number(request.nextUrl.searchParams.get("limit"));
-  const result = await publishingSchedulerService.runSchedulerPass({
-    limit: Number.isFinite(limitParam) && limitParam > 0 ? limitParam : config.maxJobsPerWorkerRun,
-    workerId: `scheduler-${requestId}`,
-  });
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : config.maxJobsPerWorkerRun;
+  const workerId = `scheduler-${requestId}`;
 
-  return apiSuccess(result, { requestId });
+  const dispatch = await workerDispatcherService.dispatchDueJobs({ limit });
+  const worker = await workerExecutorService.processAvailableJobs({ workerId, limit });
+  const result = await publishingSchedulerService.runSchedulerPass({ limit, workerId });
+
+  return apiSuccess({ dispatch, worker, ...result }, { requestId });
 }
 
 /**

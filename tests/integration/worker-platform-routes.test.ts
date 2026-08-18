@@ -1,16 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
-vi.mock("@/server/services/publishing-scheduler-service", () => ({
-  publishingSchedulerService: {
-    runSchedulerPass: vi.fn().mockResolvedValue({
-      scheduled: { enqueued: [], skipped: [] },
-      publicationIds: [],
-      processed: [],
-    }),
-  },
-}));
-
 vi.mock("@/server/services/worker-dispatcher-service", () => ({
   workerDispatcherService: {
     dispatchDueJobs: vi.fn().mockResolvedValue({ discovered: 0, created: 0, activated: 0, skipped: 0, byType: {} }),
@@ -31,18 +21,16 @@ vi.mock("@/server/services/worker-executor-service", () => ({
   },
 }));
 
-import { GET, POST } from "@/app/api/publishing-scheduler/process-due/route";
+import { GET as dispatchGet } from "@/app/api/workers/dispatch/route";
+import { GET as processGet } from "@/app/api/workers/process/route";
 
-const TOKEN = "scheduler-route-test-token";
+const TOKEN = "worker-platform-test-token";
 
-function request(method: "GET" | "POST", headers: Record<string, string> = {}) {
-  return new NextRequest("https://app.test/api/publishing-scheduler/process-due", {
-    method,
-    headers,
-  });
+function request(path: string, headers: Record<string, string> = {}) {
+  return new NextRequest(`https://app.test${path}`, { method: "GET", headers });
 }
 
-describe("publishing scheduler route", () => {
+describe("worker platform routes auth", () => {
   const originalWorkerToken = process.env.PUBLISHING_WORKER_TOKEN;
   const originalCronSecret = process.env.CRON_SECRET;
 
@@ -59,20 +47,22 @@ describe("publishing scheduler route", () => {
     else process.env.CRON_SECRET = originalCronSecret;
   });
 
-  it("accepts GET with cron secret for Vercel Cron invocations", async () => {
-    const response = await GET(
-      request("GET", { authorization: "Bearer cron-test-secret" }),
+  it("rejects unauthenticated dispatch", async () => {
+    const response = await dispatchGet(request("/api/workers/dispatch"));
+    expect(response.status).toBe(403);
+  });
+
+  it("accepts cron secret for dispatch", async () => {
+    const response = await dispatchGet(
+      request("/api/workers/dispatch", { authorization: "Bearer cron-test-secret" }),
     );
     expect(response.status).toBe(200);
   });
 
-  it("accepts POST with worker token for manual invocations", async () => {
-    const response = await POST(request("POST", { authorization: `Bearer ${TOKEN}` }));
+  it("accepts worker token for process", async () => {
+    const response = await processGet(
+      request("/api/workers/process", { authorization: `Bearer ${TOKEN}` }),
+    );
     expect(response.status).toBe(200);
-  });
-
-  it("rejects unauthenticated requests", async () => {
-    const response = await GET(request("GET"));
-    expect(response.status).toBe(403);
   });
 });

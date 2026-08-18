@@ -10,6 +10,7 @@ export const PUBLISHING_COUNTERS = [
   "publishing.jobs_requeued",
   "publishing.manual_fallback_required",
   "publishing.completed_jobs",
+  "publishing.duplicate_prevented",
 ] as const;
 
 export type PublishingCounter = (typeof PUBLISHING_COUNTERS)[number];
