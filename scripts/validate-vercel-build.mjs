@@ -8,7 +8,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const packageJsonPath = path.join(process.cwd(), "package.json");
+const packageJsonPath =
+  process.env.PACKAGE_JSON_PATH ?? path.join(process.cwd(), "package.json");
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
 const buildScript = packageJson.scripts?.build ?? "";
 
