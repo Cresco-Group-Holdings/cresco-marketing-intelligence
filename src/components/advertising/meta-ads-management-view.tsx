@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
+import { AdvertisingSectionNav } from "@/components/advertising/advertising-section-nav";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
@@ -41,17 +41,14 @@ function MetaNav({ active, campaignId }: { active: MetaAdsManagementViewMode; ca
     tabs.push({ mode: "campaign-detail", label: "Campaign", href: `/advertising/meta/campaigns/${campaignId}` });
   }
   return (
-    <nav className="flex flex-wrap gap-2 border-b pb-3 mb-6">
-      {tabs.map((tab) => (
-        <Link
-          key={tab.href}
-          href={tab.href}
-          className={`rounded-md px-3 py-1.5 text-sm ${active === tab.mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-        >
-          {tab.label}
-        </Link>
-      ))}
-    </nav>
+    <AdvertisingSectionNav
+      ariaLabel="Meta Ads navigation"
+      tabs={tabs.map((tab) => ({
+        label: tab.label,
+        href: tab.href,
+        active: active === tab.mode,
+      }))}
+    />
   );
 }
 
@@ -183,7 +180,7 @@ export function MetaAdsManagementView({
         description="Controlled Facebook and Instagram campaign management with explicit asset selection and hash-bound approvals."
       />
       <MetaNav active={mode} campaignId={campaignId} />
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+      {message ? <p className="text-sm text-foreground-muted">{message}</p> : null}
 
       {mode === "overview" && (
         <div className="grid gap-4 md:grid-cols-2">
@@ -197,7 +194,7 @@ export function MetaAdsManagementView({
                   <p>Currency: {String(assigned.currency ?? "—")}</p>
                 </>
               ) : (
-                <p className="text-muted-foreground">No Meta assets assigned.</p>
+                <p className="text-foreground-muted">No Meta assets assigned.</p>
               )}
             </CardContent>
           </Card>
@@ -205,7 +202,7 @@ export function MetaAdsManagementView({
             <CardHeader><CardTitle>Pipeline</CardTitle></CardHeader>
             <CardContent className="text-sm">
               <p>{drafts.length} draft(s) · {launches.length} launch(es)</p>
-              <p className="text-muted-foreground mt-2">Campaign → Ad Set → Ad → Creative hierarchy.</p>
+              <p className="text-foreground-muted mt-2">Campaign → Ad Set → Ad → Creative hierarchy.</p>
             </CardContent>
           </Card>
         </div>
@@ -232,7 +229,7 @@ export function MetaAdsManagementView({
             <p>Ad accounts: {Array.isArray(assets?.adAccounts) ? (assets.adAccounts as unknown[]).length : 0}</p>
             <p>Pages: {Array.isArray(assets?.pages) ? (assets.pages as unknown[]).length : 0}</p>
             <p>Pixels: {Array.isArray(assets?.pixels) ? (assets.pixels as unknown[]).length : 0}</p>
-            <p className="text-muted-foreground">Assets are never auto-selected — choose explicitly on the Accounts tab.</p>
+            <p className="text-foreground-muted">Assets are never auto-selected — choose explicitly on the Accounts tab.</p>
           </CardContent>
         </Card>
       )}
@@ -301,11 +298,11 @@ export function MetaAdsManagementView({
             {reviewDraftId && review ? (
               <>
                 <p>Status: {String(review.validationStatus)}</p>
-                <p className="text-muted-foreground">{String(review.localOnlyDisclaimer)}</p>
+                <p className="text-foreground-muted">{String(review.localOnlyDisclaimer)}</p>
                 <pre className="rounded bg-muted p-3 text-xs overflow-auto">{JSON.stringify(review.validationResult, null, 2)}</pre>
               </>
             ) : (
-              <p className="text-muted-foreground">Select a draft from the Drafts tab to review validation findings.</p>
+              <p className="text-foreground-muted">Select a draft from the Drafts tab to review validation findings.</p>
             )}
           </CardContent>
         </Card>

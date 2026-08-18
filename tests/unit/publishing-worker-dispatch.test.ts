@@ -5,6 +5,7 @@ const instagramMock = vi.hoisted(() => vi.fn());
 const tiktokMock = vi.hoisted(() => vi.fn());
 const linkedInFacebookMock = vi.hoisted(() => vi.fn());
 const youtubeXMock = vi.hoisted(() => vi.fn());
+const publicationWorkerMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/database/prisma", () => ({ prisma: prismaMock }));
 vi.mock("@/server/services/instagram-publishing-service", () => ({
@@ -19,11 +20,14 @@ vi.mock("@/server/services/linkedin-facebook-publishing-service", () => ({
 vi.mock("@/server/services/youtube-x-publishing-service", () => ({
   youtubeXPublishingService: { process: youtubeXMock },
 }));
+vi.mock("@/server/services/publication-publishing-worker", () => ({
+  processPublicationPublishingJob: publicationWorkerMock,
+}));
 
 import { processPublishingJob } from "@/server/services/publishing-worker";
 
 function jobForProvider(provider: string) {
-  return { schedule: { contentVariant: { provider } } };
+  return { publicationId: null, schedule: { contentVariant: { provider } } };
 }
 
 describe("processPublishingJob", () => {
@@ -72,5 +76,18 @@ describe("processPublishingJob", () => {
   it("returns null for an unknown job", async () => {
     prismaMock.publishingJob.findUnique.mockResolvedValue(null);
     expect(await processPublishingJob("missing")).toBeNull();
+  });
+
+  it("routes publication-backed jobs to the canonical publication worker", async () => {
+    prismaMock.publishingJob.findUnique.mockResolvedValue({
+      publicationId: "pub-1",
+      schedule: null,
+    });
+    publicationWorkerMock.mockResolvedValue({ state: "PUBLISHED" });
+
+    await processPublishingJob("job-pub");
+
+    expect(publicationWorkerMock).toHaveBeenCalledWith("job-pub");
+    expect(instagramMock).not.toHaveBeenCalled();
   });
 });

@@ -1,5 +1,6 @@
 import type { AIProviderName } from "@prisma/client";
 import type { AIProvider } from "@/lib/ai/types";
+import { assertMockAiAllowed } from "@/lib/ai/mock-policy";
 import { AnthropicProvider } from "@/lib/ai/providers/anthropic-provider";
 import { GoogleAIProvider } from "@/lib/ai/providers/google-provider";
 import { MockAIProvider } from "@/lib/ai/providers/mock-provider";
@@ -13,6 +14,9 @@ const providerInstances: Record<AIProviderName, AIProvider> = {
 };
 
 export function getAIProvider(provider: AIProviderName): AIProvider {
+  if (provider === "MOCK") {
+    assertMockAiAllowed();
+  }
   return providerInstances[provider];
 }
 

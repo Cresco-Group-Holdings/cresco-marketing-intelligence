@@ -1,5 +1,7 @@
 import type { AIProviderName } from "@prisma/client";
 import { getServerEnv } from "@/lib/environment";
+import { AppError } from "@/lib/errors";
+import { isMockAiAllowed } from "@/lib/ai/mock-policy";
 import type { RegisteredAIModel } from "@/lib/ai/types";
 
 function currentEnvironment(): "development" | "test" | "production" {
@@ -18,7 +20,7 @@ const BASE_MODELS: RegisteredAIModel[] = [
     maxOutputTokens: 1_024,
     inputCostPer1kTokensUsd: 0,
     outputCostPer1kTokensUsd: 0,
-    enabledEnvironments: ["development", "test", "production"],
+    enabledEnvironments: ["development", "test"],
     available: true,
   },
   {
@@ -32,7 +34,6 @@ const BASE_MODELS: RegisteredAIModel[] = [
     outputCostPer1kTokensUsd: 0.0006,
     enabledEnvironments: ["development", "test", "production"],
     available: false,
-    fallbackModelId: "mock-text-v1",
   },
   {
     provider: "ANTHROPIC",
@@ -45,7 +46,6 @@ const BASE_MODELS: RegisteredAIModel[] = [
     outputCostPer1kTokensUsd: 0.004,
     enabledEnvironments: ["development", "test", "production"],
     available: false,
-    fallbackModelId: "mock-text-v1",
   },
   {
     provider: "GOOGLE",
@@ -58,7 +58,6 @@ const BASE_MODELS: RegisteredAIModel[] = [
     outputCostPer1kTokensUsd: 0.0003,
     enabledEnvironments: ["development", "test", "production"],
     available: false,
-    fallbackModelId: "mock-text-v1",
   },
   {
     provider: "OPENAI",
@@ -84,10 +83,23 @@ function providerConfigured(provider: AIProviderName): boolean {
     case "GOOGLE":
       return Boolean(process.env.GOOGLE_AI_API_KEY?.trim());
     case "MOCK":
-      return true;
+      return isMockAiAllowed();
     default:
       return false;
   }
+}
+
+export function hasConfiguredAiProvider(): boolean {
+  return (["OPENAI", "ANTHROPIC", "GOOGLE"] as AIProviderName[]).some((provider) =>
+    providerConfigured(provider),
+  );
+}
+
+export function aiConfigurationRequiredError(): AppError {
+  return new AppError(
+    "AI_CONFIGURATION_REQUIRED",
+    "AI provider is not configured. Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or GOOGLE_AI_API_KEY on the server.",
+  );
 }
 
 export class AIModelRegistry {
@@ -97,7 +109,7 @@ export class AIModelRegistry {
       ...model,
       available:
         model.enabledEnvironments.includes(environment) &&
-        (model.provider === "MOCK" || providerConfigured(model.provider)),
+        (model.provider === "MOCK" ? isMockAiAllowed() : providerConfigured(model.provider)),
     }));
   }
 
@@ -116,17 +128,22 @@ export class AIModelRegistry {
       model.capabilities.includes("TEXT_GENERATION"),
     );
 
+    if (provider === "MOCK" || modelId === "mock-text-v1") {
+      if (!isMockAiAllowed()) {
+        throw aiConfigurationRequiredError();
+      }
+      return this.getModel("MOCK", "mock-text-v1");
+    }
+
     if (provider && modelId) {
       const selected = models.find(
         (model) => model.provider === provider && model.modelId === modelId,
       );
       if (selected?.available) return selected;
-      if (selected?.fallbackModelId) {
-        return this.getModel("MOCK", selected.fallbackModelId);
-      }
+      throw aiConfigurationRequiredError();
     }
 
-    const preferredOrder: AIProviderName[] = ["OPENAI", "ANTHROPIC", "GOOGLE", "MOCK"];
+    const preferredOrder: AIProviderName[] = ["OPENAI", "ANTHROPIC", "GOOGLE"];
     for (const candidateProvider of preferredOrder) {
       const available = models.find(
         (model) => model.provider === candidateProvider && model.available,
@@ -134,10 +151,15 @@ export class AIModelRegistry {
       if (available) return available;
     }
 
-    return this.getModel("MOCK", "mock-text-v1");
+    if (isMockAiAllowed()) {
+      return this.getModel("MOCK", "mock-text-v1");
+    }
+
+    throw aiConfigurationRequiredError();
   }
 
   isModelAllowed(provider: AIProviderName, modelId: string): boolean {
+    if (provider === "MOCK") return isMockAiAllowed();
     const model = this.listModels().find(
       (entry) => entry.provider === provider && entry.modelId === modelId,
     );

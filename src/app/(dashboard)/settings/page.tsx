@@ -13,6 +13,8 @@ const settingsLinks = [
   { href: "/settings/audit-log", title: "Audit log", description: "Review security-relevant workspace events." },
   { href: "/settings/billing", title: "Billing", description: "Subscription, usage limits, invoices, and plan upgrades." },
   { href: "/settings/notifications", title: "Notifications", description: "Delivery channels, digests, and quiet hours." },
+  { href: "/settings/ai-usage", title: "AI & automation usage", description: "Requests, cost, automations, and provider availability." },
+  { href: "/settings/ai-diagnostics", title: "AI diagnostics", description: "Administrator checks for provider configuration and structured output." },
 ];
 
 export default function SettingsPage() {

@@ -1,4 +1,6 @@
+import { DOMAIN_EVENT_TYPES } from "@/lib/domain-events/constants";
 import { NOTIFICATION_EVENT_TYPES } from "@/lib/notifications/constants";
+import { domainEventService } from "@/server/services/domain-event-service";
 import { notificationService } from "@/server/services/notification-service";
 import { operationalAlertService } from "@/server/services/operational-alert-service";
 
@@ -29,7 +31,7 @@ export const notificationEventService = {
       idempotencyKey: input.idempotencyKey,
     });
 
-    return notificationService.emit({
+    const notifications = await notificationService.emit({
       organisationId: input.organisationId,
       projectId: input.projectId,
       brandId: input.brandId,
@@ -43,6 +45,23 @@ export const notificationEventService = {
       idempotencyKey: input.idempotencyKey,
       priority: "HIGH",
     });
+
+    await domainEventService.emit({
+      type: DOMAIN_EVENT_TYPES.PUBLICATION_FAILED,
+      organisationId: input.organisationId,
+      projectId: input.projectId,
+      brandId: input.brandId,
+      resourceType: "PublishingJob",
+      resourceId: input.jobId,
+      payload: {
+        provider: input.provider,
+        safeError: input.safeError,
+        jobId: input.jobId,
+      },
+      idempotencyKey: `domain:${input.idempotencyKey}`,
+    });
+
+    return notifications;
   },
 
   async publishingSucceeded(input: {
@@ -53,7 +72,7 @@ export const notificationEventService = {
     recipientUserIds: string[];
     idempotencyKey: string;
   }) {
-    return notificationService.emit({
+    const notifications = await notificationService.emit({
       organisationId: input.organisationId,
       projectId: input.projectId,
       brandId: input.brandId,
@@ -66,6 +85,19 @@ export const notificationEventService = {
       recipientUserIds: input.recipientUserIds,
       idempotencyKey: input.idempotencyKey,
     });
+
+    await domainEventService.emit({
+      type: DOMAIN_EVENT_TYPES.PUBLICATION_SUCCEEDED,
+      organisationId: input.organisationId,
+      projectId: input.projectId,
+      brandId: input.brandId,
+      resourceType: "PublishingJob",
+      resourceId: input.jobId,
+      payload: { jobId: input.jobId },
+      idempotencyKey: `domain:${input.idempotencyKey}`,
+    });
+
+    return notifications;
   },
 
   async tokenReauthRequired(input: {
@@ -90,7 +122,7 @@ export const notificationEventService = {
       idempotencyKey: input.idempotencyKey,
     });
 
-    return notificationService.emit({
+    const notifications = await notificationService.emit({
       organisationId: input.organisationId,
       brandId: input.brandId,
       eventType: NOTIFICATION_EVENT_TYPES.TOKEN_REAUTH_REQUIRED,
@@ -103,6 +135,18 @@ export const notificationEventService = {
       idempotencyKey: input.idempotencyKey,
       priority: "HIGH",
     });
+
+    await domainEventService.emit({
+      type: DOMAIN_EVENT_TYPES.PUBLICATION_REAUTH_REQUIRED,
+      organisationId: input.organisationId,
+      brandId: input.brandId,
+      resourceType: "SocialConnection",
+      resourceId: input.connectionId,
+      payload: { provider: input.provider, connectionId: input.connectionId },
+      idempotencyKey: `domain:${input.idempotencyKey}`,
+    });
+
+    return notifications;
   },
 
   async contentSubmittedForReview(input: {

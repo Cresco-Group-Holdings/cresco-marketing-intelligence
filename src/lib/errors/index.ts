@@ -16,7 +16,8 @@ export type AppErrorCode =
   | "FEATURE_NOT_INCLUDED"
   | "SUBSCRIPTION_INACTIVE"
   | "PAYMENT_ACTION_REQUIRED"
-  | "TRIAL_EXPIRED";
+  | "TRIAL_EXPIRED"
+  | "AI_CONFIGURATION_REQUIRED";
 
 export class AppError extends Error {
   readonly code: AppErrorCode;
@@ -63,6 +64,7 @@ function mapCodeToStatus(code: AppErrorCode): number {
     case "AUTH_CONFIGURATION_ERROR":
     case "AUTH_PROVIDER_UNAVAILABLE":
     case "PROFILE_PROVISIONING_FAILED":
+    case "AI_CONFIGURATION_REQUIRED":
       return 503;
     default:
       return 500;

@@ -6,6 +6,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { AdvertisingSectionNav } from "@/components/advertising/advertising-section-nav";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { apiFetch } from "@/lib/api/client";
@@ -85,17 +87,14 @@ function GoogleNav({ active, campaignId }: { active: GoogleAdsManagementViewMode
     });
   }
   return (
-    <nav className="flex flex-wrap gap-2 border-b pb-3 mb-6">
-      {tabs.map((tab) => (
-        <Link
-          key={tab.href}
-          href={tab.href}
-          className={`rounded-md px-3 py-1.5 text-sm ${active === tab.mode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}
-        >
-          {tab.label}
-        </Link>
-      ))}
-    </nav>
+    <AdvertisingSectionNav
+      ariaLabel="Google Ads navigation"
+      tabs={tabs.map((tab) => ({
+        label: tab.label,
+        href: tab.href,
+        active: active === tab.mode,
+      }))}
+    />
   );
 }
 
@@ -215,7 +214,7 @@ export function GoogleAdsManagementView({
         description="Controlled campaign creation with audited mutation plans and explicit approvals."
       />
       <GoogleNav active={mode} campaignId={campaignId} />
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+      {message ? <p className="text-sm text-foreground-muted">{message}</p> : null}
 
       {mode === "overview" && (
         <div className="grid gap-4 md:grid-cols-2">
@@ -232,7 +231,7 @@ export function GoogleAdsManagementView({
                   </Badge>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">No Google Ads account assigned to this brand.</p>
+                <p className="text-sm text-foreground-muted">No Google Ads account assigned to this brand.</p>
               )}
               <ButtonLink href="/advertising/google/accounts" className="mt-4">Manage accounts</ButtonLink>
             </CardContent>
@@ -242,7 +241,7 @@ export function GoogleAdsManagementView({
             <CardContent className="space-y-2 text-sm">
               <p>{drafts.length} provider draft(s)</p>
               <p>{launches.length} launch record(s)</p>
-              <p className="text-muted-foreground">All mutations require hash-matched approvals before execution.</p>
+              <p className="text-foreground-muted">All mutations require hash-matched approvals before execution.</p>
             </CardContent>
           </Card>
         </div>
@@ -314,7 +313,7 @@ export function GoogleAdsManagementView({
               </CardContent>
             </Card>
           ))}
-          {launches.length === 0 ? <p className="text-sm text-muted-foreground">No launches yet.</p> : null}
+          {launches.length === 0 ? <p className="text-sm text-foreground-muted">No launches yet.</p> : null}
         </div>
       )}
 
@@ -343,13 +342,13 @@ export function GoogleAdsManagementView({
               <CardContent className="pt-4 text-sm flex justify-between">
                 <div>
                   <p className="font-medium">{op.operationType}</p>
-                  <p className="text-muted-foreground">{op.reason}</p>
+                  <p className="text-foreground-muted">{op.reason}</p>
                 </div>
                 <Badge variant={STATUS_VARIANT[op.status] ?? "muted"}>{op.status}</Badge>
               </CardContent>
             </Card>
           ))}
-          {operations.length === 0 ? <p className="text-sm text-muted-foreground">No management operations recorded.</p> : null}
+          {operations.length === 0 ? <p className="text-sm text-foreground-muted">No management operations recorded.</p> : null}
         </div>
       )}
     </div>
