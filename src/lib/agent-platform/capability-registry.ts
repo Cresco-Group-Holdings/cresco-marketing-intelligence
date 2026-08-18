@@ -1,5 +1,6 @@
 import type { AICapability } from "@prisma/client";
 import { aiModelRegistry } from "@/lib/ai/model-registry";
+import { resolveModelForCapability } from "@/lib/ai/model-routing";
 
 export type AgentModelCapability = {
   capability: AICapability;
@@ -22,10 +23,12 @@ export function listAgentCapableModels() {
 }
 
 export function resolveAgentModel(modelId?: string) {
-  const capable = listAgentCapableModels();
+  const required = AGENT_REQUIRED_CAPABILITIES.filter((entry) => entry.requiredForAgents).map(
+    (entry) => entry.capability,
+  );
   if (modelId) {
-    const selected = capable.find((model) => model.modelId === modelId);
+    const selected = listAgentCapableModels().find((model) => model.modelId === modelId && model.available);
     if (selected) return selected;
   }
-  return capable.find((model) => model.available) ?? capable[0];
+  return resolveModelForCapability({ capabilities: required });
 }

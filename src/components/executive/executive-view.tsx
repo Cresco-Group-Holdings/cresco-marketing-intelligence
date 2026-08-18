@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { DashboardSkeleton } from "@/components/ui/skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 import { apiFetch } from "@/lib/api/client";
 import { EXECUTIVE_DISCLAIMER, EXECUTIVE_SECTIONS } from "@/lib/executive/constants";
@@ -48,34 +50,34 @@ function KpiCard({ label, metric }: { label: string; metric: MetricComparison })
   return (
     <Card>
       <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-foreground-muted">{label}</CardTitle>
       </CardHeader>
       <CardContent>
         <p className="text-2xl font-semibold">
           {metric.available ? formatMetricDisplay(metric) : (
-            <span className="text-base text-muted-foreground">Unavailable</span>
+            <span className="text-base text-foreground-muted">Unavailable</span>
           )}
         </p>
         {metric.available && metric.changePercent != null ? (
-          <p className={`text-sm ${metric.changePercent >= 0 ? "text-emerald-600" : "text-danger"}`}>
+          <p className={`text-sm ${metric.changePercent >= 0 ? "text-success" : "text-danger"}`}>
             {metric.changeAbsolute != null && metric.changeAbsolute >= 0 ? "+" : ""}
             {metric.changePercent}% vs previous
           </p>
         ) : null}
         {!metric.available && metric.unavailableReason ? (
-          <p className="text-xs text-muted-foreground">{metric.unavailableReason}</p>
+          <p className="text-xs text-foreground-muted">{metric.unavailableReason}</p>
         ) : null}
         {metric.formula ? (
           <button
             type="button"
-            className="mt-2 text-xs text-blue-600 underline"
+            className="mt-2 text-xs text-foreground underline decoration-border-strong hover:text-foreground-muted"
             onClick={() => setShowHow((v) => !v)}
           >
             How calculated
           </button>
         ) : null}
         {showHow && metric.formula ? (
-          <p className="mt-1 text-xs text-muted-foreground">{metric.formula}</p>
+          <p className="mt-1 text-xs text-foreground-muted">{metric.formula}</p>
         ) : null}
       </CardContent>
     </Card>
@@ -268,11 +270,11 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
       ) : null}
 
       {error ? <p className="text-sm text-danger">{error}</p> : null}
-      {loading ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
+      {loading ? <DashboardSkeleton /> : null}
 
-      {mode === "overview" && overview ? (
+      {!loading && mode === "overview" && overview ? (
         <>
-          <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+          <div className="flex flex-wrap gap-2 text-sm text-foreground-muted">
             <span>Reporting: {String(overview.reportingCurrency)}</span>
             <span>
               Period: {String((overview.period as { from: string }).from).slice(0, 10)} –{" "}
@@ -299,21 +301,32 @@ export function ExecutiveAnalyticsView({ mode }: { mode: ExecutiveMode }) {
         </>
       ) : null}
 
-      {mode !== "overview" && sectionResult ? (
+      {!loading && mode !== "overview" && sectionResult ? (
         <Card>
           <CardHeader>
             <CardTitle>{currentSection?.label}</CardTitle>
           </CardHeader>
           <CardContent>
             {sectionResult.error ? (
-              <p className="text-sm text-amber-700">{sectionResult.error}</p>
+              <p className="text-sm text-warning">{sectionResult.error}</p>
+            ) : sectionResult.data ? (
+              <EmptyState
+                title={`${currentSection?.label ?? "Section"} data available`}
+                description="This legacy executive view is being consolidated into Unified Analytics. Open Unified Analytics for the full experience."
+                action={
+                  <ButtonLink href="/analytics" variant="outline" size="sm">
+                    Open Unified Analytics
+                  </ButtonLink>
+                }
+              />
             ) : (
-              <pre className="max-h-96 overflow-auto rounded bg-surface-subtle p-4 text-xs">
-                {JSON.stringify(sectionResult.data, null, 2)}
-              </pre>
+              <EmptyState
+                title="No data for this section"
+                description="Connect the required data sources or select a different date range."
+              />
             )}
             {sectionResult.confidence ? (
-              <div className="mt-4 space-y-1 text-sm text-muted-foreground">
+              <div className="mt-4 space-y-1 text-sm text-foreground-muted">
                 <p>Source: {String(sectionResult.confidence.source)}</p>
                 {sectionResult.confidence.lastUpdated ? (
                   <p>Last updated: {String(sectionResult.confidence.lastUpdated)}</p>

@@ -864,6 +864,7 @@ model Organisation {
   automationWorkflows                     AutomationWorkflow[]
   automationExecutions                    AutomationExecution[]
   automationQuotaUsages                   AutomationQuotaUsage[]
+  domainEventOutbox                       DomainEventOutbox[]
   leadScoringModels                       LeadScoringModel[]
   leadQualificationModels                 LeadQualificationModel[]
   lifecycleAgentRuns                      LifecycleAgentRun[]
@@ -1196,6 +1197,7 @@ model Project {
   marketingAutomations             MarketingAutomation[]
   automationWorkflows              AutomationWorkflow[]
   automationExecutions             AutomationExecution[]
+  domainEventOutbox                DomainEventOutbox[]
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
   lifecycleAgentRuns               LifecycleAgentRun[]
@@ -1493,6 +1495,7 @@ model Brand {
   automationWorkflows              AutomationWorkflow[]
   automationExecutions             AutomationExecution[]
   automationQuotaUsages            AutomationQuotaUsage[]
+  domainEventOutbox                DomainEventOutbox[]
   leadScoringModels                LeadScoringModel[]
   leadQualificationModels          LeadQualificationModel[]
   lifecycleAgentRuns               LifecycleAgentRun[]
@@ -20542,6 +20545,14 @@ enum AutomationEventType {
   KPI_BELOW_TARGET
   MANUAL
   AUTOMATION_COMPLETED
+  PUBLICATION_FAILED
+  PUBLICATION_SUCCEEDED
+  PUBLICATION_REAUTH_REQUIRED
+  LEAD_CREATED
+  LEAD_QUALIFIED
+  BUDGET_THRESHOLD_REACHED
+  PROVIDER_SYNC_FAILED
+  ANALYTICS_THRESHOLD_BREACHED
 }
 
 enum AutomationActionType {
@@ -20733,6 +20744,40 @@ model AutomationQuotaUsage {
 
   @@unique([organisationId, brandId, periodStart])
   @@index([organisationId, brandId])
+}
+
+enum DomainEventOutboxStatus {
+  PENDING
+  PROCESSED
+  FAILED
+  NO_AUTOMATION
+}
+
+model DomainEventOutbox {
+  id               String                  @id @default(cuid())
+  organisationId   String
+  projectId        String?
+  brandId          String
+  eventType        String
+  resourceType     String
+  resourceId       String
+  payload          Json
+  idempotencyKey   String                  @unique
+  correlationId    String?
+  causationId      String?
+  occurredAt       DateTime
+  status           DomainEventOutboxStatus @default(PENDING)
+  processedAt      DateTime?
+  errorMessage     String?
+  automationResult Json?
+  createdAt        DateTime                @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  project      Project?     @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  brand        Brand        @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId, status, occurredAt])
+  @@index([organisationId, occurredAt])
 }
 
 enum CalendarEventType {

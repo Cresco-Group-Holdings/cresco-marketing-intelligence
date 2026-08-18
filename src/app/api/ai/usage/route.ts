@@ -1,7 +1,9 @@
 import { NextRequest } from "next/server";
 import { apiSuccess, withApiHandler, getOrganisationIdFromRequest } from "@/lib/api/handler";
 import { AppError } from "@/lib/errors";
+import { hasConfiguredAiProvider } from "@/lib/ai/model-registry";
 import { PERMISSIONS } from "@/lib/tenancy/permissions";
+import { listConfiguredProviders } from "@/lib/ai/providers";
 import { getOrganisationUsageDashboard } from "@/server/services/ai-usage-recorder";
 import { getUsageSummary } from "@/lib/ai/cost-controls";
 
@@ -21,7 +23,15 @@ export async function GET(request: NextRequest) {
         getUsageSummary(organisationId, tenant!.userProfileId),
       ]);
 
-      return apiSuccess({ dashboard, summary }, { requestId });
+      return apiSuccess(
+        {
+          dashboard,
+          summary,
+          providerStatus: listConfiguredProviders().filter((entry) => entry.provider !== "MOCK"),
+          aiConfigured: hasConfiguredAiProvider(),
+        },
+        { requestId },
+      );
     },
     { organisationId, permission: PERMISSIONS["ai.usage.read"] },
   );
