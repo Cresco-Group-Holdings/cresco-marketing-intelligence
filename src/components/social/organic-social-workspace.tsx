@@ -11,6 +11,7 @@ import { DateRangeSelector } from "@/components/marketing/date-range-selector";
 import { OrganicChannelPanel } from "@/components/social/organic-channel-panel";
 import { FormatPerformancePanel } from "@/components/social/format-performance-panel";
 import { PublishingQueuePanel } from "@/components/social/publishing-queue-panel";
+import { OrganicEmptyState, WorkspaceErrorState } from "@/components/layout/workspace-empty-state";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api/client";
@@ -60,7 +61,7 @@ function PublishRecommendation({
       <div className="flex items-start gap-3">
         <Sparkles className="mt-0.5 h-5 w-5 text-organic-accent" aria-hidden="true" />
         <div>
-          <h2 className="text-sm font-semibold text-foreground">What should we publish next?</h2>
+          <h2 className="text-sm font-semibold text-foreground">What to publish next</h2>
           <p className="mt-2 text-sm text-foreground-muted">
             <span className="font-medium text-foreground">{recommendation.format}</span> on{" "}
             {recommendation.channel}
@@ -112,13 +113,42 @@ function OrganicSocialWorkspaceContent() {
 
   if (error && !data) {
     return (
-      <div className="rounded-xl border border-danger/30 bg-danger-muted p-6 text-sm text-danger">
-        {error}
-      </div>
+      <WorkspaceErrorState
+        title="We couldn't load this workspace"
+        description={error}
+        onRetry={loadWorkspace}
+      />
     );
   }
 
   if (!data) return null;
+
+  const hasConnections = !data.coverage.startsWith("0 of");
+
+  if (!data.hasBrandContext || !hasConnections) {
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          title="Organic Social"
+          description="Create, publish and grow across every organic channel."
+          mobileActions={
+            <ButtonLink href="/content/studio/new" variant="organic" size="sm">
+              Create Content
+            </ButtonLink>
+          }
+          actions={
+            <>
+              <DateRangeSelector />
+              <ButtonLink href="/content/studio/new" variant="organic" size="sm" className="hidden lg:inline-flex">
+                Create Content
+              </ButtonLink>
+            </>
+          }
+        />
+        <OrganicEmptyState />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -135,16 +165,27 @@ function OrganicSocialWorkspaceContent() {
               onClick={loadWorkspace}
               disabled={loading}
               aria-label="Refresh data"
+              className="hidden sm:inline-flex"
             >
               <RefreshCw className={loading ? "h-4 w-4 animate-spin" : "h-4 w-4"} aria-hidden="true" />
             </Button>
             <ButtonLink href={data.primaryCta.href} variant="organic" size="sm">
               {data.primaryCta.label}
             </ButtonLink>
-            <ButtonLink href="/content/studio/new?repurpose=1" variant="outline" size="sm">
+            <ButtonLink
+              href="/content/studio/new?repurpose=1"
+              variant="outline"
+              size="sm"
+              className="hidden md:inline-flex"
+            >
               Repurpose with Cresco AI
             </ButtonLink>
           </>
+        }
+        mobileActions={
+          <ButtonLink href={data.primaryCta.href} variant="organic" size="sm">
+            {data.primaryCta.label}
+          </ButtonLink>
         }
       />
       <div className="flex flex-wrap items-center gap-3 text-xs text-foreground-subtle">
@@ -158,7 +199,11 @@ function OrganicSocialWorkspaceContent() {
           </>
         ) : null}
       </div>
-      <ExecutiveKpiStrip metrics={data.executiveKpis} accent="organic" />
+      <ExecutiveKpiStrip
+        metrics={data.executiveKpis}
+        accent="organic"
+        mobilePriorityLabels={["Reach", "Engagement", "Published", "Scheduled"]}
+      />
       <PublishRecommendation recommendation={data.publishRecommendation} />
       <div className="grid gap-6 xl:grid-cols-2">
         <OrganicChannelPanel channels={data.channels} />

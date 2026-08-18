@@ -138,6 +138,27 @@ export type MarketingIntelligenceContext = {
   topOrganicContent?: TopOrganicContentMetric[];
   topPaidCreatives?: TopPaidCreativeMetric[];
   scheduleGaps?: Array<{ channel: string; message: string }>;
+  analytics?: {
+    attributionModel: string;
+    attributedRevenue: number | null;
+    observedRevenue: number | null;
+    attributionCoveragePercent: number | null;
+    revenueCoveragePercent: number | null;
+    organicAssistRate: number | null;
+    contentAssistedRevenue: number | null;
+    contentAttributedRevenue: number | null;
+    channelContributionShift?: {
+      channel: string;
+      fromPercent: number;
+      toPercent: number;
+    } | null;
+    providerDiscrepancies?: Array<{
+      provider: string;
+      providerConversions: number;
+      trackedConversions: number;
+    }>;
+    funnelClickVisitDropOff?: number | null;
+  };
 };
 
 export type MarketingHealthBreakdown = {

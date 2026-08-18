@@ -100,6 +100,7 @@ export const canonicalPublicationService = {
     incrementPublishingCounter("publishing.scheduled_jobs_enqueued", 1, {
       publicationId: row.id,
       providerKey: row.providerKey,
+      source: "canonical_publish_now",
     });
 
     await recordAuditEvent({

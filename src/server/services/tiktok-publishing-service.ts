@@ -67,10 +67,9 @@ async function failJob(job: PublishingJob, reason: string): Promise<TikTokPublis
     where: { id: job.id },
     data: { status: "FAILED", lastProviderError: reason },
   });
-  const scheduleId = resolveContentScheduleId(job);
-  if (scheduleId) {
+  if (job.contentScheduleId) {
     await prisma.contentSchedule.update({
-      where: { id: scheduleId },
+      where: { id: job.contentScheduleId },
       data: { status: "FAILED" },
     });
   }
@@ -98,10 +97,9 @@ async function markManualFallback(
     data: { status: "FAILED", directPublishAvailable: false, lastProviderError: reason },
   });
   // Content is deliberately not marked published; the user must confirm manually.
-  const scheduleId = resolveContentScheduleId(job);
-  if (scheduleId) {
+  if (job.contentScheduleId) {
     await prisma.contentSchedule.update({
-      where: { id: scheduleId },
+      where: { id: job.contentScheduleId },
       data: { status: "FAILED" },
     });
   }
@@ -350,6 +348,7 @@ export const tikTokPublishingService = {
       },
     });
     if (!job) return null;
+    if (!job.schedule) return null;
 
     if (job.publishedMediaId) {
       return { state: "ALREADY_PUBLISHED", postId: job.publishedMediaId };
@@ -582,7 +581,7 @@ export const tikTokPublishingService = {
     if (job.publishedMediaId)
       throw new AppError("VALIDATION_ERROR", "Published content cannot be cancelled.");
 
-    if (job.providerContainerId && hasPublishingSchedule(job)) {
+    if (job.providerContainerId && job.schedule) {
       const tokens = await socialCredentialService.readTokens(
         job.schedule.socialAccount.socialConnectionId,
       );
@@ -595,10 +594,9 @@ export const tikTokPublishingService = {
     }
 
     await prisma.publishingJob.update({ where: { id: job.id }, data: { status: "CANCELLED" } });
-    const scheduleId = resolveContentScheduleId(job);
-    if (scheduleId) {
+    if (job.contentScheduleId) {
       await prisma.contentSchedule.update({
-        where: { id: scheduleId },
+        where: { id: job.contentScheduleId },
         data: { status: "CANCELLED", cancelledAt: new Date() },
       });
     }
@@ -657,14 +655,13 @@ export const tikTokPublishingService = {
         manualConfirmedByUserId: context.userProfileId,
       },
     });
-    const scheduleId = resolveContentScheduleId(job);
-    if (scheduleId) {
+    if (job.contentScheduleId) {
       await prisma.contentSchedule.update({
-        where: { id: scheduleId },
+        where: { id: job.contentScheduleId },
         data: { status: "COMPLETED" },
       });
       const schedule = await prisma.contentSchedule.findUnique({
-        where: { id: scheduleId },
+        where: { id: job.contentScheduleId },
       });
       if (schedule) {
         await prisma.contentItem.update({

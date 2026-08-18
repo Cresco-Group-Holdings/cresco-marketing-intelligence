@@ -393,6 +393,165 @@ const publishingGapRule: MarketingSignalRule = {
   },
 };
 
+const channelContributionShiftRule: MarketingSignalRule = {
+  id: "channel-contribution-shift",
+  evaluate(context) {
+    const shift = context.analytics?.channelContributionShift;
+    if (!shift || !context.analytics?.attributionModel) return null;
+
+    return {
+      id: `channel-contribution-shift-${shift.channel}`,
+      type: "cross-channel",
+      severity: "medium",
+      title: `${shift.channel} contribution shifted under ${context.analytics.attributionModel}`,
+      explanation: `${shift.channel} contribution moved from ${shift.fromPercent.toFixed(0)}% to ${shift.toPercent.toFixed(0)}% of attributed revenue during ${context.rangeLabel.toLowerCase()}.`,
+      evidence: [
+        { label: "Attribution model", value: context.analytics.attributionModel },
+        { label: "Previous share", value: `${shift.fromPercent.toFixed(0)}%` },
+        { label: "Current share", value: `${shift.toPercent.toFixed(0)}%` },
+      ],
+      category: "cross-channel",
+      generatedAt: new Date().toISOString(),
+      confidence: 0.78,
+    };
+  },
+};
+
+const organicAssistRule: MarketingSignalRule = {
+  id: "organic-assist",
+  evaluate(context) {
+    const rate = context.analytics?.organicAssistRate;
+    if (rate == null || rate < 15) return null;
+
+    return {
+      id: "organic-assist",
+      type: "cross-channel",
+      severity: rate >= 30 ? "high" : "medium",
+      title: "Organic interactions precede paid-attributed conversions",
+      explanation: `${rate.toFixed(0)}% of paid-attributed conversions included a prior organic interaction during ${context.rangeLabel.toLowerCase()}. This indicates correlation, not proven causation.`,
+      evidence: [
+        { label: "Organic assist rate", value: `${rate.toFixed(0)}%` },
+        { label: "Attribution model", value: context.analytics?.attributionModel ?? "Last Touch" },
+      ],
+      estimatedImpact: "Review organic content supporting paid conversion paths",
+      action: { label: "View Attribution", href: "/analytics/attribution" },
+      category: "cross-channel",
+      generatedAt: new Date().toISOString(),
+      confidence: 0.74,
+    };
+  },
+};
+
+const contentRevenueOpportunityRule: MarketingSignalRule = {
+  id: "content-revenue-opportunity",
+  evaluate(context) {
+    const assisted = context.analytics?.contentAssistedRevenue;
+    const attributed = context.analytics?.contentAttributedRevenue;
+    if (assisted == null || assisted <= 0 || attributed == null) return null;
+    if (assisted < attributed * 2) return null;
+
+    return {
+      id: "content-revenue-opportunity",
+      type: "opportunity",
+      severity: "medium",
+      title: "Content appears in high-value conversion journeys",
+      explanation: `Content items appeared in journeys representing ${formatCurrency(assisted)} of assisted revenue. Under ${context.analytics?.attributionModel ?? "the selected model"}, direct attributed revenue is ${formatCurrency(attributed)}.`,
+      evidence: [
+        { label: "Assisted revenue", value: formatCurrency(assisted) },
+        { label: "Attributed revenue", value: formatCurrency(attributed) },
+        { label: "Attribution model", value: context.analytics?.attributionModel ?? "—" },
+      ],
+      estimatedImpact: "Assisted revenue is distinct from attributed credit",
+      action: { label: "View Content Analytics", href: "/analytics/content" },
+      category: "cross-channel",
+      generatedAt: new Date().toISOString(),
+      confidence: 0.76,
+    };
+  },
+};
+
+const attributionCoverageIssueRule: MarketingSignalRule = {
+  id: "attribution-coverage-issue",
+  evaluate(context) {
+    const coverage = context.analytics?.attributionCoveragePercent;
+    const revenueCoverage = context.analytics?.revenueCoveragePercent;
+    const metric = coverage ?? revenueCoverage;
+    if (metric == null || metric >= 70) return null;
+
+    return {
+      id: "attribution-coverage-issue",
+      type: "anomaly",
+      severity: metric < 50 ? "high" : "medium",
+      title: "Attribution coverage is limited",
+      explanation: `Only ${metric.toFixed(0)}% of observed outcomes can currently be connected to tracked marketing touchpoints. Revenue attribution confidence is limited.`,
+      evidence: [
+        { label: "Coverage", value: `${metric.toFixed(0)}%` },
+        {
+          label: "Observed revenue",
+          value:
+            context.analytics?.observedRevenue != null
+              ? formatCurrency(context.analytics.observedRevenue)
+              : "Unavailable",
+        },
+      ],
+      estimatedImpact: "Improve tracking coverage before reallocating budget",
+      action: { label: "Review tracking", href: "/analytics/executive/data-health" },
+      category: "cross-channel",
+      generatedAt: new Date().toISOString(),
+      confidence: 0.8,
+    };
+  },
+};
+
+const trackingDiscrepancyRule: MarketingSignalRule = {
+  id: "tracking-discrepancy",
+  evaluate(context) {
+    const discrepancy = context.analytics?.providerDiscrepancies?.[0];
+    if (!discrepancy || discrepancy.providerConversions <= 0) return null;
+
+    const delta =
+      ((discrepancy.providerConversions - discrepancy.trackedConversions) /
+        discrepancy.providerConversions) *
+      100;
+
+    return {
+      id: `tracking-discrepancy-${discrepancy.provider}`,
+      type: "anomaly",
+      severity: Math.abs(delta) >= 25 ? "high" : "medium",
+      title: `${discrepancy.provider} conversion reporting mismatch`,
+      explanation: `${discrepancy.provider} reports ${discrepancy.providerConversions} conversions versus ${discrepancy.trackedConversions} Cresco-tracked conversions (${delta > 0 ? "+" : ""}${delta.toFixed(0)}%). Possible causes include attribution window differences, cross-device reporting, consent loss, or tracking gaps.`,
+      evidence: [
+        { label: "Provider-reported", value: String(discrepancy.providerConversions) },
+        { label: "Cresco tracked", value: String(discrepancy.trackedConversions) },
+      ],
+      category: "paid",
+      generatedAt: new Date().toISOString(),
+      confidence: 0.77,
+    };
+  },
+};
+
+const funnelDropRule: MarketingSignalRule = {
+  id: "funnel-drop",
+  evaluate(context) {
+    const dropOff = context.analytics?.funnelClickVisitDropOff;
+    if (dropOff == null || dropOff < 50) return null;
+
+    return {
+      id: "funnel-click-visit-drop",
+      type: "anomaly",
+      severity: dropOff >= 70 ? "high" : "medium",
+      title: "Click-to-visit continuity gap detected",
+      explanation: `Click-to-visit continuity shows a ${dropOff.toFixed(0)}% drop during ${context.rangeLabel.toLowerCase()}. Possible causes include tracking loss, slow landing pages, redirects, or channel reporting mismatch.`,
+      evidence: [{ label: "Click → visit drop-off", value: `${dropOff.toFixed(0)}%` }],
+      action: { label: "View Funnels", href: "/analytics/funnels" },
+      category: "cross-channel",
+      generatedAt: new Date().toISOString(),
+      confidence: 0.71,
+    };
+  },
+};
+
 export const marketingSignalRules: MarketingSignalRule[] = [
   budgetOpportunityRule,
   cpaAnomalyRule,
@@ -404,6 +563,12 @@ export const marketingSignalRules: MarketingSignalRule[] = [
   organicToPaidRule,
   paidToOrganicRule,
   publishingGapRule,
+  channelContributionShiftRule,
+  organicAssistRule,
+  contentRevenueOpportunityRule,
+  attributionCoverageIssueRule,
+  trackingDiscrepancyRule,
+  funnelDropRule,
 ];
 
 export function evaluateMarketingSignals(context: MarketingIntelligenceContext): MarketingSignal[] {

@@ -2,18 +2,17 @@ import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { logger } from "@/lib/logging";
 import { incrementPublishingCounter } from "@/lib/publishing/observability";
-import { buildWorkerTenantContext } from "@/lib/workers/tenant-context";
 import { operationToCapability } from "@/lib/publishing/outbound-operations";
 import {
   assertPublicationTransition,
   mapTokenFailureToPublicationStatus,
 } from "@/lib/publishing/publication-lifecycle";
 import type { TenantContext } from "@/lib/tenancy/context";
+import { buildTenantContextForUser } from "@/lib/tenancy/guards";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { calendarProjectionService } from "@/server/services/calendar-projection-service";
 import { notificationEventService } from "@/server/services/notification-event-service";
 import { providerGateway } from "@/server/services/provider-gateway-service";
-import { providerAuditService } from "@/server/services/provider-audit-service";
 import { createObjectStorageProvider } from "@/lib/storage/supabase-storage-provider";
 import { tokenLifecycleService } from "@/server/services/token-lifecycle-service";
 
@@ -90,6 +89,31 @@ export async function processPublicationPublishingJob(
   jobId: string,
   context?: TenantContext,
 ): Promise<PublicationJobOutcome | null> {
+  let tenantContext = context;
+  if (!tenantContext) {
+    const preview = await prisma.publishingJob.findUnique({
+      where: { id: jobId },
+      include: {
+        publication: {
+          select: {
+            organisationId: true,
+            projectId: true,
+            brandId: true,
+            requestedByUserId: true,
+          },
+        },
+      },
+    });
+    if (!preview?.publicationId || !preview.publication) {
+      return null;
+    }
+    tenantContext = await buildTenantContextForUser(preview.publication.requestedByUserId, {
+      organisationId: preview.publication.organisationId,
+      projectId: preview.publication.projectId,
+      brandId: preview.publication.brandId,
+    });
+  }
+
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${jobLockKey(jobId)})`;
 
@@ -117,11 +141,6 @@ export async function processPublicationPublishingJob(
     }
 
     const publication = job.publication;
-    const tenantContext = context ?? {
-      ...(await buildWorkerTenantContext(publication.organisationId, publication.requestedByUserId)),
-      projectId: publication.projectId,
-      brandId: publication.brandId,
-    };
 
     if (context && context.organisationId !== publication.organisationId) {
       throw new AppError("FORBIDDEN", "Publication tenant mismatch.");
@@ -184,6 +203,13 @@ export async function processPublicationPublishingJob(
 
     const capability = operationToCapability(publication.operationType);
     const gatewayOperation = mapOperationToGatewayOperation(publication.operationType);
+
+    incrementPublishingCounter("publishing.jobs_processed", 1, {
+      jobId,
+      publicationId: publication.id,
+      providerKey: publication.providerKey,
+      phase: "started",
+    });
 
     let result;
     try {
@@ -319,17 +345,6 @@ export async function processPublicationPublishingJob(
       });
     });
 
-    await providerAuditService.recordEvent({
-      organisationId: publication.organisationId,
-      providerKey: publication.providerKey,
-      connectionId: publication.connectionId,
-      action: "SYNC_COMPLETED",
-      actorUserId: tenantContext.userProfileId,
-      requestId: attempt.requestId ?? undefined,
-      result: "success",
-      metadata: { publicationId: publication.id, externalPublicationId: externalId },
-    }).catch(() => undefined);
-
     await recordAuditEvent({
       organisationId: publication.organisationId,
       actorUserId: tenantContext.userProfileId,
@@ -364,13 +379,17 @@ export async function processPublicationPublishingJob(
       duplicate: duplicate ? "true" : "false",
     });
 
+    incrementPublishingCounter("publishing.jobs_processed", 1, {
+      jobId,
+      publicationId: publication.id,
+      providerKey: publication.providerKey,
+      duplicate: duplicate ? "true" : "false",
+    });
+
     if (duplicate) {
-      incrementPublishingCounter("publishing.duplicate_prevented", 1, {
-        publicationId: publication.id,
-      });
       return { state: "DUPLICATE", externalPublicationId: externalId };
     }
 
-    return { state: "PUBLISHED", externalPublicationId: externalId, permalink };
+    return { state: "PUBLISHED", externalPublicationId: externalId, permalink: permalink ?? undefined };
   });
 }

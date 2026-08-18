@@ -2,9 +2,6 @@
 
 import { useWorkspace } from "@/components/workspace/workspace-provider";
 
-const selectClassName =
-  "h-9 min-w-[140px] rounded-lg border border-border bg-surface-elevated px-3 text-sm text-foreground focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring";
-
 export function WorkspaceSelectors() {
   const {
     organisations,
@@ -26,7 +23,7 @@ export function WorkspaceSelectors() {
       <label className="flex flex-col gap-1">
         <span className="sr-only">Select organisation</span>
         <select
-          className={selectClassName}
+          className="h-9 min-w-[140px] rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground-muted focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={preference.currentOrganisationId ?? ""}
           onChange={(event) => void setOrganisation(event.target.value)}
         >
@@ -44,7 +41,7 @@ export function WorkspaceSelectors() {
       <label className="flex flex-col gap-1">
         <span className="sr-only">Select project</span>
         <select
-          className={selectClassName}
+          className="h-9 min-w-[140px] rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground-muted focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={preference.currentProjectId ?? ""}
           onChange={(event) => void setProject(event.target.value)}
           disabled={!preference.currentOrganisationId}
@@ -63,7 +60,7 @@ export function WorkspaceSelectors() {
       <label className="flex flex-col gap-1">
         <span className="sr-only">Select brand</span>
         <select
-          className={selectClassName}
+          className="h-9 min-w-[140px] rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground-muted focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           value={preference.currentBrandId ?? ""}
           onChange={(event) => void setBrand(event.target.value)}
           disabled={!preference.currentProjectId}

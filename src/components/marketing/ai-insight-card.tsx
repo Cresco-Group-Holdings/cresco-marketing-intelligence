@@ -4,19 +4,22 @@ import type { MarketingSignal } from "@/lib/marketing-intelligence/types";
 import { cn } from "@/lib/utils";
 
 const TYPE_LABELS: Record<MarketingSignal["type"], string> = {
-  opportunity: "Opportunity detected",
-  anomaly: "Performance anomaly",
-  budget: "Budget recommendation",
-  "creative-fatigue": "Creative fatigue",
-  audience: "Audience signal",
-  organic: "Content opportunity",
-  "cross-channel": "Cross-channel signal",
+  opportunity: "Opportunity",
+  anomaly: "Anomaly",
+  budget: "Recommendation",
+  "creative-fatigue": "Risk",
+  audience: "Recommendation",
+  organic: "Opportunity",
+  "cross-channel": "Opportunity",
 };
 
 export function AIInsightCard({ signal }: { signal: MarketingSignal }) {
   return (
-    <article className="rounded-xl border border-border bg-surface-elevated p-4 shadow-sm">
+    <article className="rounded-xl border border-border bg-surface-elevated p-4 transition-colors hover:border-border-strong">
       <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-ai-accent">
+          Cresco Intelligence
+        </span>
         <Badge
           variant={
             signal.category === "paid"
@@ -32,17 +35,12 @@ export function AIInsightCard({ signal }: { signal: MarketingSignal }) {
               ? "Paid"
               : "Organic"}
         </Badge>
-        <span className="text-xs font-medium uppercase tracking-wide text-foreground-subtle">
-          {TYPE_LABELS[signal.type]}
-        </span>
-        <Badge variant={signal.severity === "high" ? "danger" : signal.severity === "medium" ? "warning" : "muted"}>
-          {signal.severity}
-        </Badge>
+        <span className="text-xs font-medium text-foreground-subtle">{TYPE_LABELS[signal.type]}</span>
       </div>
       <h3 className="mt-3 text-sm font-semibold text-foreground">{signal.title}</h3>
       <p className="mt-2 text-sm text-foreground-muted">{signal.explanation}</p>
       {signal.evidence.length > 0 ? (
-        <dl className="mt-3 space-y-1 rounded-lg bg-surface px-3 py-2">
+        <dl className="mt-3 space-y-1 rounded-lg bg-surface-subtle px-3 py-2">
           {signal.evidence.map((item) => (
             <div key={item.label} className="flex items-center justify-between gap-3 text-xs">
               <dt className="text-foreground-subtle">{item.label}</dt>
@@ -52,7 +50,7 @@ export function AIInsightCard({ signal }: { signal: MarketingSignal }) {
         </dl>
       ) : null}
       {signal.estimatedImpact ? (
-        <p className={cn("mt-2 text-xs font-medium text-success")}>
+        <p className={cn("mt-2 text-xs font-medium text-positive")}>
           Estimated impact: {signal.estimatedImpact}
         </p>
       ) : null}
@@ -63,7 +61,7 @@ export function AIInsightCard({ signal }: { signal: MarketingSignal }) {
           </ButtonLink>
         ) : (
           <ButtonLink href="/growth" variant="outline" size="sm">
-            {signal.action?.label ?? "Explore"}
+            {signal.action?.label ?? "Review"}
           </ButtonLink>
         )}
       </div>
@@ -80,8 +78,8 @@ export function AIIntelligenceFeed({
 }) {
   if (insights.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-surface p-6 text-sm text-foreground-muted">
-        {emptyMessage ?? "Connect marketing data sources to unlock Cresco AI recommendations."}
+      <div className="rounded-xl border border-dashed border-border bg-surface-subtle p-6 text-sm text-foreground-muted">
+        {emptyMessage ?? "Connect marketing data sources to unlock Cresco Intelligence."}
       </div>
     );
   }

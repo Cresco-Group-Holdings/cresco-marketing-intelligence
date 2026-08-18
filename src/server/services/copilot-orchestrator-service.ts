@@ -154,6 +154,7 @@ async function handleIntent(input: {
     return buildCopilotResponse({
       intent: "brief",
       answer: brief.answer,
+      briefSections: brief.sections,
       facts: priorities.slice(0, 2).map((item) => createFact(item.reason, item.evidence.map((ev) => ev.id))),
       recommendations: priorities.slice(0, 3).map((item) =>
         createRecommendation(item.title, item.evidence.map((ev) => ev.id)),

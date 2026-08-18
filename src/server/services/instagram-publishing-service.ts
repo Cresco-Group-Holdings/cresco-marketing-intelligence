@@ -60,10 +60,9 @@ async function failJob(job: PublishingJob, reason: string): Promise<PublishOutco
     where: { id: job.id },
     data: { status: "FAILED", lastProviderError: reason },
   });
-  const scheduleId = resolveContentScheduleId(job);
-  if (scheduleId) {
+  if (job.contentScheduleId) {
     await prisma.contentSchedule.update({
-      where: { id: scheduleId },
+      where: { id: job.contentScheduleId },
       data: { status: "FAILED" },
     });
   }
@@ -193,6 +192,7 @@ export const instagramPublishingService = {
       },
     });
     if (!job) return null;
+    if (!job.schedule) return null;
 
     // A completed publish is never repeated, even if the worker is invoked again.
     if (job.publishedMediaId) {
