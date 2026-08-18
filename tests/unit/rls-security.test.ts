@@ -89,6 +89,35 @@ describe("Supabase RLS hardening migration", () => {
   });
 });
 
+const reconciliationPath = path.join(
+  process.cwd(),
+  "prisma/migrations/20260818120000_supabase_rls_reconciliation/migration.sql",
+);
+
+describe("Supabase RLS reconciliation migration", () => {
+  const sql = readFileSync(reconciliationPath, "utf8");
+
+  it("defines is_organisation_member with fixed search_path", () => {
+    expect(sql).toContain("is_organisation_member");
+    expect(sql).toContain("SET search_path = public, pg_temp");
+    expect(sql).toContain('"OrganisationMembership"');
+  });
+
+  it("re-enables RLS on all public tables idempotently", () => {
+    expect(sql).toContain("ENABLE ROW LEVEL SECURITY");
+    expect(sql).toContain("c.relkind = 'r'");
+  });
+
+  it("re-revokes API-role grants conditionally", () => {
+    expect(sql).toContain("REVOKE ALL ON ALL TABLES IN SCHEMA public FROM %I");
+    expect(sql).toContain("pg_roles WHERE rolname = api_role");
+  });
+
+  it("does not use permissive USING (true) policies", () => {
+    expect(sql).not.toMatch(/USING\s*\(\s*true\s*\)/i);
+  });
+});
+
 describe("Supabase Data API RPC audit (static)", () => {
   it("documents zero supabase.rpc usage in application source", () => {
     // Repository-wide grep audit performed 2026-08-13:
