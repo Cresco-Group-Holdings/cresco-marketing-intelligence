@@ -22,6 +22,7 @@ import { notifyPublishingFailed, notifyPublishingSucceeded } from "@/lib/notific
 import { socialCredentialService } from "@/server/services/social-credential-service";
 import { assertAccountPublishingCapability } from "@/lib/publishing/capabilities";
 import { isProviderPublishingDisabled } from "@/lib/publishing/config";
+import { hasPublishingSchedule, nullToUndefined, resolveContentScheduleId } from "@/lib/publishing/schedule";
 import { brandService } from "@/server/services/workspace-service";
 
 export const MAX_TIKTOK_POLL_ATTEMPTS = 20;
@@ -353,7 +354,11 @@ export const tikTokPublishingService = {
       return { state: "ALREADY_PUBLISHED", postId: job.publishedMediaId };
     }
 
-    const { schedule } = job;
+    const scheduleId = resolveContentScheduleId(job);
+    if (!hasPublishingSchedule(job) || !scheduleId) {
+      return failJob(job, "Publishing job requires a content schedule for legacy provider execution.");
+    }
+    const schedule = job.schedule;
 
     if (
       schedule.organisationId !== job.organisationId ||

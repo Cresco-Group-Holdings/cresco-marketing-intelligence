@@ -18,9 +18,9 @@ function bearerTokenMatches(request: NextRequest, expected: string): boolean {
  * service token instead of tenant credentials. An unset token disables the endpoint.
  */
 export function isAuthorisedWorkerRequest(request: NextRequest): boolean {
-  const expected = process.env.PUBLISHING_WORKER_TOKEN?.trim();
-  if (!expected) return false;
-  return bearerTokenMatches(request, expected);
+  const workerToken = process.env.WORKER_TOKEN?.trim() || process.env.PUBLISHING_WORKER_TOKEN?.trim();
+  if (!workerToken) return false;
+  return bearerTokenMatches(request, workerToken);
 }
 
 /**
