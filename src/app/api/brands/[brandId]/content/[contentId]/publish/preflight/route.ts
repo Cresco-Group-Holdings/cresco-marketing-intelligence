@@ -35,7 +35,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const connection = await prisma.providerConnection.findFirst({
       where: { id: body.connectionId, organisationId },
       include: {
-        accounts: {
+        discoveredAccounts: {
           where: { externalAccountId: body.externalAccountId },
         },
       },
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest, { params }: Params) {
       blockers.push(`Connection is not active (${connection.status}).`);
     }
 
-    const account = connection?.accounts[0];
+    const account = connection?.discoveredAccounts[0];
     if (connection && !account) {
       blockers.push("Select an Instagram business account for this connection.");
     } else if (account && account.accountType !== "INSTAGRAM_BUSINESS" && !account.accountType.includes("instagram")) {

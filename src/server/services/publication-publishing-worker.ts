@@ -157,7 +157,7 @@ export async function processPublicationPublishingJob(
           brandId: publication.brandId,
           publicationId: publication.id,
           recipientUserIds: [tenantContext.userProfileId],
-          reason: "Reconnect your Instagram account to continue publishing.",
+          safeError: "Reconnect your Instagram account to continue publishing.",
           idempotencyKey: `pub-reauth:${publication.idempotencyKey}`,
         })
         .catch(() => undefined);
@@ -232,10 +232,11 @@ export async function processPublicationPublishingJob(
     const capability = operationToCapability(publication.operationType);
     const gatewayOperation = mapOperationToGatewayOperation(publication.operationType);
 
-    incrementPublishingCounter("publishing.job_started", 1, {
+    incrementPublishingCounter("publishing.jobs_processed", 1, {
       jobId,
       publicationId: publication.id,
       providerKey: publication.providerKey,
+      phase: "started",
     });
 
     let result;
@@ -305,7 +306,7 @@ export async function processPublicationPublishingJob(
         },
       });
 
-      incrementPublishingCounter("publishing.job_failed", 1, {
+      incrementPublishingCounter("publishing.jobs_failed", 1, {
         jobId,
         category: classification.category,
         providerKey: publication.providerKey,
@@ -421,7 +422,14 @@ export async function processPublicationPublishingJob(
         });
     }
 
-    incrementPublishingCounter("publishing.job_succeeded", 1, {
+    incrementPublishingCounter("publishing.completed_jobs", 1, {
+      jobId,
+      publicationId: publication.id,
+      providerKey: publication.providerKey,
+      duplicate: duplicate ? "true" : "false",
+    });
+
+    incrementPublishingCounter("publishing.jobs_processed", 1, {
       jobId,
       publicationId: publication.id,
       providerKey: publication.providerKey,
@@ -429,9 +437,6 @@ export async function processPublicationPublishingJob(
     });
 
     if (duplicate) {
-      incrementPublishingCounter("publishing.duplicate_prevented", 1, {
-        publicationId: publication.id,
-      });
       return { state: "DUPLICATE", externalPublicationId: externalId };
     }
 

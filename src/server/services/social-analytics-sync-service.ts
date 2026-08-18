@@ -610,6 +610,7 @@ export const socialAnalyticsSyncService = {
     };
     const targets = new Map<string, Target>();
     for (const job of jobs) {
+      if (!job.schedule) continue;
       const ids = new Set<string>();
       if (job.publishedMediaId) ids.add(job.publishedMediaId);
       (job.providerUploadState as { postIds?: string[] } | null)?.postIds?.forEach((id) =>
