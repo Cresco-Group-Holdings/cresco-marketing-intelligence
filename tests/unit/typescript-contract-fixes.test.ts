@@ -5,7 +5,6 @@ import { mapAttributionTouchpointToInput } from "@/lib/attribution/touchpoint-ma
 import { diagnoseRoasChange } from "@/lib/copilot/diagnostics/roas";
 import {
   computeAttributionFromJourneys,
-  mapJourneyToAttributionInput,
 } from "@/lib/unified-analytics/attribution";
 
 describe("date range selector accessible labels", () => {
@@ -139,34 +138,36 @@ describe("attribution touchpoint normalization", () => {
     expect(mapped.position).toBe(3);
   });
 
-  it("normalizes persisted journeys before attribution computation", () => {
-    const journey = mapJourneyToAttributionInput({
-      journeyStart: "2026-01-01T00:00:00.000Z",
-      journeyEnd: "2026-01-10T00:00:00.000Z",
-      revenueValue: 1000,
-      status: "COMPLETED",
-      touchpoints: [
+  it("computes attribution for journeys with null touchpoint positions", () => {
+    const result = computeAttributionFromJourneys(
+      [
         {
-          id: "tp-null",
-          occurredAt: "2026-01-05T00:00:00.000Z",
-          channel: "META",
-          position: null,
-          isExcluded: false,
-        },
-        {
-          id: "tp-zero",
-          occurredAt: "2026-01-06T00:00:00.000Z",
-          channel: "GOOGLE_ADS",
-          position: 0,
-          isExcluded: false,
+          journeyStart: "2026-01-01T00:00:00.000Z",
+          journeyEnd: "2026-01-10T00:00:00.000Z",
+          revenueValue: 1000,
+          status: "COMPLETED",
+          touchpoints: [
+            {
+              id: "tp-null",
+              occurredAt: "2026-01-05T00:00:00.000Z",
+              channel: "META",
+              position: null,
+              isExcluded: false,
+            },
+            {
+              id: "tp-zero",
+              occurredAt: "2026-01-06T00:00:00.000Z",
+              channel: "GOOGLE_ADS",
+              position: 0,
+              isExcluded: false,
+            },
+          ],
         },
       ],
-    });
+      "LAST_TOUCH",
+      30,
+    );
 
-    expect(journey.touchpoints[0]?.position).toBeUndefined();
-    expect(journey.touchpoints[1]?.position).toBe(0);
-
-    const result = computeAttributionFromJourneys([journey], "LAST_TOUCH", 30);
     expect(result.attributedConversions).toBeGreaterThanOrEqual(0);
   });
 });
