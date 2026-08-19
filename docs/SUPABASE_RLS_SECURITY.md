@@ -231,9 +231,16 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres ... REVOKE ALL ... FROM anon, authent
 - [ ] Application API tenant operations work
 - [ ] Security Advisor re-run shows 0 RLS errors
 
-## M. Migration file
+## M. Migration files
 
-`prisma/migrations/20260811120000_supabase_rls_hardening/migration.sql`
+| Migration | Purpose |
+|-----------|---------|
+| `prisma/migrations/20260811120000_supabase_rls_hardening/migration.sql` | Initial hardening: RLS, API-role revokes, event triggers |
+| `prisma/migrations/20260818210000_supabase_rls_hardening_reinforcement/migration.sql` | Idempotent re-apply + PUBLIC grant revocation |
+
+Full audit report: `docs/SUPABASE_RLS_AUDIT_REPORT.md`
+
+Live exposure audit: `npm run audit:rls-exposure`
 
 ## N. Intentionally accepted findings
 

@@ -232,4 +232,93 @@ suite("Supabase RLS security (live database)", () => {
       await prisma.$executeRawUnsafe(`DROP TABLE public."${tableName}"`);
     }
   });
+
+  it("has RLS enabled on every public table", async () => {
+    const rows = await prisma.$queryRaw<Array<{ disabled_count: number }>>`
+      SELECT COUNT(*)::int AS disabled_count
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public' AND c.relkind = 'r' AND NOT c.relrowsecurity
+    `;
+    expect(rows[0]?.disabled_count).toBe(0);
+  });
+
+  it("does not grant PUBLIC privileges on public tables", async () => {
+    const rows = await prisma.$queryRaw<Array<{ grant_count: number }>>`
+      SELECT COUNT(*)::int AS grant_count
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      CROSS JOIN LATERAL aclexplode(COALESCE(c.relacl, acldefault('r', n.oid))) acl
+      WHERE n.nspname = 'public' AND c.relkind = 'r' AND acl.grantee = 0
+    `;
+    expect(rows[0]?.grant_count).toBe(0);
+  });
+
+  const sensitiveTables = [
+    "Organisation",
+    "SocialCredential",
+    "ProviderConnection",
+    "PublishingJob",
+    "SecurityAuditLog",
+    "_prisma_migrations",
+  ] as const;
+
+  const allPrivilegeCases = [
+    ["anon", "SELECT"],
+    ["anon", "INSERT"],
+    ["anon", "UPDATE"],
+    ["anon", "DELETE"],
+    ["authenticated", "SELECT"],
+    ["authenticated", "INSERT"],
+    ["authenticated", "UPDATE"],
+    ["authenticated", "DELETE"],
+    ["service_role", "SELECT"],
+    ["service_role", "INSERT"],
+    ["service_role", "UPDATE"],
+    ["service_role", "DELETE"],
+  ] as const;
+
+  it.each(sensitiveTables)("has RLS enabled on sensitive table %s", async (table) => {
+    const rows = await prisma.$queryRawUnsafe<Array<{ relrowsecurity: boolean }>>(
+      `SELECT c.relrowsecurity FROM pg_class c
+       JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public' AND c.relname = '${table}'`,
+    );
+    if (rows.length === 0) {
+      return;
+    }
+    expect(rows[0]?.relrowsecurity).toBe(true);
+  });
+
+  it.each(allPrivilegeCases)(
+    "denies %s %s on Organisation when role exists",
+    async (role, privilege) => {
+      if (!existingApiRoles.includes(role)) {
+        return;
+      }
+      const rows = await prisma.$queryRaw<Array<{ has_priv: boolean }>>`
+        SELECT has_table_privilege(
+          ${role},
+          'public."Organisation"',
+          ${privilege}
+        ) AS has_priv
+      `;
+      expect(rows[0]?.has_priv).toBe(false);
+    },
+  );
+
+  it("denies anon runtime SELECT when postgres is not superuser", async () => {
+    if (!existingApiRoles.includes("anon")) {
+      return;
+    }
+    const superuser = await prisma.$queryRaw<Array<{ rolsuper: boolean }>>`
+      SELECT rolsuper FROM pg_roles WHERE rolname = current_user
+    `;
+    if (superuser[0]?.rolsuper) {
+      return;
+    }
+    await expect(
+      prisma.$executeRawUnsafe(`SET LOCAL ROLE anon; SELECT COUNT(*) FROM "Organisation"`),
+    ).rejects.toThrow();
+  });
 });
