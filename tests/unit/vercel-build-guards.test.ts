@@ -1,9 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 const root = process.cwd();
+
+function withTempPackageJson(
+  mutate: (pkg: { scripts: Record<string, string> }) => void,
+  run: (tempPackagePath: string) => void,
+) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "vercel-build-guard-"));
+  const tempPackagePath = path.join(tempDir, "package.json");
+  const originalPath = path.join(root, "package.json");
+  const pkg = JSON.parse(fs.readFileSync(originalPath, "utf8"));
+  mutate(pkg);
+  fs.writeFileSync(tempPackagePath, JSON.stringify(pkg, null, 2) + "\n");
+
+  try {
+    run(tempPackagePath);
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+}
 
 describe("validate:vercel-build", () => {
   it("passes for the lean production build script", () => {
@@ -13,39 +32,35 @@ describe("validate:vercel-build", () => {
   });
 
   it("rejects build scripts that run validators", () => {
-    const packagePath = path.join(root, "package.json");
-    const original = fs.readFileSync(packagePath, "utf8");
-    const pkg = JSON.parse(original);
-    const savedBuild = pkg.scripts.build;
-    pkg.scripts.build = "npm run validate:routes && next build";
-    fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2) + "\n");
-
-    try {
-      expect(() => {
-        execSync("node scripts/validate-vercel-build.mjs", { stdio: "pipe" });
-      }).toThrow();
-    } finally {
-      pkg.scripts.build = savedBuild;
-      fs.writeFileSync(packagePath, original);
-    }
+    withTempPackageJson(
+      (pkg) => {
+        pkg.scripts.build = "npm run validate:routes && next build";
+      },
+      (tempPackagePath) => {
+        expect(() => {
+          execSync("node scripts/validate-vercel-build.mjs", {
+            stdio: "pipe",
+            env: { ...process.env, PACKAGE_JSON_PATH: tempPackagePath },
+          });
+        }).toThrow();
+      },
+    );
   });
 
   it("rejects build scripts with max-old-space-size=8192", () => {
-    const packagePath = path.join(root, "package.json");
-    const original = fs.readFileSync(packagePath, "utf8");
-    const pkg = JSON.parse(original);
-    const savedBuild = pkg.scripts.build;
-    pkg.scripts.build = "NODE_OPTIONS=--max-old-space-size=8192 next build";
-    fs.writeFileSync(packagePath, JSON.stringify(pkg, null, 2) + "\n");
-
-    try {
-      expect(() => {
-        execSync("node scripts/validate-vercel-build.mjs", { stdio: "pipe" });
-      }).toThrow();
-    } finally {
-      pkg.scripts.build = savedBuild;
-      fs.writeFileSync(packagePath, original);
-    }
+    withTempPackageJson(
+      (pkg) => {
+        pkg.scripts.build = "NODE_OPTIONS=--max-old-space-size=8192 next build";
+      },
+      (tempPackagePath) => {
+        expect(() => {
+          execSync("node scripts/validate-vercel-build.mjs", {
+            stdio: "pipe",
+            env: { ...process.env, PACKAGE_JSON_PATH: tempPackagePath },
+          });
+        }).toThrow();
+      },
+    );
   });
 });
 

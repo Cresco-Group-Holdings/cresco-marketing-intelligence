@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const legacyPrisma = vi.hoisted(() => ({
   publishingJob: { findFirst: vi.fn(), update: vi.fn() },
@@ -22,10 +22,29 @@ vi.mock("@/lib/storage/supabase-storage-provider", () => ({
     createSignedUrl: vi.fn().mockResolvedValue({ url: "https://signed.test/media.jpg" }),
   }),
 }));
+vi.mock("@/server/services/workspace-service", () => ({
+  brandService: { getBrand: vi.fn() },
+}));
+vi.mock("@/server/services/audit-service", () => ({
+  recordAuditEvent: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock("@/lib/publishing/config", () => ({
+  isProviderPublishingDisabled: vi.fn().mockReturnValue(false),
+}));
+vi.mock("@/lib/social/instagram-publishing-adapter", () => ({
+  InstagramPublishingAdapter: vi.fn(),
+  InstagramProviderError: class InstagramProviderError extends Error {},
+}));
 
-import { instagramPublishingService } from "@/server/services/instagram-publishing-service";
+type InstagramPublishingService = typeof import("@/server/services/instagram-publishing-service").instagramPublishingService;
+
+let instagramPublishingService: InstagramPublishingService;
 
 describe("legacy instagram publishing schedule guards", () => {
+  beforeAll(async () => {
+    ({ instagramPublishingService } = await import("@/server/services/instagram-publishing-service"));
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     legacyPrisma.publishingAttempt.findFirst.mockResolvedValue(null);
