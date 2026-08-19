@@ -118,6 +118,35 @@ describe("Supabase RLS reconciliation migration", () => {
   });
 });
 
+const cataloguePath = path.join(
+  process.cwd(),
+  "prisma/migrations/20260819180000_supabase_rls_catalogue_enforcement/migration.sql",
+);
+
+describe("Supabase RLS catalogue enforcement migration", () => {
+  const sql = readFileSync(cataloguePath, "utf8");
+
+  it("discovers tables from pg_class with relkind=r", () => {
+    expect(sql).toContain("FROM pg_class c");
+    expect(sql).toContain("c.relkind = 'r'");
+    expect(sql).not.toContain("FROM pg_tables");
+  });
+
+  it("fails the migration when relrowsecurity is still false", () => {
+    expect(sql).toContain("RAISE EXCEPTION");
+    expect(sql).toContain("relrowsecurity=false");
+  });
+
+  it("does not swallow exceptions", () => {
+    expect(sql).not.toMatch(/EXCEPTION\s+WHEN/i);
+  });
+
+  it("does not modify grants", () => {
+    expect(sql).not.toContain("REVOKE ALL ON ALL TABLES");
+    expect(sql).not.toContain("GRANT ");
+  });
+});
+
 describe("Supabase Data API RPC audit (static)", () => {
   it("documents zero supabase.rpc usage in application source", () => {
     // Repository-wide grep audit performed 2026-08-13:

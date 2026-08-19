@@ -101,6 +101,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma migrate deploy
+      - run: npm run validate:rls-catalogue
       - run: npm run test:database
 
   build:

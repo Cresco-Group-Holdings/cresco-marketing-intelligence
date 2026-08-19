@@ -11,8 +11,10 @@ const errors = [];
 const migrationsDir = path.join(process.cwd(), "prisma", "migrations");
 const hardeningMigration = "20260811120000_supabase_rls_hardening";
 const reconciliationMigration = "20260818120000_supabase_rls_reconciliation";
+const catalogueMigration = "20260819180000_supabase_rls_catalogue_enforcement";
 const hardeningSqlPath = path.join(migrationsDir, hardeningMigration, "migration.sql");
 const reconciliationSqlPath = path.join(migrationsDir, reconciliationMigration, "migration.sql");
+const catalogueSqlPath = path.join(migrationsDir, catalogueMigration, "migration.sql");
 const inventoryPath = path.join(process.cwd(), "docs", "security", "rls-inventory.json");
 const exceptionsPath = path.join(process.cwd(), "docs", "security", "rls-exceptions.json");
 const schemaPath = path.join(process.cwd(), "prisma", "schema.prisma");
@@ -65,6 +67,24 @@ assertMigrationFragments(reconciliationSqlPath, reconciliationMigration, [
   "SET search_path = public, pg_temp",
 ]);
 
+assertMigrationFragments(catalogueSqlPath, catalogueMigration, [
+  "FROM pg_class c",
+  "c.relkind = 'r'",
+  "NOT c.relrowsecurity",
+  "RAISE EXCEPTION",
+  "relrowsecurity=false",
+]);
+
+if (fs.existsSync(catalogueSqlPath)) {
+  const catalogueSql = fs.readFileSync(catalogueSqlPath, "utf8");
+  if (/EXCEPTION\s+WHEN/i.test(catalogueSql)) {
+    errors.push(`${catalogueMigration} must not swallow exceptions with EXCEPTION WHEN handlers.`);
+  }
+  if (/FROM pg_tables/i.test(catalogueSql)) {
+    errors.push(`${catalogueMigration} must use pg_class catalogue discovery, not pg_tables.`);
+  }
+}
+
 if (!fs.existsSync(inventoryPath)) {
   errors.push("Missing docs/security/rls-inventory.json — run: node scripts/generate-rls-inventory.mjs");
 } else if (fs.existsSync(schemaPath)) {
@@ -103,6 +123,7 @@ const requiredDocs = [
   "docs/security/RLS_TABLE_INVENTORY.md",
   "docs/security/RLS_GRANTS_AUDIT.md",
   "docs/security/SUPABASE_RLS_DEPLOYMENT.md",
+  "docs/security/RLS_PRODUCTION_INCIDENT.md",
 ];
 
 for (const doc of requiredDocs) {

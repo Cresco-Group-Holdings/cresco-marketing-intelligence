@@ -83,6 +83,26 @@ async function main() {
     console.table(owners);
     pass("table ownership query");
 
+    const rlsCatalogue = await prisma.$queryRaw`
+      SELECT
+        COUNT(*)::int AS total_tables,
+        COUNT(*) FILTER (WHERE c.relrowsecurity)::int AS rls_enabled,
+        COUNT(*) FILTER (WHERE NOT c.relrowsecurity)::int AS rls_disabled
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      WHERE n.nspname = 'public' AND c.relkind = 'r'
+    `;
+    console.log("\nRLS catalogue (production acceptance):");
+    console.table(rlsCatalogue);
+    if ((rlsCatalogue[0]?.rls_disabled ?? 0) === 0 && (rlsCatalogue[0]?.total_tables ?? 0) > 0) {
+      pass("all public tables have RLS enabled (rls_disabled=0)");
+    } else {
+      fail(
+        "all public tables have RLS enabled",
+        `rls_disabled=${rlsCatalogue[0]?.rls_disabled}, total=${rlsCatalogue[0]?.total_tables}`,
+      );
+    }
+
     const postgresRole = roles.find((r) => r.rolname === "postgres");
     if (postgresRole?.rolsuper === true) {
       fail("postgres rolsuper", "expected false on Supabase");

@@ -25,12 +25,30 @@ npx prisma validate
 Migrations applied (in order):
 
 1. `20260811120000_supabase_rls_hardening`
-2. `20260818120000_supabase_rls_reconciliation` (idempotent re-apply)
+2. `20260818120000_supabase_rls_reconciliation`
+3. `20260819180000_supabase_rls_catalogue_enforcement` (**P0 corrective — fails if RLS still disabled**)
 
 ## Post-deploy verification
 
 1. `npx prisma migrate status` — all migrations applied
-2. Re-run Security Advisor in Supabase dashboard
+2. **Production acceptance query (required):**
+
+```sql
+SELECT
+  COUNT(*) AS total_tables,
+  COUNT(*) FILTER (WHERE c.relrowsecurity) AS rls_enabled,
+  COUNT(*) FILTER (WHERE NOT c.relrowsecurity) AS rls_disabled
+FROM pg_class c
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public'
+  AND c.relkind = 'r';
+```
+
+**Acceptance:** `rls_disabled = 0`
+
+Or run: `DIRECT_URL="..." node scripts/validate-rls-catalogue.mjs`
+
+3. Re-run Security Advisor in Supabase dashboard
 3. Compare `RLS Disabled in Public` before/after (target: **0** for application tables)
 4. Run `node scripts/verify-rls-staging.mjs` against production direct URL (read-only checks)
 
