@@ -22,6 +22,13 @@ type PublishInput = {
   dryRun?: boolean;
 };
 
+const MAX_POLL_ATTEMPTS = 12;
+const POLL_DELAY_MS = 5_000;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function mapInstagramError(error: unknown): ProviderOperationResult<never> {
   const normalized = normaliseInstagramError(
     error instanceof Error ? { message: error.message } : undefined,
@@ -120,17 +127,45 @@ export function createMetaSocialPublishingAdapter(): PlatformProviderAdapter {
               };
             }
 
+            const mediaType =
+              input.mediaType ?? (mediaUrls.length > 1 ? "CAROUSEL" : "IMAGE");
+
             const containerId = await instagram.createContainer({
               igUserId,
               accessToken,
               mediaUrls,
-              mediaType: input.mediaType ?? (mediaUrls.length > 1 ? "CAROUSEL" : "IMAGE"),
+              mediaType,
               caption: input.caption,
             });
 
-            const postId = await instagram.publishContainer(igUserId, containerId, accessToken);
+            let status = "IN_PROGRESS";
+            for (let attempt = 0; attempt < MAX_POLL_ATTEMPTS; attempt += 1) {
+              const poll = await instagram.getContainerStatus(containerId, accessToken);
+              status = poll.status;
+              if (status === "FINISHED" || status === "PUBLISHED") break;
+              if (status === "ERROR" || status === "EXPIRED") {
+                return {
+                  success: false,
+                  errorCode: "UNSUPPORTED_MEDIA",
+                  errorMessageSafe: `Instagram media processing failed (${status.toLowerCase()}).`,
+                  retryable: false,
+                };
+              }
+              await sleep(POLL_DELAY_MS);
+            }
 
-            const permalink = `https://www.instagram.com/p/${postId}/`;
+            if (status !== "FINISHED" && status !== "PUBLISHED") {
+              return {
+                success: false,
+                errorCode: "PROVIDER_TIMEOUT",
+                errorMessageSafe: "Instagram media processing timed out. Retry shortly.",
+                retryable: true,
+              };
+            }
+
+            const postId = await instagram.publishContainer(igUserId, containerId, accessToken);
+            const permalink = (await instagram.getPermalink(postId, accessToken)) ?? undefined;
+
             return {
               success: true,
               data: {

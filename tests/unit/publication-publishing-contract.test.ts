@@ -85,7 +85,7 @@ function publicationFixture(overrides: Record<string, unknown> = {}) {
     timezone: "UTC",
     idempotencyKey: "idem-1",
     dryRun: false,
-    providerPayload: {},
+    providerPayload: { mediaUrls: ["https://signed.test/media.jpg"] },
     requestedByUserId: "profile-1",
     contentItemId: "content-1",
     contentVariantId: null,
@@ -104,6 +104,36 @@ function jobFixture(publication = publicationFixture()) {
     status: "QUEUED",
     attemptCount: 0,
     publication,
+  };
+}
+
+function readyContentAssets() {
+  return [
+    {
+      marketingAsset: {
+        id: "asset-1",
+        status: "READY",
+        approvedForMarketing: true,
+        assetType: "IMAGE",
+        licenceExpiresAt: null,
+        mimeType: "image/jpeg",
+      },
+    },
+  ];
+}
+
+function transactionMock(publication = publicationFixture()) {
+  return {
+    $executeRaw: vi.fn(),
+    publishingJob: {
+      findUnique: vi.fn().mockResolvedValue(jobFixture(publication)),
+      update: vi.fn().mockResolvedValue({}),
+    },
+    publication: { update: vi.fn().mockResolvedValue({}), count: vi.fn().mockResolvedValue(0) },
+    publicationAttempt: prismaMock.publicationAttempt,
+    contentAsset: {
+      findMany: vi.fn().mockResolvedValue(readyContentAssets()),
+    },
   };
 }
 
@@ -155,15 +185,7 @@ describe("processPublicationPublishingJob contract", () => {
     });
 
     prismaMock.$transaction.mockImplementation(async (callback) =>
-      callback({
-        $executeRaw: vi.fn(),
-        publishingJob: {
-          findUnique: vi.fn().mockResolvedValue(jobFixture(publication)),
-          update: vi.fn().mockResolvedValue({}),
-        },
-        publication: { update: vi.fn().mockResolvedValue({}), count: vi.fn().mockResolvedValue(0) },
-        publicationAttempt: prismaMock.publicationAttempt,
-      }),
+      callback(transactionMock(publication)),
     );
 
     await processPublicationPublishingJob("job-1");
@@ -178,15 +200,7 @@ describe("processPublicationPublishingJob contract", () => {
   it("emits jobs_processed on start and completed_jobs on success", async () => {
     const publication = publicationFixture();
     prismaMock.$transaction.mockImplementation(async (callback) =>
-      callback({
-        $executeRaw: vi.fn(),
-        publishingJob: {
-          findUnique: vi.fn().mockResolvedValue(jobFixture(publication)),
-          update: vi.fn().mockResolvedValue({}),
-        },
-        publication: { update: vi.fn().mockResolvedValue({}), count: vi.fn().mockResolvedValue(0) },
-        publicationAttempt: prismaMock.publicationAttempt,
-      }),
+      callback(transactionMock(publication)),
     );
 
     const result = await processPublicationPublishingJob("job-1", tenant);
@@ -207,15 +221,7 @@ describe("processPublicationPublishingJob contract", () => {
 
     const publication = publicationFixture();
     prismaMock.$transaction.mockImplementation(async (callback) =>
-      callback({
-        $executeRaw: vi.fn(),
-        publishingJob: {
-          findUnique: vi.fn().mockResolvedValue(jobFixture(publication)),
-          update: vi.fn().mockResolvedValue({}),
-        },
-        publication: { update: vi.fn().mockResolvedValue({}), count: vi.fn().mockResolvedValue(0) },
-        publicationAttempt: prismaMock.publicationAttempt,
-      }),
+      callback(transactionMock(publication)),
     );
 
     const result = await processPublicationPublishingJob("job-1", tenant);
@@ -235,15 +241,7 @@ describe("processPublicationPublishingJob contract", () => {
 
     const publication = publicationFixture();
     prismaMock.$transaction.mockImplementation(async (callback) =>
-      callback({
-        $executeRaw: vi.fn(),
-        publishingJob: {
-          findUnique: vi.fn().mockResolvedValue(jobFixture(publication)),
-          update: vi.fn().mockResolvedValue({}),
-        },
-        publication: { update: vi.fn().mockResolvedValue({}), count: vi.fn().mockResolvedValue(0) },
-        publicationAttempt: prismaMock.publicationAttempt,
-      }),
+      callback(transactionMock(publication)),
     );
 
     const result = await processPublicationPublishingJob("job-1", tenant);

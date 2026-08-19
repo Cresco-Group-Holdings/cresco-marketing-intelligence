@@ -13,6 +13,11 @@ vi.mock("@/server/services/canonical-publication-service", () => ({
     enqueueDueScheduledPublications: vi.fn().mockResolvedValue([]),
   },
 }));
+vi.mock("@/server/services/publication-analytics-sync-service", () => ({
+  publicationAnalyticsSyncService: {
+    processDueSyncs: vi.fn().mockResolvedValue([]),
+  },
+}));
 
 import { accountHasPublishingCapability } from "@/lib/publishing/capabilities";
 import { isProviderPublishingDisabled } from "@/lib/publishing/config";

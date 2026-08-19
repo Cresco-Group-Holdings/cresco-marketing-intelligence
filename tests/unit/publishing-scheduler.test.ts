@@ -13,6 +13,11 @@ vi.mock("@/server/services/canonical-publication-service", () => ({
     enqueueDueScheduledPublications: vi.fn().mockResolvedValue([]),
   },
 }));
+vi.mock("@/server/services/publication-analytics-sync-service", () => ({
+  publicationAnalyticsSyncService: {
+    processDueSyncs: vi.fn().mockResolvedValue([]),
+  },
+}));
 
 import { scheduledJobIdempotencyKey } from "@/lib/publishing/config";
 import { resetPublishingCounters, readPublishingCounters } from "@/lib/publishing/observability";
@@ -141,6 +146,7 @@ describe("publishingSchedulerService", () => {
     expect(worker.processPublishingJob).toHaveBeenCalledWith("job-1");
     expect(result.processed).toHaveLength(1);
     expect(result.scheduled.enqueued).toHaveLength(1);
+    expect(result.metricsSynced).toEqual([]);
     expect(readPublishingCounters()["publishing.jobs_processed"]).toBe(1);
   });
 });

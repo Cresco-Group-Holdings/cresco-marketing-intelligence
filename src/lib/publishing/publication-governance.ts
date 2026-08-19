@@ -137,5 +137,5 @@ export function canCancelPublication(status: PublicationStatus): boolean {
 }
 
 export function canRetryPublication(status: PublicationStatus): boolean {
-  return status === "FAILED" || status === "PARTIALLY_PUBLISHED";
+  return status === "FAILED" || status === "PARTIALLY_PUBLISHED" || status === "REQUIRES_REAUTH";
 }
