@@ -49,6 +49,23 @@ if (fs.existsSync(vercelJsonPath)) {
   if (!vercelJson.ignoreCommand) {
     errors.push('vercel.json must set "ignoreCommand" to enforce preview deployment policy.');
   }
+
+  const buildCommand = vercelJson.buildCommand ?? "";
+  if (!/\bnext\s+build\b/.test(buildCommand) && !/\bnpm\s+run\s+build\b/.test(buildCommand)) {
+    errors.push(
+      'vercel.json must set "buildCommand" to "npm run build" (compile-only; no validators or heap overrides).',
+    );
+  }
+  for (const { pattern, label } of forbiddenPatterns) {
+    if (pattern.test(buildCommand)) {
+      errors.push(`vercel.json buildCommand must not run ${label}. Found: ${buildCommand}`);
+    }
+  }
+  if (/--max-old-space-size=8192/.test(buildCommand)) {
+    errors.push(
+      'vercel.json buildCommand must not set NODE_OPTIONS=--max-old-space-size=8192 (causes Hobby OOM / 45m timeout).',
+    );
+  }
 }
 
 const nextConfigPath = path.join(process.cwd(), "next.config.ts");

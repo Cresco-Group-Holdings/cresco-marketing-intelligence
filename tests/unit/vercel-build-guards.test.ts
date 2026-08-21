@@ -30,6 +30,24 @@ describe("validate:vercel-build", () => {
     }
   });
 
+  it("rejects vercel.json buildCommand with max-old-space-size=8192", () => {
+    const vercelPath = path.join(root, "vercel.json");
+    const original = fs.readFileSync(vercelPath, "utf8");
+    const vercelJson = JSON.parse(original);
+    const savedBuildCommand = vercelJson.buildCommand;
+    vercelJson.buildCommand = "NODE_OPTIONS=--max-old-space-size=8192 next build";
+    fs.writeFileSync(vercelPath, JSON.stringify(vercelJson, null, 2) + "\n");
+
+    try {
+      expect(() => {
+        execSync("node scripts/validate-vercel-build.mjs", { stdio: "pipe" });
+      }).toThrow();
+    } finally {
+      vercelJson.buildCommand = savedBuildCommand;
+      fs.writeFileSync(vercelPath, original);
+    }
+  });
+
   it("rejects build scripts with max-old-space-size=8192", () => {
     const packagePath = path.join(root, "package.json");
     const original = fs.readFileSync(packagePath, "utf8");

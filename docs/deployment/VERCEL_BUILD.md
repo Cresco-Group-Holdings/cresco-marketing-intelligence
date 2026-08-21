@@ -111,7 +111,7 @@ Image processing uses `@/lib/images/sharp-loader` (dynamic `import("sharp")`). `
 
 | Symptom | Likely cause |
 |---------|----------------|
-| Build fails at ~46 min | Build step exceeded 45 min — ensure lean `build` script |
+| Build fails at ~46 min | Stale `NODE_OPTIONS=--max-old-space-size=8192 next build` or missing `typescript.ignoreBuildErrors` — redeploy latest main; `vercel.json` pins `buildCommand: npm run build` |
 | Build SIGKILL / OOM during type check | Ensure `typescript.ignoreBuildErrors: true`, no `max-old-space-size=8192` on `build`, and webpack memory optimizations enabled |
 | Preview never appears | Branch skipped by `ignoreCommand` — add opt-in marker |
 | Typecheck errors in CI | Stale Prisma client — CI runs `prisma generate` after `npm ci` |
