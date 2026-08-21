@@ -16,13 +16,13 @@ if [[ "$branch" == "main" ]]; then
 fi
 
 # Explicit opt-in marker committed to the branch
-if [[ -f ".vercel/preview-required" ]]; then
+if [[ "${VERCEL_SHOULD_BUILD_TEST_BRANCH_ONLY:-}" != "1" ]] && [[ -f ".vercel/preview-required" ]]; then
   echo "Building: .vercel/preview-required marker present"
   exit 1
 fi
 
 # Opt-in via commit message tag
-if git log -1 --pretty=%B 2>/dev/null | grep -qE '\[vercel-preview\]'; then
+if [[ "${VERCEL_SHOULD_BUILD_TEST_BRANCH_ONLY:-}" != "1" ]] && git log -1 --pretty=%B 2>/dev/null | grep -qE '\[vercel-preview\]'; then
   echo "Building: [vercel-preview] in latest commit message"
   exit 1
 fi

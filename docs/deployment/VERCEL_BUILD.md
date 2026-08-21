@@ -34,7 +34,7 @@ npm run build
   └─ next build                    (no lint, tests, validators, or duplicate prisma generate)
 ```
 
-`next.config.ts` sets `eslint.ignoreDuringBuilds: true` and `typescript.ignoreBuildErrors: true` because ESLint and TypeScript run in GitHub CI. Vercel performs an optimized compile-only build to stay within Hobby memory limits.
+`next.config.mjs` sets `eslint.ignoreDuringBuilds: true` and `typescript.ignoreBuildErrors: true` because ESLint and TypeScript run in GitHub CI. Vercel performs an optimized compile-only build to stay within Hobby memory limits.
 
 ## Type safety model
 
@@ -98,7 +98,8 @@ node scripts/measure-build-memory.mjs
 
 - `package.json` `build` script includes tests, lint, typecheck, validators, migrations, or duplicate `prisma generate`
 - `package.json` `build` sets `NODE_OPTIONS=--max-old-space-size=8192` or heap above 7680 MB
-- `next.config.ts` is missing `ignoreBuildErrors`, `webpackMemoryOptimizations`, or Hobby memory limits (`parallelServerCompiles: false`, `parallelServerBuildTraces: false`)
+- `next.config.mjs` is missing `ignoreBuildErrors`, `webpackMemoryOptimizations`, or Hobby memory limits (`parallelServerCompiles: false`, `parallelServerBuildTraces: false`)
+- Effective Next.js config (via `loadConfig`) does not set `typescript.ignoreBuildErrors: true`
 - `vercel.json` is missing `ignoreCommand`
 
 This runs in GitHub Actions quality jobs.

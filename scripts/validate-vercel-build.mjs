@@ -7,6 +7,10 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
+
+const require = createRequire(import.meta.url);
+const loadConfig = require("next/dist/server/config").default;
 
 const packageJsonPath = path.join(process.cwd(), "package.json");
 const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
@@ -68,30 +72,45 @@ if (fs.existsSync(vercelJsonPath)) {
   }
 }
 
-const nextConfigPath = path.join(process.cwd(), "next.config.ts");
-if (fs.existsSync(nextConfigPath)) {
+const nextConfigCandidates = ["next.config.mjs", "next.config.js", "next.config.ts"];
+const nextConfigPath = nextConfigCandidates
+  .map((name) => path.join(process.cwd(), name))
+  .find((candidate) => fs.existsSync(candidate));
+
+if (!nextConfigPath) {
+  errors.push("Missing Next.js config (next.config.mjs, next.config.js, or next.config.ts).");
+} else {
   const nextConfigSource = fs.readFileSync(nextConfigPath, "utf8");
+  const nextConfigLabel = path.basename(nextConfigPath);
+
   if (!/ignoreDuringBuilds:\s*true/.test(nextConfigSource)) {
-    errors.push("next.config.ts must set eslint.ignoreDuringBuilds: true (lint runs in CI).");
+    errors.push(`${nextConfigLabel} must set eslint.ignoreDuringBuilds: true (lint runs in CI).`);
   }
   if (!/ignoreBuildErrors:\s*true/.test(nextConfigSource)) {
     errors.push(
-      "next.config.ts must set typescript.ignoreBuildErrors: true (typecheck runs in CI; avoids Vercel OOM).",
+      `${nextConfigLabel} must set typescript.ignoreBuildErrors: true (typecheck runs in CI; avoids Vercel OOM).`,
     );
   }
+  if (/ignoreBuildErrors:\s*false/.test(nextConfigSource)) {
+    errors.push(`${nextConfigLabel} must not set typescript.ignoreBuildErrors: false.`);
+  }
   if (!/webpackMemoryOptimizations:\s*true/.test(nextConfigSource)) {
-    errors.push("next.config.ts must enable experimental.webpackMemoryOptimizations.");
+    errors.push(`${nextConfigLabel} must enable experimental.webpackMemoryOptimizations.`);
   }
   if (!/parallelServerCompiles:\s*false/.test(nextConfigSource)) {
-    errors.push("next.config.ts must set experimental.parallelServerCompiles: false (Hobby memory).");
+    errors.push(`${nextConfigLabel} must set experimental.parallelServerCompiles: false (Hobby memory).`);
   }
   if (!/parallelServerBuildTraces:\s*false/.test(nextConfigSource)) {
     errors.push(
-      "next.config.ts must set experimental.parallelServerBuildTraces: false (Hobby memory).",
+      `${nextConfigLabel} must set experimental.parallelServerBuildTraces: false (Hobby memory).`,
     );
   }
   if (/--max-old-space-size=8192/.test(nextConfigSource)) {
-    errors.push("next.config.ts must not set NODE_OPTIONS=--max-old-space-size=8192.");
+    errors.push(`${nextConfigLabel} must not set NODE_OPTIONS=--max-old-space-size=8192.`);
+  }
+
+  if (fs.existsSync(path.join(process.cwd(), "next.config.ts")) && fs.existsSync(path.join(process.cwd(), "next.config.mjs"))) {
+    errors.push("Only one Next.js config file is allowed — remove next.config.ts when next.config.mjs is present.");
   }
 }
 
@@ -119,6 +138,35 @@ if (errors.length > 0) {
   for (const message of errors) {
     console.error(`- ${message}`);
   }
+  process.exit(1);
+}
+
+try {
+  const effectiveConfig = await loadConfig("phase-production-build", process.cwd(), {
+    silent: true,
+  });
+
+  if (effectiveConfig.typescript?.ignoreBuildErrors !== true) {
+    console.error("Vercel build script validation failed:\n");
+    console.error(
+      `- Effective Next.js config must set typescript.ignoreBuildErrors: true (got ${JSON.stringify(effectiveConfig.typescript?.ignoreBuildErrors)}).`,
+    );
+    console.error(
+      "  Vercel would run full build-time TypeScript validation and OOM on Hobby builders.",
+    );
+    process.exit(1);
+  }
+
+  if (effectiveConfig.eslint?.ignoreDuringBuilds !== true) {
+    console.error("Vercel build script validation failed:\n");
+    console.error(
+      `- Effective Next.js config must set eslint.ignoreDuringBuilds: true (got ${JSON.stringify(effectiveConfig.eslint?.ignoreDuringBuilds)}).`,
+    );
+    process.exit(1);
+  }
+} catch (error) {
+  console.error("Vercel build script validation failed:\n");
+  console.error(`- Failed to load effective Next.js config: ${error instanceof Error ? error.message : error}`);
   process.exit(1);
 }
 

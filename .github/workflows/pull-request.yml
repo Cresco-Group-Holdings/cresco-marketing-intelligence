@@ -57,6 +57,7 @@ jobs:
               - "package.json"
               - "package-lock.json"
               - "tsconfig*.json"
+              - "next.config.mjs"
               - "next.config.ts"
               - "postcss.config.*"
               - "eslint.config.*"

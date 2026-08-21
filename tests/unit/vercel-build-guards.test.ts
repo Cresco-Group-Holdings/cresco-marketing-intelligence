@@ -48,6 +48,21 @@ describe("validate:vercel-build", () => {
     }
   });
 
+  it("rejects effective config when ignoreBuildErrors is removed from next.config.mjs", async () => {
+    const configPath = path.join(root, "next.config.mjs");
+    const original = fs.readFileSync(configPath, "utf8");
+    const downgraded = original.replace("ignoreBuildErrors: true", "ignoreBuildErrors: false");
+    fs.writeFileSync(configPath, downgraded);
+
+    try {
+      expect(() => {
+        execSync("node scripts/validate-vercel-build.mjs", { stdio: "pipe" });
+      }).toThrow();
+    } finally {
+      fs.writeFileSync(configPath, original);
+    }
+  });
+
   it("rejects build scripts with max-old-space-size=8192", () => {
     const packagePath = path.join(root, "package.json");
     const original = fs.readFileSync(packagePath, "utf8");
@@ -81,7 +96,11 @@ describe("vercel-should-build.sh", () => {
 
   it("skips cursor branches without opt-in (exit 0)", () => {
     const result = execSync(script, {
-      env: { ...process.env, VERCEL_GIT_COMMIT_REF: "cursor/feature-7a66" },
+      env: {
+        ...process.env,
+        VERCEL_GIT_COMMIT_REF: "cursor/feature-7a66",
+        VERCEL_SHOULD_BUILD_TEST_BRANCH_ONLY: "1",
+      },
       stdio: "pipe",
     });
     expect(result.toString()).toMatch(/Skipping/);
