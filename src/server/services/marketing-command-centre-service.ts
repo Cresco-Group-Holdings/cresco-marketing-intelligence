@@ -38,6 +38,13 @@ import {
   latestPaidSyncAt,
   sumPaidRevenue,
 } from "@/server/services/marketing-command-centre-metrics";
+import {
+  buildDashboardActivity,
+  buildDashboardFunnel,
+  buildDashboardPriorities,
+} from "@/server/services/marketing-command-centre-auxiliary";
+import { extractSparkline } from "@/lib/command-centre/metrics";
+import type { PaidProviderMetrics } from "@/lib/marketing-intelligence/types";
 
 const PAID_CONNECTOR_HREFS: Partial<Record<ConnectorType, string>> = {
   GOOGLE_ADS: "/connectors/google-ads",
@@ -198,6 +205,17 @@ function buildEmptyResponse(
     currency: "GBP",
     hasPaidConnections: false,
     hasOrganicConnections: false,
+    priorities: [],
+    funnel: [],
+    recentActivity: [],
+    channelProviders: [] as PaidProviderMetrics[],
+    previousChannelProviders: [] as PaidProviderMetrics[],
+    healthChange: null as number | null,
+    performanceOverview: {
+      revenue: [],
+      conversions: [],
+      spend: [],
+    },
   };
 }
 
@@ -512,7 +530,77 @@ export const marketingCommandCentreService = {
     };
 
     const health = calculateMarketingHealth(intelligenceContext);
+    const previousIntelligenceContext: MarketingIntelligenceContext = {
+      ...intelligenceContext,
+      paid: {
+        ...intelligenceContext.paid,
+        spend: intelligenceContext.paid.previousSpend,
+        conversions: intelligenceContext.paid.previousConversions,
+        revenue: intelligenceContext.paid.previousRevenue,
+        roas: intelligenceContext.paid.previousRoas,
+        cpa: intelligenceContext.paid.previousCpa,
+        previousSpend: intelligenceContext.paid.previousSpend,
+        previousConversions: intelligenceContext.paid.previousConversions,
+        previousRevenue: intelligenceContext.paid.previousRevenue,
+        previousRoas: intelligenceContext.paid.previousRoas,
+        previousCpa: intelligenceContext.paid.previousCpa,
+      },
+      organic: {
+        ...intelligenceContext.organic,
+        reach: intelligenceContext.organic.previousReach,
+        engagement: intelligenceContext.organic.previousEngagement,
+        previousReach: intelligenceContext.organic.previousReach,
+        previousEngagement: intelligenceContext.organic.previousEngagement,
+      },
+    };
+    const previousHealth = calculateMarketingHealth(previousIntelligenceContext);
+    const healthChange =
+      health.total > 0 || previousHealth.total > 0 ? health.total - previousHealth.total : null;
     const insights = evaluateMarketingSignals(intelligenceContext);
+
+    const [priorities, recentActivity] = await Promise.all([
+      buildDashboardPriorities({
+        brandId,
+        organisationId,
+        tenant,
+        paidFreshness,
+        organicFreshness,
+        paidLabels: PAID_CONNECTORS.filter((c) =>
+          paidConnections.some((p) => p.connector === c.key && p.status.connected),
+        ).map((c) => c.label),
+        organicLabels: ORGANIC_CHANNELS.filter((c) => connectedOrganicProviders.has(c.provider)).map(
+          (c) => c.title,
+        ),
+      }),
+      buildDashboardActivity({ organisationId, tenant }),
+    ]);
+
+    const impressions = paidOverview.impressions || socialOverview?.totals?.impressions || null;
+    const clicks = paidOverview.clicks || socialOverview?.totals?.clicks || null;
+    const visits = socialOverview?.totals?.profileVisits ?? null;
+    const funnel = buildDashboardFunnel({
+      impressions: impressions && impressions > 0 ? impressions : null,
+      clicks: clicks && clicks > 0 ? clicks : null,
+      visits: visits && visits > 0 ? visits : null,
+      conversions: paidOverview.conversions > 0 ? paidOverview.conversions : null,
+      revenue: currentRevenue > 0 ? currentRevenue : null,
+    });
+
+    const previousPaidByProvider: PaidProviderMetrics[] = PAID_CONNECTORS.map((channel) => {
+      const providerKey = CONNECTOR_TO_PROVIDER[channel.key];
+      const metrics = providerKey ? previousPaidOverview.byProvider[providerKey] : undefined;
+      const spend = metrics?.cost ?? 0;
+      const conversions = metrics?.conversions ?? 0;
+      const revenue = metrics?.conversion_value ?? metrics?.revenue ?? 0;
+      return {
+        provider: channel.label,
+        spend,
+        conversions,
+        revenue: Number(revenue),
+        clicks: metrics?.clicks ?? 0,
+        impressions: metrics?.impressions ?? 0,
+      };
+    });
 
     const paidChannels = PAID_CONNECTORS.map((channel) => {
       const connection = paidConnections.find((item) => item.connector === channel.key);
@@ -627,30 +715,40 @@ export const marketingCommandCentreService = {
           value: hasPaidData ? formatCurrency(paidOverview.spend, currency) : unavailableValue(),
           change: spendChange,
           comparisonLabel: range.comparisonLabel,
+          sparkline: extractSparkline(paidChart.spend),
+          state: hasPaidData ? (paidFreshness === "stale" ? "stale" : "normal") : "empty",
         },
         {
-          label: "Organic Reach",
-          value: formatMetricValue(
-            hasOrganicData ? (socialOverview?.totals?.reach ?? null) : null,
-            formatNumber,
-          ),
-          change: percentChange(
-            socialOverview?.totals?.reach ?? 0,
-            previousSocialOverview?.totals?.reach ?? 0,
-          ),
+          label: "Revenue Influenced",
+          value:
+            currentRevenue > 0 ? formatCurrency(currentRevenue, currency) : unavailableValue(),
+          change: percentChange(currentRevenue, previousRevenue),
           comparisonLabel: range.comparisonLabel,
+          sparkline: extractSparkline(paidChart.revenue),
+          state: currentRevenue > 0 ? "normal" : "empty",
+          stateMessage:
+            currentRevenue <= 0
+              ? "Connect a revenue source to unlock revenue attribution."
+              : undefined,
         },
         {
           label: "Conversions",
           value: hasPaidData ? formatNumber(paidOverview.conversions) : unavailableValue(),
           change: conversionsChange,
           comparisonLabel: range.comparisonLabel,
+          sparkline: extractSparkline(paidChart.conversions),
+          state: hasPaidData ? "normal" : "empty",
         },
         {
-          label: "Content Output",
-          value: String(publishedInRange + scheduledUpcoming),
-          change: null,
-          comparisonLabel: "published + scheduled",
+          label: "Blended ROAS",
+          value: roas != null ? `${roas.toFixed(2)}x` : unavailableValue(),
+          change:
+            roas != null && previousRoas != null
+              ? percentChange(roas, previousRoas)
+              : null,
+          comparisonLabel: range.comparisonLabel,
+          sparkline: extractSparkline(paidChart.roas),
+          state: roas != null ? "normal" : "empty",
         },
         {
           label: "Marketing Health",
@@ -658,8 +756,10 @@ export const marketingCommandCentreService = {
             health.total > 0 || hasPaidConnections || hasOrganicConnections
               ? `${health.total} / 100`
               : unavailableValue(),
-          change: null,
-          comparisonLabel: "deterministic composite score",
+          change: healthChange,
+          comparisonLabel: range.comparisonLabel,
+          state:
+            health.total > 0 || hasPaidConnections || hasOrganicConnections ? "normal" : "empty",
         },
       ],
       paidSummary: {
@@ -694,10 +794,23 @@ export const marketingCommandCentreService = {
       freshness: {
         paid: formatFreshnessLabel(paidFreshness, paidSyncAt),
         organic: formatFreshnessLabel(organicFreshness, organicSyncAt),
+        paidState: paidFreshness,
+        organicState: organicFreshness,
       },
       currency,
       hasPaidConnections,
       hasOrganicConnections,
+      priorities,
+      funnel,
+      recentActivity,
+      channelProviders: paidByProvider,
+      previousChannelProviders: previousPaidByProvider,
+      healthChange,
+      performanceOverview: {
+        revenue: paidChart.revenue,
+        conversions: paidChart.conversions,
+        spend: paidChart.spend,
+      },
     };
   },
 };

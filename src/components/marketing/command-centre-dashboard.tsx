@@ -1,56 +1,47 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CommandCentreHeader } from "@/components/marketing/command-centre-header";
-import { ExecutiveKpiStrip } from "@/components/marketing/marketing-metric-card";
-import { MarketingSection } from "@/components/marketing/marketing-section";
-import { PaidChannelCard, OrganicChannelCard } from "@/components/marketing/channel-card";
-import { PaidPerformanceChart } from "@/components/marketing/paid-performance-chart";
-import { PublishingQueue, ContentCalendarPreview } from "@/components/marketing/publishing-queue";
-import { AIIntelligenceFeed } from "@/components/marketing/ai-insight-card";
 import { MarketingDateRangeProvider } from "@/components/marketing/marketing-date-range-provider";
 import { ButtonLink } from "@/components/ui/button";
+import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api/client";
 import type { MarketingCommandCentreData } from "@/server/services/marketing-command-centre-service";
+import { useLoadingTimeout } from "@/hooks/use-loading-timeout";
+import { MetricCardGrid, type MetricCardData } from "@/components/command-centre/metric-card";
+import { HealthScore } from "@/components/command-centre/health-score";
+import { TodaysPrioritiesPanel } from "@/components/command-centre/priority-item";
+import { RecommendationsPanel } from "@/components/command-centre/recommendation-card";
+import {
+  ChannelPerformancePanel,
+} from "@/components/command-centre/channel-performance-row";
+import { PerformanceOverviewChart } from "@/components/command-centre/performance-overview-chart";
+import { MarketingFunnelPanel } from "@/components/command-centre/marketing-funnel-panel";
+import { RecentActivityPanel } from "@/components/command-centre/recent-activity-panel";
+import { ModuleErrorBoundary, ModulePanel } from "@/components/command-centre/module-panel";
+import { buildChannelPerformanceRows } from "@/lib/command-centre/metrics";
+import type { ChannelPerformanceMetric } from "@/lib/command-centre/types";
 
-function SummaryMetrics({ metrics }: { metrics: Array<{ label: string; value: string }> }) {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-      {metrics.map((metric) => (
-        <div key={metric.label} className="rounded-lg border border-border bg-surface-elevated px-4 py-3">
-          <p className="text-xs uppercase tracking-wide text-foreground-subtle">{metric.label}</p>
-          <p className="mt-1 text-lg font-semibold text-foreground">{metric.value}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
+const PAID_CHANNEL_META = [
+  { key: "GOOGLE_ADS", label: "Google Ads", href: "/advertising/google", connectHref: "/connectors/google-ads" },
+  { key: "META", label: "Meta Ads", href: "/advertising/meta", connectHref: "/connectors/meta-ads" },
+  { key: "TIKTOK", label: "TikTok Ads", href: "/advertising/tiktok", connectHref: "/connectors/tiktok-ads" },
+  { key: "LINKEDIN", label: "LinkedIn Ads", href: "/advertising/linkedin", connectHref: "/connectors/linkedin-ads" },
+] as const;
 
-function HealthBreakdown({
-  health,
-}: {
-  health: NonNullable<MarketingCommandCentreData["health"]>;
-}) {
-  return (
-    <div className="mt-4 rounded-xl border border-border bg-surface-elevated p-4">
-      <p className="text-sm font-semibold text-foreground">Marketing Health breakdown</p>
-      <dl className="mt-3 space-y-2">
-        {health.components.map((component) => (
-          <div key={component.key} className="flex items-start justify-between gap-4 text-sm">
-            <div>
-              <dt className="font-medium text-foreground">{component.label}</dt>
-              <dd className="text-xs text-foreground-muted">{component.detail}</dd>
-            </div>
-            <dd className="shrink-0 font-semibold text-foreground">
-              {component.score} / {component.maxScore}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </div>
-  );
+function mapExecutiveKpis(metrics: MarketingCommandCentreData["executiveKpis"]): MetricCardData[] {
+  return metrics.map((metric) => ({
+    label: metric.label,
+    value: metric.value,
+    change: metric.change,
+    comparisonLabel: metric.comparisonLabel,
+    sparkline: metric.sparkline,
+    state: metric.state,
+    stateMessage: metric.stateMessage,
+    invertTrend: metric.label === "Total Spend",
+  }));
 }
 
 function CommandCentreDashboardContent() {
@@ -58,10 +49,13 @@ function CommandCentreDashboardContent() {
   const [data, setData] = useState<MarketingCommandCentreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [channelMetric, setChannelMetric] = useState<ChannelPerformanceMetric>("spend");
+  const { timedOut, reset: resetTimeout } = useLoadingTimeout(loading && !data);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
     setError(null);
+    resetTimeout();
     try {
       const query = searchParams.toString();
       const response = await apiFetch<{ dashboard: MarketingCommandCentreData }>(
@@ -73,27 +67,54 @@ function CommandCentreDashboardContent() {
     } finally {
       setLoading(false);
     }
-  }, [searchParams]);
+  }, [searchParams, resetTimeout]);
 
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
 
-  if (loading && !data) {
+  const channelRows = useMemo(() => {
+    if (!data) return [];
+    const channels = PAID_CHANNEL_META.map((channel) => {
+      const paidChannel = data.paidChannels.find((item) => item.label === channel.label);
+      return {
+        key: channel.key,
+        label: channel.label,
+        href: channel.href,
+        connectHref: channel.connectHref,
+        connected: paidChannel?.connectionState === "connected",
+        hasError: paidChannel?.connectionState === "error",
+      };
+    });
+    return buildChannelPerformanceRows(
+      data.channelProviders,
+      channels,
+      channelMetric,
+      data.currency,
+      data.dateRange.comparisonLabel,
+      data.previousChannelProviders,
+    );
+  }, [data, channelMetric]);
+
+  if (loading && !data && !timedOut) {
     return <DashboardSkeleton />;
   }
 
-  if (error && !data) {
+  if ((error && !data) || (timedOut && !data)) {
     return (
-      <div className="rounded-xl border border-danger/30 bg-danger-muted p-6 text-sm text-danger">
-        {error}
-      </div>
+      <ErrorState
+        title="Command Centre unavailable"
+        description={error ?? "Loading took longer than expected."}
+        onRetry={() => void loadDashboard()}
+      />
     );
   }
 
   if (!data) {
     return null;
   }
+
+  const executiveKpis = mapExecutiveKpis(data.executiveKpis);
 
   return (
     <div className="space-y-6">
@@ -103,168 +124,116 @@ function CommandCentreDashboardContent() {
         coverage={data.coverage}
       />
 
-      <ExecutiveKpiStrip metrics={data.executiveKpis} />
+      <MetricCardGrid metrics={executiveKpis} />
 
-      {data.health ? <HealthBreakdown health={data.health} /> : null}
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-        <div className="space-y-6">
-          <MarketingSection
-            title="Paid Advertising"
-            subtitle="Drive performance and measurable growth."
-            accent="paid"
-            actions={
-              <>
-                <ButtonLink href="/advertising/plans/new" variant="paid" size="sm">
-                  Launch Campaign
-                </ButtonLink>
-                <ButtonLink href="/advertising/budgets" variant="outline" size="sm">
-                  Adjust Budget
-                </ButtonLink>
-                <ButtonLink href="/advertising/audiences/new" variant="outline" size="sm">
-                  Create Audience
-                </ButtonLink>
-                <ButtonLink href="/advertising" variant="outline" size="sm">
-                  View Campaigns
-                </ButtonLink>
-              </>
-            }
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+        <ModuleErrorBoundary moduleName="Today's Priorities">
+          <ModulePanel
+            title="Today's Priorities"
+            subtitle="Operational items requiring your attention."
           >
-            {data.paidSummary ? (
-              <SummaryMetrics
-                metrics={[
-                  { label: "Spend", value: data.paidSummary.spend },
-                  { label: "ROAS", value: data.paidSummary.roas },
-                  { label: "Conversions", value: data.paidSummary.conversions },
-                  { label: "CPA", value: data.paidSummary.cpa },
-                  { label: "Active campaigns", value: data.paidSummary.activeCampaigns },
-                ]}
-              />
-            ) : null}
+            <TodaysPrioritiesPanel priorities={data.priorities} />
+          </ModulePanel>
+        </ModuleErrorBoundary>
 
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {data.paidChannels.map((channel) => (
-                <PaidChannelCard
-                  key={channel.key}
-                  title={channel.label}
-                  metrics={channel.metrics}
-                  connectionState={channel.connectionState}
-                  emptyMessage={channel.emptyMessage}
-                  ctaLabel={channel.ctaLabel}
-                  ctaHref={channel.href}
-                  connectHref={channel.connectHref}
-                  connectLabel={`Connect ${channel.label}`}
-                  statusLabel={channel.statusLabel}
-                />
-              ))}
-            </div>
-
-            <div className="mt-6">
-              <PaidPerformanceChart
-                data={data.paidChart}
-                currency={data.currency}
-                loading={loading}
-                emptyMessage={
-                  data.hasPaidConnections
-                    ? "Paid performance trends will appear after sync completes."
-                    : "Connect paid advertising accounts to view performance trends."
-                }
-              />
-            </div>
-          </MarketingSection>
-        </div>
-
-        <div className="space-y-6">
-          <MarketingSection
-            title="Organic Social & Reels"
-            subtitle="Build community. Share value. Grow organically."
-            accent="organic"
-            actions={
-              <>
-                <ButtonLink href="/publishing" variant="organic" size="sm">
-                  Upload Reels
-                </ButtonLink>
-                <ButtonLink href="/publishing" variant="outline" size="sm">
-                  Create Post
-                </ButtonLink>
-                <ButtonLink href="/calendar" variant="outline" size="sm">
-                  Open Calendar
-                </ButtonLink>
-                <ButtonLink href="/content/studio" variant="outline" size="sm">
-                  Content Studio
-                </ButtonLink>
-              </>
-            }
-          >
-            {data.organicSummary ? (
-              <SummaryMetrics
-                metrics={[
-                  { label: "Reach", value: data.organicSummary.reach },
-                  { label: "Engagement", value: data.organicSummary.engagement },
-                  { label: "Profile visits", value: data.organicSummary.profileVisits },
-                  { label: "Shares", value: data.organicSummary.shares },
-                  { label: "Posts published", value: data.organicSummary.postsPublished },
-                ]}
-              />
-            ) : null}
-
-            <div className="mt-6 grid gap-4">
-              {data.organicChannels.map((channel) => (
-                <OrganicChannelCard
-                  key={channel.provider}
-                  title={channel.title}
-                  metrics={channel.metrics}
-                  connectionState={channel.connectionState}
-                  emptyMessage={channel.emptyMessage}
-                  ctaLabel={channel.ctaLabel}
-                  ctaHref={channel.ctaHref}
-                  connectHref={channel.connectHref}
-                  connectLabel={channel.connectLabel}
-                />
-              ))}
-            </div>
-          </MarketingSection>
-
-          <MarketingSection title="Publishing Queue" accent="organic">
-            <PublishingQueue
-              items={data.publishingQueue}
-              emptyMessage={
-                data.hasOrganicConnections
-                  ? "No content scheduled yet."
-                  : "Connect your social channels to start publishing content."
-              }
-            />
-          </MarketingSection>
-
-          <MarketingSection title="Content Calendar" accent="organic">
-            <ContentCalendarPreview
-              days={data.calendarPreview}
-              emptyMessage="No upcoming calendar events."
-            />
-          </MarketingSection>
-        </div>
+        <ModuleErrorBoundary moduleName="Marketing Health">
+          <HealthScore
+            health={data.health}
+            change={data.healthChange}
+            comparisonLabel={data.dateRange.comparisonLabel}
+            unavailable={!data.hasBrandContext}
+          />
+        </ModuleErrorBoundary>
       </div>
 
-      <MarketingSection
-        title="Cresco AI Intelligence"
-        subtitle="Deterministic recommendations with evidence from your connected marketing data."
-        accent="neutral"
-        actions={
-          <>
+      <ModuleErrorBoundary moduleName="Cresco AI Recommendations">
+        <ModulePanel
+          title="Cresco AI Recommendations"
+          subtitle="Evidence-based opportunities, risks, and insights from your connected marketing data."
+          actions={
             <ButtonLink href="/growth" variant="outline" size="sm">
               View all intelligence
             </ButtonLink>
-            <ButtonLink href="/analyst" variant="outline" size="sm">
-              Ask Cresco AI
+          }
+        >
+          <RecommendationsPanel
+            insights={data.insights}
+            emptyDescription="Connect marketing data sources to unlock Cresco AI recommendations. Once data flows in, deterministic insights will appear here with evidence and suggested actions."
+            emptyAction={
+              <ButtonLink href="/integrations" variant="outline" size="sm">
+                Review integrations
+              </ButtonLink>
+            }
+          />
+        </ModulePanel>
+      </ModuleErrorBoundary>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <ModuleErrorBoundary moduleName="Channel performance" onRetry={() => void loadDashboard()}>
+          <ModulePanel
+            title="Channel Performance"
+            subtitle="Cross-channel paid media comparison."
+            actions={
+              <ButtonLink href="/analytics" variant="outline" size="sm">
+                View full analytics
+              </ButtonLink>
+            }
+          >
+            <ChannelPerformancePanel
+              rows={channelRows}
+              metric={channelMetric}
+              onMetricChange={setChannelMetric}
+              emptyMessage="Connect paid advertising accounts to compare performance across Google Ads, Meta, LinkedIn, and TikTok."
+            />
+          </ModulePanel>
+        </ModuleErrorBoundary>
+
+        <ModuleErrorBoundary moduleName="Marketing funnel" onRetry={() => void loadDashboard()}>
+          <ModulePanel title="Marketing Funnel" subtitle="Impressions through revenue for the selected period.">
+            <MarketingFunnelPanel stages={data.funnel} />
+          </ModulePanel>
+        </ModuleErrorBoundary>
+      </div>
+
+      <ModuleErrorBoundary moduleName="Performance overview" onRetry={() => void loadDashboard()}>
+        <ModulePanel
+          title="Performance Overview"
+          subtitle="Revenue, conversions, and spend trends for the selected date range."
+        >
+          <PerformanceOverviewChart
+            data={data.performanceOverview}
+            currency={data.currency}
+            loading={loading}
+            emptyMessage="Connect revenue and advertising sources to view performance trends for this period."
+          />
+        </ModulePanel>
+      </ModuleErrorBoundary>
+
+      <ModuleErrorBoundary moduleName="Recent activity" onRetry={() => void loadDashboard()}>
+        <ModulePanel
+          title="Recent Activity"
+          subtitle="Operational events, publishing, and system activity."
+          actions={
+            <ButtonLink href="/operations" variant="outline" size="sm">
+              View all activity
             </ButtonLink>
-          </>
-        }
-      >
-        <AIIntelligenceFeed
-          insights={data.insights}
-          emptyMessage="Connect marketing data sources to unlock Cresco AI recommendations."
+          }
+        >
+          <RecentActivityPanel activities={data.recentActivity} />
+        </ModulePanel>
+      </ModuleErrorBoundary>
+
+      {!data.hasBrandContext ? (
+        <EmptyState
+          title="Select a brand to unlock your Command Centre"
+          description="Choose an organisation, project, and brand to view marketing performance, priorities, and recommendations for your workspace."
+          action={
+            <ButtonLink href="/settings" variant="outline" size="sm">
+              Configure workspace
+            </ButtonLink>
+          }
         />
-      </MarketingSection>
+      ) : null}
     </div>
   );
 }

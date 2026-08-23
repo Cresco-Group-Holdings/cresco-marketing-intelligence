@@ -12,6 +12,9 @@ export type MarketingMetric = {
   comparisonLabel?: string;
   trend?: MetricTrend;
   loading?: boolean;
+  sparkline?: number[];
+  state?: "loading" | "empty" | "partial" | "stale" | "normal";
+  stateMessage?: string;
 };
 
 type MarketingMetricCardProps = {

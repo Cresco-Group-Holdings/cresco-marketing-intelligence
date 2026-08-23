@@ -1,8 +1,13 @@
 "use client";
 
 import { useWorkspace } from "@/components/workspace/workspace-provider";
+import { cn } from "@/lib/utils";
 
-export function WorkspaceSelectors() {
+type WorkspaceSelectorsProps = {
+  compact?: boolean;
+};
+
+export function WorkspaceSelectors({ compact = false }: WorkspaceSelectorsProps) {
   const {
     organisations,
     projects,
@@ -18,14 +23,27 @@ export function WorkspaceSelectors() {
     return <p className="text-xs text-foreground-subtle">Loading workspace…</p>;
   }
 
+  const selectClass = cn(
+    "h-9 rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    compact ? "w-full min-w-0" : "min-w-[140px]",
+  );
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={cn("flex flex-wrap items-end gap-2", compact && "flex-col items-stretch")}>
       <label className="flex flex-col gap-1">
-        <span className="sr-only">Select organisation</span>
+        <span
+          className={cn(
+            "text-[10px] font-semibold uppercase tracking-wide text-foreground-subtle",
+            compact ? "px-0.5" : "sr-only",
+          )}
+        >
+          Organisation
+        </span>
         <select
-          className="h-9 min-w-[140px] rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground-muted focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={selectClass}
           value={preference.currentOrganisationId ?? ""}
           onChange={(event) => void setOrganisation(event.target.value)}
+          aria-label="Select organisation"
         >
           <option value="" disabled>
             Organisation
@@ -39,12 +57,20 @@ export function WorkspaceSelectors() {
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="sr-only">Select project</span>
+        <span
+          className={cn(
+            "text-[10px] font-semibold uppercase tracking-wide text-foreground-subtle",
+            compact ? "px-0.5" : "sr-only",
+          )}
+        >
+          Project
+        </span>
         <select
-          className="h-9 min-w-[140px] rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground-muted focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={selectClass}
           value={preference.currentProjectId ?? ""}
           onChange={(event) => void setProject(event.target.value)}
           disabled={!preference.currentOrganisationId}
+          aria-label="Select project"
         >
           <option value="" disabled>
             Project
@@ -58,12 +84,20 @@ export function WorkspaceSelectors() {
       </label>
 
       <label className="flex flex-col gap-1">
-        <span className="sr-only">Select brand</span>
+        <span
+          className={cn(
+            "text-[10px] font-semibold uppercase tracking-wide text-foreground-subtle",
+            compact ? "px-0.5" : "sr-only",
+          )}
+        >
+          Brand
+        </span>
         <select
-          className="h-9 min-w-[140px] rounded-lg border border-border-strong bg-surface-elevated px-3 text-sm text-foreground-muted focus-visible:border-border-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className={selectClass}
           value={preference.currentBrandId ?? ""}
           onChange={(event) => void setBrand(event.target.value)}
           disabled={!preference.currentProjectId}
+          aria-label="Select brand"
         >
           <option value="" disabled>
             Brand
