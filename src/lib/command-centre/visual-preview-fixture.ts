@@ -2,21 +2,81 @@
  * Development-only fixture for Command Centre visual QA.
  * Never imported by production API routes or services.
  */
+import { BrandStatus, OrganisationStatus, ProjectStatus } from "@prisma/client";
 import type { MarketingCommandCentreData } from "@/server/services/marketing-command-centre-service";
+import type { workspaceService } from "@/server/services/workspace-service";
+
+type ResolvedWorkspace = Awaited<ReturnType<typeof workspaceService.getResolvedWorkspace>>;
+
+const previewWorkspace: ResolvedWorkspace = {
+  organisations: [
+    {
+      id: "org-preview",
+      name: "Cresco Holdings",
+      slug: "cresco-holdings",
+      legalName: null,
+      website: null,
+      logoUrl: null,
+      industry: null,
+      countryCode: null,
+      defaultTimezone: "UTC",
+      status: OrganisationStatus.ACTIVE,
+      createdByUserId: "user-preview",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      archivedAt: null,
+    },
+  ],
+  projects: [
+    {
+      id: "project-preview",
+      organisationId: "org-preview",
+      name: "Growth Platform",
+      slug: "growth-platform",
+      description: null,
+      website: null,
+      status: ProjectStatus.ACTIVE,
+      createdByUserId: "user-preview",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      archivedAt: null,
+    },
+  ],
+  brands: [
+    {
+      id: "brand-preview",
+      organisationId: "org-preview",
+      projectId: "project-preview",
+      name: "Cresco AI",
+      slug: "cresco-ai",
+      description: null,
+      website: null,
+      primaryDomain: null,
+      logoUrl: null,
+      faviconUrl: null,
+      primaryColour: null,
+      secondaryColour: null,
+      accentColour: null,
+      analyticsTimezone: null,
+      status: BrandStatus.ACTIVE,
+      createdByUserId: "user-preview",
+      createdAt: new Date("2026-01-01T00:00:00.000Z"),
+      updatedAt: new Date("2026-01-01T00:00:00.000Z"),
+      archivedAt: null,
+      profile: null,
+    },
+  ],
+  preference: {
+    currentOrganisationId: "org-preview",
+    currentProjectId: "project-preview",
+    currentBrandId: "brand-preview",
+    onboardingCompletedAt: new Date("2026-01-01T00:00:00.000Z"),
+    onboardingStep: null,
+  },
+};
 
 export const COMMAND_CENTRE_VISUAL_PREVIEW_FIXTURE: MarketingCommandCentreData = {
-  workspace: {
-    preference: {
-      currentOrganisationId: "org-preview",
-      currentProjectId: "project-preview",
-      currentBrandId: "brand-preview",
-      onboardingCompletedAt: new Date("2026-01-01"),
-      onboardingStep: null,
-    },
-    organisation: { id: "org-preview", name: "Cresco Holdings", slug: "cresco-holdings" },
-    project: { id: "project-preview", name: "Growth Platform", slug: "growth-platform" },
-    brand: { id: "brand-preview", name: "Cresco AI", slug: "cresco-ai" },
-  },
+  workspace: previewWorkspace,
   hasBrandContext: true,
   dateRange: {
     preset: "30d",

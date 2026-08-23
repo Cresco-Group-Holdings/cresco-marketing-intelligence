@@ -1,4 +1,4 @@
-import type { ChannelPerformanceMetric, CommandCentreChannelRow } from "@/lib/command-centre/types";
+import type { ChannelPerformanceMetric, CommandCentreChannelRow, CommandCentreFunnelStage } from "@/lib/command-centre/types";
 import type { PaidProviderMetrics } from "@/lib/marketing-intelligence/types";
 import { percentChange, unavailableValue } from "@/lib/marketing-intelligence/format";
 
@@ -109,8 +109,8 @@ export function buildFunnelStages(input: {
   visits: number | null;
   conversions: number | null;
   revenue: number | null;
-}) {
-  const stages = [];
+}): CommandCentreFunnelStage[] {
+  const stages: CommandCentreFunnelStage[] = [];
 
   if (input.impressions != null && input.impressions > 0) {
     stages.push({
