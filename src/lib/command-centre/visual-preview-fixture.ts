@@ -221,6 +221,7 @@ export const COMMAND_CENTRE_VISUAL_PREVIEW_FIXTURE: MarketingCommandCentreData =
   coverage: {
     paid: "2 of 4 paid channels connected",
     organic: "2 of 5 organic channels connected",
+    note: undefined,
   },
   freshness: {
     paid: "Updated 12 minutes ago",
