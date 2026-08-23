@@ -1,4 +1,5 @@
 import type { MarketingHealthBreakdown, MarketingIntelligenceContext } from "@/lib/marketing-intelligence/types";
+import { buildHealthRecommendedImprovement } from "@/lib/marketing-intelligence/scoring/health-improvements";
 
 const WEIGHTS = {
   paid: 25,
@@ -151,43 +152,27 @@ export function calculateMarketingHealth(
   const connectivity = scoreConnectivity(context);
   const dataQuality = scoreDataQuality(context);
 
-  const components = [
-    {
-      key: "paid",
-      label: "Paid performance",
-      score: paid.score,
-      maxScore: WEIGHTS.paid,
-      detail: paid.detail,
-    },
-    {
-      key: "organic",
-      label: "Organic performance",
-      score: organic.score,
-      maxScore: WEIGHTS.organic,
-      detail: organic.detail,
-    },
-    {
-      key: "publishing",
-      label: "Publishing consistency",
-      score: publishing.score,
-      maxScore: WEIGHTS.publishing,
-      detail: publishing.detail,
-    },
-    {
-      key: "connectivity",
-      label: "Channel connectivity",
-      score: connectivity.score,
-      maxScore: WEIGHTS.connectivity,
-      detail: connectivity.detail,
-    },
-    {
-      key: "dataQuality",
-      label: "Data quality",
-      score: dataQuality.score,
-      maxScore: WEIGHTS.dataQuality,
-      detail: dataQuality.detail,
-    },
+  const componentInputs = [
+    { key: "paid", label: "Paid performance", ...paid, maxScore: WEIGHTS.paid },
+    { key: "organic", label: "Organic performance", ...organic, maxScore: WEIGHTS.organic },
+    { key: "publishing", label: "Publishing consistency", ...publishing, maxScore: WEIGHTS.publishing },
+    { key: "connectivity", label: "Channel connectivity", ...connectivity, maxScore: WEIGHTS.connectivity },
+    { key: "dataQuality", label: "Data quality", ...dataQuality, maxScore: WEIGHTS.dataQuality },
   ];
+
+  const components = componentInputs.map((component) => ({
+    key: component.key,
+    label: component.label,
+    score: component.score,
+    maxScore: component.maxScore,
+    detail: component.detail,
+    recommendedImprovement: buildHealthRecommendedImprovement(
+      component.key,
+      component.score,
+      component.maxScore,
+      context,
+    ),
+  }));
 
   const total = components.reduce((sum, item) => sum + item.score, 0);
 

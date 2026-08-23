@@ -169,6 +169,7 @@ export type MarketingHealthBreakdown = {
     score: number;
     maxScore: number;
     detail: string;
+    recommendedImprovement?: string;
   }>;
 };
 

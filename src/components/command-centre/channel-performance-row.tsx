@@ -4,31 +4,31 @@ import { cn } from "@/lib/utils";
 import { TrendIndicator } from "@/components/command-centre/metric-card";
 
 const STATUS_STYLES = {
-  healthy: "bg-success",
-  warning: "bg-warning",
-  error: "bg-danger",
-  disconnected: "bg-foreground-subtle/30",
+  healthy: "bg-success/80",
+  warning: "bg-warning/80",
+  error: "bg-danger/80",
+  disconnected: "bg-foreground-subtle/25",
 } as const;
 
 export function ChannelPerformanceRow({ row }: { row: CommandCentreChannelRow }) {
-  const barWidth = Math.max(8, Math.min(100, row.relativePerformance));
+  const barWidth = Math.max(6, Math.min(100, row.relativePerformance));
 
   return (
-    <div className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-surface px-4 py-3">
-      <div className="min-w-[8rem]">
-        <p className="text-sm font-medium text-foreground">{row.label}</p>
-        <p className="text-xs text-foreground-subtle capitalize">{row.provider}</p>
+    <div className="grid grid-cols-[minmax(7rem,1fr)_minmax(5rem,auto)_minmax(0,1.4fr)_auto] items-center gap-3 rounded-md border border-border/70 bg-surface px-3 py-2">
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium text-foreground">{row.label}</p>
+        <p className="truncate text-[10px] text-foreground-subtle">{row.provider}</p>
       </div>
 
-      <div className="min-w-[5rem]">
-        <p className="text-lg font-semibold text-foreground">{row.metricValue}</p>
-        <TrendIndicator change={row.change} comparisonLabel={row.comparisonLabel} className="mt-0.5" />
+      <div>
+        <p className="text-sm font-semibold tabular-nums text-foreground">{row.metricValue}</p>
+        <TrendIndicator change={row.change} className="mt-0.5" />
       </div>
 
-      <div className="flex min-w-[8rem] flex-1 items-center gap-2">
-        <div className="h-2 flex-1 overflow-hidden rounded-full bg-surface-hover">
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-hover">
           <div
-            className={cn("h-full rounded-full transition-all", STATUS_STYLES[row.status])}
+            className={cn("h-full rounded-full", STATUS_STYLES[row.status])}
             style={{ width: `${barWidth}%` }}
             role="presentation"
           />
@@ -40,14 +40,14 @@ export function ChannelPerformanceRow({ row }: { row: CommandCentreChannelRow })
         {row.connected ? (
           <Link
             href={row.href}
-            className="text-xs font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="text-[11px] font-medium text-foreground-muted hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             View
           </Link>
         ) : (
           <Link
             href={row.connectHref ?? "/integrations"}
-            className="text-xs font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="text-[11px] font-medium text-foreground-muted hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             Connect
           </Link>
@@ -77,7 +77,7 @@ export function ChannelPerformancePanel({
 
   if (rows.every((row) => !row.connected)) {
     return (
-      <div className="rounded-xl border border-dashed border-border bg-surface-subtle p-6 text-center text-sm text-foreground-muted">
+      <div className="rounded-lg border border-dashed border-border bg-surface-subtle px-4 py-5 text-center text-xs text-foreground-muted">
         {emptyMessage ??
           "Connect paid advertising accounts to compare channel performance across providers."}
       </div>
@@ -85,8 +85,8 @@ export function ChannelPerformancePanel({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-2" role="tablist" aria-label="Channel metric">
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Channel metric">
         {metrics.map((option) => (
           <button
             key={option.key}
@@ -95,7 +95,7 @@ export function ChannelPerformancePanel({
             aria-selected={metric === option.key}
             onClick={() => onMetricChange(option.key)}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "rounded-md px-2.5 py-1 text-[11px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               metric === option.key
                 ? "bg-surface-selected text-foreground"
                 : "text-foreground-muted hover:bg-surface-hover",
@@ -105,7 +105,7 @@ export function ChannelPerformancePanel({
           </button>
         ))}
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {rows.map((row) => (
           <ChannelPerformanceRow key={row.key} row={row} />
         ))}

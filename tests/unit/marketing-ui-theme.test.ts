@@ -239,9 +239,8 @@ describe("command centre priorities", () => {
       staleDataProviders: [],
     });
 
-    expect(priorities[0]?.type).toBe("approval");
-    expect(priorities.some((item) => item.type === "integration")).toBe(true);
-    expect(priorities.some((item) => item.type === "publication")).toBe(true);
+    expect(priorities[0]?.urgency).toBe("critical");
+    expect(priorities.some((item) => item.type === "approval")).toBe(true);
   });
 
   it("returns empty priorities when nothing needs attention", () => {

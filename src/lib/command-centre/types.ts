@@ -1,4 +1,4 @@
-export type PriorityUrgency = "low" | "medium" | "high";
+export type PriorityUrgency = "critical" | "high" | "normal";
 export type PriorityType =
   | "approval"
   | "integration"
@@ -35,6 +35,7 @@ export type CommandCentreFunnelStage = {
   count: number | null;
   rateLabel?: string;
   rateValue?: string;
+  availability?: "available" | "zero" | "unavailable" | "not_tracked";
 };
 
 export type ChannelPerformanceMetric = "spend" | "roas" | "conversions" | "ctr";

@@ -56,6 +56,10 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
+  if (process.env.NODE_ENV === "development" && pathname === "/dev/command-centre-preview") {
+    return false;
+  }
+
   if (isWorkerApiRoute(pathname)) {
     return false;
   }

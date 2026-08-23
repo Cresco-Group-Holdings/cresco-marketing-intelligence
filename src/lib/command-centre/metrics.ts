@@ -113,7 +113,13 @@ export function buildFunnelStages(input: {
   const stages = [];
 
   if (input.impressions != null && input.impressions > 0) {
-    stages.push({ stage: "Impressions", count: input.impressions });
+    stages.push({
+      stage: "Impressions",
+      count: input.impressions,
+      availability: "available",
+    });
+  } else if (input.impressions === 0) {
+    stages.push({ stage: "Impressions", count: 0, availability: "zero" });
   }
 
   if (input.clicks != null && input.clicks > 0) {
@@ -126,7 +132,10 @@ export function buildFunnelStages(input: {
       count: input.clicks,
       rateLabel: ctr ? "CTR" : undefined,
       rateValue: ctr,
+      availability: "available",
     });
+  } else if (input.clicks === 0) {
+    stages.push({ stage: "Clicks", count: 0, availability: "zero" });
   }
 
   if (input.visits != null && input.visits > 0) {
@@ -139,7 +148,10 @@ export function buildFunnelStages(input: {
       count: input.visits,
       rateLabel: rate ? "Visit rate" : undefined,
       rateValue: rate,
+      availability: "available",
     });
+  } else if (input.visits === 0) {
+    stages.push({ stage: "Landing page views", count: 0, availability: "zero" });
   }
 
   if (input.conversions != null && input.conversions > 0) {
@@ -152,7 +164,10 @@ export function buildFunnelStages(input: {
       count: input.conversions,
       rateLabel: cvr ? "CVR" : undefined,
       rateValue: cvr,
+      availability: "available",
     });
+  } else if (input.conversions === 0) {
+    stages.push({ stage: "Conversions", count: 0, availability: "zero" });
   }
 
   if (input.revenue != null && input.revenue > 0) {
@@ -160,7 +175,10 @@ export function buildFunnelStages(input: {
       stage: "Revenue",
       count: Math.round(input.revenue),
       rateValue: formatCurrency(input.revenue),
+      availability: "available",
     });
+  } else if (input.revenue === 0) {
+    stages.push({ stage: "Revenue", count: 0, availability: "zero" });
   }
 
   return stages;

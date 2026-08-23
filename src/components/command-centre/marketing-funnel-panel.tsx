@@ -1,6 +1,24 @@
 import type { CommandCentreFunnelStage } from "@/lib/command-centre/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
+function formatCount(stage: CommandCentreFunnelStage): string {
+  if (stage.availability === "unavailable" || stage.availability === "not_tracked") {
+    return "—";
+  }
+  if (stage.availability === "zero" || stage.count === 0) {
+    return "0";
+  }
+  return stage.count != null ? stage.count.toLocaleString("en-GB") : "—";
+}
+
+function availabilityNote(stage: CommandCentreFunnelStage): string | null {
+  if (stage.availability === "not_tracked") return "Not tracked";
+  if (stage.availability === "unavailable") return "Unavailable";
+  if (stage.availability === "zero") return "No activity in period";
+  return null;
+}
 
 export function MarketingFunnelPanel({
   stages,
@@ -11,7 +29,12 @@ export function MarketingFunnelPanel({
   emptyTitle?: string;
   emptyDescription?: string;
 }) {
-  const visibleStages = stages.filter((stage) => stage.count != null);
+  const visibleStages = stages.filter(
+    (stage) =>
+      stage.availability !== "unavailable" &&
+      stage.availability !== "not_tracked" &&
+      stage.count != null,
+  );
 
   if (visibleStages.length === 0) {
     return (
@@ -28,30 +51,34 @@ export function MarketingFunnelPanel({
   }
 
   return (
-    <ol className="space-y-2">
-      {visibleStages.map((stage, index) => (
-        <li
-          key={stage.stage}
-          className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3"
-        >
-          <div>
-            <p className="text-sm font-semibold text-foreground">{stage.stage}</p>
-            {stage.rateLabel && stage.rateValue ? (
-              <p className="text-xs text-foreground-subtle">
-                {stage.rateLabel} {stage.rateValue}
-              </p>
-            ) : null}
-          </div>
-          <div className="text-right">
-            <p className="text-lg font-semibold text-foreground">
-              {stage.count != null ? stage.count.toLocaleString("en-GB") : "—"}
+    <ol className="space-y-1.5">
+      {visibleStages.map((stage) => {
+        const note = availabilityNote(stage);
+        return (
+          <li
+            key={stage.stage}
+            className="flex items-center justify-between gap-3 rounded-md border border-border/70 bg-surface px-3 py-2.5"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">{stage.stage}</p>
+              {stage.rateLabel && stage.rateValue ? (
+                <p className="text-[11px] text-foreground-subtle">
+                  {stage.rateLabel} {stage.rateValue}
+                </p>
+              ) : null}
+              {note ? <p className="text-[10px] text-foreground-subtle">{note}</p> : null}
+            </div>
+            <p
+              className={cn(
+                "shrink-0 text-base font-semibold tabular-nums text-foreground",
+                stage.availability === "zero" && "text-foreground-muted",
+              )}
+            >
+              {formatCount(stage)}
             </p>
-            {index > 0 && stage.rateValue && !stage.rateLabel ? (
-              <p className="text-xs text-foreground-subtle">{stage.rateValue}</p>
-            ) : null}
-          </div>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ol>
   );
 }

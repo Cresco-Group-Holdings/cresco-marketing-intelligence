@@ -13,16 +13,18 @@ import { useLoadingTimeout } from "@/hooks/use-loading-timeout";
 import { MetricCardGrid, type MetricCardData } from "@/components/command-centre/metric-card";
 import { HealthScore } from "@/components/command-centre/health-score";
 import { TodaysPrioritiesPanel } from "@/components/command-centre/priority-item";
-import { RecommendationsPanel } from "@/components/command-centre/recommendation-card";
 import {
-  ChannelPerformancePanel,
-} from "@/components/command-centre/channel-performance-row";
+  FeaturedRecommendation,
+  RecommendationsPanel,
+} from "@/components/command-centre/recommendation-card";
+import { ChannelPerformancePanel } from "@/components/command-centre/channel-performance-row";
 import { PerformanceOverviewChart } from "@/components/command-centre/performance-overview-chart";
 import { MarketingFunnelPanel } from "@/components/command-centre/marketing-funnel-panel";
 import { RecentActivityPanel } from "@/components/command-centre/recent-activity-panel";
 import { ModuleErrorBoundary, ModulePanel } from "@/components/command-centre/module-panel";
 import { buildChannelPerformanceRows } from "@/lib/command-centre/metrics";
 import type { ChannelPerformanceMetric } from "@/lib/command-centre/types";
+import { useCommandCentrePreviewData } from "@/components/marketing/command-centre-preview-context";
 
 const PAID_CHANNEL_META = [
   { key: "GOOGLE_ADS", label: "Google Ads", href: "/advertising/google", connectHref: "/connectors/google-ads" },
@@ -41,18 +43,26 @@ function mapExecutiveKpis(metrics: MarketingCommandCentreData["executiveKpis"]):
     state: metric.state,
     stateMessage: metric.stateMessage,
     invertTrend: metric.label === "Total Spend",
+    absoluteChange: metric.label === "Marketing Health",
   }));
 }
 
 function CommandCentreDashboardContent() {
   const searchParams = useSearchParams();
-  const [data, setData] = useState<MarketingCommandCentreData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const previewData = useCommandCentrePreviewData();
+  const [data, setData] = useState<MarketingCommandCentreData | null>(previewData ?? null);
+  const [loading, setLoading] = useState(!previewData);
   const [error, setError] = useState<string | null>(null);
   const [channelMetric, setChannelMetric] = useState<ChannelPerformanceMetric>("spend");
   const { timedOut, reset: resetTimeout } = useLoadingTimeout(loading && !data);
 
   const loadDashboard = useCallback(async () => {
+    if (previewData) {
+      setData(previewData);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     resetTimeout();
@@ -67,7 +77,7 @@ function CommandCentreDashboardContent() {
     } finally {
       setLoading(false);
     }
-  }, [searchParams, resetTimeout]);
+  }, [previewData, searchParams, resetTimeout]);
 
   useEffect(() => {
     void loadDashboard();
@@ -115,9 +125,10 @@ function CommandCentreDashboardContent() {
   }
 
   const executiveKpis = mapExecutiveKpis(data.executiveKpis);
+  const featuredInsight = data.insights[0] ?? null;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <CommandCentreHeader
         dateLabel={data.dateRange.label}
         freshness={data.freshness}
@@ -126,15 +137,18 @@ function CommandCentreDashboardContent() {
 
       <MetricCardGrid metrics={executiveKpis} />
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
-        <ModuleErrorBoundary moduleName="Today's Priorities">
-          <ModulePanel
-            title="Today's Priorities"
-            subtitle="Operational items requiring your attention."
-          >
-            <TodaysPrioritiesPanel priorities={data.priorities} />
-          </ModulePanel>
-        </ModuleErrorBoundary>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <ModuleErrorBoundary moduleName="Today's Priorities">
+            <ModulePanel
+              tier="executive"
+              title="Today's Priorities"
+              subtitle="Items requiring your attention, sorted by urgency."
+            >
+              <TodaysPrioritiesPanel priorities={data.priorities} />
+            </ModulePanel>
+          </ModuleErrorBoundary>
+        </div>
 
         <ModuleErrorBoundary moduleName="Marketing Health">
           <HealthScore
@@ -146,36 +160,23 @@ function CommandCentreDashboardContent() {
         </ModuleErrorBoundary>
       </div>
 
-      <ModuleErrorBoundary moduleName="Cresco AI Recommendations">
-        <ModulePanel
-          title="Cresco AI Recommendations"
-          subtitle="Evidence-based opportunities, risks, and insights from your connected marketing data."
-          actions={
-            <ButtonLink href="/growth" variant="outline" size="sm">
-              View all intelligence
-            </ButtonLink>
-          }
-        >
-          <RecommendationsPanel
-            insights={data.insights}
-            emptyDescription="Connect marketing data sources to unlock Cresco AI recommendations. Once data flows in, deterministic insights will appear here with evidence and suggested actions."
-            emptyAction={
-              <ButtonLink href="/integrations" variant="outline" size="sm">
-                Review integrations
-              </ButtonLink>
-            }
-          />
-        </ModulePanel>
-      </ModuleErrorBoundary>
+      {featuredInsight ? (
+        <ModuleErrorBoundary moduleName="Top recommendation">
+          <ModulePanel tier="actionable" title="Top Recommendation" subtitle="Highest-value opportunity from Cresco Intelligence.">
+            <FeaturedRecommendation signal={featuredInsight} />
+          </ModulePanel>
+        </ModuleErrorBoundary>
+      ) : null}
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <ModuleErrorBoundary moduleName="Channel performance" onRetry={() => void loadDashboard()}>
           <ModulePanel
+            tier="analytical"
             title="Channel Performance"
             subtitle="Cross-channel paid media comparison."
             actions={
               <ButtonLink href="/analytics" variant="outline" size="sm">
-                View full analytics
+                View analytics
               </ButtonLink>
             }
           >
@@ -189,7 +190,11 @@ function CommandCentreDashboardContent() {
         </ModuleErrorBoundary>
 
         <ModuleErrorBoundary moduleName="Marketing funnel" onRetry={() => void loadDashboard()}>
-          <ModulePanel title="Marketing Funnel" subtitle="Impressions through revenue for the selected period.">
+          <ModulePanel
+            tier="analytical"
+            title="Marketing Funnel"
+            subtitle="Impressions through revenue for the selected period."
+          >
             <MarketingFunnelPanel stages={data.funnel} />
           </ModulePanel>
         </ModuleErrorBoundary>
@@ -197,8 +202,9 @@ function CommandCentreDashboardContent() {
 
       <ModuleErrorBoundary moduleName="Performance overview" onRetry={() => void loadDashboard()}>
         <ModulePanel
+          tier="analytical"
           title="Performance Overview"
-          subtitle="Revenue, conversions, and spend trends for the selected date range."
+          subtitle="Revenue, conversions, and spend trends."
         >
           <PerformanceOverviewChart
             data={data.performanceOverview}
@@ -209,13 +215,39 @@ function CommandCentreDashboardContent() {
         </ModulePanel>
       </ModuleErrorBoundary>
 
+      {data.insights.length > 1 ? (
+        <ModuleErrorBoundary moduleName="Cresco AI Recommendations">
+          <ModulePanel
+            tier="actionable"
+            title="More Recommendations"
+            subtitle="Additional evidence-based insights from your connected marketing data."
+            actions={
+              <ButtonLink href="/growth" variant="outline" size="sm">
+                View all
+              </ButtonLink>
+            }
+          >
+            <RecommendationsPanel
+              insights={data.insights}
+              emptyDescription="Connect marketing data sources to unlock Cresco AI recommendations."
+              emptyAction={
+                <ButtonLink href="/integrations" variant="outline" size="sm">
+                  Review integrations
+                </ButtonLink>
+              }
+            />
+          </ModulePanel>
+        </ModuleErrorBoundary>
+      ) : null}
+
       <ModuleErrorBoundary moduleName="Recent activity" onRetry={() => void loadDashboard()}>
         <ModulePanel
+          tier="history"
           title="Recent Activity"
-          subtitle="Operational events, publishing, and system activity."
+          subtitle="Informational history — not an action queue."
           actions={
             <ButtonLink href="/operations" variant="outline" size="sm">
-              View all activity
+              View all
             </ButtonLink>
           }
         >

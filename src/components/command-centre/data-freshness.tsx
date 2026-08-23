@@ -2,7 +2,7 @@ import type { DataFreshnessState } from "@/lib/marketing-intelligence/types";
 import { cn } from "@/lib/utils";
 
 const STATE_LABELS: Record<DataFreshnessState, string> = {
-  fresh: "Up to date",
+  fresh: "Current",
   delayed: "Syncing",
   stale: "Stale",
   unavailable: "Unavailable",
@@ -24,7 +24,7 @@ type DataFreshnessProps = {
 
 export function DataFreshness({ label, state, detail, className }: DataFreshnessProps) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-2 text-xs", className)}>
+    <div className={cn("flex flex-wrap items-center gap-1.5 text-[11px]", className)}>
       <span className="text-foreground-subtle">{label}</span>
       <span className={cn("font-medium", STATE_STYLES[state])}>{STATE_LABELS[state]}</span>
       {detail ? <span className="text-foreground-subtle">· {detail}</span> : null}

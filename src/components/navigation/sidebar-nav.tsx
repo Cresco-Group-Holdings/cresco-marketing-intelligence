@@ -86,7 +86,7 @@ function NavLink({
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "relative flex items-center gap-3 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         collapsed ? "justify-center px-2" : "justify-between",
         isActive
           ? "bg-surface-selected text-foreground before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-paid-accent"
@@ -142,7 +142,7 @@ function SidebarContent({
               <button
                 type="button"
                 onClick={() => toggleSection(section.id)}
-                className="flex w-full items-center justify-between px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-foreground-subtle hover:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex w-full items-center justify-between px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-foreground-subtle hover:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-expanded={!isSectionCollapsed}
               >
                 <span>{section.label}</span>

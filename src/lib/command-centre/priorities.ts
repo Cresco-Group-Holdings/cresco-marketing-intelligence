@@ -19,7 +19,7 @@ type BuildPrioritiesInput = {
   staleDataProviders: string[];
 };
 
-const URGENCY_ORDER = { high: 3, medium: 2, low: 1 } as const;
+const URGENCY_ORDER = { critical: 3, high: 2, normal: 1 } as const;
 
 export function buildCommandCentrePriorities(input: BuildPrioritiesInput): CommandCentrePriority[] {
   const priorities: CommandCentrePriority[] = [];
@@ -43,31 +43,21 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
       alert.alertType.includes("CONNECTOR") ||
       alert.alertType.includes("TOKEN") ||
       alert.alertType.includes("SYNC");
+    const isCritical =
+      alert.alertType === "TOKEN_REAUTH_REQUIRED" ||
+      alert.alertType.includes("DEAD_LETTER") ||
+      alert.alertType === "CONNECTOR_SYNC_FAILURE";
     priorities.push({
       id: `alert-${alert.id}`,
       type: isConnector ? "integration" : "automation",
       title: alert.title,
-      urgency: alert.alertType === "TOKEN_REAUTH_REQUIRED" ? "high" : "medium",
+      urgency: isCritical ? "critical" : "high",
       context: alert.safeErrorMessage,
       targetLabel: alert.provider ?? undefined,
       action: {
         label: isConnector ? "Fix connection" : "View alert",
         href: isConnector ? "/integrations" : "/operations",
       },
-    });
-  }
-
-  if (input.dueTodayPublications > 0) {
-    priorities.push({
-      id: "due-today-publications",
-      type: "publication",
-      title:
-        input.dueTodayPublications === 1
-          ? "1 content item ready to publish"
-          : `${input.dueTodayPublications} content items ready to publish`,
-      urgency: "medium",
-      context: "Due today",
-      action: { label: "Review queue", href: "/publishing" },
     });
   }
 
@@ -79,9 +69,23 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
         input.overdueContent === 1
           ? "1 overdue content item"
           : `${input.overdueContent} overdue content items`,
-      urgency: "high",
-      context: "Past scheduled publish date",
+      urgency: "critical",
+      context: "Past scheduled publish date — audience reach may be impacted",
       action: { label: "Review calendar", href: "/calendar" },
+    });
+  }
+
+  if (input.dueTodayPublications > 0) {
+    priorities.push({
+      id: "due-today-publications",
+      type: "publication",
+      title:
+        input.dueTodayPublications === 1
+          ? "1 content item ready to publish"
+          : `${input.dueTodayPublications} content items ready to publish`,
+      urgency: "high",
+      context: "Due today",
+      action: { label: "Review queue", href: "/publishing" },
     });
   }
 
@@ -93,9 +97,20 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
         input.failedAutomations === 1
           ? "1 automation failure"
           : `${input.failedAutomations} automation failures`,
-      urgency: "medium",
-      context: "Requires attention",
+      urgency: "high",
+      context: "Automated workflows require attention",
       action: { label: "View operations", href: "/operations" },
+    });
+  }
+
+  for (const provider of input.staleDataProviders.slice(0, 2)) {
+    priorities.push({
+      id: `stale-${provider}`,
+      type: "data",
+      title: `${provider} is stale`,
+      urgency: "high",
+      context: "Sync delayed — dashboard metrics may be incomplete",
+      action: { label: "Check integrations", href: "/integrations" },
     });
   }
 
@@ -107,20 +122,9 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
         input.experimentsReady === 1
           ? "1 experiment ready for review"
           : `${input.experimentsReady} experiments ready for review`,
-      urgency: "low",
-      context: "Results available",
+      urgency: "normal",
+      context: "Results available for review",
       action: { label: "Review", href: "/experiments" },
-    });
-  }
-
-  for (const provider of input.staleDataProviders.slice(0, 2)) {
-    priorities.push({
-      id: `stale-${provider}`,
-      type: "data",
-      title: `${provider} data is stale`,
-      urgency: "medium",
-      context: "Sync delayed — metrics may be incomplete",
-      action: { label: "Check integrations", href: "/integrations" },
     });
   }
 

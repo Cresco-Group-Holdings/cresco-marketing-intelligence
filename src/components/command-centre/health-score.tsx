@@ -10,6 +10,7 @@ type HealthScoreProps = {
   change?: number | null;
   comparisonLabel?: string;
   unavailable?: boolean;
+  defaultExpanded?: boolean;
 };
 
 export function HealthScore({
@@ -17,8 +18,9 @@ export function HealthScore({
   change,
   comparisonLabel,
   unavailable = false,
+  defaultExpanded = false,
 }: HealthScoreProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(defaultExpanded);
 
   if (unavailable || !health) {
     return (
@@ -35,28 +37,31 @@ export function HealthScore({
     health.total >= 75 ? "text-success" : health.total >= 50 ? "text-foreground" : "text-warning";
 
   return (
-    <div className="rounded-xl border border-border bg-surface-elevated p-4">
+    <div className="h-full rounded-xl border border-border bg-surface-elevated p-4 shadow-sm">
       <button
         type="button"
         onClick={() => setExpanded((open) => !open)}
-        className="flex w-full items-start justify-between gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex w-full items-start justify-between gap-3 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-expanded={expanded}
       >
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-foreground-subtle">
             Marketing Health
           </p>
-          <p className={cn("mt-1 text-3xl font-semibold tracking-tight", scoreColor)}>
+          <p className={cn("mt-1 text-3xl font-semibold tabular-nums tracking-tight", scoreColor)}>
             {health.total}
-            <span className="text-lg text-foreground-muted"> / 100</span>
+            <span className="text-base font-medium text-foreground-muted"> / 100</span>
           </p>
           {change != null ? (
-            <p className="mt-2 text-xs text-foreground-muted">
-              {change > 0 ? "+" : ""}
-              {change} vs previous period
+            <p className="mt-1.5 text-[11px] text-foreground-muted">
+              <span className={change >= 0 ? "text-success" : "text-danger"}>
+                {change > 0 ? "+" : ""}
+                {change}
+              </span>{" "}
+              vs previous period
             </p>
           ) : comparisonLabel ? (
-            <p className="mt-2 text-xs text-foreground-subtle">{comparisonLabel}</p>
+            <p className="mt-1.5 text-[11px] text-foreground-subtle">{comparisonLabel}</p>
           ) : null}
         </div>
         <span className="mt-1 text-foreground-muted">
@@ -69,25 +74,30 @@ export function HealthScore({
       </button>
 
       {expanded ? (
-        <dl className="mt-4 space-y-3 border-t border-border pt-4">
+        <dl className="mt-3 space-y-3 border-t border-border pt-3">
           {health.components.map((component) => (
             <div key={component.key} className="space-y-1">
-              <div className="flex items-center justify-between gap-4 text-sm">
+              <div className="flex items-center justify-between gap-3 text-sm">
                 <dt className="font-medium text-foreground">{component.label}</dt>
-                <dd className="shrink-0 font-semibold text-foreground">
-                  {component.score} / {component.maxScore}
+                <dd className="shrink-0 tabular-nums text-sm font-semibold text-foreground">
+                  {component.score}/{component.maxScore}
                 </dd>
               </div>
               <dd className="text-xs text-foreground-muted">{component.detail}</dd>
+              {component.recommendedImprovement ? (
+                <dd className="text-xs text-foreground">
+                  <span className="font-medium">Improve:</span> {component.recommendedImprovement}
+                </dd>
+              ) : null}
               <div
-                className="h-1.5 overflow-hidden rounded-full bg-surface-hover"
+                className="h-1 overflow-hidden rounded-full bg-surface-hover"
                 role="progressbar"
                 aria-valuenow={component.score}
                 aria-valuemin={0}
                 aria-valuemax={component.maxScore}
               >
                 <div
-                  className="h-full rounded-full bg-paid-accent/70"
+                  className="h-full rounded-full bg-paid-accent/60"
                   style={{ width: `${(component.score / component.maxScore) * 100}%` }}
                 />
               </div>

@@ -5,6 +5,7 @@ type TrendIndicatorProps = {
   change?: number | null;
   comparisonLabel?: string;
   invertColors?: boolean;
+  absoluteChange?: boolean;
   className?: string;
 };
 
@@ -12,11 +13,12 @@ export function TrendIndicator({
   change,
   comparisonLabel,
   invertColors = false,
+  absoluteChange = false,
   className,
 }: TrendIndicatorProps) {
   if (change == null) {
     return comparisonLabel ? (
-      <span className={cn("text-xs text-foreground-subtle", className)}>{comparisonLabel}</span>
+      <span className={cn("text-[11px] text-foreground-subtle", className)}>{comparisonLabel}</span>
     ) : null;
   }
 
@@ -24,28 +26,24 @@ export function TrendIndicator({
   const isNegative = change < 0;
   const isGood = invertColors ? isNegative : isPositive;
   const isBad = invertColors ? isPositive : isNegative;
+  const changeLabel = absoluteChange
+    ? `${change > 0 ? "+" : ""}${change}`
+    : `${change > 0 ? "+" : ""}${change.toFixed(1)}%`;
 
   return (
-    <div className={cn("flex items-center gap-2 text-xs", className)}>
+    <div className={cn("flex items-center gap-1.5 text-[11px]", className)}>
       <span
         className={cn(
-          "inline-flex items-center gap-1 font-medium",
+          "inline-flex items-center gap-0.5 font-medium",
           isGood && "text-success",
           isBad && "text-danger",
           !isGood && !isBad && "text-foreground-subtle",
         )}
       >
-        {isPositive ? (
-          <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
-        ) : null}
-        {isNegative ? (
-          <ArrowDownRight className="h-3.5 w-3.5" aria-hidden="true" />
-        ) : null}
-        {!isPositive && !isNegative ? (
-          <Minus className="h-3.5 w-3.5" aria-hidden="true" />
-        ) : null}
-        {change > 0 ? "+" : ""}
-        {change.toFixed(1)}%
+        {isPositive ? <ArrowUpRight className="h-3 w-3" aria-hidden="true" /> : null}
+        {isNegative ? <ArrowDownRight className="h-3 w-3" aria-hidden="true" /> : null}
+        {!isPositive && !isNegative ? <Minus className="h-3 w-3" aria-hidden="true" /> : null}
+        {changeLabel}
       </span>
       {comparisonLabel ? (
         <span className="text-foreground-subtle">{comparisonLabel}</span>
@@ -54,7 +52,7 @@ export function TrendIndicator({
   );
 }
 
-function Sparkline({ values, className }: { values: number[]; className?: string }) {
+function Sparkline({ values }: { values: number[] }) {
   if (values.length < 2) {
     return null;
   }
@@ -62,8 +60,8 @@ function Sparkline({ values, className }: { values: number[]; className?: string
   const min = Math.min(...values);
   const max = Math.max(...values);
   const range = max - min || 1;
-  const width = 64;
-  const height = 24;
+  const width = 48;
+  const height = 18;
   const points = values
     .map((value, index) => {
       const x = (index / (values.length - 1)) * width;
@@ -73,15 +71,11 @@ function Sparkline({ values, className }: { values: number[]; className?: string
     .join(" ");
 
   return (
-    <svg
-      viewBox={`0 0 ${width} ${height}`}
-      className={cn("h-6 w-16 text-foreground-subtle", className)}
-      aria-hidden="true"
-    >
+    <svg viewBox={`0 0 ${width} ${height}`} className="h-[18px] w-12 shrink-0 opacity-60" aria-hidden="true">
       <polyline
         fill="none"
         stroke="currentColor"
-        strokeWidth="1.5"
+        strokeWidth="1.25"
         strokeLinecap="round"
         strokeLinejoin="round"
         points={points}
@@ -99,29 +93,18 @@ export type MetricCardData = {
   state?: "loading" | "empty" | "partial" | "stale" | "normal";
   stateMessage?: string;
   invertTrend?: boolean;
+  absoluteChange?: boolean;
 };
 
-export function MetricCard({
-  metric,
-  className,
-}: {
-  metric: MetricCardData;
-  className?: string;
-}) {
+function MetricCell({ metric, className }: { metric: MetricCardData; className?: string }) {
   const isLoading = metric.state === "loading";
   const isEmpty = metric.state === "empty";
   const isStale = metric.state === "stale";
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-border bg-surface-elevated p-4 shadow-sm",
-        isStale && "border-warning/30",
-        className,
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">
+    <div className={cn("min-w-0 px-4 py-3.5 first:pl-4 last:pr-4", className)}>
+      <div className="flex items-center justify-between gap-2">
+        <p className="truncate text-[11px] font-medium uppercase tracking-wide text-foreground-subtle">
           {metric.label}
         </p>
         {metric.sparkline && metric.sparkline.length > 1 ? (
@@ -130,11 +113,11 @@ export function MetricCard({
       </div>
 
       {isLoading ? (
-        <div className="mt-3 h-8 w-24 animate-pulse rounded bg-surface-hover" />
+        <div className="mt-2 h-7 w-20 animate-pulse rounded bg-surface-hover" />
       ) : (
         <p
           className={cn(
-            "mt-2 text-2xl font-semibold tracking-tight",
+            "mt-1 truncate text-xl font-semibold tabular-nums tracking-tight sm:text-2xl",
             isEmpty ? "text-foreground-muted" : "text-foreground",
           )}
         >
@@ -143,15 +126,19 @@ export function MetricCard({
       )}
 
       {metric.stateMessage ? (
-        <p className="mt-1 text-xs text-foreground-muted">{metric.stateMessage}</p>
+        <p className="mt-0.5 line-clamp-2 text-[11px] text-foreground-muted">{metric.stateMessage}</p>
       ) : null}
 
       <TrendIndicator
         change={metric.change}
         comparisonLabel={metric.comparisonLabel}
         invertColors={metric.invertTrend}
-        className="mt-2"
+        absoluteChange={metric.absoluteChange}
+        className="mt-1.5"
       />
+      {isStale ? (
+        <p className="mt-1 text-[10px] font-medium text-warning">Stale data</p>
+      ) : null}
     </div>
   );
 }
@@ -160,11 +147,17 @@ export function MetricCardGrid({ metrics }: { metrics: MetricCardData[] }) {
   return (
     <section
       aria-label="Executive KPIs"
-      className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-3 xl:grid-cols-5"
+      className="overflow-hidden rounded-xl border border-border bg-surface-elevated shadow-sm"
     >
-      {metrics.map((metric) => (
-        <MetricCard key={metric.label} metric={metric} />
-      ))}
+      <div className="grid grid-cols-2 divide-x divide-y divide-border lg:grid-cols-5 lg:divide-y-0">
+        {metrics.map((metric, index) => (
+          <MetricCell
+            key={metric.label}
+            metric={metric}
+            className={cn(index === metrics.length - 1 && metrics.length % 2 === 1 && "col-span-2 lg:col-span-1")}
+          />
+        ))}
+      </div>
     </section>
   );
 }
