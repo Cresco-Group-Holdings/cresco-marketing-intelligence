@@ -44,7 +44,6 @@ import {
   buildDashboardPriorities,
 } from "@/server/services/marketing-command-centre-auxiliary";
 import { extractSparkline } from "@/lib/command-centre/metrics";
-import type { PaidProviderMetrics } from "@/lib/marketing-intelligence/types";
 
 const PAID_CONNECTOR_HREFS: Partial<Record<ConnectorType, string>> = {
   GOOGLE_ADS: "/connectors/google-ads",
@@ -761,7 +760,7 @@ export const marketingCommandCentreService = {
           state:
             health.total > 0 || hasPaidConnections || hasOrganicConnections ? "normal" : "empty",
         },
-      ],
+      ] satisfies MarketingMetric[],
       paidSummary: {
         spend: hasPaidData ? formatCurrency(paidOverview.spend, currency) : unavailableValue(),
         roas: roas != null ? `${roas.toFixed(2)}x` : unavailableValue(),

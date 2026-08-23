@@ -33,6 +33,12 @@ const PAID_CHANNEL_META = [
   { key: "LINKEDIN", label: "LinkedIn Ads", href: "/advertising/linkedin", connectHref: "/connectors/linkedin-ads" },
 ] as const;
 
+import type { MetricDisplayState } from "@/lib/command-centre/types";
+
+function toMetricCardState(state: MetricDisplayState | undefined): MetricCardData["state"] {
+  return state;
+}
+
 function mapExecutiveKpis(metrics: MarketingCommandCentreData["executiveKpis"]): MetricCardData[] {
   return metrics.map((metric) => ({
     label: metric.label,
@@ -40,7 +46,7 @@ function mapExecutiveKpis(metrics: MarketingCommandCentreData["executiveKpis"]):
     change: metric.change,
     comparisonLabel: metric.comparisonLabel,
     sparkline: metric.sparkline,
-    state: metric.state,
+    state: toMetricCardState(metric.state),
     stateMessage: metric.stateMessage,
     invertTrend: metric.label === "Total Spend",
     absoluteChange: metric.label === "Marketing Health",

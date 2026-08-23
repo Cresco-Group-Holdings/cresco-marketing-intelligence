@@ -1,3 +1,4 @@
+import type { MetricDisplayState } from "@/lib/command-centre/types";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -90,7 +91,7 @@ export type MetricCardData = {
   change?: number | null;
   comparisonLabel?: string;
   sparkline?: number[];
-  state?: "loading" | "empty" | "partial" | "stale" | "normal";
+  state?: MetricDisplayState;
   stateMessage?: string;
   invertTrend?: boolean;
   absoluteChange?: boolean;

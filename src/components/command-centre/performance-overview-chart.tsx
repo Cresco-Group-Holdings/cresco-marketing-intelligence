@@ -101,7 +101,10 @@ export function PerformanceOverviewChart({
         ))}
       </div>
       {visibleSeries[primaryMetric] ? (
-        <ChartBarGroup points={chartPoints} />
+        <ChartBarGroup
+          points={chartPoints}
+          ariaLabel={`Command Centre performance overview chart showing ${METRIC_LABELS[primaryMetric].toLowerCase()} by day for the selected period`}
+        />
       ) : (
         <p className="text-sm text-foreground-muted">All series hidden. Select a metric to display.</p>
       )}

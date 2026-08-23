@@ -1,5 +1,4 @@
-"use client";
-
+import type { MetricDisplayState } from "@/lib/command-centre/types";
 import { ArrowDownRight, ArrowUpRight, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +12,7 @@ export type MarketingMetric = {
   trend?: MetricTrend;
   loading?: boolean;
   sparkline?: number[];
-  state?: "loading" | "empty" | "partial" | "stale" | "normal";
+  state?: MetricDisplayState;
   stateMessage?: string;
 };
 

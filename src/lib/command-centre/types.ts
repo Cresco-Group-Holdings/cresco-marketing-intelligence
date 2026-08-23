@@ -40,6 +40,8 @@ export type CommandCentreFunnelStage = {
 
 export type ChannelPerformanceMetric = "spend" | "roas" | "conversions" | "ctr";
 
+export type MetricDisplayState = "loading" | "empty" | "partial" | "stale" | "normal";
+
 export type CommandCentreChannelRow = {
   key: string;
   label: string;
