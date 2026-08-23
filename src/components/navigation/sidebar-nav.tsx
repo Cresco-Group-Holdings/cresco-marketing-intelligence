@@ -2,14 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ChevronLeft, ChevronRight, Menu, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import {
   dashboardNavigationSections,
   type NavigationItem,
 } from "@/components/navigation/dashboard-nav";
+import { WorkspaceSelectors } from "@/components/workspace/workspace-selectors";
 import { Badge } from "@/components/ui/badge";
 import { APP_NAME } from "@/lib/constants";
+import {
+  readCollapsedSections,
+  readSidebarCollapsed,
+  writeCollapsedSections,
+  writeSidebarCollapsed,
+} from "@/lib/navigation/sidebar-state";
 import { cn } from "@/lib/utils";
 
 function isNavItemActive(pathname: string, href: string): boolean {
@@ -53,16 +60,22 @@ function isNavItemActive(pathname: string, href: string): boolean {
     return true;
   }
 
+  if (href === "/operations" && pathname.startsWith("/operations")) {
+    return true;
+  }
+
   return pathname.startsWith(`${href}/`);
 }
 
 function NavLink({
   item,
   pathname,
+  collapsed,
   onNavigate,
 }: {
   item: NavigationItem;
   pathname: string;
+  collapsed?: boolean;
   onNavigate?: () => void;
 }) {
   const Icon = item.icon;
@@ -73,19 +86,20 @@ function NavLink({
       href={item.href}
       onClick={onNavigate}
       className={cn(
-        "relative flex items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "relative flex items-center gap-3 rounded-md px-2.5 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        collapsed ? "justify-center px-2" : "justify-between",
         isActive
           ? "bg-surface-selected text-foreground before:absolute before:left-0 before:top-1/2 before:h-5 before:w-0.5 before:-translate-y-1/2 before:rounded-full before:bg-paid-accent"
           : "text-foreground-muted hover:bg-surface-hover hover:text-foreground",
       )}
       aria-current={isActive ? "page" : undefined}
-      title={item.description}
+      title={collapsed ? item.label : item.description}
     >
-      <span className="flex min-w-0 items-center gap-3">
+      <span className={cn("flex min-w-0 items-center gap-3", collapsed && "justify-center")}>
         <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span className="truncate">{item.label}</span>
+        {!collapsed ? <span className="truncate">{item.label}</span> : null}
       </span>
-      {item.comingSoon ? (
+      {!collapsed && item.comingSoon ? (
         <Badge variant="warning" className="shrink-0 text-[10px]">
           Soon
         </Badge>
@@ -96,30 +110,70 @@ function NavLink({
 
 function SidebarContent({
   pathname,
+  collapsed,
   onNavigate,
 }: {
   pathname: string;
+  collapsed?: boolean;
   onNavigate?: () => void;
 }) {
+  const [sectionState, setSectionState] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    setSectionState(readCollapsedSections());
+  }, []);
+
+  function toggleSection(sectionId: string) {
+    setSectionState((current) => {
+      const next = { ...current, [sectionId]: !current[sectionId] };
+      writeCollapsedSections(next);
+      return next;
+    });
+  }
+
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-4">
-      {dashboardNavigationSections.map((section) => (
-        <div key={section.id}>
-          <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wide text-foreground-subtle">
-            {section.label}
-          </p>
-          <nav aria-label={`${section.label} navigation`} className="mt-1 flex flex-col gap-1">
-            {section.items.map((item) => (
-              <NavLink
-                key={item.href}
-                item={item}
-                pathname={pathname}
-                onNavigate={onNavigate}
-              />
-            ))}
-          </nav>
-        </div>
-      ))}
+    <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+      {dashboardNavigationSections.map((section) => {
+        const isSectionCollapsed = sectionState[section.id] ?? false;
+
+        return (
+          <div key={section.id}>
+            {!collapsed ? (
+              <button
+                type="button"
+                onClick={() => toggleSection(section.id)}
+                className="flex w-full items-center justify-between px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wide text-foreground-subtle hover:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-expanded={!isSectionCollapsed}
+              >
+                <span>{section.label}</span>
+                <ChevronDown
+                  className={cn(
+                    "h-3.5 w-3.5 transition-transform",
+                    isSectionCollapsed && "-rotate-90",
+                  )}
+                  aria-hidden="true"
+                />
+              </button>
+            ) : null}
+            {!isSectionCollapsed ? (
+              <nav
+                aria-label={`${section.label} navigation`}
+                className={cn("mt-1 flex flex-col gap-0.5", collapsed && "mt-0")}
+              >
+                {section.items.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    pathname={pathname}
+                    collapsed={collapsed}
+                    onNavigate={onNavigate}
+                  />
+                ))}
+              </nav>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -153,7 +207,7 @@ export function SidebarNav() {
             <div className="flex items-center justify-between border-b border-border px-4 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">
-                  Workspace
+                  Cresco
                 </p>
                 <p className="text-sm font-semibold text-foreground">{APP_NAME}</p>
               </div>
@@ -167,6 +221,9 @@ export function SidebarNav() {
               </button>
             </div>
             <SidebarContent pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+            <div className="border-t border-border p-4">
+              <WorkspaceSelectors compact />
+            </div>
           </aside>
         </div>
       ) : null}
@@ -176,16 +233,74 @@ export function SidebarNav() {
 
 export function DesktopSidebar() {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    setCollapsed(readSidebarCollapsed());
+  }, []);
+
+  function toggleCollapsed() {
+    setCollapsed((current) => {
+      const next = !current;
+      writeSidebarCollapsed(next);
+      return next;
+    });
+  }
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-border bg-surface lg:flex lg:flex-col">
-      <div className="border-b border-border px-6 py-5">
-        <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">
-          Workspace
-        </p>
-        <p className="mt-1 text-sm font-semibold text-foreground">{APP_NAME}</p>
+    <aside
+      className={cn(
+        "hidden shrink-0 border-r border-border bg-surface transition-[width] duration-200 lg:flex lg:flex-col",
+        collapsed ? "w-[4.5rem]" : "w-64",
+      )}
+    >
+      <div
+        className={cn(
+          "flex items-center border-b border-border px-4 py-4",
+          collapsed ? "justify-center" : "justify-between",
+        )}
+      >
+        {!collapsed ? (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-foreground-subtle">
+              Cresco
+            </p>
+            <p className="mt-0.5 text-sm font-semibold text-foreground">{APP_NAME}</p>
+          </div>
+        ) : (
+          <span className="text-sm font-bold text-foreground" title={APP_NAME}>
+            C
+          </span>
+        )}
       </div>
-      <SidebarContent pathname={pathname} />
+
+      <SidebarContent pathname={pathname} collapsed={collapsed} />
+
+      <div className="mt-auto border-t border-border p-3">
+        {!collapsed ? (
+          <div className="mb-3">
+            <WorkspaceSelectors compact />
+          </div>
+        ) : null}
+        <button
+          type="button"
+          onClick={toggleCollapsed}
+          className={cn(
+            "flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-foreground-muted transition-colors hover:bg-surface-hover hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            collapsed && "justify-center px-2",
+          )}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          ) : (
+            <>
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              <span>Collapse</span>
+            </>
+          )}
+        </button>
+      </div>
     </aside>
   );
 }

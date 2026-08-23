@@ -24,7 +24,7 @@ export type WorkspaceState = {
   };
 };
 
-type WorkspaceContextValue = WorkspaceState & {
+export type WorkspaceContextValue = WorkspaceState & {
   loading: boolean;
   error: string | null;
   onboardingStatus: ClientOnboardingStatus;
@@ -34,7 +34,7 @@ type WorkspaceContextValue = WorkspaceState & {
   setBrand: (brandId: string) => Promise<void>;
 };
 
-const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+export const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<WorkspaceState | null>(null);

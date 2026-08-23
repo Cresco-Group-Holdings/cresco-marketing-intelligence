@@ -1,7 +1,6 @@
 import {
   Activity,
   BarChart3,
-  BookOpen,
   Bot,
   CalendarDays,
   Contact,
@@ -20,6 +19,7 @@ import {
   Sprout,
   Target,
   Wallet,
+  Wrench,
 } from "lucide-react";
 
 export type NavigationItem = {
@@ -34,6 +34,7 @@ export type NavigationSection = {
   id: string;
   label: string;
   items: NavigationItem[];
+  collapsible?: boolean;
 };
 
 export const dashboardNavigationSections: NavigationSection[] = [
@@ -42,53 +43,29 @@ export const dashboardNavigationSections: NavigationSection[] = [
     label: "Command",
     items: [
       {
-        label: "Overview",
+        label: "Command Centre",
         href: "/dashboard",
         icon: LayoutDashboard,
-        description: "Marketing command centre for paid and organic performance",
-      },
-      {
-        label: "Intelligence",
-        href: "/growth",
-        icon: Sprout,
-        description: "Growth intelligence and recommendations",
+        description: "Your daily operating cockpit for growth and marketing decisions",
       },
       {
         label: "Activity",
         href: "/operations",
         icon: Activity,
-        description: "Operational activity and alerts",
+        description: "Operational activity, alerts, and recovery",
       },
     ],
   },
   {
-    id: "paid-media",
-    label: "Paid Media",
+    id: "execute",
+    label: "Execute",
     items: [
       {
-        label: "Paid Advertising",
+        label: "Advertising",
         href: "/advertising",
         icon: Megaphone,
         description: "Paid media performance and campaign management",
       },
-      {
-        label: "Campaigns",
-        href: "/campaigns",
-        icon: Target,
-        description: "Plan and coordinate marketing campaigns",
-      },
-      {
-        label: "Audiences",
-        href: "/advertising/audiences",
-        icon: Contact,
-        description: "Audience intelligence and targeting",
-      },
-    ],
-  },
-  {
-    id: "organic-social",
-    label: "Organic Social",
-    items: [
       {
         label: "Organic Social",
         href: "/social",
@@ -118,6 +95,12 @@ export const dashboardNavigationSections: NavigationSection[] = [
         href: "/brands",
         icon: Megaphone,
         description: "Brand profiles and positioning",
+      },
+      {
+        label: "Audiences",
+        href: "/advertising/audiences",
+        icon: Contact,
+        description: "Audience intelligence and targeting",
       },
       {
         label: "Competitors",
@@ -168,29 +151,29 @@ export const dashboardNavigationSections: NavigationSection[] = [
     label: "Intelligence",
     items: [
       {
+        label: "Cresco Intelligence",
+        href: "/growth",
+        icon: Sprout,
+        description: "Growth intelligence and recommendations",
+      },
+      {
         label: "Ask Cresco",
         href: "/copilot",
         icon: Bot,
         description: "Evidence-based marketing intelligence and daily briefs",
       },
       {
-        label: "AI Agents",
-        href: "/ai-agents",
-        icon: Bot,
-        description: "AI-assisted marketing workflows",
-        comingSoon: true,
-      },
-      {
-        label: "Knowledge",
-        href: "/knowledge",
-        icon: BookOpen,
-        description: "Brand knowledge and messaging",
-      },
-      {
         label: "Automations",
         href: "/automation",
         icon: Bot,
         description: "Customer journey automations",
+      },
+      {
+        label: "Agents",
+        href: "/ai-agents",
+        icon: Bot,
+        description: "AI-assisted marketing workflows",
+        comingSoon: true,
       },
     ],
   },
@@ -203,6 +186,12 @@ export const dashboardNavigationSections: NavigationSection[] = [
         href: "/integrations",
         icon: Plug,
         description: "Provider connections and external API governance",
+      },
+      {
+        label: "Operations",
+        href: "/operations",
+        icon: Wrench,
+        description: "Publishing, connectors, and rendering operations",
       },
       {
         label: "Settings",
@@ -221,6 +210,12 @@ export const dashboardNavigation: NavigationItem[] = dashboardNavigationSections
 
 /** Additional routes not shown in primary nav but still part of the product */
 export const secondaryNavigation: NavigationItem[] = [
+  {
+    label: "Campaigns",
+    href: "/campaigns",
+    icon: Target,
+    description: "Plan and coordinate marketing campaigns",
+  },
   {
     label: "Assets",
     href: "/assets",

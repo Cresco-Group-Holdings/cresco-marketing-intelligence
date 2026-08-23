@@ -1,26 +1,18 @@
+"use client";
+
 import Link from "next/link";
 import { HelpCircle } from "lucide-react";
-import { requireAuthenticatedUser } from "@/lib/tenancy/guards";
-import { UserMenu } from "@/components/auth/user-menu";
 import { CopilotHeaderButton } from "@/components/copilot/copilot-shell";
-import { NotificationBell } from "@/components/notifications/notification-bell";
 import { GlobalSearch } from "@/components/navigation/global-search";
 import { WorkspaceSelectors } from "@/components/workspace/workspace-selectors";
 import { SidebarNav } from "@/components/navigation/sidebar-nav";
 import { AppearanceMenu } from "@/components/theme/appearance-menu";
-import { prisma } from "@/lib/database/prisma";
 import { APP_NAME } from "@/lib/constants";
 
-export async function DashboardHeader() {
-  const user = await requireAuthenticatedUser();
-  const profile = await prisma.userProfile.findUnique({
-    where: { id: user.userProfileId },
-    select: { displayName: true, email: true },
-  });
-
+export function PreviewDashboardHeader() {
   return (
     <header className="sticky top-0 z-30 border-b border-border bg-surface-elevated/95 backdrop-blur">
-      <div className="flex h-auto min-h-14 flex-col gap-3 px-4 py-3 lg:min-h-16 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+      <div className="flex h-auto min-h-14 flex-col gap-3 px-4 py-3 lg:min-h-[3.5rem] lg:flex-row lg:items-center lg:justify-between lg:px-6">
         <div className="flex min-w-0 flex-1 items-center gap-3">
           <div className="lg:hidden">
             <SidebarNav />
@@ -51,11 +43,9 @@ export async function DashboardHeader() {
             <HelpCircle className="h-4 w-4" aria-hidden="true" />
           </Link>
           <AppearanceMenu />
-          <NotificationBell />
-          <UserMenu
-            email={profile?.email ?? user.email}
-            displayName={profile?.displayName}
-          />
+          <span className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-xs text-foreground-muted">
+            Preview User
+          </span>
         </div>
       </div>
     </header>
