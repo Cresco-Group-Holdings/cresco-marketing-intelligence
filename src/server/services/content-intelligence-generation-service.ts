@@ -39,6 +39,7 @@ import type {
   ContentIntelligenceMasterGenerateInput,
   ContentIntelligenceMasterUpdateInput,
 } from "@/lib/validation/content-intelligence";
+import { contentIntelligenceBriefGenerateSchema } from "@/lib/validation/content-intelligence";
 import { aiRequestService } from "@/server/services/ai-request-service";
 import { brandKnowledgeService } from "@/server/services/brand-knowledge-service";
 import { contentStudioService } from "@/server/services/content-studio-service";
@@ -470,23 +471,24 @@ export const contentIntelligenceGenerationService = {
     requestId?: string,
   ): Promise<GenerationSession> {
     const scope = await resolveBrandScope(brandId, organisationId, context);
+    const request = contentIntelligenceBriefGenerateSchema.parse(input);
 
-    if (input.contentId && input.idempotencyKey) {
+    if (request.contentId && request.idempotencyKey) {
       const cached = await assertIdempotency(
         scope,
-        input.contentId,
+        request.contentId,
         "brief",
-        input.idempotencyKey,
+        request.idempotencyKey,
       );
       if (cached) return cached;
     }
 
     const generationContext = await resolveGenerationContext(
       scope,
-      input,
+      request,
       context,
     );
-    const sourceEvidence = await resolveSourceEvidence(scope, input);
+    const sourceEvidence = await resolveSourceEvidence(scope, request);
 
     const template = await promptTemplateService.getActiveTemplate("content.intelligence.brief");
     let aiResult: Awaited<ReturnType<typeof aiRequestService.executeStructured>>;
@@ -518,15 +520,15 @@ export const contentIntelligenceGenerationService = {
     const structuredBrief = mapBriefOutput(validated.data, generationContext);
     const studioFields = briefToStudioFields(structuredBrief);
     const provenanceMetadata = buildProvenanceMetadata({
-      briefId: input.contentId ?? "pending",
-      creationMode: input.mode,
+      briefId: request.contentId ?? "pending",
+      creationMode: request.mode,
       brandId: scope.brandId,
       campaignId: generationContext.campaignId,
       sourceOpportunity:
-        sourceEvidence && input.sourceOpportunityId
+        sourceEvidence && request.sourceOpportunityId
           ? {
-              id: input.sourceOpportunityId,
-              source: input.mode,
+              id: request.sourceOpportunityId,
+              source: request.mode,
               title: sourceEvidence.label,
             }
           : null,
@@ -543,10 +545,10 @@ export const contentIntelligenceGenerationService = {
         snapshotAt: new Date().toISOString(),
         usedRecords: generationContext.brandContext.usedRecords,
       },
-      idempotency: input.idempotencyKey ? { briefKey: input.idempotencyKey } : undefined,
+      idempotency: request.idempotencyKey ? { briefKey: request.idempotencyKey } : undefined,
     });
 
-    let contentId = input.contentId;
+    let contentId = request.contentId;
     if (contentId) {
       const existing = await prisma.contentItem.findFirst({
         where: {
@@ -609,7 +611,7 @@ export const contentIntelligenceGenerationService = {
             projectId: scope.projectId,
             brandId: scope.brandId,
             title: studioFields.title,
-            studioType: input.studioType,
+            studioType: request.studioType,
             contentType: "TEXT_POST",
             studioObjective: studioFields.studioObjective,
             audienceSummary: studioFields.audienceSummary,
