@@ -15,6 +15,7 @@ import {
 import { ContentStudioReviewPanel } from "@/components/content-studio/content-studio-review-panel";
 import { ContentStudioCompliancePanel } from "@/components/content-studio/content-studio-compliance-panel";
 import { CanonicalPublishPanel } from "@/components/publishing/canonical-publish-panel";
+import { ChannelVariantCreator } from "@/components/organic-growth/channel-variant-creator";
 
 type StudioDetail = {
   id: string;
@@ -250,6 +251,20 @@ export default function ContentStudioDetailPage() {
             onSave={readOnly ? undefined : handleSave}
             saving={saving}
           />
+
+          {brandId && organisationId ? (
+            <ChannelVariantCreator
+              contentId={contentId}
+              brandId={brandId}
+              organisationId={organisationId}
+              title={item.title}
+              body={item.contentBody ?? item.title}
+              existingChannels={item.variants
+                .map((variant) => variant.marketingChannel)
+                .filter((channel): channel is string => channel != null)}
+              onCreated={() => void loadItem()}
+            />
+          ) : null}
 
           {item.variants.length > 0 && (
             <Card>

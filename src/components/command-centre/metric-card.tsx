@@ -100,7 +100,9 @@ export type MetricCardData = {
 function MetricCell({ metric, className }: { metric: MetricCardData; className?: string }) {
   const isLoading = metric.state === "loading";
   const isEmpty = metric.state === "empty";
+  const isUnavailable = metric.state === "unavailable";
   const isStale = metric.state === "stale";
+  const showTrend = !isLoading && !isUnavailable;
 
   return (
     <div className={cn("min-w-0 px-4 py-3.5 first:pl-4 last:pr-4", className)}>
@@ -119,7 +121,7 @@ function MetricCell({ metric, className }: { metric: MetricCardData; className?:
         <p
           className={cn(
             "mt-1 truncate text-xl font-semibold tabular-nums tracking-tight sm:text-2xl",
-            isEmpty ? "text-foreground-muted" : "text-foreground",
+            isEmpty || isUnavailable ? "text-foreground-muted" : "text-foreground",
           )}
         >
           {metric.value}
@@ -128,15 +130,19 @@ function MetricCell({ metric, className }: { metric: MetricCardData; className?:
 
       {metric.stateMessage ? (
         <p className="mt-0.5 line-clamp-2 text-[11px] text-foreground-muted">{metric.stateMessage}</p>
+      ) : isUnavailable ? (
+        <p className="mt-0.5 line-clamp-2 text-[11px] text-foreground-muted">Metric unavailable</p>
       ) : null}
 
-      <TrendIndicator
-        change={metric.change}
-        comparisonLabel={metric.comparisonLabel}
-        invertColors={metric.invertTrend}
-        absoluteChange={metric.absoluteChange}
-        className="mt-1.5"
-      />
+      {showTrend ? (
+        <TrendIndicator
+          change={metric.change}
+          comparisonLabel={metric.comparisonLabel}
+          invertColors={metric.invertTrend}
+          absoluteChange={metric.absoluteChange}
+          className="mt-1.5"
+        />
+      ) : null}
       {isStale ? (
         <p className="mt-1 text-[10px] font-medium text-warning">Stale data</p>
       ) : null}

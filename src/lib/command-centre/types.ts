@@ -1,4 +1,10 @@
 export type PriorityUrgency = "critical" | "high" | "normal";
+
+/** Navigational CTA when href is present; label-only when no destination exists. */
+export type PriorityAction = {
+  label: string;
+  href?: string;
+};
 export type PriorityType =
   | "approval"
   | "integration"
@@ -16,10 +22,7 @@ export type CommandCentrePriority = {
   urgency: PriorityUrgency;
   context: string;
   targetLabel?: string;
-  action: {
-    label: string;
-    href: string;
-  };
+  action: PriorityAction;
 };
 
 export type CommandCentreActivity = {
@@ -40,12 +43,21 @@ export type CommandCentreFunnelStage = {
 
 export type ChannelPerformanceMetric = "spend" | "roas" | "conversions" | "ctr";
 
-export type MetricDisplayState = "loading" | "empty" | "partial" | "stale" | "normal";
+export type OrganicChannelPerformanceMetric =
+  | "reach"
+  | "engagement"
+  | "engagementRate"
+  | "followersGained";
+
+export type ChannelPerformanceMode = "paid" | "organic";
+
+export type { MetricDisplayState } from "@/lib/metrics/display-state";
 
 export type CommandCentreChannelRow = {
   key: string;
   label: string;
   provider: string;
+  accountLabel?: string;
   connected: boolean;
   metricValue: string;
   change: number | null;
@@ -54,6 +66,7 @@ export type CommandCentreChannelRow = {
   relativePerformance: number;
   href: string;
   connectHref?: string;
+  actionLabel?: string;
 };
 
 export type SparklinePoint = {

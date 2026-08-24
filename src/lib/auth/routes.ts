@@ -56,7 +56,10 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
-  if (process.env.NODE_ENV === "development" && pathname === "/dev/command-centre-preview") {
+  if (
+    process.env.NODE_ENV === "development" &&
+    (pathname === "/dev/command-centre-preview" || pathname.startsWith("/dev/organic-growth-preview"))
+  ) {
     return false;
   }
 

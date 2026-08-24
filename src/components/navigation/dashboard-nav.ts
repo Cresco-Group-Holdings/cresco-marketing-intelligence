@@ -68,7 +68,7 @@ export const dashboardNavigationSections: NavigationSection[] = [
       },
       {
         label: "Organic Social",
-        href: "/social",
+        href: "/organic-social",
         icon: Share2,
         description: "Organic social distribution and publishing",
       },

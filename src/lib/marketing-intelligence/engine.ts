@@ -287,7 +287,7 @@ const engagementAnomalyRule: MarketingSignalRule = {
         },
       ],
       estimatedImpact: "Review recent content performance and publishing cadence",
-      action: { label: "View Performance", href: "/social/performance" },
+      action: { label: "View Performance", href: "/organic-social/growth" },
       category: "organic",
       generatedAt: new Date().toISOString(),
       confidence: 0.86,
@@ -552,6 +552,126 @@ const funnelDropRule: MarketingSignalRule = {
   },
 };
 
+const followerMomentumRule: MarketingSignalRule = {
+  id: "follower-momentum",
+  evaluate(context) {
+    const channelsWithGrowth = context.organic.channels.filter(
+      (channel) => channel.connected && channel.followerGrowth != null && channel.followerGrowth !== 0,
+    );
+    if (channelsWithGrowth.length === 0) return null;
+
+    const leader = [...channelsWithGrowth].sort(
+      (a, b) => Math.abs(b.followerGrowth ?? 0) - Math.abs(a.followerGrowth ?? 0),
+    )[0];
+    if (!leader || leader.followerGrowth == null) return null;
+
+    const declining = leader.followerGrowth < 0;
+    const accelerating = leader.followerGrowth > 50;
+
+    if (!declining && !accelerating) return null;
+
+    return {
+      id: `follower-momentum-${leader.provider}`,
+      type: "organic",
+      severity: declining ? "medium" : "info",
+      title: declining
+        ? `${leader.channel} follower growth is slowing`
+        : `${leader.channel} follower growth is accelerating`,
+      explanation: declining
+        ? `${leader.channel} lost ${Math.abs(leader.followerGrowth)} net followers during ${context.rangeLabel.toLowerCase()}.`
+        : `${leader.channel} gained ${leader.followerGrowth} net followers during ${context.rangeLabel.toLowerCase()}.`,
+      evidence: [
+        { label: "Channel", value: leader.channel },
+        { label: "Net follower change", value: String(leader.followerGrowth) },
+      ],
+      estimatedImpact: declining
+        ? "Review content cadence and engagement on this channel"
+        : "Double down on content themes driving follower growth",
+      action: { label: "View growth", href: "/organic-social/growth" },
+      category: "organic",
+      generatedAt: new Date().toISOString(),
+      confidence: 0.72,
+    };
+  },
+};
+
+const winningThemeRule: MarketingSignalRule = {
+  id: "winning-theme",
+  evaluate(context) {
+    const themes = context.contentThemes ?? [];
+    if (themes.length < 2) return null;
+
+    const withRates = themes.filter(
+      (theme) => theme.engagementRate != null && theme.contentCount >= 3,
+    );
+    if (withRates.length < 2) return null;
+
+    const average =
+      withRates.reduce((sum, theme) => sum + (theme.engagementRate ?? 0), 0) / withRates.length;
+    const leader = [...withRates].sort(
+      (a, b) => (b.engagementRate ?? 0) - (a.engagementRate ?? 0),
+    )[0];
+    if (!leader?.engagementRate || leader.engagementRate <= average * 1.25) return null;
+
+    return {
+      id: `winning-theme-${leader.theme}`,
+      type: "organic",
+      severity: "medium",
+      title: `"${leader.theme}" repeatedly outperforms channel baseline`,
+      explanation: `Content themed "${leader.theme}" averaged ${leader.engagementRate.toFixed(2)}% engagement versus ${average.toFixed(2)}% across other themes during ${context.rangeLabel.toLowerCase()}.`,
+      evidence: [
+        { label: "Theme engagement rate", value: `${leader.engagementRate.toFixed(2)}%` },
+        { label: "Theme average", value: `${average.toFixed(2)}%` },
+        { label: "Content count", value: String(leader.contentCount) },
+      ],
+      estimatedImpact: "Increase output on this high-performing theme",
+      action: { label: "Create content", href: "/content/studio/new" },
+      category: "organic",
+      generatedAt: new Date().toISOString(),
+      confidence: 0.76,
+    };
+  },
+};
+
+const repurposeOpportunityRule: MarketingSignalRule = {
+  id: "repurpose-opportunity",
+  evaluate(context) {
+    const winner = context.topOrganicContent?.[0];
+    if (!winner || winner.engagementRate == null) return null;
+
+    const baseline =
+      context.organic.engagementRate ??
+      context.organic.channels
+        .filter((channel) => channel.engagementRate != null)
+        .reduce((sum, channel) => sum + (channel.engagementRate ?? 0), 0) /
+        Math.max(1, context.organic.channels.filter((channel) => channel.engagementRate != null).length);
+
+    if (baseline <= 0 || winner.engagementRate < baseline * 1.5) return null;
+    if ((winner.repurposedToChannels ?? []).length >= 2) return null;
+
+    return {
+      id: `repurpose-opportunity-${winner.id}`,
+      type: "organic",
+      severity: "medium",
+      title: "Top-performing post has not been adapted to other channels",
+      explanation: `"${winner.title}" on ${winner.channel} outperformed baseline engagement but has limited channel variants.`,
+      evidence: [
+        { label: "Content", value: winner.title },
+        { label: "Engagement rate", value: `${winner.engagementRate.toFixed(2)}%` },
+        { label: "Organic baseline", value: `${baseline.toFixed(2)}%` },
+      ],
+      estimatedImpact: "Repurpose winning creative across additional organic channels",
+      action: {
+        label: "Create variants",
+        href: `/content/studio/${winner.id}?action=variants`,
+      },
+      category: "organic",
+      generatedAt: new Date().toISOString(),
+      confidence: 0.74,
+    };
+  },
+};
+
 export const marketingSignalRules: MarketingSignalRule[] = [
   budgetOpportunityRule,
   cpaAnomalyRule,
@@ -569,6 +689,9 @@ export const marketingSignalRules: MarketingSignalRule[] = [
   attributionCoverageIssueRule,
   trackingDiscrepancyRule,
   funnelDropRule,
+  followerMomentumRule,
+  winningThemeRule,
+  repurposeOpportunityRule,
 ];
 
 export function evaluateMarketingSignals(context: MarketingIntelligenceContext): MarketingSignal[] {

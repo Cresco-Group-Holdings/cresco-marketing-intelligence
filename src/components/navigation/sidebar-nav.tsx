@@ -40,7 +40,7 @@ function isNavItemActive(pathname: string, href: string): boolean {
     return true;
   }
 
-  if (href === "/social" && pathname.startsWith("/social")) {
+  if (href === "/organic-social" && (pathname.startsWith("/organic-social") || pathname.startsWith("/social"))) {
     return true;
   }
 

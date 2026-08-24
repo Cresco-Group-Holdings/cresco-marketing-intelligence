@@ -218,7 +218,7 @@ export default function SocialConnectionsPage() {
         description="Connect social media accounts to the selected brand. Credentials are stored securely server-side."
         breadcrumbs={[
           { label: "Overview", href: "/dashboard" },
-          { label: "Social", href: "/social" },
+          { label: "Organic Social", href: "/organic-social" },
           { label: "Connections" },
         ]}
       />

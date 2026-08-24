@@ -69,13 +69,19 @@ export function PriorityItem({ priority }: { priority: CommandCentrePriority }) 
         <p className="mt-1 text-sm font-medium text-foreground">{priority.title}</p>
         <p className="mt-0.5 text-xs text-foreground-muted">{priority.context}</p>
       </div>
-      <Link
-        href={priority.action.href}
-        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-      >
-        {priority.action.label}
-        <ArrowRight className="h-3 w-3" aria-hidden="true" />
-      </Link>
+      {priority.action.href ? (
+        <Link
+          href={priority.action.href}
+          className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border bg-surface-elevated px-2.5 py-1.5 text-xs font-medium text-foreground hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {priority.action.label}
+          <ArrowRight className="h-3 w-3" aria-hidden="true" />
+        </Link>
+      ) : (
+        <span className="inline-flex shrink-0 rounded-md border border-border bg-surface-subtle px-2.5 py-1.5 text-xs font-medium text-foreground-muted">
+          {priority.action.label}
+        </span>
+      )}
     </div>
   );
 }

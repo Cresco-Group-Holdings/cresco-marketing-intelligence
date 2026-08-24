@@ -150,7 +150,7 @@ describe("dashboard navigation", () => {
   it("groups execute routes for advertising and organic social", () => {
     const execute = dashboardNavigationSections.find((section) => section.id === "execute");
     expect(execute?.items.some((item) => item.href === "/advertising")).toBe(true);
-    expect(execute?.items.some((item) => item.href === "/social")).toBe(true);
+    expect(execute?.items.some((item) => item.href === "/organic-social")).toBe(true);
     expect(execute?.items.some((item) => item.href === "/content")).toBe(true);
   });
 });

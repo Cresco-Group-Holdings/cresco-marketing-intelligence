@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/database/prisma";
 import { listProviderCapabilities } from "@/lib/providers/capability-registry";
+import {
+  isOrganicSocialUnifiedKey,
+  resolveUnifiedProviderOrganicStatus,
+} from "@/lib/providers/organic-social-catalogue";
 import { getProviderOAuthConfigDetail } from "@/lib/providers/oauth/provider-config";
 import { isProductionOAuthProvider } from "@/lib/providers/oauth/production-providers";
 import { getProviderDefinition, listProviderDefinitions } from "@/lib/providers/registry";
@@ -15,24 +19,30 @@ import type { ProviderCredentialType } from "@prisma/client";
 export const integrationConnectionService = {
   listProviders() {
     return listProviderDefinitions().map((def) => {
+      const organicStatus = isOrganicSocialUnifiedKey(def.key)
+        ? resolveUnifiedProviderOrganicStatus(def.key)
+        : null;
       const oauthConfig = isProductionOAuthProvider(def.key)
         ? getProviderOAuthConfigDetail(def.key)
         : null;
-      const isAvailable =
-        def.enabled ||
-        oauthConfig?.status === "READY";
+      const isAvailable = organicStatus
+        ? organicStatus.status === "AVAILABLE" || organicStatus.status === "BETA"
+        : def.enabled || oauthConfig?.status === "READY";
       return {
         key: def.key,
         displayName: def.displayName,
         category: def.category,
         authTypes: [def.authType],
-        status: isAvailable
-          ? "AVAILABLE"
-          : oauthConfig?.status === "MISCONFIGURED"
-            ? "MISCONFIGURED"
-            : def.apiVersionStatus === "DEPRECATED"
-              ? "DEPRECATED"
-              : "DISABLED",
+        status: organicStatus
+          ? organicStatus.status
+          : isAvailable
+            ? "AVAILABLE"
+            : oauthConfig?.status === "MISCONFIGURED"
+              ? "MISCONFIGURED"
+              : def.apiVersionStatus === "DEPRECATED"
+                ? "DEPRECATED"
+                : "DISABLED",
+        statusLabel: organicStatus?.statusLabel,
         defaultApiVersion: def.apiVersion,
         documentationUrl: def.documentationUrl,
         supportsWebhooks: def.webhookSupport,
@@ -43,6 +53,8 @@ export const integrationConnectionService = {
           requiresApproval: def.requiresApproval,
           oauthConfigStatus: oauthConfig?.status ?? null,
           missingEnv: oauthConfig?.missingEnv ?? [],
+          organicSocial: organicStatus?.organicSocial ?? false,
+          connectRoute: organicStatus?.connectRoute ?? null,
         },
       };
     });

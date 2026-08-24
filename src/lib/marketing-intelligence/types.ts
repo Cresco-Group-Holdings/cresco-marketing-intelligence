@@ -77,6 +77,13 @@ export type TopOrganicContentMetric = {
   engagement: number;
   engagementRate: number | null;
   reach: number | null;
+  repurposedToChannels?: string[];
+};
+
+export type ContentThemePerformanceMetric = {
+  theme: string;
+  contentCount: number;
+  engagementRate: number | null;
 };
 
 export type TopPaidCreativeMetric = {
@@ -135,6 +142,7 @@ export type MarketingIntelligenceContext = {
     organicTotal: number;
   };
   formatPerformance?: FormatPerformanceMetric[];
+  contentThemes?: ContentThemePerformanceMetric[];
   topOrganicContent?: TopOrganicContentMetric[];
   topPaidCreatives?: TopPaidCreativeMetric[];
   scheduleGaps?: Array<{ channel: string; message: string }>;
