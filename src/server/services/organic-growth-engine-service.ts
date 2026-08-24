@@ -1,3 +1,7 @@
+import {
+  mapMarketingSignalSeverityToPriorityUrgency,
+  resolvePriorityAction,
+} from "@/lib/command-centre/priorities";
 import { calculateOrganicGrowthScore } from "@/lib/organic-growth/growth-score";
 import { buildOrganicOpportunities, pickTopOpportunity } from "@/lib/organic-growth/opportunities";
 import { mergeProviderRegistryWithConnections } from "@/lib/organic-growth/providers";
@@ -330,7 +334,7 @@ export const organicGrowthEngineService = {
       .map((gap, index) => ({
         id: `organic-priority-${index}`,
         title: "Publishing gap detected",
-        urgency: "high" as const,
+        urgency: "high",
         context: gap.message,
         action: { label: "Schedule content", href: "/calendar" },
       }));
@@ -340,12 +344,9 @@ export const organicGrowthEngineService = {
       priorities.unshift({
         id: signal.id,
         title: signal.title,
-        urgency: signal.severity === "high" ? "critical" : "high",
+        urgency: mapMarketingSignalSeverityToPriorityUrgency(signal.severity),
         context: signal.explanation,
-        action: {
-          label: signal.action?.label ?? "Review",
-          href: signal.action?.href ?? "/organic-social/intelligence",
-        },
+        action: resolvePriorityAction(signal.action),
       });
     }
 

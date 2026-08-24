@@ -1,5 +1,7 @@
+import type { PriorityAction, PriorityUrgency } from "@/lib/command-centre/types";
 import type { DataFreshnessState } from "@/lib/marketing-intelligence/types";
 import type { MarketingSignal } from "@/lib/marketing-intelligence/types";
+import type { MetricDisplayState } from "@/lib/metrics/display-state";
 import type { SocialProvider } from "@prisma/client";
 
 export type OrganicProviderAvailability =
@@ -78,7 +80,7 @@ export type OrganicGrowthScore = {
   dimensions: OrganicGrowthScoreDimension[];
 };
 
-export type MetricDisplayState = "normal" | "loading" | "empty" | "partial" | "stale" | "unavailable";
+export type { MetricDisplayState };
 
 export type OrganicExecutiveKpi = {
   label: string;
@@ -249,9 +251,9 @@ export type OrganicGrowthEngineData = {
   priorities: Array<{
     id: string;
     title: string;
-    urgency: "critical" | "high" | "normal";
+    urgency: PriorityUrgency;
     context: string;
-    action: { label: string; href: string };
+    action: PriorityAction;
   }>;
   topOpportunity: OrganicOpportunity | null;
   winningContent: WinningContentItem[];

@@ -1,4 +1,8 @@
 import { describe, expect, it } from "vitest";
+import {
+  mapMarketingSignalSeverityToPriorityUrgency,
+  resolvePriorityAction,
+} from "@/lib/command-centre/priorities";
 import { calculateOrganicGrowthScore } from "@/lib/organic-growth/growth-score";
 import { detectWinningContent } from "@/lib/organic-growth/winning-content";
 import {
@@ -6,6 +10,7 @@ import {
   validateChannelVariant,
 } from "@/lib/organic-growth/validation";
 import { unavailableValue } from "@/lib/marketing-intelligence/format";
+import type { MetricDisplayState } from "@/lib/metrics/display-state";
 
 describe("organic growth score", () => {
   it("scores only dimensions backed by real data", () => {
@@ -142,6 +147,34 @@ describe("channel variant validation", () => {
 describe("metric unavailable handling", () => {
   it("uses em dash for unavailable values without coercing to zero", () => {
     expect(unavailableValue()).toBe("—");
+  });
+
+  it("keeps unavailable as a distinct MetricDisplayState from normal and empty", () => {
+    const states: MetricDisplayState[] = ["loading", "empty", "partial", "stale", "normal", "unavailable"];
+    expect(states).toContain("unavailable");
+    expect(states).not.toContain("zero" as MetricDisplayState);
+  });
+});
+
+describe("priority severity mapping", () => {
+  it("maps marketing signal severity to canonical priority urgency without downgrading critical", () => {
+    expect(mapMarketingSignalSeverityToPriorityUrgency("high")).toBe("critical");
+    expect(mapMarketingSignalSeverityToPriorityUrgency("medium")).toBe("high");
+    expect(mapMarketingSignalSeverityToPriorityUrgency("info")).toBe("normal");
+  });
+});
+
+describe("priority action resolution", () => {
+  it("returns navigational CTA only when a real href exists", () => {
+    expect(resolvePriorityAction({ label: "Investigate", href: "/analytics" })).toEqual({
+      label: "Investigate",
+      href: "/analytics",
+    });
+  });
+
+  it("preserves label-only actions without fabricating destinations", () => {
+    expect(resolvePriorityAction({ label: "Acknowledge" })).toEqual({ label: "Acknowledge" });
+    expect(resolvePriorityAction(undefined)).toEqual({ label: "Review" });
   });
 });
 

@@ -1,4 +1,10 @@
 export type PriorityUrgency = "critical" | "high" | "normal";
+
+/** Navigational CTA when href is present; label-only when no destination exists. */
+export type PriorityAction = {
+  label: string;
+  href?: string;
+};
 export type PriorityType =
   | "approval"
   | "integration"
@@ -16,10 +22,7 @@ export type CommandCentrePriority = {
   urgency: PriorityUrgency;
   context: string;
   targetLabel?: string;
-  action: {
-    label: string;
-    href: string;
-  };
+  action: PriorityAction;
 };
 
 export type CommandCentreActivity = {
@@ -48,7 +51,7 @@ export type OrganicChannelPerformanceMetric =
 
 export type ChannelPerformanceMode = "paid" | "organic";
 
-export type MetricDisplayState = "loading" | "empty" | "partial" | "stale" | "normal";
+export type { MetricDisplayState } from "@/lib/metrics/display-state";
 
 export type CommandCentreChannelRow = {
   key: string;

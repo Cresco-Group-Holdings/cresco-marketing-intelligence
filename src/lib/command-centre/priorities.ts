@@ -1,5 +1,44 @@
-import type { DataFreshnessState } from "@/lib/marketing-intelligence/types";
-import type { CommandCentrePriority } from "@/lib/command-centre/types";
+import type {
+  CommandCentrePriority,
+  PriorityAction,
+  PriorityUrgency,
+} from "@/lib/command-centre/types";
+import type {
+  DataFreshnessState,
+  MarketingSignalAction,
+  MarketingSignalSeverity,
+} from "@/lib/marketing-intelligence/types";
+
+/** Maps marketing signal severity to the Command Centre priority urgency model. */
+export function mapMarketingSignalSeverityToPriorityUrgency(
+  severity: MarketingSignalSeverity,
+): PriorityUrgency {
+  switch (severity) {
+    case "high":
+      return "critical";
+    case "medium":
+      return "high";
+    case "info":
+    default:
+      return "normal";
+  }
+}
+
+/** Preserves label-only actions when no navigation target exists. */
+export function resolvePriorityAction(
+  action: MarketingSignalAction | undefined,
+  fallbackLabel = "Review",
+): PriorityAction {
+  if (!action) {
+    return { label: fallbackLabel };
+  }
+
+  if (action.href) {
+    return { label: action.label, href: action.href };
+  }
+
+  return { label: action.label };
+}
 
 type BuildPrioritiesInput = {
   pendingApprovals: number;
