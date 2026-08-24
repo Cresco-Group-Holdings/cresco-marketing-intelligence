@@ -85,7 +85,17 @@ export function buildProvenanceMetadata(input: {
   structuredBrief: ContentBrief;
   briefGeneration?: z.infer<typeof generationRecordSchema>;
   masterGeneration?: z.infer<typeof generationRecordSchema>;
-  structuredMaster?: z.infer<typeof contentIntelligenceProvenanceSchema>["shape"]["structuredMaster"];
+  structuredMaster?: {
+    title: string;
+    summary?: string | null;
+    hook?: string | null;
+    body: string;
+    keyPoints: string[];
+    cta?: string | null;
+    contentPillar?: string | null;
+    recommendedChannels?: string[];
+    riskFlags?: string[];
+  };
   brandKnowledgeSnapshot?: {
     snapshotAt: string;
     usedRecords: UsedKnowledgeRecord[];

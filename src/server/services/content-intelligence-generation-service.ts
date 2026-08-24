@@ -7,9 +7,11 @@ import {
 import {
   contentIntelligenceBriefOutputSchema,
   contentIntelligenceMasterOutputSchema,
-  type ContentIntelligenceBriefOutput,
-  type ContentIntelligenceMasterOutput,
 } from "@/lib/ai/content-output-schemas";
+import type {
+  ContentIntelligenceBriefOutput,
+  ContentIntelligenceMasterOutput,
+} from "@/lib/content-intelligence/brief";
 import { brandContextBuilder } from "@/lib/ai/brand-context-builder";
 import {
   assertSourceModeAllowed,
@@ -706,7 +708,7 @@ export const contentIntelligenceGenerationService = {
           changedFields: { action: "brief_edited", fields: Object.keys(input) } as Prisma.InputJsonValue,
           snapshot: { brief: nextBrief } as Prisma.InputJsonValue,
           editorUserId: context.userProfileId,
-          source: ContentRevisionSource.HUMAN,
+          source: ContentRevisionSource.USER,
           changeNote: "Brief edited by user",
         },
       }),
@@ -873,12 +875,18 @@ export const contentIntelligenceGenerationService = {
         title: input.title,
         contentBody: input.body,
         primaryCTA: input.cta ?? undefined,
-        contentPillar: input.contentPillar ?? undefined,
         expectedVersion: input.expectedVersion,
       },
       context,
       requestId,
     );
+
+    if (input.contentPillar !== undefined) {
+      await prisma.contentItem.update({
+        where: { id: contentId },
+        data: { contentPillar: input.contentPillar },
+      });
+    }
 
     const updatedMetadata: ContentIntelligenceProvenance = {
       ...parsed,

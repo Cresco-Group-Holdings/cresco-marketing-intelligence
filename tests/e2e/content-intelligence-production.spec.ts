@@ -151,12 +151,12 @@ test.describe("Content Studio production create flow", () => {
 
     await page.goto("/content/studio/create", { waitUntil: "domcontentloaded" });
     await page.getByRole("button", { name: "Generate brief" }).click();
-    await expect(page.getByDisplayValue("SEIS delays are preventable")).toBeVisible();
+    await expect(page.locator("textarea").first()).toHaveValue("SEIS delays are preventable");
 
-    const keyMessage = page.getByDisplayValue("SEIS delays are preventable");
+    const keyMessage = page.locator("textarea").first();
     await keyMessage.fill("SEIS delays are preventable with better planning");
     await page.getByRole("button", { name: "Generate draft" }).click();
-    await expect(page.getByDisplayValue("5 reasons SEIS applications get delayed")).toBeVisible();
+    await expect(page.locator("input").first()).toHaveValue("5 reasons SEIS applications get delayed");
     await expect(page.getByText("Content compliance check")).toBeVisible();
     await expect(page.getByText("Review unsupported certainty before approval.")).toBeVisible();
   });

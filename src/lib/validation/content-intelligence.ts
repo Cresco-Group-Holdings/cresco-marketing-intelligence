@@ -79,7 +79,7 @@ export const contentIntelligenceMasterUpdateSchema = z
     message: "At least one master content field must be provided.",
   });
 
-export type ContentIntelligenceBriefGenerateInput = z.infer<
+export type ContentIntelligenceBriefGenerateInput = z.input<
   typeof contentIntelligenceBriefGenerateSchema
 >;
 export type ContentIntelligenceBriefUpdateInput = z.infer<
