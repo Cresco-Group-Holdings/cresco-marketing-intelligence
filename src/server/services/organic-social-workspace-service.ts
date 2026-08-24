@@ -132,7 +132,7 @@ function buildEmptyWorkspace(range: ResolvedMarketingDateRange): OrganicSocialWo
     freshness: { label: "Connection required", state: "unavailable" },
     coverage: "0 organic channels connected",
     partialCoverageNote: null,
-    primaryCta: { label: "Connect Channel", href: "/social/connections" },
+    primaryCta: { label: "Connect Channel", href: "/organic-social/accounts" },
     executiveKpis: [],
     channels: [],
     chart: { reach: [], views: [], engagement: [], engagementRate: [] },
@@ -291,7 +291,7 @@ export const organicSocialWorkspaceService = {
 
     const primaryCta =
       connectedCount === 0
-        ? { label: "Connect Channel", href: "/social/connections" }
+        ? { label: "Connect Channel", href: "/organic-social/accounts" }
         : scheduledUpcoming > 0
           ? { label: "Publish", href: "/publishing" }
           : { label: "Create Content", href: "/content/studio/new" };
@@ -410,8 +410,8 @@ export const organicSocialWorkspaceService = {
         unavailableMetrics:
           connected && !providerMetrics ? ["reach", "engagement"] : [],
         ctaLabel: connected ? channel.ctaLabel : channel.connectLabel,
-        ctaHref: connected ? channel.ctaHref : "/social/connections",
-        connectHref: "/social/connections",
+        ctaHref: connected ? channel.ctaHref : "/organic-social/accounts",
+        connectHref: "/organic-social/accounts",
       };
     });
 

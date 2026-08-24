@@ -34,7 +34,7 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
           : `${input.pendingApprovals} campaigns need approval`,
       urgency: "high",
       context: input.approvalBudget ?? "Awaiting review before launch",
-      action: { label: "Review", href: "/publishing" },
+      action: { label: "Review queue", href: "/organic-social/publishing" },
     });
   }
 
@@ -85,7 +85,7 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
           : `${input.dueTodayPublications} content items ready to publish`,
       urgency: "high",
       context: "Due today",
-      action: { label: "Review queue", href: "/publishing" },
+      action: { label: "Review queue", href: "/organic-social/publishing" },
     });
   }
 

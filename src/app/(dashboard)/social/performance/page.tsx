@@ -1,5 +1,5 @@
-import { PerformanceWorkspace } from "@/components/social/performance-workspace";
+import { redirect } from "next/navigation";
 
 export default function SocialPerformancePage() {
-  return <PerformanceWorkspace />;
+  redirect("/organic-social/content");
 }

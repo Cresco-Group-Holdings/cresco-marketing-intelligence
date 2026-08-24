@@ -1,5 +1,5 @@
-import { ReelsPage } from "@/components/social/reels-page";
+import { redirect } from "next/navigation";
 
 export default function SocialReelsPage() {
-  return <ReelsPage />;
+  redirect("/organic-social/content");
 }

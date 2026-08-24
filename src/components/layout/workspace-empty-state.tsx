@@ -24,7 +24,7 @@ export function OrganicEmptyState() {
       title="Connect your social channels"
       description="Publish and measure Instagram, TikTok, YouTube, LinkedIn and Facebook from Cresco."
       action={
-        <ButtonLink href="/social/connections" variant="organic" size="sm">
+        <ButtonLink href="/organic-social/accounts" variant="organic" size="sm">
           Connect channel
         </ButtonLink>
       }

@@ -70,35 +70,35 @@ const ORGANIC_CHANNELS: Array<{
     provider: "INSTAGRAM",
     title: "Instagram Reels",
     ctaLabel: "Upload Reel",
-    ctaHref: "/publishing",
+    ctaHref: "/organic-social/publishing",
     connectLabel: "Connect Instagram",
   },
   {
     provider: "TIKTOK",
     title: "TikTok Organic",
     ctaLabel: "Upload Video",
-    ctaHref: "/publishing",
+    ctaHref: "/organic-social/publishing",
     connectLabel: "Connect TikTok",
   },
   {
     provider: "YOUTUBE",
     title: "YouTube Shorts",
     ctaLabel: "Upload Short",
-    ctaHref: "/publishing",
+    ctaHref: "/organic-social/publishing",
     connectLabel: "Connect YouTube",
   },
   {
     provider: "LINKEDIN",
     title: "LinkedIn",
     ctaLabel: "Create Post",
-    ctaHref: "/publishing",
+    ctaHref: "/organic-social/publishing",
     connectLabel: "Connect LinkedIn",
   },
   {
     provider: "FACEBOOK",
     title: "Facebook",
     ctaLabel: "Create Post",
-    ctaHref: "/publishing",
+    ctaHref: "/organic-social/publishing",
     connectLabel: "Connect Facebook",
   },
 ];
@@ -177,7 +177,7 @@ function buildEmptyResponse(
     })),
     organicChannels: ORGANIC_CHANNELS.map((channel) => ({
       ...channel,
-      connectHref: "/social/connections",
+      connectHref: "/organic-social/accounts",
       connectionState: "disconnected" as ChannelConnectionState,
       metrics: [],
       emptyMessage: "Connect your social channels to start publishing content.",
@@ -284,7 +284,7 @@ function mapOrganicChannels(
 
     return {
       ...channel,
-      connectHref: "/social/connections",
+      connectHref: "/organic-social/accounts",
       connectionState: toConnectionState(connected),
       metrics: connected
         ? [
