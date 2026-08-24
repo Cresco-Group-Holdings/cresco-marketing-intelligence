@@ -79,6 +79,7 @@ export function serializeBriefToMetadata(brief: ContentBrief): Record<string, un
   return { ...brief, version: 1 };
 }
 
+/** @deprecated Use parseContentIntelligenceProvenance from provenance.ts */
 export function parseBriefFromMetadata(metadata: unknown): ContentBrief | null {
   const parsed = contentBriefSchema.safeParse(metadata);
   if (!parsed.success) return null;

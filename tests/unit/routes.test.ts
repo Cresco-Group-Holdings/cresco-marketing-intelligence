@@ -30,4 +30,13 @@ describe("route protection rules", () => {
     expect(isAuthRoute("/verify-email")).toBe(true);
     expect(isAuthRoute("/dashboard")).toBe(false);
   });
+
+  it("exempts content intelligence dev preview routes in development only", () => {
+    const previous = process.env.NODE_ENV;
+    process.env.NODE_ENV = "development";
+    expect(isProtectedRoute("/dev/content-intelligence-preview/create")).toBe(false);
+    process.env.NODE_ENV = "production";
+    expect(isProtectedRoute("/dev/content-intelligence-preview/create")).toBe(true);
+    process.env.NODE_ENV = previous;
+  });
 });
