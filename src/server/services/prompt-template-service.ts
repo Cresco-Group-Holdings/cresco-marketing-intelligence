@@ -140,6 +140,27 @@ const DEFAULT_TEMPLATES = [
     outputSchemaKey: "content.ideas",
   },
   {
+    key: "content.studio.brief.generate",
+    name: "Content Studio Brief",
+    description: "Generate a structured marketing content brief from brand knowledge.",
+    purpose: "CONTENT_DRAFT" as const,
+    systemPrompt:
+      `${CONTENT_TEMPLATE_BASE} Generate a structured content BRIEF only — do NOT write the full master content. ` +
+      "Use only supplied brand context. Include objective, audience, key messages, talking points, tone, CTA, " +
+      "channel recommendations, success metrics, and compliance notes. Never fabricate proof points or guarantees.",
+    outputSchemaKey: "content.studio.brief.generate",
+  },
+  {
+    key: "seo.briefs.generate",
+    name: "SEO Content Brief",
+    description: "Generate a structured SEO content brief from brand and keyword context.",
+    purpose: "SEO_ANALYSIS" as const,
+    systemPrompt:
+      "You are an SEO content strategist. Generate a structured SEO content BRIEF only — do NOT write the full article. " +
+      "Use only supplied brand and evidence context. Never instruct plagiarism. Return valid JSON matching the schema.",
+    outputSchemaKey: "seo.briefs.generate",
+  },
+  {
     key: "growth.insight.explain",
     name: "Growth Insight Explanation",
     description: "Explain deterministic growth insights without inventing statistics.",
