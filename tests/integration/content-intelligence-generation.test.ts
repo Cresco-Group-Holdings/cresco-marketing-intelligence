@@ -263,7 +263,7 @@ describe("contentIntelligenceGenerationService", () => {
     const session = await contentIntelligenceGenerationService.generateBrief(
       contentTestIds.brandId,
       contentTestIds.organisationId,
-      { mode: "manual", objective: "education" },
+      { mode: "manual", objective: "education", studioType: "SOCIAL_POST" },
       contentTenantContext,
       "req-1",
     );
@@ -290,7 +290,7 @@ describe("contentIntelligenceGenerationService", () => {
       contentIntelligenceGenerationService.generateBrief(
         contentTestIds.brandId,
         contentTestIds.organisationId,
-        { mode: "manual", objective: "education" },
+        { mode: "manual", objective: "education", studioType: "SOCIAL_POST" },
         contentTenantContext,
       ),
     ).rejects.toThrow("We couldn't generate a valid content brief");
@@ -347,7 +347,7 @@ describe("contentIntelligenceGenerationService", () => {
       contentIntelligenceGenerationService.generateBrief(
         contentTestIds.brandId,
         contentTestIds.organisationId,
-        { mode: "manual", objective: "education", audienceId: "foreign-audience" },
+        { mode: "manual", objective: "education", audienceId: "foreign-audience", studioType: "SOCIAL_POST" },
         contentTenantContext,
       ),
     ).rejects.toThrow("Audience was not found");
@@ -362,7 +362,7 @@ describe("contentIntelligenceGenerationService", () => {
       contentIntelligenceGenerationService.generateBrief(
         contentTestIds.brandId,
         contentTestIds.organisationId,
-        { mode: "manual", objective: "education" },
+        { mode: "manual", objective: "education", studioType: "SOCIAL_POST" },
         contentTenantContext,
       ),
     ).rejects.toThrow("AI content generation is not configured");
