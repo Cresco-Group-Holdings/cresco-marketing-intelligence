@@ -1,5 +1,10 @@
-import type { ChannelPerformanceMetric, CommandCentreChannelRow, CommandCentreFunnelStage } from "@/lib/command-centre/types";
-import type { PaidProviderMetrics } from "@/lib/marketing-intelligence/types";
+import type {
+  ChannelPerformanceMetric,
+  CommandCentreChannelRow,
+  CommandCentreFunnelStage,
+  OrganicChannelPerformanceMetric,
+} from "@/lib/command-centre/types";
+import type { OrganicChannelPerformance, PaidProviderMetrics } from "@/lib/marketing-intelligence/types";
 import { percentChange, unavailableValue } from "@/lib/marketing-intelligence/format";
 
 function formatCurrency(value: number, currency = "GBP"): string {
@@ -99,6 +104,75 @@ export function buildChannelPerformanceRows(
       relativePerformance: channel.connected ? (spend / maxSpend) * 100 : 0,
       href: channel.href,
       connectHref: channel.connectHref,
+    };
+  });
+}
+
+export function buildOrganicChannelPerformanceRows(
+  channels: OrganicChannelPerformance[],
+  previousChannels: OrganicChannelPerformance[] | undefined,
+  metric: OrganicChannelPerformanceMetric,
+  comparisonLabel?: string,
+): CommandCentreChannelRow[] {
+  const maxReach = Math.max(...channels.map((item) => item.reach ?? 0), 1);
+
+  return channels.map((channel) => {
+    const previous = previousChannels?.find((item) => item.provider === channel.provider);
+    let metricValue = unavailableValue();
+    let change: number | null = null;
+
+    if (channel.connected) {
+      switch (metric) {
+        case "reach":
+          metricValue =
+            channel.reach != null ? formatNumber(channel.reach) : unavailableValue();
+          change = percentChange(channel.reach ?? 0, previous?.reach ?? 0);
+          break;
+        case "engagement":
+          metricValue =
+            channel.engagement != null ? formatNumber(channel.engagement) : unavailableValue();
+          change = percentChange(channel.engagement ?? 0, previous?.engagement ?? 0);
+          break;
+        case "engagementRate":
+          metricValue =
+            channel.engagementRate != null
+              ? formatPercent(channel.engagementRate)
+              : unavailableValue();
+          change = percentChange(
+            channel.engagementRate ?? 0,
+            previous?.engagementRate ?? 0,
+          );
+          break;
+        case "followersGained":
+          metricValue =
+            channel.followerGrowth != null
+              ? formatNumber(channel.followerGrowth)
+              : unavailableValue();
+          change = percentChange(channel.followerGrowth ?? 0, previous?.followerGrowth ?? 0);
+          break;
+      }
+    }
+
+    const status = !channel.connected
+      ? "disconnected"
+      : channel.unavailableMetrics.length > 0 && channel.reach == null
+        ? "warning"
+        : "healthy";
+
+    return {
+      key: channel.provider,
+      label: channel.channel,
+      provider: channel.provider,
+      connected: channel.connected,
+      metricValue,
+      change,
+      comparisonLabel,
+      status,
+      relativePerformance:
+        channel.connected && channel.reach != null ? ((channel.reach ?? 0) / maxReach) * 100 : 0,
+      href: "/organic-social/growth",
+      connectHref: "/organic-social/accounts",
+      actionLabel: "View organic performance",
     };
   });
 }

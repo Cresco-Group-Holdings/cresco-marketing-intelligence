@@ -58,14 +58,20 @@ export function AccountRow({ account }: { account: OrganicAccountRow }) {
         </div>
       </div>
       <div className="flex flex-wrap gap-2">
-        {account.connectionState === "not_connected" ? (
+        {account.connectionState === "coming_soon" ? (
+          <span className="text-xs text-foreground-muted">Coming soon</span>
+        ) : account.connectionState === "not_connected" ? (
           <ButtonLink href={account.actions.connectHref} variant="organic" size="sm">
-            Connect
+            Connect account
+          </ButtonLink>
+        ) : account.connectionState === "reauth_required" ? (
+          <ButtonLink href="/social/connections" variant="organic" size="sm">
+            Reconnect
           </ButtonLink>
         ) : (
           <>
             <ButtonLink href={account.actions.performanceHref} variant="outline" size="sm">
-              Performance
+              View performance
             </ButtonLink>
             <ButtonLink href={account.actions.createHref} variant="outline" size="sm">
               Create content

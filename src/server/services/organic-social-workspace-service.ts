@@ -87,6 +87,13 @@ const ORGANIC_CHANNELS: Array<{
     connectLabel: "Connect Facebook",
     reelLabel: "Reel",
   },
+  {
+    provider: "X",
+    title: "X",
+    ctaLabel: "Create Post",
+    ctaHref: "/content/studio/new",
+    connectLabel: "Connect X",
+  },
 ];
 
 const PROVIDER_LABELS: Record<string, string> = {

@@ -17,16 +17,16 @@ function resolveTab(value: string | undefined): PreviewTab {
 }
 
 export default async function OrganicGrowthPreviewTabPage({
-  searchParams,
+  params,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  params: Promise<{ tab: string }>;
 }) {
   if (process.env.NODE_ENV === "production") {
     notFound();
   }
 
-  const params = await searchParams;
-  const tab = resolveTab(params.tab);
+  const { tab: tabParam } = await params;
+  const tab = resolveTab(tabParam);
 
   return (
     <OrganicGrowthPreviewProvider data={ORGANIC_GROWTH_VISUAL_PREVIEW_FIXTURE}>

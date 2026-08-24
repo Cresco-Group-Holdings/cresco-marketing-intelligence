@@ -16,6 +16,12 @@ import type {
   ProviderCatalogueItem,
 } from "@/components/integrations/integration-types";
 
+function providerStatusLabel(definition: ProviderCatalogueItem): string {
+  if (definition.statusLabel) return definition.statusLabel;
+  if (definition.status === "DISABLED") return "Coming soon";
+  return definition.status;
+}
+
 function providerStatusVariant(status: string): "default" | "muted" | "warning" {
   if (status === "AVAILABLE" || status === "BETA") return "default";
   if (status === "DEPRECATED") return "warning";
@@ -250,6 +256,37 @@ export default function IntegrationsPage() {
                   definition.status === "AVAILABLE" || definition.status === "BETA";
                 const isMisconfigured = definition.status === "MISCONFIGURED";
                 const isMock = definition.key.startsWith("mock-");
+                const organicConnectRoute = definition.metadata?.connectRoute;
+
+                if (definition.metadata?.organicSocial && organicConnectRoute) {
+                  return (
+                    <Card key={definition.key} className="flex flex-col">
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <CardTitle className="text-base">{definition.displayName}</CardTitle>
+                            <CardDescription>Organic social · connect via Social Connections</CardDescription>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="mt-auto space-y-3">
+                        <Badge variant={providerStatusVariant(definition.status)}>
+                          {providerStatusLabel(definition)}
+                        </Badge>
+                        <p className="text-sm text-muted-foreground">
+                          {isAvailable
+                            ? "Connect through the organic social account workspace."
+                            : definition.statusLabel ?? "Provider is not yet available in this environment."}
+                        </p>
+                        {isAvailable ? (
+                          <ButtonLink href={organicConnectRoute} size="sm" variant="outline">
+                            Manage in Social Connections
+                          </ButtonLink>
+                        ) : null}
+                      </CardContent>
+                    </Card>
+                  );
+                }
 
                 if (definition.key === "resend" && isAvailable) {
                   return (
@@ -315,7 +352,7 @@ export default function IntegrationsPage() {
 
                       <div className="flex items-center gap-2 text-sm">
                         <Badge variant={providerStatusVariant(definition.status)}>
-                          {definition.status === "DISABLED" ? "Coming soon" : definition.status}
+                          {providerStatusLabel(definition)}
                         </Badge>
                         {definition.defaultApiVersion ? (
                           <span className="text-xs text-muted-foreground">
@@ -332,7 +369,9 @@ export default function IntegrationsPage() {
                         </p>
                       ) : (
                         <p className="text-sm text-muted-foreground">
-                          {isAvailable ? "Not connected" : "Coming soon"}
+                          {isAvailable
+                            ? "Not connected"
+                            : providerStatusLabel(definition)}
                         </p>
                       )}
 

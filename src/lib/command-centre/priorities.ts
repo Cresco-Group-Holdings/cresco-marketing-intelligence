@@ -17,6 +17,10 @@ type BuildPrioritiesInput = {
   failedAutomations: number;
   experimentsReady: number;
   staleDataProviders: string[];
+  organicReauthRequired?: number;
+  publishingGap?: boolean;
+  winningContentReady?: number;
+  engagementDecline?: boolean;
 };
 
 const URGENCY_ORDER = { critical: 3, high: 2, normal: 1 } as const;
@@ -38,6 +42,56 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
     });
   }
 
+  if ((input.organicReauthRequired ?? 0) > 0) {
+    priorities.push({
+      id: "organic-reauth-required",
+      type: "integration",
+      title:
+        input.organicReauthRequired === 1
+          ? "1 organic account needs reauthentication"
+          : `${input.organicReauthRequired} organic accounts need reauthentication`,
+      urgency: "critical",
+      context: "Publishing and analytics may be interrupted until reconnected",
+      action: { label: "Reconnect", href: "/social/connections" },
+    });
+  }
+
+  if (input.publishingGap) {
+    priorities.push({
+      id: "organic-publishing-gap",
+      type: "content",
+      title: "No organic content scheduled soon",
+      urgency: "high",
+      context: "Publishing cadence gap detected across connected organic channels",
+      action: { label: "Schedule content", href: "/organic-social/publishing" },
+    });
+  }
+
+  if ((input.winningContentReady ?? 0) > 0) {
+    priorities.push({
+      id: "organic-winning-content",
+      type: "content",
+      title:
+        input.winningContentReady === 1
+          ? "1 winning post ready to repurpose"
+          : `${input.winningContentReady} winning posts ready to repurpose`,
+      urgency: "normal",
+      context: "High-performing content can be adapted to additional channels",
+      action: { label: "Review content", href: "/organic-social/content" },
+    });
+  }
+
+  if (input.engagementDecline) {
+    priorities.push({
+      id: "organic-engagement-decline",
+      type: "anomaly",
+      title: "Organic engagement declined",
+      urgency: "high",
+      context: "Engagement fell materially compared with the previous period",
+      action: { label: "View growth", href: "/organic-social/growth" },
+    });
+  }
+
   for (const alert of input.openAlerts.slice(0, 3)) {
     const isConnector =
       alert.alertType.includes("CONNECTOR") ||
@@ -56,7 +110,11 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
       targetLabel: alert.provider ?? undefined,
       action: {
         label: isConnector ? "Fix connection" : "View alert",
-        href: isConnector ? "/integrations" : "/operations",
+        href: isConnector
+          ? alert.provider?.match(/LINKEDIN|INSTAGRAM|FACEBOOK|X|TIKTOK|YOUTUBE/i)
+            ? "/social/connections"
+            : "/integrations"
+          : "/operations",
       },
     });
   }
@@ -110,7 +168,7 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
       title: `${provider} is stale`,
       urgency: "high",
       context: "Sync delayed — dashboard metrics may be incomplete",
-      action: { label: "Check integrations", href: "/integrations" },
+      action: { label: "Check integrations", href: "/organic-social/accounts" },
     });
   }
 

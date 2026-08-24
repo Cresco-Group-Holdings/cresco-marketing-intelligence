@@ -105,7 +105,12 @@ export type WinningContentItem = {
   profileVisitLift: number | null;
   clickLift: number | null;
   confidence: "low" | "medium" | "high";
+  evidenceStrength: "emerging" | "moderate" | "strong";
   evidenceLabel: string;
+  baselineDescription: string;
+  sampleSize: number;
+  comparisonWindow: string;
+  disclaimer: string;
   theme: string | null;
   actions: Array<{ label: string; href: string }>;
 };

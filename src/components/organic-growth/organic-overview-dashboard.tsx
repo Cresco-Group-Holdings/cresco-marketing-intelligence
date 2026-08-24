@@ -16,7 +16,17 @@ import { WinningContentPanel } from "@/components/organic-growth/winning-content
 import { useOrganicGrowthEngine } from "@/components/organic-growth/use-organic-growth-engine";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
+import type { MetricDisplayState } from "@/lib/command-centre/types";
 import type { MarketingSignal } from "@/lib/marketing-intelligence/types";
+import type { MetricDisplayState as OrganicMetricDisplayState } from "@/lib/organic-growth/types";
+
+function toCommandCentreMetricState(
+  state?: OrganicMetricDisplayState,
+): MetricDisplayState | undefined {
+  if (!state || state === "loading") return state;
+  if (state === "unavailable") return "partial";
+  return state;
+}
 
 function toFeaturedSignal(
   data: NonNullable<ReturnType<typeof useOrganicGrowthEngine>["data"]>,
@@ -86,7 +96,7 @@ export function OrganicOverviewDashboard() {
     value: kpi.value,
     change: kpi.change,
     comparisonLabel: kpi.comparisonLabel,
-    state: kpi.state,
+    state: toCommandCentreMetricState(kpi.state),
     stateMessage: kpi.stateMessage,
   }));
 

@@ -22,8 +22,12 @@ import { PerformanceOverviewChart } from "@/components/command-centre/performanc
 import { MarketingFunnelPanel } from "@/components/command-centre/marketing-funnel-panel";
 import { RecentActivityPanel } from "@/components/command-centre/recent-activity-panel";
 import { ModuleErrorBoundary, ModulePanel } from "@/components/command-centre/module-panel";
-import { buildChannelPerformanceRows } from "@/lib/command-centre/metrics";
-import type { ChannelPerformanceMetric } from "@/lib/command-centre/types";
+import { buildChannelPerformanceRows, buildOrganicChannelPerformanceRows } from "@/lib/command-centre/metrics";
+import type {
+  ChannelPerformanceMetric,
+  ChannelPerformanceMode,
+  OrganicChannelPerformanceMetric,
+} from "@/lib/command-centre/types";
 import { useCommandCentrePreviewData } from "@/components/marketing/command-centre-preview-context";
 
 const PAID_CHANNEL_META = [
@@ -60,6 +64,9 @@ function CommandCentreDashboardContent() {
   const [loading, setLoading] = useState(!previewData);
   const [error, setError] = useState<string | null>(null);
   const [channelMetric, setChannelMetric] = useState<ChannelPerformanceMetric>("spend");
+  const [organicChannelMetric, setOrganicChannelMetric] =
+    useState<OrganicChannelPerformanceMetric>("reach");
+  const [channelMode, setChannelMode] = useState<ChannelPerformanceMode>("paid");
   const { timedOut, reset: resetTimeout } = useLoadingTimeout(loading && !data);
 
   const loadDashboard = useCallback(async () => {
@@ -89,7 +96,7 @@ function CommandCentreDashboardContent() {
     void loadDashboard();
   }, [loadDashboard]);
 
-  const channelRows = useMemo(() => {
+  const paidChannelRows = useMemo(() => {
     if (!data) return [];
     const channels = PAID_CHANNEL_META.map((channel) => {
       const paidChannel = data.paidChannels.find((item) => item.label === channel.label);
@@ -111,6 +118,18 @@ function CommandCentreDashboardContent() {
       data.previousChannelProviders,
     );
   }, [data, channelMetric]);
+
+  const organicChannelRows = useMemo(() => {
+    if (!data?.organicChannelPerformance) return [];
+    return buildOrganicChannelPerformanceRows(
+      data.organicChannelPerformance,
+      data.previousOrganicChannelPerformance,
+      organicChannelMetric,
+      data.dateRange.comparisonLabel,
+    );
+  }, [data, organicChannelMetric]);
+
+  const channelRows = channelMode === "paid" ? paidChannelRows : organicChannelRows;
 
   if (loading && !data && !timedOut) {
     return <DashboardSkeleton />;
@@ -179,18 +198,41 @@ function CommandCentreDashboardContent() {
           <ModulePanel
             tier="analytical"
             title="Channel Performance"
-            subtitle="Cross-channel paid media comparison."
+            subtitle={
+              channelMode === "paid"
+                ? "Cross-channel paid media comparison."
+                : "Organic social reach and engagement by channel."
+            }
             actions={
-              <ButtonLink href="/analytics" variant="outline" size="sm">
+              <ButtonLink href={channelMode === "paid" ? "/analytics" : "/organic-social/growth"} variant="outline" size="sm">
                 View analytics
               </ButtonLink>
             }
           >
             <ChannelPerformancePanel
               rows={channelRows}
-              metric={channelMetric}
-              onMetricChange={setChannelMetric}
-              emptyMessage="Connect paid advertising accounts to compare performance across Google Ads, Meta, LinkedIn, and TikTok."
+              mode={channelMode}
+              onModeChange={(mode) => {
+                setChannelMode(mode);
+                if (mode === "organic") {
+                  setOrganicChannelMetric("reach");
+                } else {
+                  setChannelMetric("spend");
+                }
+              }}
+              metric={channelMode === "paid" ? channelMetric : organicChannelMetric}
+              onMetricChange={(nextMetric) => {
+                if (channelMode === "paid") {
+                  setChannelMetric(nextMetric as ChannelPerformanceMetric);
+                } else {
+                  setOrganicChannelMetric(nextMetric as OrganicChannelPerformanceMetric);
+                }
+              }}
+              emptyMessage={
+                channelMode === "paid"
+                  ? "Connect paid advertising accounts to compare performance across Google Ads, Meta, LinkedIn, and TikTok."
+                  : "Connect organic social accounts to compare reach and engagement across LinkedIn, Instagram, X, and other channels."
+              }
             />
           </ModulePanel>
         </ModuleErrorBoundary>

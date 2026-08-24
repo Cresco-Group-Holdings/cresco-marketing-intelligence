@@ -228,7 +228,12 @@ export const ORGANIC_GROWTH_VISUAL_PREVIEW_FIXTURE: OrganicGrowthEngineData = {
       profileVisitLift: 1.9,
       clickLift: 3.1,
       confidence: "medium",
+      evidenceStrength: "moderate",
       evidenceLabel: "2.8× account median engagement · 1.9× profile visits · 3.1× website clicks",
+      baselineDescription: "Compared with your account median for last 30 days",
+      sampleSize: 18,
+      comparisonWindow: "last 30 days",
+      disclaimer: "Performance signal based on observed account data — not causal evidence.",
       theme: "Grants",
       actions: [
         { label: "Repurpose", href: "/content/studio/preview-1?action=repurpose" },

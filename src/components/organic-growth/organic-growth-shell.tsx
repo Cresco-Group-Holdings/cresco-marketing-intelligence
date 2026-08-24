@@ -43,8 +43,8 @@ export function OrganicGrowthShell({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="space-y-6">
-      <nav aria-label="Organic social workspace" className="border-b border-border">
-        <ul className="-mb-px flex flex-wrap gap-1 overflow-x-auto">
+      <nav aria-label="Organic social workspace" className="border-b border-border -mx-1 px-1">
+        <ul className="-mb-px flex gap-0.5 overflow-x-auto scrollbar-none sm:gap-1">
           {TABS.map((tab) => {
             const active = tab.match(pathname);
             return (
@@ -52,7 +52,7 @@ export function OrganicGrowthShell({ children }: { children: React.ReactNode }) 
                 <Link
                   href={tab.href}
                   className={cn(
-                    "inline-flex items-center whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors",
+                    "inline-flex items-center whitespace-nowrap border-b-2 px-2.5 py-2 text-xs font-medium transition-colors sm:px-3 sm:py-2.5 sm:text-sm",
                     active
                       ? "border-organic-accent text-foreground"
                       : "border-transparent text-foreground-muted hover:border-border-strong hover:text-foreground",

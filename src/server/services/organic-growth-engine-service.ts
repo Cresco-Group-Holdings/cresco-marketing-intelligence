@@ -266,7 +266,9 @@ export const organicGrowthEngineService = {
       clicks: null,
     }));
 
-    const winningContent = detectWinningContent(performanceInputs);
+    const winningContent = detectWinningContent(performanceInputs, {
+      comparisonWindow: workspace.dateRange.label.toLowerCase(),
+    });
     const winningIds = new Set(winningContent.map((w) => w.id));
 
     const formatLeader = workspace.formatPerformance.sort(
@@ -323,13 +325,15 @@ export const organicGrowthEngineService = {
       growthScoreKpi.state = growthScore.total > 0 ? "normal" : "partial";
     }
 
-    const priorities = workspace.scheduleGaps.slice(0, 3).map((gap, index) => ({
-      id: `organic-priority-${index}`,
-      title: "Publishing gap detected",
-      urgency: "high" as const,
-      context: gap.message,
-      action: { label: "Schedule content", href: "/calendar" },
-    }));
+    const priorities: OrganicGrowthEngineData["priorities"] = workspace.scheduleGaps
+      .slice(0, 3)
+      .map((gap, index) => ({
+        id: `organic-priority-${index}`,
+        title: "Publishing gap detected",
+        urgency: "high" as const,
+        context: gap.message,
+        action: { label: "Schedule content", href: "/calendar" },
+      }));
 
     if (workspace.insights.length > 0) {
       const signal = workspace.insights[0]!;
@@ -338,7 +342,10 @@ export const organicGrowthEngineService = {
         title: signal.title,
         urgency: signal.severity === "high" ? "critical" : "high",
         context: signal.explanation,
-        action: signal.action ?? { label: "Review", href: "/organic-social/intelligence" },
+        action: {
+          label: signal.action?.label ?? "Review",
+          href: signal.action?.href ?? "/organic-social/intelligence",
+        },
       });
     }
 

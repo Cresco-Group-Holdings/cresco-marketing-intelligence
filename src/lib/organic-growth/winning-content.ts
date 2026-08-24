@@ -17,6 +17,7 @@ export type ContentPerformanceInput = {
 export type WinningContentOptions = {
   minSampleSize?: number;
   minLiftRatio?: number;
+  comparisonWindow?: string;
 };
 
 const DEFAULT_MIN_SAMPLE = 3;
@@ -31,6 +32,15 @@ function median(values: number[]): number | null {
     : sorted[mid]!;
 }
 
+function evidenceStrengthFromSample(
+  sampleSize: number,
+  lift: number,
+): "emerging" | "moderate" | "strong" {
+  if (sampleSize >= 10 && lift >= 2) return "strong";
+  if (sampleSize >= 5 && lift >= 1.5) return "moderate";
+  return "emerging";
+}
+
 function confidenceFromSample(sampleSize: number, lift: number): "low" | "medium" | "high" {
   if (sampleSize >= 10 && lift >= 2) return "high";
   if (sampleSize >= 5 && lift >= 1.5) return "medium";
@@ -43,6 +53,7 @@ export function detectWinningContent(
 ): WinningContentItem[] {
   const minSample = options.minSampleSize ?? DEFAULT_MIN_SAMPLE;
   const minLift = options.minLiftRatio ?? DEFAULT_MIN_LIFT;
+  const comparisonWindow = options.comparisonWindow ?? "the last 30 days";
 
   if (items.length < minSample) {
     return [];
@@ -83,6 +94,7 @@ export function detectWinningContent(
         : null;
 
     const confidence = confidenceFromSample(items.length, engagementLift);
+    const evidenceStrength = evidenceStrengthFromSample(items.length, engagementLift);
     const evidenceParts = [
       `${engagementLift.toFixed(1)}× account median engagement`,
     ];
@@ -109,7 +121,12 @@ export function detectWinningContent(
       profileVisitLift,
       clickLift,
       confidence,
+      evidenceStrength,
       evidenceLabel: evidenceParts.join(" · "),
+      baselineDescription: `Compared with your account median for ${comparisonWindow}`,
+      sampleSize: items.length,
+      comparisonWindow,
+      disclaimer: "Performance signal based on observed account data — not causal evidence.",
       theme: item.theme,
       actions: [
         { label: "Repurpose", href: `/content/studio/${item.id}?action=repurpose` },

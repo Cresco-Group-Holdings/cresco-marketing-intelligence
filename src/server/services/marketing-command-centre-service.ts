@@ -101,6 +101,13 @@ const ORGANIC_CHANNELS: Array<{
     ctaHref: "/organic-social/publishing",
     connectLabel: "Connect Facebook",
   },
+  {
+    provider: "X",
+    title: "X",
+    ctaLabel: "Create Post",
+    ctaHref: "/organic-social/publishing",
+    connectLabel: "Connect X",
+  },
 ];
 
 function formatCurrency(value: number, currency = "GBP"): string {
@@ -209,6 +216,8 @@ function buildEmptyResponse(
     recentActivity: [],
     channelProviders: [] as PaidProviderMetrics[],
     previousChannelProviders: [] as PaidProviderMetrics[],
+    organicChannelPerformance: [],
+    previousOrganicChannelPerformance: [],
     healthChange: null as number | null,
     performanceOverview: {
       revenue: [],
@@ -456,6 +465,41 @@ export const marketingCommandCentreService = {
       };
     });
 
+    const previousOrganicChannelsDetailed: OrganicChannelPerformance[] = ORGANIC_CHANNELS.map(
+      (channel) => {
+        const providerMetrics = previousSocialOverview?.byProvider?.[channel.provider];
+        const connected = connectedOrganicProviders.has(channel.provider);
+        const engagement =
+          providerMetrics != null
+            ? (providerMetrics.likes ?? 0) +
+              (providerMetrics.comments ?? 0) +
+              (providerMetrics.shares ?? 0) +
+              (providerMetrics.saves ?? 0)
+            : null;
+
+        return {
+          provider: channel.provider,
+          channel: channel.title,
+          connected,
+          reach: providerMetrics?.reach ?? null,
+          views: providerMetrics?.views ?? providerMetrics?.videoViews ?? null,
+          engagement,
+          engagementRate:
+            providerMetrics?.impressions && providerMetrics.impressions > 0 && engagement != null
+              ? (engagement / providerMetrics.impressions) * 100
+              : previousSocialOverview?.derived?.engagementRate ?? null,
+          followers: providerMetrics?.follows ?? providerMetrics?.subscribers ?? null,
+          followerGrowth: previousSocialOverview?.derived?.followerGrowth ?? null,
+          shares: providerMetrics?.shares ?? null,
+          saves: providerMetrics?.saves ?? null,
+          published: 0,
+          scheduled: 0,
+          dataFreshness: organicSyncAt,
+          unavailableMetrics: connected && !providerMetrics ? ["reach", "engagement"] : [],
+        };
+      },
+    );
+
     const publishedInRange = publications.filter((item) => item.status === "PUBLISHED").length;
     const scheduledUpcoming = publications.filter((item) => item.status === "SCHEDULED").length;
     const paidFreshness = resolveDataFreshness(paidSyncAt);
@@ -557,6 +601,16 @@ export const marketingCommandCentreService = {
       health.total > 0 || previousHealth.total > 0 ? health.total - previousHealth.total : null;
     const insights = evaluateMarketingSignals(intelligenceContext);
 
+    const organicReauthRequired = socialCatalogue.filter(
+      (item) => item.connection?.status === "RECONNECT_REQUIRED",
+    ).length;
+    const engagementDecline =
+      intelligenceContext.organic.engagement != null &&
+      intelligenceContext.organic.previousEngagement != null &&
+      intelligenceContext.organic.previousEngagement > 0 &&
+      intelligenceContext.organic.engagement <
+        intelligenceContext.organic.previousEngagement * 0.8;
+
     const [priorities, recentActivity] = await Promise.all([
       buildDashboardPriorities({
         brandId,
@@ -570,6 +624,10 @@ export const marketingCommandCentreService = {
         organicLabels: ORGANIC_CHANNELS.filter((c) => connectedOrganicProviders.has(c.provider)).map(
           (c) => c.title,
         ),
+        organicReauthRequired,
+        publishingGap: scheduledUpcoming === 0 && hasOrganicConnections,
+        winningContentReady: insights.filter((signal) => signal.type === "organic" && signal.id.startsWith("repurpose")).length,
+        engagementDecline,
       }),
       buildDashboardActivity({ organisationId, tenant }),
     ]);
@@ -804,6 +862,8 @@ export const marketingCommandCentreService = {
       recentActivity,
       channelProviders: paidByProvider,
       previousChannelProviders: previousPaidByProvider,
+      organicChannelPerformance: organicChannelsDetailed,
+      previousOrganicChannelPerformance: previousOrganicChannelsDetailed,
       healthChange,
       performanceOverview: {
         revenue: paidChart.revenue,

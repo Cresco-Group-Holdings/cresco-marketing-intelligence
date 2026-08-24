@@ -50,6 +50,10 @@ export async function buildDashboardPriorities(input: {
   organicFreshness: DataFreshnessState;
   paidLabels: string[];
   organicLabels: string[];
+  organicReauthRequired?: number;
+  publishingGap?: boolean;
+  winningContentReady?: number;
+  engagementDecline?: boolean;
 }): Promise<CommandCentrePriority[]> {
   const todayStart = startOfToday();
   const todayEnd = endOfToday();
@@ -132,6 +136,10 @@ export async function buildDashboardPriorities(input: {
     ).length,
     experimentsReady: completedExperiments,
     staleDataProviders: [...new Set(staleProviders)],
+    organicReauthRequired: input.organicReauthRequired,
+    publishingGap: input.publishingGap,
+    winningContentReady: input.winningContentReady,
+    engagementDecline: input.engagementDecline,
   });
 }
 

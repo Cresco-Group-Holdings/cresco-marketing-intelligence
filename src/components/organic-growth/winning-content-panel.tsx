@@ -3,6 +3,18 @@ import { ModulePanel } from "@/components/command-centre/module-panel";
 import { ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+const STRENGTH_LABELS = {
+  emerging: "Emerging evidence",
+  moderate: "Moderate evidence",
+  strong: "Strong evidence",
+} as const;
+
+const STRENGTH_STYLES = {
+  emerging: "bg-surface-hover text-foreground-muted",
+  moderate: "bg-warning/10 text-warning",
+  strong: "bg-success/10 text-success",
+} as const;
+
 export function WinningContentPanel({
   items,
   className,
@@ -13,7 +25,7 @@ export function WinningContentPanel({
   return (
     <ModulePanel
       title="Winning content"
-      subtitle="Posts performing meaningfully above account baseline"
+      subtitle="Posts performing above your account baseline"
       className={className}
       tier="actionable"
     >
@@ -32,22 +44,32 @@ export function WinningContentPanel({
           {items.map((item) => (
             <li key={item.id} className="px-4 py-3.5">
               <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-foreground">{item.title}</p>
                   <p className="mt-0.5 text-xs text-foreground-muted">
                     {item.channel}
                     {item.format ? ` · ${item.format}` : ""}
                   </p>
-                  <p className="mt-1 text-xs text-foreground-subtle">{item.evidenceLabel}</p>
+                  <p className="mt-2 text-xs text-foreground-muted">{item.baselineDescription}</p>
+                  <p className="mt-1 text-sm font-medium text-foreground">
+                    {item.engagementLift?.toFixed(1)}× engagement
+                    {item.profileVisitLift != null && item.profileVisitLift >= 1.3
+                      ? ` · ${item.profileVisitLift.toFixed(1)}× profile visits`
+                      : ""}
+                    {item.clickLift != null && item.clickLift >= 1.3
+                      ? ` · ${item.clickLift.toFixed(1)}× clicks`
+                      : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-foreground-subtle">
+                    Based on {item.sampleSize} comparable posts · {item.disclaimer}
+                  </p>
                   <span
                     className={cn(
                       "mt-1.5 inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium uppercase",
-                      item.confidence === "high" && "bg-success/10 text-success",
-                      item.confidence === "medium" && "bg-warning/10 text-warning",
-                      item.confidence === "low" && "bg-surface-hover text-foreground-muted",
+                      STRENGTH_STYLES[item.evidenceStrength],
                     )}
                   >
-                    {item.confidence} confidence
+                    {STRENGTH_LABELS[item.evidenceStrength]}
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">

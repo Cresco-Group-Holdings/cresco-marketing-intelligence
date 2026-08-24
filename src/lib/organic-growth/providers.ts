@@ -1,202 +1,119 @@
 import type { OrganicProviderDefinition } from "@/lib/organic-growth/types";
+import {
+  getServerOrganicSocialCatalogue,
+  getStaticOrganicSocialProviderKeys,
+  type CanonicalOrganicProvider,
+  type OrganicProductAvailability,
+} from "@/lib/providers/organic-social-catalogue";
 
-/** Canonical organic provider registry — availability reflects real adapter support, not marketing claims. */
-export const ORGANIC_PROVIDER_REGISTRY: OrganicProviderDefinition[] = [
-  {
-    provider: "LINKEDIN",
-    label: "LinkedIn",
-    tier: "core",
-    availability: "not_connected",
-    accountRead: true,
-    analytics: true,
-    publish: true,
-    schedule: true,
-    connectHref: "/integrations?provider=linkedin",
-    formats: ["text_post", "image_post", "carousel", "long_video", "document"],
-  },
-  {
-    provider: "X",
-    label: "X",
-    tier: "core",
-    availability: "not_connected",
-    accountRead: true,
-    analytics: true,
-    publish: true,
-    schedule: false,
-    connectHref: "/integrations?provider=x",
-    formats: ["text_post", "thread", "image_post", "short_video"],
-  },
-  {
-    provider: "INSTAGRAM",
-    label: "Instagram",
-    tier: "core",
-    availability: "not_connected",
-    accountRead: true,
-    analytics: true,
-    publish: true,
-    schedule: true,
-    connectHref: "/integrations?provider=instagram",
-    formats: ["image_post", "carousel", "short_video", "story"],
-  },
-  {
-    provider: "FACEBOOK",
-    label: "Facebook",
-    tier: "core",
-    availability: "not_connected",
-    accountRead: true,
-    analytics: true,
-    publish: true,
-    schedule: true,
-    connectHref: "/integrations?provider=facebook",
-    formats: ["text_post", "image_post", "carousel", "short_video"],
-  },
-  {
-    provider: "TIKTOK",
-    label: "TikTok",
-    tier: "core",
-    availability: "not_connected",
-    accountRead: true,
-    analytics: true,
-    publish: true,
-    schedule: false,
-    connectHref: "/integrations?provider=tiktok",
-    formats: ["short_video"],
-  },
-  {
-    provider: "YOUTUBE",
-    label: "YouTube",
-    tier: "core",
-    availability: "not_connected",
-    accountRead: true,
-    analytics: true,
-    publish: true,
-    schedule: true,
-    connectHref: "/integrations?provider=youtube",
-    formats: ["long_video", "short_video"],
-  },
-  {
-    provider: "THREADS",
-    label: "Threads",
-    tier: "core",
-    availability: "coming_soon",
-    accountRead: false,
-    analytics: false,
-    publish: false,
-    schedule: false,
-    connectHref: "/integrations?provider=threads",
-    formats: ["text_post", "image_post"],
-  },
-  {
-    provider: "PINTEREST",
-    label: "Pinterest",
-    tier: "core",
-    availability: "coming_soon",
-    accountRead: false,
-    analytics: false,
-    publish: false,
-    schedule: false,
-    connectHref: "/integrations?provider=pinterest",
-    formats: ["image_post", "carousel"],
-  },
-  {
-    provider: "REDDIT",
-    label: "Reddit",
-    tier: "secondary",
-    availability: "planned",
-    accountRead: false,
-    analytics: false,
-    publish: false,
-    schedule: false,
-    connectHref: "/integrations?provider=reddit",
-    formats: ["text_post", "image_post"],
-  },
-  {
-    provider: "BLUESKY",
-    label: "Bluesky",
-    tier: "secondary",
-    availability: "planned",
-    accountRead: false,
-    analytics: false,
-    publish: false,
-    schedule: false,
-    connectHref: "/integrations?provider=bluesky",
-    formats: ["text_post", "image_post"],
-  },
-  {
-    provider: "MEDIUM",
-    label: "Medium",
-    tier: "secondary",
-    availability: "planned",
-    accountRead: false,
-    analytics: false,
-    publish: false,
-    schedule: false,
-    connectHref: "/integrations",
-    formats: ["article"],
-  },
-  {
-    provider: "SUBSTACK",
-    label: "Substack",
-    tier: "secondary",
-    availability: "planned",
-    accountRead: false,
-    analytics: false,
-    publish: false,
-    schedule: false,
-    connectHref: "/integrations",
-    formats: ["article"],
-  },
-  {
-    provider: "TELEGRAM",
-    label: "Telegram",
-    tier: "secondary",
-    availability: "planned",
-    accountRead: false,
-    analytics: false,
-    publish: false,
-    schedule: false,
-    connectHref: "/integrations",
-    formats: ["text_post", "image_post"],
-  },
-];
-
-export function resolveProviderAvailability(
-  providerKey: string,
+function mapProductToUiAvailability(
+  productAvailability: OrganicProductAvailability,
   connected: boolean,
   status?: string,
   lastSyncAt?: Date | null,
 ): OrganicProviderDefinition["availability"] {
-  const registry = ORGANIC_PROVIDER_REGISTRY.find(
-    (p) => p.provider === providerKey || p.label.toUpperCase() === providerKey.toUpperCase(),
-  );
-  if (registry?.availability === "coming_soon" || registry?.availability === "planned") {
-    return registry.availability;
+  if (productAvailability === "coming_soon") return "coming_soon";
+  if (productAvailability === "planned") return "planned";
+  if (productAvailability === "unavailable" || productAvailability === "not_configured") {
+    return connected ? "error" : "not_connected";
   }
   if (!connected) return "not_connected";
   if (status === "RECONNECT_REQUIRED") return "reauth_required";
   if (status === "ERROR") return "error";
+  if (status === "SYNCING") return "syncing";
   if (lastSyncAt) {
     const ageHours = (Date.now() - lastSyncAt.getTime()) / (1000 * 60 * 60);
     if (ageHours > 24) return "stale";
-    if (ageHours > 1 && status === "SYNCING") return "syncing";
   }
   return "connected";
 }
+
+function canonicalToDefinition(
+  canonical: CanonicalOrganicProvider,
+  connected: boolean,
+  status?: string,
+  lastSyncAt?: Date | null,
+): OrganicProviderDefinition {
+  const connectable =
+    canonical.productAvailability === "available" || canonical.productAvailability === "beta";
+
+  return {
+    provider: canonical.provider as OrganicProviderDefinition["provider"],
+    label: canonical.label,
+    tier: canonical.tier,
+    availability: mapProductToUiAvailability(
+      canonical.productAvailability,
+      connected,
+      status,
+      lastSyncAt,
+    ),
+    accountRead: connectable && canonical.capabilities.accountRead,
+    analytics: connected && canonical.capabilities.analytics,
+    publish: connected && canonical.capabilities.publish,
+    schedule: connected && canonical.capabilities.schedule,
+    connectHref: canonical.connectHref,
+    formats: canonical.formats,
+  };
+}
+
+/** Client-safe registry — product keys without live env resolution. */
+export const ORGANIC_PROVIDER_REGISTRY: OrganicProviderDefinition[] =
+  getStaticOrganicSocialProviderKeys().map((item) =>
+    canonicalToDefinition(
+      {
+        provider: item.provider,
+        label: item.label,
+        tier: item.tier,
+        productAvailability: item.productAvailability,
+        availabilityReason: null,
+        capabilities: {
+          accountRead:
+            item.productAvailability === "available" || item.productAvailability === "beta",
+          analytics: false,
+          publish:
+            item.productAvailability === "available" || item.productAvailability === "beta",
+          schedule:
+            (item.productAvailability === "available" || item.productAvailability === "beta") &&
+            item.provider !== "X" &&
+            item.provider !== "TIKTOK",
+        },
+        connectHref: "/social/connections",
+        formats: [],
+      },
+      false,
+    ),
+  );
 
 export function mergeProviderRegistryWithConnections(
   connectedProviders: Set<string>,
   connectionStatus: Map<string, { status?: string; lastSyncAt?: Date | null }>,
 ): OrganicProviderDefinition[] {
-  return ORGANIC_PROVIDER_REGISTRY.map((provider) => {
-    const key = String(provider.provider);
-    const isConnected = connectedProviders.has(key);
+  return getServerOrganicSocialCatalogue().map((canonical) => {
+    const key = String(canonical.provider);
     const meta = connectionStatus.get(key);
-    return {
-      ...provider,
-      availability: resolveProviderAvailability(key, isConnected, meta?.status, meta?.lastSyncAt ?? null),
-      accountRead: isConnected ? provider.accountRead : provider.availability !== "planned",
-      analytics: isConnected && provider.analytics,
-      publish: isConnected && provider.publish,
-    };
+    return canonicalToDefinition(
+      canonical,
+      connectedProviders.has(key),
+      meta?.status,
+      meta?.lastSyncAt ?? null,
+    );
   });
+}
+
+export function groupProvidersByAvailability(providers: OrganicProviderDefinition[]): {
+  connected: OrganicProviderDefinition[];
+  availableToConnect: OrganicProviderDefinition[];
+  comingSoon: OrganicProviderDefinition[];
+  planned: OrganicProviderDefinition[];
+} {
+  return {
+    connected: providers.filter((p) =>
+      ["connected", "syncing", "stale", "reauth_required", "error"].includes(p.availability),
+    ),
+    availableToConnect: providers.filter(
+      (p) => p.availability === "not_connected" && p.accountRead,
+    ),
+    comingSoon: providers.filter((p) => p.availability === "coming_soon"),
+    planned: providers.filter((p) => p.availability === "planned"),
+  };
 }

@@ -4,6 +4,7 @@ export type ProviderCatalogueItem = {
   category: string;
   authTypes: string[];
   status: string;
+  statusLabel?: string;
   defaultApiVersion?: string;
   documentationUrl?: string;
   supportsWebhooks: boolean;
@@ -14,6 +15,8 @@ export type ProviderCatalogueItem = {
     requiresApproval?: boolean;
     oauthConfigStatus?: string | null;
     missingEnv?: string[];
+    organicSocial?: boolean;
+    connectRoute?: string | null;
   };
 };
 
