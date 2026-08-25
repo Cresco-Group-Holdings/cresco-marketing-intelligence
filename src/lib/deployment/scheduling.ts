@@ -30,7 +30,11 @@ export const VERCEL_CRON_PATHS = {
   publishingScheduler: "/api/publishing-scheduler/process-due",
 } as const;
 
-export type InternalCronJobId = "publishing";
+export type InternalCronJobId =
+  | "publishing"
+  | "worker_dispatch"
+  | "automation"
+  | "intelligence";
 
 export type InternalCronJobDefinition = {
   id: InternalCronJobId;
@@ -46,6 +50,24 @@ export const INTERNAL_CRON_JOBS: Record<InternalCronJobId, InternalCronJobDefini
     description: "Enqueue due content schedules and drain publishing jobs",
     targetSchedule: PRODUCTION_TARGET_SCHEDULES.publishing,
     maxPassesPerDailyDispatch: 8,
+  },
+  worker_dispatch: {
+    id: "worker_dispatch",
+    description: "Dispatch and process canonical worker jobs (sync, analytics, tokens)",
+    targetSchedule: PRODUCTION_TARGET_SCHEDULES.socialAnalytics,
+    maxPassesPerDailyDispatch: 4,
+  },
+  automation: {
+    id: "automation",
+    description: "Evaluate schedule triggers and process automation executions",
+    targetSchedule: "0 * * * *",
+    maxPassesPerDailyDispatch: 2,
+  },
+  intelligence: {
+    id: "intelligence",
+    description: "Stale data detection and background intelligence evaluation",
+    targetSchedule: "0 6 * * *",
+    maxPassesPerDailyDispatch: 1,
   },
 };
 

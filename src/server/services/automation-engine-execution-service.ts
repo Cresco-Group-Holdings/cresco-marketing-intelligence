@@ -347,6 +347,141 @@ export const automationEngineExecutionService = {
     return { workflowId: input.workflowId, executionId: updated.id, status: finalStatus, errorMessage };
   },
 
+  async resumePendingExecution(executionId: string, organisationId: string) {
+    const execution = await prisma.automationExecution.findFirst({
+      where: { id: executionId, organisationId },
+      include: {
+        version: {
+          include: {
+            actions: { orderBy: { sortOrder: "asc" } },
+          },
+        },
+      },
+    });
+    if (!execution) {
+      throw new AppError("NOT_FOUND", "Automation execution not found.");
+    }
+    if (execution.status !== "PENDING" && execution.status !== "FAILED") {
+      return {
+        workflowId: execution.workflowId,
+        executionId: execution.id,
+        status: execution.status,
+        skipped: true as const,
+      };
+    }
+
+    const actions = execution.version.actions;
+    const payload = (execution.triggerPayload as Record<string, unknown> | null) ?? {};
+    const userProfileId = execution.triggeredByUserId ?? execution.workflowId;
+
+    await prisma.automationExecution.update({
+      where: { id: execution.id },
+      data: { status: "RUNNING", startedAt: execution.startedAt ?? new Date() },
+    });
+
+    const actionCtx: ActionContext = {
+      organisationId: execution.organisationId,
+      projectId: execution.projectId,
+      brandId: execution.brandId,
+      userProfileId,
+      payload,
+      dryRun: false,
+    };
+
+    const actionsToRun = actions.slice(0, MAX_ACTIONS_PER_EXECUTION);
+    let failed = false;
+    let errorMessage: string | undefined;
+
+    for (const action of actionsToRun) {
+      const config = action.config as Record<string, unknown>;
+      const validation = validateActionConfig(action.actionType, config);
+      if (!validation.valid) {
+        failed = true;
+        errorMessage = validation.errors.join(" ");
+        break;
+      }
+
+      const step = await prisma.automationExecutionStep.create({
+        data: { executionId: execution.id, actionId: action.id, status: "RUNNING", startedAt: new Date() },
+      });
+
+      let attempt = 0;
+      let stepCompleted = false;
+      while (attempt < action.maxRetries && !stepCompleted) {
+        attempt += 1;
+        try {
+          const result = await executeAction(action.actionType, config, actionCtx);
+          await prisma.automationExecutionStep.update({
+            where: { id: step.id },
+            data: {
+              status: "COMPLETED",
+              attemptCount: attempt,
+              result: result as Prisma.InputJsonValue,
+              completedAt: new Date(),
+            },
+          });
+          stepCompleted = true;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Action failed.";
+          if (attempt >= action.maxRetries) {
+            await prisma.automationExecutionStep.update({
+              where: { id: step.id },
+              data: {
+                status: "FAILED",
+                attemptCount: attempt,
+                errorMessage: message,
+                completedAt: new Date(),
+              },
+            });
+            failed = true;
+            errorMessage = message;
+          } else {
+            await prisma.automationExecutionStep.update({
+              where: { id: step.id },
+              data: { status: "RETRYING", attemptCount: attempt, errorMessage: message },
+            });
+          }
+        }
+      }
+      if (failed) break;
+    }
+
+    const finalStatus = failed
+      ? shouldDeadLetter(execution.attemptCount + 1, execution.maxAttempts)
+        ? "DEAD_LETTER"
+        : "FAILED"
+      : "COMPLETED";
+
+    const updated = await prisma.automationExecution.update({
+      where: { id: execution.id },
+      data: {
+        status: finalStatus,
+        errorMessage,
+        deadLetterAt: finalStatus === "DEAD_LETTER" ? new Date() : null,
+        completedAt: new Date(),
+        attemptCount: { increment: 1 },
+      },
+    });
+
+    await recordAuditEvent({
+      organisationId: execution.organisationId,
+      projectId: execution.projectId,
+      actorUserId: userProfileId,
+      action: "automationEngine.execution_completed",
+      resourceType: "AutomationWorkflow",
+      resourceId: execution.workflowId,
+      metadata: { executionId: execution.id, status: finalStatus, resumed: true },
+    });
+
+    return {
+      workflowId: execution.workflowId,
+      executionId: updated.id,
+      status: finalStatus,
+      errorMessage,
+      skipped: false as const,
+    };
+  },
+
   async manualExecute(
     workflowId: string,
     brandId: string,

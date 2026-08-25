@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { ActivationBanner } from "@/components/activation/activation-banner";
+import { ActivationChecklistPanel } from "@/components/activation/activation-checklist";
 import { CommandCentreHeader } from "@/components/marketing/command-centre-header";
 import { MarketingDateRangeProvider } from "@/components/marketing/marketing-date-range-provider";
 import { ButtonLink } from "@/components/ui/button";
@@ -9,6 +11,7 @@ import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api/client";
 import type { MarketingCommandCentreData } from "@/server/services/marketing-command-centre-service";
+import type { ActivationState } from "@/server/services/activation-service";
 import { useLoadingTimeout } from "@/hooks/use-loading-timeout";
 import { MetricCardGrid, type MetricCardData } from "@/components/command-centre/metric-card";
 import { HealthScore } from "@/components/command-centre/health-score";
@@ -61,6 +64,7 @@ function CommandCentreDashboardContent() {
   const searchParams = useSearchParams();
   const previewData = useCommandCentrePreviewData();
   const [data, setData] = useState<MarketingCommandCentreData | null>(previewData ?? null);
+  const [activation, setActivation] = useState<ActivationState | null>(null);
   const [loading, setLoading] = useState(!previewData);
   const [error, setError] = useState<string | null>(null);
   const [channelMetric, setChannelMetric] = useState<ChannelPerformanceMetric>("spend");
@@ -81,10 +85,14 @@ function CommandCentreDashboardContent() {
     resetTimeout();
     try {
       const query = searchParams.toString();
-      const response = await apiFetch<{ dashboard: MarketingCommandCentreData }>(
-        `/api/dashboard/command-centre${query ? `?${query}` : ""}`,
-      );
-      setData(response.dashboard);
+      const [dashboardResponse, activationResponse] = await Promise.all([
+        apiFetch<{ dashboard: MarketingCommandCentreData }>(
+          `/api/dashboard/command-centre${query ? `?${query}` : ""}`,
+        ),
+        apiFetch<{ activation: ActivationState }>("/api/activation").catch(() => null),
+      ]);
+      setData(dashboardResponse.dashboard);
+      setActivation(activationResponse?.activation ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard.");
     } finally {
@@ -159,6 +167,12 @@ function CommandCentreDashboardContent() {
         freshness={data.freshness}
         coverage={data.coverage}
       />
+
+      {activation && !activation.isActivated ? <ActivationBanner activation={activation} /> : null}
+
+      {activation && !activation.isActivated ? (
+        <ActivationChecklistPanel checklist={activation.checklist} essentialOnly />
+      ) : null}
 
       <MetricCardGrid metrics={executiveKpis} />
 

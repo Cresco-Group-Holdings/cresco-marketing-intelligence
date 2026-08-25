@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { prisma } from "@/lib/database/prisma";
 import { apiSuccess } from "@/lib/api/response";
 import { AppError } from "@/lib/errors";
 import {
@@ -34,6 +35,46 @@ export async function GET(request: NextRequest, { params }: Params) {
         organisationId,
         tenant!,
       );
+      return apiSuccess({ executions }, { requestId });
+    }
+
+    if (view === "overview") {
+      const overview = await automationEngineService.listOverview(brandId, organisationId, tenant!);
+      const workflows = await automationEngineService.listWorkflows(brandId, organisationId, tenant!);
+      return apiSuccess({ overview, workflows }, { requestId });
+    }
+
+    if (view === "templates") {
+      const { LAUNCH_AUTOMATION_TEMPLATES, groupTemplatesByCategory } = await import(
+        "@/lib/automation-engine/launch-templates"
+      );
+      return apiSuccess(
+        { templates: LAUNCH_AUTOMATION_TEMPLATES, grouped: groupTemplatesByCategory() },
+        { requestId },
+      );
+    }
+
+    if (view === "errors") {
+      const errors = await prisma.automationExecution.findMany({
+        where: {
+          organisationId,
+          brandId,
+          status: { in: ["FAILED", "DEAD_LETTER"] },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        include: { workflow: { select: { name: true } } },
+      });
+      return apiSuccess({ errors }, { requestId });
+    }
+
+    if (view === "history") {
+      const executions = await prisma.automationExecution.findMany({
+        where: { organisationId, brandId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+        include: { workflow: { select: { name: true } }, steps: true },
+      });
       return apiSuccess({ executions }, { requestId });
     }
 
@@ -144,6 +185,22 @@ export async function POST(request: NextRequest, { params }: Params) {
           input.dryRun ?? false,
         );
         return apiSuccess(result, { requestId });
+      });
+    }
+
+    case "activateTemplate": {
+      return withAutomationEngineCreate(request, organisationId, async ({ requestId, tenant }) => {
+        const { automationScheduleService } = await import(
+          "@/server/services/automation-schedule-service"
+        );
+        const workflow = await automationScheduleService.activateTemplate({
+          templateKey: String(body.templateKey),
+          brandId,
+          organisationId,
+          userProfileId: tenant!.userProfileId,
+          timezone: body.timezone ? String(body.timezone) : undefined,
+        });
+        return apiSuccess({ workflow }, { requestId });
       });
     }
 
