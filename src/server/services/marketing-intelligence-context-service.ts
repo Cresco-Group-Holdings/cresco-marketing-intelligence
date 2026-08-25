@@ -71,21 +71,34 @@ export const marketingIntelligenceContextService = {
       socialConnectionService.getCatalogue(brandId, organisationId, tenant).catch(() => []),
       publicationService.list(brandId, organisationId, tenant).catch(() => []),
       socialAnalyticsQueryService
-        .getOverview(brandId, organisationId, range.from, range.to, tenant)
+        .overview(brandId, organisationId, { from: range.from, to: range.to }, tenant)
         .catch(() => null),
       socialAnalyticsQueryService
-        .getOverview(brandId, organisationId, range.comparisonFrom, range.comparisonTo, tenant)
+        .overview(
+          brandId,
+          organisationId,
+          { from: range.comparisonFrom, to: range.comparisonTo },
+          tenant,
+        )
         .catch(() => null),
       latestPaidSyncAt(brandId, organisationId),
       latestOrganicSyncAt(brandId, organisationId),
     ]);
 
-    const connectedPaidCount = paidConnections.filter((item) => item.status.connected).length;
+    const connectedPaidCount = paidConnections.filter(
+      (item: { connector: string; status: { connected: boolean } }) => item.status.connected,
+    ).length;
     const connectedOrganic = new Set(
-      socialCatalogue.filter((item) => item.connected).map((item) => item.provider),
+      socialCatalogue
+        .filter((item) => item.connection != null)
+        .map((item) => item.provider),
     );
-    const publishedInRange = publications.filter((item) => item.status === "PUBLISHED").length;
-    const scheduledUpcoming = publications.filter((item) => item.status === "SCHEDULED").length;
+    const publishedInRange = publications.filter(
+      (item: { status: string }) => item.status === "PUBLISHED",
+    ).length;
+    const scheduledUpcoming = publications.filter(
+      (item: { status: string }) => item.status === "SCHEDULED",
+    ).length;
 
     return {
       rangeLabel: range.label,

@@ -62,8 +62,13 @@ vi.mock("@/server/providers/billing/stripe-billing-provider", () => ({
   }),
 }));
 
+vi.mock("@/lib/providers/oauth/runtime", () => ({
+  isProductionRuntime: vi.fn().mockReturnValue(false),
+}));
+
 import { createHmac } from "node:crypto";
 import { getStripeBillingConfig } from "@/server/providers/billing/stripe-billing-provider";
+import { isProductionRuntime } from "@/lib/providers/oauth/runtime";
 
 import { entitlementService } from "@/server/services/entitlement-service";
 import { billingWebhookService } from "@/server/services/billing-webhook-service";
@@ -299,8 +304,9 @@ describe("billingWebhookService", () => {
     );
   });
 
-  it("rejects webhooks when Stripe billing is not configured", async () => {
+  it("rejects webhooks when Stripe billing is not configured in production", async () => {
     vi.mocked(getStripeBillingConfig).mockReturnValueOnce(null);
+    vi.mocked(isProductionRuntime).mockReturnValueOnce(true);
     const payload = JSON.stringify({ id: "evt_bad", type: "checkout.session.completed", data: { object: {} } });
     await expect(
       billingWebhookService.processStripeEvent(payload, signStripePayload(payload)),

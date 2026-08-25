@@ -121,28 +121,7 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
-<<<<<<< HEAD
   if (isDevPreviewRoute(pathname)) {
-=======
-  if (pathname.startsWith("/api/tracking/v1/events")) {
-    return false;
-  }
-
-  if (pathname.startsWith("/api/connectors/oauth/")) {
-    return false;
-  }
-
-  if (
-    process.env.NODE_ENV === "development" &&
-    (pathname === "/dev/command-centre-preview" ||
-      pathname.startsWith("/dev/organic-growth-preview") ||
-      pathname.startsWith("/dev/onboarding-preview"))
-  ) {
-    return false;
-  }
-
-  if (isWorkerApiRoute(pathname)) {
->>>>>>> origin/cursor/task-7-onboarding-activation-7a66
     return false;
   }
 

@@ -81,4 +81,12 @@ describe("public API route exclusions", () => {
     expect(isDevPreviewRoute("/dev/security-preview/overview")).toBe(false);
     expect(isProtectedRoute("/dev/security-preview/overview")).toBe(true);
   });
+
+  it("blocks billing and onboarding previews in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    expect(isDevPreviewRoute("/dev/billing-preview")).toBe(false);
+    expect(isDevPreviewRoute("/dev/onboarding-preview/welcome")).toBe(false);
+    expect(isProtectedRoute("/dev/billing-preview")).toBe(true);
+    expect(isProtectedRoute("/dev/onboarding-preview/welcome")).toBe(true);
+  });
 });

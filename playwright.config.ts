@@ -17,7 +17,6 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-<<<<<<< HEAD
   ...(process.env.PLAYWRIGHT_SKIP_WEBSERVER
     ? {}
     : {
@@ -26,18 +25,10 @@ export default defineConfig({
           url: "http://localhost:3000",
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,
+          env: {
+            ALLOW_TEST_AUTH: process.env.ALLOW_TEST_AUTH ?? "true",
+            TEST_AUTH_USER_ID: process.env.TEST_AUTH_USER_ID ?? "playwright-activation-user",
+          },
         },
       }),
-=======
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-    env: {
-      ALLOW_TEST_AUTH: process.env.ALLOW_TEST_AUTH ?? "true",
-      TEST_AUTH_USER_ID: process.env.TEST_AUTH_USER_ID ?? "playwright-activation-user",
-    },
-  },
->>>>>>> origin/cursor/task-7-onboarding-activation-7a66
 });
