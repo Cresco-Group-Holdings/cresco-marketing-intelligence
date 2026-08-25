@@ -41,6 +41,8 @@ import { campaignActivityListSchema } from "@/lib/validation/campaigns";
 import type { z } from "zod";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { brandService } from "@/server/services/workspace-service";
+import { ENTITLEMENT_KEYS } from "@/lib/billing/entitlements";
+import { entitlementService } from "@/server/services/entitlement-service";
 
 const campaignDetailInclude = {
   owner: { select: { id: true, displayName: true, email: true } },
@@ -422,6 +424,13 @@ export const campaignService = {
       if (activationIssues.length) {
         throw new AppError("VALIDATION_ERROR", formatValidationIssues(activationIssues));
       }
+
+      await entitlementService.assert({
+        workspaceId: organisationId,
+        organisationId,
+        entitlement: ENTITLEMENT_KEYS.CAMPAIGNS_MAX_ACTIVE,
+        requestedAmount: 1,
+      });
     }
 
     const nextStatus = resolveTransitionAction(action, existing.status);

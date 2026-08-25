@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
 import { DEFAULT_PLAN_CATALOG, USAGE_METER_DEFINITIONS } from "@/lib/billing/plan-catalog";
+import { resolveStripePriceId } from "@/lib/billing/commercial-config";
 
 export async function ensureBillingCatalogSeeded() {
   for (const meter of USAGE_METER_DEFINITIONS) {
@@ -27,6 +28,9 @@ export async function ensureBillingCatalogSeeded() {
       },
     });
 
+    const monthlyPriceRef = resolveStripePriceId(plan.key, "MONTHLY");
+    const annualPriceRef = resolveStripePriceId(plan.key, "ANNUAL");
+
     const existingVersion = await prisma.subscriptionPlanVersion.findFirst({
       where: { planId: dbPlan.id, isCurrent: true },
     });
@@ -39,6 +43,8 @@ export async function ensureBillingCatalogSeeded() {
           monthlyPriceCents: plan.monthlyPriceCents,
           annualPriceCents: plan.annualPriceCents,
           trialDays: plan.trialDays,
+          externalPriceMonthlyRef: monthlyPriceRef,
+          externalPriceAnnualRef: annualPriceRef,
           isCurrent: true,
         },
       });
@@ -62,6 +68,16 @@ export async function ensureBillingCatalogSeeded() {
           period: a.period,
         })),
         skipDuplicates: true,
+      });
+    } else {
+      await prisma.subscriptionPlanVersion.update({
+        where: { id: existingVersion.id },
+        data: {
+          monthlyPriceCents: plan.monthlyPriceCents,
+          annualPriceCents: plan.annualPriceCents,
+          ...(monthlyPriceRef ? { externalPriceMonthlyRef: monthlyPriceRef } : {}),
+          ...(annualPriceRef ? { externalPriceAnnualRef: annualPriceRef } : {}),
+        },
       });
     }
   }

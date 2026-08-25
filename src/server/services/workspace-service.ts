@@ -22,6 +22,8 @@ import {
 import { slugFromName } from "@/lib/utils/slug";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { buildTenantContextForUser } from "@/lib/tenancy/guards";
+import { ENTITLEMENT_KEYS } from "@/lib/billing/entitlements";
+import { entitlementService } from "@/server/services/entitlement-service";
 
 const ACTIVE_MEMBERSHIP: MembershipStatus = MembershipStatus.ACTIVE;
 
@@ -402,6 +404,13 @@ export const brandService = {
   ) {
     await projectService.getById(projectId, organisationId, context);
 
+    await entitlementService.assert({
+      workspaceId: organisationId,
+      organisationId,
+      entitlement: ENTITLEMENT_KEYS.BRANDS_MAX,
+      requestedAmount: 1,
+    });
+
     const existing = await prisma.brand.findFirst({
       where: { projectId, slug: input.slug },
     });
@@ -740,6 +749,13 @@ export const invitationService = {
     if (input.role === OrganisationRole.OWNER && context.organisationRole !== OrganisationRole.OWNER) {
       throw new AppError("FORBIDDEN", "Only owners can invite other owners.");
     }
+
+    await entitlementService.assert({
+      workspaceId: organisationId,
+      organisationId,
+      entitlement: ENTITLEMENT_KEYS.USERS_MAX,
+      requestedAmount: 1,
+    });
 
     const token = generateInvitationToken();
     const tokenHash = hashInvitationToken(token);

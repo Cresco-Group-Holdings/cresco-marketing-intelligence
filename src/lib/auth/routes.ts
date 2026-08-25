@@ -7,6 +7,8 @@ export const PUBLIC_ROUTES = new Set([
   "/reset-password",
   "/privacy",
   "/terms",
+  "/pricing",
+  "/accept-invite",
 ]);
 
 export const AUTH_ROUTES = new Set([
@@ -18,6 +20,21 @@ export const AUTH_ROUTES = new Set([
 ]);
 
 export const ONBOARDING_ROUTE = "/onboarding";
+export const GETTING_STARTED_ROUTE = "/getting-started";
+export const DEMO_WORKSPACE_ROUTE = "/demo";
+
+export const ACTIVATION_ROUTES = new Set([
+  GETTING_STARTED_ROUTE,
+  DEMO_WORKSPACE_ROUTE,
+]);
+
+export function isActivationRoute(pathname: string): boolean {
+  if (ACTIVATION_ROUTES.has(pathname)) {
+    return true;
+  }
+
+  return pathname.startsWith(`${DEMO_WORKSPACE_ROUTE}/`);
+}
 
 export function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.has(pathname);
@@ -41,27 +58,22 @@ export function isPublicApiRoute(pathname: string): boolean {
     return true;
   }
 
-  // External provider webhooks (Stripe, billing, social, email, etc.)
   if (pathname.startsWith("/api/webhooks/")) {
     return true;
   }
 
-  // Public lead capture forms (embeddable)
   if (pathname.startsWith("/api/forms/v1/")) {
     return true;
   }
 
-  // Client-side tracking beacon
   if (pathname.startsWith("/api/tracking/v1/events")) {
     return true;
   }
 
-  // Server-side tracking (API key authenticated in route handler)
   if (pathname.startsWith("/api/tracking/v1/server-events")) {
     return true;
   }
 
-  // OAuth callbacks — session may expire during provider round-trip
   if (pathname.startsWith("/api/connectors/oauth/")) {
     return true;
   }
@@ -82,12 +94,17 @@ export function isPublicApiRoute(pathname: string): boolean {
 }
 
 export function isDevPreviewRoute(pathname: string): boolean {
+  if (process.env.NODE_ENV === "production") {
+    return false;
+  }
+
   return (
-    process.env.NODE_ENV === "development" &&
-    (pathname === "/dev/command-centre-preview" ||
-      pathname.startsWith("/dev/organic-growth-preview") ||
-      pathname.startsWith("/dev/analytics-preview") ||
-      pathname.startsWith("/dev/security-preview"))
+    pathname === "/dev/command-centre-preview" ||
+    pathname === "/dev/billing-preview" ||
+    pathname.startsWith("/dev/organic-growth-preview") ||
+    pathname.startsWith("/dev/onboarding-preview") ||
+    pathname.startsWith("/dev/analytics-preview") ||
+    pathname.startsWith("/dev/security-preview")
   );
 }
 

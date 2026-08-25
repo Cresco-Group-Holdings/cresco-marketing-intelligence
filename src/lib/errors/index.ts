@@ -23,17 +23,19 @@ export class AppError extends Error {
   readonly code: AppErrorCode;
   readonly status: number;
   readonly expose: boolean;
+  readonly details?: Record<string, unknown>;
 
   constructor(
     code: AppErrorCode,
     message: string,
-    options?: { status?: number; expose?: boolean; cause?: unknown },
+    options?: { status?: number; expose?: boolean; cause?: unknown; details?: Record<string, unknown> },
   ) {
     super(message, { cause: options?.cause });
     this.name = "AppError";
     this.code = code;
     this.status = options?.status ?? mapCodeToStatus(code);
     this.expose = options?.expose ?? true;
+    this.details = options?.details;
   }
 }
 

@@ -17,6 +17,13 @@ const prismaMock = vi.hoisted(() => ({
   billingEvent: { findUnique: vi.fn(), create: vi.fn(), update: vi.fn() },
   billingInvoiceReference: { upsert: vi.fn() },
   trial: { findMany: vi.fn(), update: vi.fn(), upsert: vi.fn() },
+  providerConnection: { count: vi.fn() },
+  brand: { count: vi.fn() },
+  organisationMembership: { count: vi.fn() },
+  invitation: { count: vi.fn() },
+  project: { count: vi.fn() },
+  campaign: { count: vi.fn() },
+  auditLog: { create: vi.fn() },
 }));
 
 vi.mock("@/lib/database/prisma", () => ({
@@ -33,6 +40,13 @@ vi.mock("@/lib/database/prisma", () => ({
     billingEvent: prismaMock.billingEvent,
     billingInvoiceReference: prismaMock.billingInvoiceReference,
     trial: prismaMock.trial,
+    providerConnection: prismaMock.providerConnection,
+    brand: prismaMock.brand,
+    organisationMembership: prismaMock.organisationMembership,
+    invitation: prismaMock.invitation,
+    project: prismaMock.project,
+    campaign: prismaMock.campaign,
+    auditLog: prismaMock.auditLog,
   },
 }));
 
@@ -102,7 +116,7 @@ describe("entitlementService", () => {
         booleanValue: null,
       },
     ]);
-    prismaMock.usageRecord.aggregate.mockResolvedValue({ _sum: { amount: 2 } });
+    prismaMock.providerConnection.count.mockResolvedValue(2);
   });
 
   it("blocks when plan limit is exceeded", async () => {
@@ -120,7 +134,7 @@ describe("entitlementService", () => {
   });
 
   it("allows when under limit", async () => {
-    prismaMock.usageRecord.aggregate.mockResolvedValue({ _sum: { amount: 1 } });
+    prismaMock.providerConnection.count.mockResolvedValue(1);
 
     const result = await entitlementService.check({
       workspaceId: organisationId,
@@ -162,18 +176,30 @@ describe("entitlementService", () => {
     expect(result.code).toBe("TRIAL_EXPIRED");
   });
 
-  it("returns PAYMENT_ACTION_REQUIRED for past due subscriptions", async () => {
+  it("returns PAYMENT_ACTION_REQUIRED for past due subscriptions after grace period", async () => {
+    const pastDueSince = new Date();
+    pastDueSince.setUTCDate(pastDueSince.getUTCDate() - 10);
+
     prismaMock.billingAccount.findUnique.mockResolvedValue(
       activeAccount({
         subscription: {
           planVersionId: "pv-free",
           status: "PAST_DUE",
+          updatedAt: pastDueSince,
           currentPeriodStart: new Date("2026-08-01"),
           currentPeriodEnd: new Date("2026-09-01"),
           planVersion: { plan: { key: "starter" } },
         },
       }),
     );
+    prismaMock.planEntitlement.findMany.mockResolvedValue([
+      {
+        entitlementKey: ENTITLEMENT_KEYS.USERS_MAX,
+        valueType: "COUNT",
+        limitValue: 5,
+        booleanValue: null,
+      },
+    ]);
 
     const result = await entitlementService.check({
       workspaceId: organisationId,
@@ -231,6 +257,7 @@ describe("billingWebhookService", () => {
     prismaMock.subscription.upsert.mockResolvedValue({});
     prismaMock.workspaceEntitlement.upsert.mockResolvedValue({});
     prismaMock.planEntitlement.findMany.mockResolvedValue([]);
+    prismaMock.auditLog.create.mockResolvedValue({ id: "audit-1" });
   });
 
   it("deduplicates webhook replay", async () => {
