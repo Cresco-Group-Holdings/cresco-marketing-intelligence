@@ -174,7 +174,7 @@ export function OperationsJobsView() {
                 ) : null}
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{job.status}</Badge>
+                <Badge variant="muted">{job.status}</Badge>
                 {["FAILED", "DEAD_LETTER", "RETRY_WAIT"].includes(job.status) ? (
                   <Button size="sm" variant="outline" onClick={() => void retryJob(job.id)}>
                     Retry

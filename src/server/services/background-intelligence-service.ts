@@ -40,7 +40,7 @@ export const backgroundIntelligenceService = {
         projectId: connection.projectId ?? undefined,
         brandId: connection.brandId ?? undefined,
         alertType: "CONNECTOR_SYNC_FAILURE",
-        category: "INTEGRATION",
+        category: "CONNECTION",
         resourceType: "ProviderConnection",
         resourceId: connection.id,
         provider: connection.providerKey,

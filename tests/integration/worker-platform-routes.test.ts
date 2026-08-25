@@ -14,6 +14,23 @@ vi.mock("@/server/services/worker-dispatcher-service", () => ({
   },
 }));
 
+vi.mock("@/server/services/automation-schedule-service", () => ({
+  automationScheduleService: {
+    dispatchDueSchedules: vi.fn().mockResolvedValue({
+      evaluated: 0,
+      triggered: 0,
+      skipped: 0,
+      executionIds: [],
+    }),
+  },
+}));
+
+vi.mock("@/server/services/worker-job-service", () => ({
+  workerJobService: {
+    recoverExpiredJobs: vi.fn().mockResolvedValue(0),
+  },
+}));
+
 vi.mock("@/server/services/worker-executor-service", () => ({
   workerExecutorService: {
     processAvailableJobs: vi.fn().mockResolvedValue({
@@ -30,6 +47,8 @@ vi.mock("@/server/services/worker-executor-service", () => ({
 
 import { GET as dispatchGet } from "@/app/api/workers/dispatch/route";
 import { GET as processGet } from "@/app/api/workers/process/route";
+import { GET as recoverGet } from "@/app/api/workers/recover/route";
+import { GET as automationSchedulesGet } from "@/app/api/workers/automation-schedules/route";
 
 const TOKEN = "worker-platform-test-token";
 
@@ -71,5 +90,23 @@ describe("worker platform routes auth", () => {
       request("/api/workers/process", { authorization: `Bearer ${TOKEN}` }),
     );
     expect(response.status).toBe(200);
+  });
+
+  it("rejects unauthenticated recover and automation-schedules", async () => {
+    const recover = await recoverGet(request("/api/workers/recover"));
+    const schedules = await automationSchedulesGet(request("/api/workers/automation-schedules"));
+    expect(recover.status).toBe(403);
+    expect(schedules.status).toBe(403);
+  });
+
+  it("accepts worker token for recover and automation-schedules", async () => {
+    const recover = await recoverGet(
+      request("/api/workers/recover", { authorization: `Bearer ${TOKEN}` }),
+    );
+    const schedules = await automationSchedulesGet(
+      request("/api/workers/automation-schedules", { authorization: `Bearer ${TOKEN}` }),
+    );
+    expect(recover.status).toBe(200);
+    expect(schedules.status).toBe(200);
   });
 });

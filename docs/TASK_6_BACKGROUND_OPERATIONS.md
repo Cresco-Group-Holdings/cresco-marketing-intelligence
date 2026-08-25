@@ -13,7 +13,9 @@
 
 - **Target:** scheduled publications execute within **±5–10 minutes** of requested time.
 - **Mechanism:** GitHub Actions `*/5 * * * *` cadence invoking the canonical dispatcher.
-- **Limitation:** GHA scheduled workflows may start 3–5 minutes late during peak load; documented in workflow header.
+- **Minimum configured cadence:** 5 minutes (GitHub Actions `worker-platform-scheduler.yml`).
+- **Limitation:** GHA scheduled workflows are not hard real-time. Actual execution can be delayed 3–10+ minutes during peak load; internal operational target is approximately ±5–10 minutes, not exact-second publishing.
+- **Post-launch:** If usage or precision requirements increase, migrate to a dedicated scheduler service (documented backlog item — do not market sub-minute publishing guarantees on GHA).
 
 ### Scheduler health
 

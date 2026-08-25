@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   createTenant,
   databaseSuiteEnabled,
@@ -35,7 +35,7 @@ suite("Task 6.1 launch gate — background operations", () => {
         brandId: tenant.brand.id,
         providerKey: "linkedin",
         category: "SOCIAL",
-        authType: "OAUTH2",
+        authType: "OAUTH2_AUTHORIZATION_CODE",
         status: "CONNECTED",
       },
     });
@@ -51,7 +51,7 @@ suite("Task 6.1 launch gate — background operations", () => {
         externalAccountId: "acct-1",
         destinationType: "PAGE",
         destinationId: "page-1",
-        operationType: "PUBLISH_POST",
+        operationType: "SOCIAL_PUBLISH_POST",
         status: "SCHEDULED",
         scheduledFor: new Date(FIXED_NOW.getTime() - 60_000),
         timezone: "Europe/London",
@@ -93,6 +93,47 @@ suite("Task 6.1 launch gate — background operations", () => {
     await expect(
       workerJobService.requeueForManualRetry(job.id, tenantB.organisation.id),
     ).rejects.toThrow();
+  });
+
+  it("does not dispatch publications scheduled in the future", async () => {
+    const tenant = await createTenant();
+    const connection = await prisma.providerConnection.create({
+      data: {
+        organisationId: tenant.organisation.id,
+        projectId: tenant.project.id,
+        brandId: tenant.brand.id,
+        providerKey: "linkedin",
+        category: "SOCIAL",
+        authType: "OAUTH2_AUTHORIZATION_CODE",
+        status: "CONNECTED",
+      },
+    });
+
+    await prisma.publication.create({
+      data: {
+        organisationId: tenant.organisation.id,
+        projectId: tenant.project.id,
+        brandId: tenant.brand.id,
+        contentItemId: tenant.contentItem.id,
+        connectionId: connection.id,
+        providerKey: "linkedin",
+        externalAccountId: "acct-future",
+        destinationType: "PAGE",
+        destinationId: "page-1",
+        operationType: "SOCIAL_PUBLISH_POST",
+        status: "SCHEDULED",
+        scheduledFor: new Date(FIXED_NOW.getTime() + 10 * 60_000),
+        timezone: "Europe/London",
+        idempotencyKey: `pub-${tenant.brand.id}:future`,
+        requestedByUserId: tenant.user.id,
+      },
+    });
+
+    const { discoverPublishingDueWork } = await import(
+      "@/server/services/worker-due-providers/publishing-due-provider"
+    );
+    const due = await discoverPublishingDueWork(FIXED_NOW, 10);
+    expect(due).toHaveLength(0);
   });
 
   it("maps Europe/London local schedule to UTC dueAt within dispatcher window", () => {

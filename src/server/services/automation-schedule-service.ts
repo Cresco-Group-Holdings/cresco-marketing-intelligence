@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { cronMatches, idempotencyKeyForScheduledRun } from "@/lib/background/scheduling";
 import { checkDailyExecutionLimit, checkMonthlyQuota, dayStart, monthStart } from "@/lib/automation-engine/safety";
@@ -5,6 +6,39 @@ import { evaluateAllConditions } from "@/lib/automation-engine/conditions";
 import { logger } from "@/lib/logging";
 
 const DEFAULT_TIMEZONE = "Europe/London";
+
+async function buildScheduleEvaluationPayload(
+  workflow: { brandId: string; organisationId: string },
+  base: Record<string, unknown>,
+  now: Date,
+): Promise<Record<string, unknown>> {
+  const [upcomingCount, activeCampaign] = await Promise.all([
+    prisma.publication.count({
+      where: {
+        organisationId: workflow.organisationId,
+        brandId: workflow.brandId,
+        status: "SCHEDULED",
+        scheduledFor: { gt: now },
+        cancelledAt: null,
+      },
+    }),
+    prisma.contentCampaign.findFirst({
+      where: {
+        organisationId: workflow.organisationId,
+        brandId: workflow.brandId,
+        status: "ACTIVE",
+        archivedAt: null,
+      },
+      select: { status: true },
+    }),
+  ]);
+
+  return {
+    ...base,
+    content: { upcomingCount },
+    campaign: { status: activeCampaign?.status ?? null },
+  };
+}
 
 export type ScheduleDispatchSummary = {
   evaluated: number;
@@ -69,13 +103,17 @@ export const automationScheduleService = {
           continue;
         }
 
-        const payload = {
-          resourceType: "schedule",
-          resourceId: workflow.id,
-          triggerKind: "SCHEDULE",
-          scheduleCron: trigger.scheduleCron,
-          timezone,
-        };
+        const payload = await buildScheduleEvaluationPayload(
+          workflow,
+          {
+            resourceType: "schedule",
+            resourceId: workflow.id,
+            triggerKind: "SCHEDULE",
+            scheduleCron: trigger.scheduleCron,
+            timezone,
+          },
+          now,
+        );
 
         const conditions = version.conditions.map((c) => ({
           field: c.field,
@@ -132,7 +170,7 @@ export const automationScheduleService = {
             brandId: workflow.brandId,
             idempotencyKey,
             triggerEventType: "MANUAL",
-            triggerPayload: payload,
+            triggerPayload: payload as Prisma.InputJsonValue,
             status: "PENDING",
             triggeredByUserId: workflow.createdByUserId,
           },
@@ -223,7 +261,7 @@ export const automationScheduleService = {
             versionId: version.id,
             field: condition.field,
             operator: condition.operator,
-            value: condition.value,
+            value: condition.value as Prisma.InputJsonValue,
             sortOrder: index,
           },
         });
@@ -234,7 +272,7 @@ export const automationScheduleService = {
           data: {
             versionId: version.id,
             actionType: action.actionType,
-            config: action.config,
+            config: action.config as Prisma.InputJsonValue,
             sortOrder: index,
             maxRetries: action.maxRetries ?? 3,
           },

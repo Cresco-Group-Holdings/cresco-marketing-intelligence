@@ -178,7 +178,7 @@ export function cronMatches(cron: string, date: Date, timezone: string): boolean
     dow: weekdayMap[p.weekday ?? "Sun"] ?? 0,
   };
 
-  const matchField = (expr: string, value: number) => {
+  const matchField = (expr: string, value: number): boolean => {
     if (expr === "*") return true;
     if (expr.includes(",")) return expr.split(",").some((v) => matchField(v, value));
     if (expr.includes("/")) {

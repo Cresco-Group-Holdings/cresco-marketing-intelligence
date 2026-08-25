@@ -189,7 +189,7 @@ export function AutomationsWorkspace({ tab }: Props) {
               executions.map((execution) => (
                 <div key={String(execution.id)} className="flex justify-between rounded-md border p-3 text-sm">
                   <span>{String((execution.workflow as { name?: string })?.name ?? "Workflow")}</span>
-                  <Badge variant="outline">{String(execution.status)}</Badge>
+                  <Badge variant="muted">{String(execution.status)}</Badge>
                 </div>
               ))
             )}
