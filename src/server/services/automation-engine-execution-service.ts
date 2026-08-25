@@ -18,6 +18,7 @@ import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { automationActionExecutor } from "@/server/services/automation-action-executor";
 import { brandService } from "@/server/services/workspace-service";
+import { isCommercialUsageExempt } from "@/lib/billing/commercial-exempt";
 import { ENTITLEMENT_KEYS, USAGE_METER_KEYS } from "@/lib/billing/entitlements";
 import { entitlementService } from "@/server/services/entitlement-service";
 import { usageMeteringService } from "@/server/services/usage-metering-service";
@@ -150,7 +151,7 @@ export const automationEngineExecutionService = {
         continue;
       }
 
-      if (!input.dryRun) {
+      if (!input.dryRun && !isCommercialUsageExempt(organisationId)) {
         await entitlementService.assert({
           workspaceId: organisationId,
           organisationId,

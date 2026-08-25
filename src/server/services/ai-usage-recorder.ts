@@ -3,6 +3,7 @@ import { prisma } from "@/lib/database/prisma";
 import type { AITokenUsage } from "@/lib/ai/types";
 import { estimateTokenCostUsd, aiModelRegistry } from "@/lib/ai/model-registry";
 import { USAGE_METER_KEYS } from "@/lib/billing/entitlements";
+import { isCommercialUsageExempt } from "@/lib/billing/commercial-exempt";
 import { usageMeteringService } from "@/server/services/usage-metering-service";
 
 export class AIUsageRecorder {
@@ -16,6 +17,7 @@ export class AIUsageRecorder {
     model: string;
     purpose: AIPurpose;
     usage: AITokenUsage;
+    skipCommercialMetering?: boolean;
   }): Promise<void> {
     const model = aiModelRegistry.getModel(input.provider, input.model);
     const estimatedCostUsd = estimateTokenCostUsd(model, input.usage);
@@ -37,7 +39,11 @@ export class AIUsageRecorder {
       },
     });
 
-    if (input.aiExecutionId) {
+    if (
+      input.aiExecutionId &&
+      !input.skipCommercialMetering &&
+      !isCommercialUsageExempt(input.organisationId)
+    ) {
       await usageMeteringService.recordUsage({
         organisationId: input.organisationId,
         meterKey: USAGE_METER_KEYS.AI_TOKENS,

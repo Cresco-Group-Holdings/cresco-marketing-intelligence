@@ -7,6 +7,7 @@ export const PUBLIC_ROUTES = new Set([
   "/reset-password",
   "/privacy",
   "/terms",
+  "/pricing",
 ]);
 
 export const AUTH_ROUTES = new Set([
@@ -52,13 +53,19 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
+  if (pathname.startsWith("/api/webhooks/")) {
+    return false;
+  }
+
   if (pathname.startsWith("/api/connectors/oauth/")) {
     return false;
   }
 
   if (
     process.env.NODE_ENV === "development" &&
-    (pathname === "/dev/command-centre-preview" || pathname.startsWith("/dev/organic-growth-preview"))
+    (pathname === "/dev/command-centre-preview" ||
+      pathname === "/dev/billing-preview" ||
+      pathname.startsWith("/dev/organic-growth-preview"))
   ) {
     return false;
   }

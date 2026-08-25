@@ -261,7 +261,7 @@ export const subscriptionService = {
 
     const remote = await stripeBillingProvider.retrieveSubscription(subscriptionRef);
     if (!remote) {
-      throw new AppError("UPSTREAM_ERROR", "Unable to retrieve subscription from Stripe.");
+      throw new AppError("INTERNAL_ERROR", "Unable to retrieve subscription from Stripe.");
     }
 
     const mappedStatus = mapStripeStatusToSubscriptionStatus(remote.status);

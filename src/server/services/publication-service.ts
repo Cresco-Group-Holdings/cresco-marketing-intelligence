@@ -10,6 +10,7 @@ import { hasPermission, PERMISSIONS } from "@/lib/tenancy/permissions";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { complianceAgentService } from "@/server/services/compliance-agent-service";
 import { brandService } from "@/server/services/workspace-service";
+import { isCommercialUsageExempt } from "@/lib/billing/commercial-exempt";
 import { ENTITLEMENT_KEYS, USAGE_METER_KEYS } from "@/lib/billing/entitlements";
 import { entitlementService } from "@/server/services/entitlement-service";
 import { usageMeteringService } from "@/server/services/usage-metering-service";
@@ -163,7 +164,7 @@ export const publicationService = {
     });
     if (!connection) throw new AppError("NOT_FOUND", "Provider connection not found.");
 
-    if (!input.dryRun) {
+    if (!input.dryRun && !isCommercialUsageExempt(organisationId)) {
       await entitlementService.assert({
         workspaceId: organisationId,
         organisationId,
@@ -259,7 +260,7 @@ export const publicationService = {
       metadata: { operationType: input.operationType, status: publication.status },
     });
 
-    if (!input.dryRun) {
+    if (!input.dryRun && !isCommercialUsageExempt(organisationId)) {
       await usageMeteringService.recordUsage({
         organisationId,
         meterKey: USAGE_METER_KEYS.PUBLICATIONS,

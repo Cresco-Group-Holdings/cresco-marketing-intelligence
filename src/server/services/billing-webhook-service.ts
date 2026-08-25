@@ -3,6 +3,7 @@ import { verifyStripeWebhookSignature } from "@/lib/revenue/stripe-webhook";
 import { isProductionRuntime } from "@/lib/providers/oauth/runtime";
 import { mapStripeStatusToSubscriptionStatus } from "@/lib/billing/subscription-state";
 import { getStripeBillingConfig } from "@/server/providers/billing/stripe-billing-provider";
+import { SELF_SERVICE_PLAN_KEYS } from "@/lib/billing/commercial-config";
 import { getCurrentPlanVersion } from "@/lib/billing/plan-seed";
 import { entitlementService } from "@/server/services/entitlement-service";
 import { trackCommercialEvent } from "@/lib/billing/commercial-analytics";
@@ -100,6 +101,9 @@ export const billingWebhookService = {
       case "checkout.session.completed": {
         if (!organisationId) return;
         const planKey = (obj.metadata as Record<string, string> | undefined)?.plan_key ?? "starter";
+        if (!SELF_SERVICE_PLAN_KEYS.includes(planKey as (typeof SELF_SERVICE_PLAN_KEYS)[number])) {
+          throw new Error(`Checkout plan key is not allowed: ${planKey}`);
+        }
         const planVersion = await getCurrentPlanVersion(planKey);
         if (!planVersion) return;
 

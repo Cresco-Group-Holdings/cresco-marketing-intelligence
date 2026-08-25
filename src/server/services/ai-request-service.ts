@@ -41,7 +41,9 @@ import type { AIExecutionInput, AIExecutionResult } from "@/lib/ai/types";
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { assertOrganisationScope, type TenantContext } from "@/lib/tenancy/context";
-import { ENTITLEMENT_KEYS } from "@/lib/billing/entitlements";
+import { ENTITLEMENT_KEYS, USAGE_METER_KEYS } from "@/lib/billing/entitlements";
+import { isCommercialUsageExempt } from "@/lib/billing/commercial-exempt";
+import { usageReservationService } from "@/lib/billing/usage-reservation";
 import { aiUsageRecorder } from "@/server/services/ai-usage-recorder";
 import { entitlementService } from "@/server/services/entitlement-service";
 import { promptTemplateService } from "@/server/services/prompt-template-service";
@@ -161,12 +163,6 @@ export const aiRequestService = {
       estimateTokensFromText(redactedBrandContext?.text ?? "");
 
     await assertRequestTokenBudget(estimatedPromptTokens + AI_MAX_OUTPUT_TOKENS_DEFAULT);
-    await entitlementService.assert({
-      workspaceId: input.organisationId,
-      organisationId: input.organisationId,
-      entitlement: ENTITLEMENT_KEYS.AI_TOKENS_MONTHLY,
-      requestedAmount: estimatedPromptTokens + AI_MAX_OUTPUT_TOKENS_DEFAULT,
-    });
     await assertUserDailyBudget(input.userProfileId);
 
     const rateLimiter = createTenantRateLimiter();
@@ -195,6 +191,20 @@ export const aiRequestService = {
         startedAt: new Date(),
       },
     });
+
+    const reservationKey = `ai-reserve-${aiRequest.id}`;
+    let reservationHeld = false;
+    if (!isCommercialUsageExempt(input.organisationId)) {
+      await entitlementService.reserveMeteredUsage({
+        organisationId: input.organisationId,
+        entitlement: ENTITLEMENT_KEYS.AI_TOKENS_MONTHLY,
+        meterKey: USAGE_METER_KEYS.AI_TOKENS,
+        amount: estimatedPromptTokens + AI_MAX_OUTPUT_TOKENS_DEFAULT,
+        idempotencyKey: reservationKey,
+        operationType: input.purpose,
+      });
+      reservationHeld = true;
+    }
 
     const provider = getAIProvider(model.provider);
     let lastError: unknown;
@@ -294,7 +304,16 @@ export const aiRequestService = {
           model: model.modelId,
           purpose: input.purpose,
           usage,
+          skipCommercialMetering: reservationHeld,
         });
+
+        if (reservationHeld) {
+          await usageReservationService.commit({
+            organisationId: input.organisationId,
+            reservationIdempotencyKey: reservationKey,
+            finalAmount: usage.totalTokens,
+          });
+        }
 
         return {
           requestId: input.requestId ?? aiRequest.id,
@@ -345,6 +364,13 @@ export const aiRequestService = {
         completedAt: new Date(),
       },
     });
+
+    if (reservationHeld) {
+      await usageReservationService.release({
+        organisationId: input.organisationId,
+        reservationIdempotencyKey: reservationKey,
+      });
+    }
 
     if (lastError && typeof lastError === "object" && "category" in lastError) {
       throw aiErrorMapper.mapProviderError(lastError as never);

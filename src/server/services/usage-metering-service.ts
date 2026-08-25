@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/database/prisma";
 import { billingAccountService } from "@/server/services/billing-account-service";
+import { usageReservationService } from "@/lib/billing/usage-reservation";
 
 function startOfUtcMonth(date = new Date()): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
@@ -91,23 +92,15 @@ export const usageMeteringService = {
           ? await this.getBillingPeriod(organisationId)
           : this.resolvePeriod(period, organisationId);
 
-    const aggregate = await prisma.usageRecord.aggregate({
-      where: {
-        organisationId,
-        meterKey,
-        ...(period === "LIFETIME"
-          ? {}
-          : {
-              periodStart: { gte: range.start },
-              periodEnd: { lte: range.end },
-            }),
-      },
-      _sum: { amount: true },
-    });
+    const total = await usageReservationService.getReservedUsage(
+      organisationId,
+      meterKey,
+      period ?? "BILLING_PERIOD",
+    );
 
     return {
       meterKey,
-      total: aggregate._sum.amount ?? 0,
+      total,
       periodStart: range.start.toISOString(),
       periodEnd: range.end.toISOString(),
     };

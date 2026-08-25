@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   BILLING_CURRENCY,
   formatPlanPrice,
+  LAUNCH_ANALYTICS_HISTORY_GATING_ENABLED,
+  LAUNCH_ATTRIBUTION_MODEL_GATING_ENABLED,
   LAUNCH_PLAN_KEYS,
   resolvePlanKeyFromStripePriceId,
   suggestUpgradePlanKey,
@@ -28,5 +30,16 @@ describe("commercial config", () => {
 
   it("documents trial policy for launch", () => {
     expect(TRIAL_ENABLED_AT_LAUNCH).toBe(false);
+  });
+
+  it("resolves plan key from configured Stripe price IDs", () => {
+    process.env.STRIPE_PRICE_STARTER_MONTHLY = "price_starter_m";
+    expect(resolvePlanKeyFromStripePriceId("price_starter_m")).toBe("starter");
+    delete process.env.STRIPE_PRICE_STARTER_MONTHLY;
+  });
+
+  it("documents analytics and attribution gating as post-launch", () => {
+    expect(LAUNCH_ANALYTICS_HISTORY_GATING_ENABLED).toBe(false);
+    expect(LAUNCH_ATTRIBUTION_MODEL_GATING_ENABLED).toBe(false);
   });
 });

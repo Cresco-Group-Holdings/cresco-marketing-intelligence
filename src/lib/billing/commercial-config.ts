@@ -37,6 +37,13 @@ export const USAGE_WARNING_THRESHOLDS = [70, 90, 100] as const;
  */
 export const TRIAL_ENABLED_AT_LAUNCH = false;
 
+/**
+ * Analytics history windows and premium attribution models are not differentiated
+ * on the launch pricing page or plan catalogue. These remain post-launch commercial options.
+ */
+export const LAUNCH_ANALYTICS_HISTORY_GATING_ENABLED = false;
+export const LAUNCH_ATTRIBUTION_MODEL_GATING_ENABLED = false;
+
 export const BILLING_CURRENCY = "GBP" as const;
 
 export type StripePriceEnvKeys = {
@@ -82,7 +89,7 @@ export function suggestUpgradePlanKey(currentPlanKey: string): string | undefine
   return PLAN_UPGRADE_ORDER[index + 1];
 }
 
-export function formatPlanPrice(cents: number, currency = BILLING_CURRENCY): string {
+export function formatPlanPrice(cents: number, currency: string = BILLING_CURRENCY): string {
   if (cents === 0) return "Free";
   const amount = cents / 100;
   if (currency === "GBP") return `£${amount.toFixed(0)}`;

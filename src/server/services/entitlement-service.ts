@@ -7,7 +7,9 @@ import {
   type EntitlementCheckResult,
 } from "@/lib/billing/errors";
 import { suggestUpgradePlanKey } from "@/lib/billing/commercial-config";
+import { isCommercialUsageExempt } from "@/lib/billing/commercial-exempt";
 import { normalizeSubscriptionAccess } from "@/lib/billing/subscription-state";
+import { usageReservationService } from "@/lib/billing/usage-reservation";
 import { billingAccountService } from "@/server/services/billing-account-service";
 import { usageMeteringService } from "@/server/services/usage-metering-service";
 
@@ -180,12 +182,12 @@ export const entitlementService = {
     if (countBased !== null) {
       currentUsage = countBased;
     } else if (meterKey) {
-      const usage = await usageMeteringService.getUsage(
+      const usage = await usageReservationService.getReservedUsage(
         input.organisationId,
         meterKey,
         "BILLING_PERIOD",
       );
-      currentUsage = usage.total;
+      currentUsage = usage;
     }
 
     if (currentUsage + requested > resolved.limitValue) {
@@ -213,6 +215,41 @@ export const entitlementService = {
       });
     }
     return result;
+  },
+
+  async reserveMeteredUsage(input: {
+    organisationId: string;
+    entitlement: string;
+    meterKey: string;
+    amount: number;
+    idempotencyKey: string;
+    operationType?: string;
+  }) {
+    if (isCommercialUsageExempt(input.organisationId)) {
+      return { reserved: true, exempt: true, duplicate: false, reservationId: "exempt" };
+    }
+
+    const check = await this.check({
+      workspaceId: input.organisationId,
+      organisationId: input.organisationId,
+      entitlement: input.entitlement,
+      requestedAmount: input.amount,
+    });
+    if (!check.allowed || check.allowance == null) {
+      throw new AppError(check.code ?? "PLAN_LIMIT_EXCEEDED", check.message ?? "Plan limit exceeded.", {
+        status: check.code === "PAYMENT_ACTION_REQUIRED" ? 402 : 403,
+      });
+    }
+
+    return usageReservationService.reserve({
+      organisationId: input.organisationId,
+      meterKey: input.meterKey,
+      amount: input.amount,
+      idempotencyKey: input.idempotencyKey,
+      allowance: check.allowance,
+      period: "BILLING_PERIOD",
+      operationType: input.operationType,
+    });
   },
 
   async syncWorkspaceEntitlementsFromPlan(organisationId: string) {
