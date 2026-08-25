@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/database/prisma";
 import { evaluateMarketingSignals } from "@/lib/marketing-intelligence/engine";
-import type { MarketingIntelligenceContext } from "@/lib/marketing-intelligence/types";
 import { logger } from "@/lib/logging";
 import { notificationService } from "@/server/services/notification-service";
 import { NOTIFICATION_EVENT_TYPES } from "@/lib/notifications/constants";
+import { marketingIntelligenceContextService } from "@/server/services/marketing-intelligence-context-service";
+import { buildTenantContextForUser } from "@/lib/tenancy/guards";
 
 export type WeeklyDigestSection = {
   title: string;
@@ -17,60 +18,15 @@ export type WeeklyMarketingDigest = {
   generatedAt: string;
   sections: WeeklyDigestSection[];
   summary: string;
+  signalCount: number;
 };
 
-function emptyIntelligenceContext(rangeLabel: string): MarketingIntelligenceContext {
-  return {
-    rangeLabel,
-    comparisonLabel: "previous period",
-    paid: {
-      connectedCount: 0,
-      totalProviders: 0,
-      spend: 0,
-      previousSpend: 0,
-      conversions: 0,
-      previousConversions: 0,
-      revenue: 0,
-      previousRevenue: 0,
-      roas: null,
-      previousRoas: null,
-      cpa: null,
-      previousCpa: null,
-      byProvider: [],
-      freshness: "unavailable",
-      lastSyncedAt: null,
-    },
-    organic: {
-      connectedCount: 0,
-      totalProviders: 0,
-      reach: null,
-      previousReach: null,
-      engagement: null,
-      previousEngagement: null,
-      engagementRate: null,
-      published: 0,
-      scheduled: 0,
-      channels: [],
-      freshness: "unavailable",
-      lastSyncedAt: null,
-    },
-    publishing: {
-      publishedInRange: 0,
-      scheduledUpcoming: 0,
-      daysWithoutScheduled: null,
-      strongestOrganicFormat: null,
-    },
-    connectivity: {
-      paidConnected: 0,
-      paidTotal: 0,
-      organicConnected: 0,
-      organicTotal: 0,
-    },
-  };
-}
-
 export const weeklyMarketingDigestService = {
-  async generate(organisationId: string, brandId: string): Promise<WeeklyMarketingDigest> {
+  async generate(
+    organisationId: string,
+    brandId: string,
+    actorUserId?: string,
+  ): Promise<WeeklyMarketingDigest> {
     const brand = await prisma.brand.findFirst({
       where: { id: brandId, organisationId },
       select: { id: true, projectId: true, name: true },
@@ -79,7 +35,26 @@ export const weeklyMarketingDigestService = {
       throw new Error("Brand not found.");
     }
 
-    const signals = evaluateMarketingSignals(emptyIntelligenceContext("the past 7 days"));
+    const adminMembership = await prisma.organisationMembership.findFirst({
+      where: { organisationId, role: { in: ["OWNER", "ADMIN"] }, status: "ACTIVE" },
+      select: { userId: true },
+    });
+    const userId = actorUserId ?? adminMembership?.userId;
+    if (!userId) {
+      throw new Error("No active admin available to build marketing intelligence context.");
+    }
+
+    const tenant = await buildTenantContextForUser(userId, {
+      organisationId,
+      projectId: brand.projectId,
+      brandId,
+    });
+    const intelligenceContext = await marketingIntelligenceContextService.buildWeeklyContext({
+      organisationId,
+      brandId,
+      tenant,
+    });
+    const signals = evaluateMarketingSignals(intelligenceContext);
 
     const paid = signals.filter((s) => s.category === "paid");
     const organic = signals.filter((s) => s.category === "organic");
@@ -143,6 +118,7 @@ export const weeklyMarketingDigestService = {
       generatedAt: new Date().toISOString(),
       sections,
       summary: sections.find((s) => s.title === "Executive Summary")?.body ?? "",
+      signalCount: signals.length,
     };
 
     const recipients = await prisma.organisationMembership.findMany({

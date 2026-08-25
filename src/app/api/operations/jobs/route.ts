@@ -3,6 +3,7 @@ import { apiSuccess } from "@/lib/api/response";
 import { AppError } from "@/lib/errors";
 import { requireOrganisationId, withOperationsRead } from "@/lib/api/operations-handler";
 import { prisma } from "@/lib/database/prisma";
+import { schedulerHealthService } from "@/server/services/scheduler-health-service";
 
 type Params = { params: Promise<Record<string, never>> };
 
@@ -31,15 +32,16 @@ export async function GET(request: NextRequest, _context: Params) {
         maxAttempts: true,
         safeErrorMessage: true,
         errorCategory: true,
+        createdAt: true,
         dueAt: true,
         nextRetryAt: true,
-        createdAt: true,
         startedAt: true,
         completedAt: true,
+        scheduledAt: true,
       },
     });
 
-    const [queued, failed, retrying, oldestPending] = await Promise.all([
+    const [queued, failed, retrying, oldestPending, scheduler] = await Promise.all([
       prisma.workerJob.count({
         where: { organisationId, status: { in: ["READY", "SCHEDULED", "PENDING"] } },
       }),
@@ -50,8 +52,9 @@ export async function GET(request: NextRequest, _context: Params) {
       prisma.workerJob.findFirst({
         where: { organisationId, status: { in: ["READY", "SCHEDULED", "PENDING"] } },
         orderBy: { createdAt: "asc" },
-        select: { createdAt: true },
+        select: { createdAt: true, dueAt: true, nextRetryAt: true },
       }),
+      schedulerHealthService.getHealth(),
     ]);
 
     return apiSuccess(
@@ -62,6 +65,13 @@ export async function GET(request: NextRequest, _context: Params) {
           failed,
           retrying,
           oldestPendingAt: oldestPending?.createdAt ?? null,
+          oldestReadyDueAt: oldestPending?.dueAt ?? null,
+          scheduler: {
+            lagMs: scheduler.lagMs,
+            missedHeartbeat: scheduler.missedHeartbeat,
+            lastInvokedAt: scheduler.heartbeat?.lastInvokedAt ?? null,
+            schedulerSlaMinutes: scheduler.schedulerSlaMinutes,
+          },
         },
       },
       { requestId },
