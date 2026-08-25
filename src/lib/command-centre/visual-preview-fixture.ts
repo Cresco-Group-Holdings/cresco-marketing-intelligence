@@ -95,7 +95,7 @@ export const COMMAND_CENTRE_VISUAL_PREVIEW_FIXTURE: MarketingCommandCentreData =
       state: "normal",
     },
     {
-      label: "Revenue Influenced",
+      label: "Attributed Revenue",
       value: "£186,420",
       change: 12.1,
       comparisonLabel: "vs previous 30 days",

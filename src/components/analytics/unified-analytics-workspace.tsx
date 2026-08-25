@@ -54,6 +54,7 @@ function ModelSelector({
         {options.map((option) => (
           <option key={option.type} value={option.type}>
             {option.label}
+            {option.maturity === "advanced" ? " · Advanced" : ""}
           </option>
         ))}
       </select>

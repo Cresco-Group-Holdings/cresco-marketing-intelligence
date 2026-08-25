@@ -16,16 +16,19 @@ const modelOptions = [
     type: "LAST_TOUCH" as const,
     label: "Last Touch",
     description: "Assigns full conversion credit to the final eligible marketing interaction before conversion.",
+    maturity: "launch" as const,
   },
   {
     type: "FIRST_TOUCH" as const,
     label: "First Touch",
     description: "Assigns full conversion credit to the first eligible marketing interaction.",
+    maturity: "launch" as const,
   },
   {
     type: "LINEAR" as const,
     label: "Linear",
     description: "Distributes credit equally across all eligible touchpoints.",
+    maturity: "launch" as const,
   },
 ];
 

@@ -92,6 +92,7 @@ export type AttributionModelOption = {
   type: AttributionModelType;
   label: string;
   description: string;
+  maturity: "launch" | "advanced";
 };
 
 export type ModelComparisonRow = {

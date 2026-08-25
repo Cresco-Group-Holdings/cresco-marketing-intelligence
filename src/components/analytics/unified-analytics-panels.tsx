@@ -387,6 +387,7 @@ export function AttributionPanel({
         <h2 className="text-sm font-semibold text-foreground">Attribution model</h2>
         <p className="mt-2 text-sm text-foreground-muted">
           {selected?.label ?? selectedModel}: {selected?.description}
+          {selected?.maturity === "advanced" ? " This model is marked Advanced and has not completed full launch validation." : ""}
         </p>
         <p className="mt-2 text-xs text-foreground-subtle">
           Lookback window: {lookbackWindowDays} days · {disclaimer}

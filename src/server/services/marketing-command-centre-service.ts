@@ -15,6 +15,11 @@ import { DEFAULT_LOOKBACK_WINDOW_DAYS } from "@/lib/attribution/constants";
 import { computeAttributionFromJourneys } from "@/lib/unified-analytics/attribution";
 import { computeAttributionConfidence } from "@/lib/unified-analytics/attribution-confidence";
 import { buildCoverageDimensions } from "@/lib/unified-analytics/coverage";
+import {
+  buildCommandCentreAttributedRevenueKpi,
+  resolveBlendedRoas,
+  resolveRevenueSemantics,
+} from "@/lib/unified-analytics/revenue-semantics";
 import { calculateMarketingHealth } from "@/lib/marketing-intelligence/scoring/health-score";
 import {
   formatFreshnessLabel,
@@ -429,8 +434,20 @@ export const marketingCommandCentreService = {
       currentAttribution.attributedRevenue > 0 ? currentAttribution.attributedRevenue : null;
     const previousAttributedRevenue =
       previousAttribution.attributedRevenue > 0 ? previousAttribution.attributedRevenue : null;
-    const revenueForRoas = attributedRevenue ?? observedRevenue ?? 0;
-    const previousRevenueForRoas = previousAttributedRevenue ?? previousObservedRevenue ?? 0;
+    const revenueSemantics = resolveRevenueSemantics({
+      observedRevenue,
+      attributedRevenue,
+      channelBreakdown: currentAttribution.channelBreakdown,
+    });
+    const previousRevenueSemantics = resolveRevenueSemantics({
+      observedRevenue: previousObservedRevenue,
+      attributedRevenue: previousAttributedRevenue,
+      channelBreakdown: previousAttribution.channelBreakdown,
+    });
+    const paidAttributedRevenue = revenueSemantics.paidAttributedRevenue;
+    const previousPaidAttributedRevenue = previousRevenueSemantics.paidAttributedRevenue;
+    const currency = paidOverview.currencies[0] ?? "GBP";
+    const attributedRevenueKpi = buildCommandCentreAttributedRevenueKpi(attributedRevenue, currency);
 
     const spendChange = percentChange(paidOverview.spend, previousPaidOverview.spend);
     const conversionsChange = percentChange(paidOverview.conversions, previousPaidOverview.conversions);
@@ -440,11 +457,11 @@ export const marketingCommandCentreService = {
       previousPaidOverview.conversions > 0
         ? previousPaidOverview.spend / previousPaidOverview.conversions
         : null;
-    const roas = paidOverview.spend > 0 && revenueForRoas > 0 ? revenueForRoas / paidOverview.spend : null;
-    const previousRoas =
-      previousPaidOverview.spend > 0 && previousRevenueForRoas > 0
-        ? previousRevenueForRoas / previousPaidOverview.spend
-        : null;
+    const roas = resolveBlendedRoas(paidOverview.spend, paidAttributedRevenue);
+    const previousRoas = resolveBlendedRoas(
+      previousPaidOverview.spend,
+      previousPaidAttributedRevenue,
+    );
 
     const { coverage: analyticsCoverage } = buildCoverageDimensions({
       paidConnected: hasPaidConnections,
@@ -576,8 +593,8 @@ export const marketingCommandCentreService = {
         previousSpend: previousPaidOverview.spend,
         conversions: paidOverview.conversions,
         previousConversions: previousPaidOverview.conversions,
-        revenue: revenueForRoas,
-        previousRevenue: previousRevenueForRoas,
+        revenue: attributedRevenue ?? 0,
+        previousRevenue: previousAttributedRevenue ?? 0,
         roas,
         previousRoas,
         cpa,
@@ -716,7 +733,7 @@ export const marketingCommandCentreService = {
       clicks: clicks && clicks > 0 ? clicks : null,
       visits: visits && visits > 0 ? visits : null,
       conversions: paidOverview.conversions > 0 ? paidOverview.conversions : null,
-      revenue: revenueForRoas > 0 ? revenueForRoas : null,
+      revenue: attributedRevenue != null && attributedRevenue > 0 ? attributedRevenue : null,
     });
 
     const previousPaidByProvider: PaidProviderMetrics[] = PAID_CONNECTORS.map((channel) => {
@@ -830,8 +847,6 @@ export const marketingCommandCentreService = {
       .slice(0, 4)
       .map(([dateLabel, items]) => ({ dateLabel, items }));
 
-    const currency = paidOverview.currencies[0] ?? "GBP";
-
     return {
       workspace,
       hasBrandContext: true,
@@ -852,23 +867,13 @@ export const marketingCommandCentreService = {
           state: hasPaidData ? (paidFreshness === "stale" ? "stale" : "normal") : "empty",
         },
         {
-          label: "Revenue Influenced",
-          value:
-            attributedRevenue != null && attributedRevenue > 0
-              ? formatCurrency(attributedRevenue, currency)
-              : observedRevenue != null && observedRevenue > 0
-                ? formatCurrency(observedRevenue, currency)
-                : unavailableValue(),
-          change: percentChange(revenueForRoas, previousRevenueForRoas),
+          label: attributedRevenueKpi.label,
+          value: attributedRevenueKpi.value,
+          change: percentChange(attributedRevenue, previousAttributedRevenue),
           comparisonLabel: range.comparisonLabel,
           sparkline: extractSparkline(paidChart.revenue),
-          state: revenueForRoas > 0 ? "normal" : "empty",
-          stateMessage:
-            revenueForRoas <= 0
-              ? "Connect a revenue source to unlock revenue attribution."
-              : attributedRevenue == null
-                ? "Showing observed revenue — attribution coverage is limited."
-                : undefined,
+          state: attributedRevenueKpi.state,
+          stateMessage: attributedRevenueKpi.stateMessage,
         },
         {
           label: "Conversions",

@@ -2,7 +2,9 @@ import type { AttributionModelType, ConnectorType } from "@prisma/client";
 import {
   ATTRIBUTION_DISCLAIMER,
   ATTRIBUTION_MODEL_LABELS,
+  buildAttributionModelLabel,
   DEFAULT_LOOKBACK_WINDOW_DAYS,
+  isAdvancedAttributionModel,
 } from "@/lib/attribution/constants";
 import { calculateAttributionCredits, filterTouchpointsByLookback } from "@/lib/attribution/models";
 import type { AttributionTouchpointInput } from "@/lib/attribution/types";
@@ -67,6 +69,15 @@ const MODEL_DESCRIPTIONS: Record<AttributionModelType, string> = {
   POSITION_BASED: "Assigns 40% to first touch, 40% to last touch, and 20% across middle touchpoints.",
   TIME_DECAY: "Assigns more credit to touchpoints closer to conversion using time decay.",
 };
+
+function buildModelOptions(): UnifiedAnalyticsWorkspaceData["modelOptions"] {
+  return (Object.keys(ATTRIBUTION_MODEL_LABELS) as AttributionModelType[]).map((type) => ({
+    type,
+    label: buildAttributionModelLabel(type),
+    description: MODEL_DESCRIPTIONS[type],
+    maturity: isAdvancedAttributionModel(type) ? "advanced" : "launch",
+  }));
+}
 
 function isPaidChannel(channel: string | null | undefined): boolean {
   if (!channel) return false;
@@ -148,11 +159,7 @@ function buildEmptyWorkspace(
     },
     insights: [],
     disclaimer: ATTRIBUTION_DISCLAIMER,
-    modelOptions: (Object.keys(ATTRIBUTION_MODEL_LABELS) as AttributionModelType[]).map((type) => ({
-      type,
-      label: ATTRIBUTION_MODEL_LABELS[type],
-      description: MODEL_DESCRIPTIONS[type],
-    })),
+    modelOptions: buildModelOptions(),
   };
 }
 
@@ -858,20 +865,12 @@ export const unifiedAnalyticsWorkspaceService = {
       },
       insights,
       disclaimer: ATTRIBUTION_DISCLAIMER,
-      modelOptions: (Object.keys(ATTRIBUTION_MODEL_LABELS) as AttributionModelType[]).map((type) => ({
-        type,
-        label: ATTRIBUTION_MODEL_LABELS[type],
-        description: MODEL_DESCRIPTIONS[type],
-      })),
+      modelOptions: buildModelOptions(),
     };
   },
 
-  getModelOptions(): Array<{ type: AttributionModelType; label: string; description: string }> {
-    return (Object.keys(ATTRIBUTION_MODEL_LABELS) as AttributionModelType[]).map((type) => ({
-      type,
-      label: ATTRIBUTION_MODEL_LABELS[type],
-      description: MODEL_DESCRIPTIONS[type],
-    }));
+  getModelOptions(): UnifiedAnalyticsWorkspaceData["modelOptions"] {
+    return buildModelOptions();
   },
 };
 
