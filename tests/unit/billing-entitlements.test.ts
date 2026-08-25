@@ -41,12 +41,28 @@ vi.mock("@/lib/billing/plan-seed", () => ({
   getCurrentPlanVersion: vi.fn().mockResolvedValue({ id: "pv-starter", plan: { key: "starter" } }),
 }));
 
+vi.mock("@/server/providers/billing/stripe-billing-provider", () => ({
+  getStripeBillingConfig: vi.fn().mockReturnValue({
+    secretKey: "sk_test",
+    webhookSecret: "whsec_test",
+  }),
+}));
+
+import { createHmac } from "node:crypto";
+import { getStripeBillingConfig } from "@/server/providers/billing/stripe-billing-provider";
+
 import { entitlementService } from "@/server/services/entitlement-service";
 import { billingWebhookService } from "@/server/services/billing-webhook-service";
 import { usageMeteringService } from "@/server/services/usage-metering-service";
 import { trialService } from "@/server/services/trial-service";
 
 const organisationId = "org-1";
+
+function signStripePayload(payload: string): string {
+  const timestamp = Math.floor(Date.now() / 1000);
+  const signature = createHmac("sha256", "whsec_test").update(`${timestamp}.${payload}`).digest("hex");
+  return `t=${timestamp},v1=${signature}`;
+}
 
 function activeAccount(overrides: Record<string, unknown> = {}) {
   return {
@@ -226,7 +242,7 @@ describe("billingWebhookService", () => {
       data: { object: { metadata: { organisation_id: organisationId }, subscription: "sub_1" } },
     });
 
-    const result = await billingWebhookService.processStripeEvent(payload, "");
+    const result = await billingWebhookService.processStripeEvent(payload, signStripePayload(payload));
     expect(result.duplicate).toBe(true);
     expect(prismaMock.billingEvent.create).not.toHaveBeenCalled();
   });
@@ -238,7 +254,7 @@ describe("billingWebhookService", () => {
       data: { object: { metadata: { organisation_id: organisationId, plan_key: "starter" }, subscription: "sub_2" } },
     });
 
-    const result = await billingWebhookService.processStripeEvent(payload, "");
+    const result = await billingWebhookService.processStripeEvent(payload, signStripePayload(payload));
     expect(result.duplicate).toBe(false);
     expect(prismaMock.subscription.upsert).toHaveBeenCalled();
   });
@@ -250,10 +266,18 @@ describe("billingWebhookService", () => {
       data: { object: { metadata: { organisation_id: organisationId } } },
     });
 
-    await billingWebhookService.processStripeEvent(payload, "");
+    await billingWebhookService.processStripeEvent(payload, signStripePayload(payload));
     expect(prismaMock.subscription.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: { status: "PAST_DUE" } }),
     );
+  });
+
+  it("rejects webhooks when Stripe billing is not configured", async () => {
+    vi.mocked(getStripeBillingConfig).mockReturnValueOnce(null);
+    const payload = JSON.stringify({ id: "evt_bad", type: "checkout.session.completed", data: { object: {} } });
+    await expect(
+      billingWebhookService.processStripeEvent(payload, signStripePayload(payload)),
+    ).rejects.toThrow(/not configured/i);
   });
 });
 

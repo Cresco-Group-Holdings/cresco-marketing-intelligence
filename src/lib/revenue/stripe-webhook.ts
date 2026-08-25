@@ -1,6 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { StripeConfig } from "@/lib/revenue/config";
 
+const STRIPE_WEBHOOK_TOLERANCE_SECONDS = 300;
+
 export function verifyStripeWebhookSignature(
   payload: string,
   signatureHeader: string,
@@ -15,6 +17,13 @@ export function verifyStripeWebhookSignature(
   const timestamp = parts.t;
   const signature = parts.v1;
   if (!timestamp || !signature) return { valid: false };
+
+  const timestampSeconds = Number(timestamp);
+  if (!Number.isFinite(timestampSeconds)) return { valid: false };
+  const ageSeconds = Math.abs(Math.floor(Date.now() / 1000) - timestampSeconds);
+  if (ageSeconds > STRIPE_WEBHOOK_TOLERANCE_SECONDS) {
+    return { valid: false };
+  }
 
   const signedPayload = `${timestamp}.${payload}`;
   const expected = createHmac("sha256", config.webhookSecret).update(signedPayload).digest("hex");

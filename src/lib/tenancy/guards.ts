@@ -9,6 +9,7 @@ import {
   runWithTenantContext,
   type TenantContext,
 } from "@/lib/tenancy/context";
+import { isTestAuthBypassEnabled } from "@/lib/security/production-guards";
 
 export type AuthenticatedUser = {
   userId: string;
@@ -17,9 +18,10 @@ export type AuthenticatedUser = {
 };
 
 export async function requireAuthenticatedUser(): Promise<AuthenticatedUser> {
-  if (process.env.ALLOW_TEST_AUTH === "true" && process.env.TEST_AUTH_USER_ID) {
+  if (isTestAuthBypassEnabled()) {
+    const testUserId = process.env.TEST_AUTH_USER_ID!;
     const provisioned = await ensureUserProfile({
-      authUserId: process.env.TEST_AUTH_USER_ID,
+      authUserId: testUserId,
       email: process.env.TEST_AUTH_EMAIL ?? "test@example.com",
       displayName: "Test User",
     });

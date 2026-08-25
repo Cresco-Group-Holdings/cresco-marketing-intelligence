@@ -37,3 +37,12 @@ export function isAuthorisedCronRequest(request: NextRequest): boolean {
 export function isAuthorisedSchedulerRequest(request: NextRequest): boolean {
   return isAuthorisedWorkerRequest(request) || isAuthorisedCronRequest(request);
 }
+
+/** Social report scheduler may use a dedicated secret or the shared scheduler tokens. */
+export function isAuthorisedSocialReportsWorkerRequest(request: NextRequest): boolean {
+  const dedicated = process.env.SOCIAL_REPORTS_WORKER_SECRET?.trim();
+  if (dedicated && bearerTokenMatches(request, dedicated)) {
+    return true;
+  }
+  return isAuthorisedSchedulerRequest(request);
+}

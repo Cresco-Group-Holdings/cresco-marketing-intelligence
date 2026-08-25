@@ -96,18 +96,32 @@ export async function POST(request: NextRequest, { params }: Params) {
     let secret: string | null = null;
     if (["INSTAGRAM", "FACEBOOK"].includes(provider)) {
       secret = process.env.META_APP_SECRET ?? process.env.SOCIAL_INBOX_WEBHOOK_SECRET ?? null;
-      if (secret && signatureHeader) {
-        const validation = validateMetaWebhookSignature({
-          rawBody: payload,
-          signatureHeader,
-          appSecret: secret,
-        });
-        if (!validation.valid) {
-          throw new AppError("FORBIDDEN", validation.reason);
-        }
+      if (!secret || !signatureHeader) {
+        throw new AppError("FORBIDDEN", "Webhook signature is required.");
+      }
+      const validation = validateMetaWebhookSignature({
+        rawBody: payload,
+        signatureHeader,
+        appSecret: secret,
+      });
+      if (!validation.valid) {
+        throw new AppError("FORBIDDEN", validation.reason);
       }
     } else if (provider === "X") {
       secret = process.env.X_CONSUMER_SECRET ?? process.env.SOCIAL_INBOX_WEBHOOK_SECRET ?? null;
+      if (!secret || !signatureHeader) {
+        throw new AppError("FORBIDDEN", "Webhook signature is required.");
+      }
+      if (!validateHmacSha256Signature({ payload, signatureHeader, secret })) {
+        throw new AppError("FORBIDDEN", "Webhook signature validation failed.");
+      }
+    } else if (signatureHeader) {
+      secret = process.env.SOCIAL_INBOX_WEBHOOK_SECRET ?? null;
+      if (!secret || !validateHmacSha256Signature({ payload, signatureHeader, secret })) {
+        throw new AppError("FORBIDDEN", "Webhook signature validation failed.");
+      }
+    } else {
+      throw new AppError("FORBIDDEN", "Webhook signature is required.");
     }
 
     const idempotencyKey =
@@ -125,15 +139,6 @@ export async function POST(request: NextRequest, { params }: Params) {
       secret,
       toBatch: (rawPayload) => parseSocialInboxWebhookPayload(provider, rawPayload),
     });
-
-    if (
-      secret &&
-      signatureHeader &&
-      !["INSTAGRAM", "FACEBOOK"].includes(provider) &&
-      !validateHmacSha256Signature({ payload, signatureHeader, secret })
-    ) {
-      throw new AppError("FORBIDDEN", "Webhook signature validation failed.");
-    }
 
     return apiSuccess(result, { requestId });
   } catch (error) {

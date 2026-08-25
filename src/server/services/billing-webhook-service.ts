@@ -19,21 +19,19 @@ function extractOrganisationId(event: StripeEvent): string | null {
 export const billingWebhookService = {
   async processStripeEvent(payload: string, signatureHeader: string) {
     const config = getStripeBillingConfig();
-
-    let event: StripeEvent;
     if (!config) {
-      event = JSON.parse(payload) as StripeEvent;
-    } else {
-      const verified = verifyStripeWebhookSignature(payload, signatureHeader, {
-        secretKey: config.secretKey,
-        webhookSecret: config.webhookSecret,
-        apiVersion: "2024-06-20",
-      });
-      if (!verified.valid) {
-        throw new Error("Invalid Stripe webhook signature.");
-      }
-      event = JSON.parse(payload) as StripeEvent;
+      throw new Error("Stripe billing is not configured. Webhook rejected.");
     }
+
+    const verified = verifyStripeWebhookSignature(payload, signatureHeader, {
+      secretKey: config.secretKey,
+      webhookSecret: config.webhookSecret,
+      apiVersion: "2024-06-20",
+    });
+    if (!verified.valid) {
+      throw new Error("Invalid Stripe webhook signature.");
+    }
+    const event = JSON.parse(payload) as StripeEvent;
 
     const existing = await prisma.billingEvent.findUnique({
       where: { externalEventRef: event.id },

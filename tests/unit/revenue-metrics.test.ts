@@ -152,6 +152,16 @@ describe("Stripe webhook", () => {
     expect(result.valid).toBe(false);
   });
 
+  it("rejects expired webhook signatures", () => {
+    const payload = JSON.stringify({ id: "evt_1", type: "charge.succeeded" });
+    const timestamp = Math.floor(Date.now() / 1000) - 600;
+    const signature = createHmac("sha256", config.webhookSecret)
+      .update(`${timestamp}.${payload}`)
+      .digest("hex");
+    const header = `t=${timestamp},v1=${signature}`;
+    expect(verifyStripeWebhookSignature(payload, header, config).valid).toBe(false);
+  });
+
   it("parses charge.succeeded events", () => {
     const parsed = parseStripeWebhookEvent({
       type: "charge.succeeded",

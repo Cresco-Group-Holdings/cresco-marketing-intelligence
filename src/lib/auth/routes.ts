@@ -31,12 +31,68 @@ export function isOnboardingRoute(pathname: string): boolean {
   return pathname === ONBOARDING_ROUTE || pathname.startsWith(`${ONBOARDING_ROUTE}/`);
 }
 
-export function isProtectedRoute(pathname: string): boolean {
-  if (isPublicRoute(pathname)) {
-    return false;
+/** API routes that must remain reachable without a browser session. */
+export function isPublicApiRoute(pathname: string): boolean {
+  if (pathname.startsWith("/api/health") || pathname.startsWith("/api/readiness")) {
+    return true;
   }
 
-  if (pathname.startsWith("/api/health") || pathname.startsWith("/api/readiness")) {
+  if (pathname.startsWith("/api/auth/")) {
+    return true;
+  }
+
+  // External provider webhooks (Stripe, billing, social, email, etc.)
+  if (pathname.startsWith("/api/webhooks/")) {
+    return true;
+  }
+
+  // Public lead capture forms (embeddable)
+  if (pathname.startsWith("/api/forms/v1/")) {
+    return true;
+  }
+
+  // Client-side tracking beacon
+  if (pathname.startsWith("/api/tracking/v1/events")) {
+    return true;
+  }
+
+  // Server-side tracking (API key authenticated in route handler)
+  if (pathname.startsWith("/api/tracking/v1/server-events")) {
+    return true;
+  }
+
+  // OAuth callbacks — session may expire during provider round-trip
+  if (pathname.startsWith("/api/connectors/oauth/")) {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/integrations/oauth/")) {
+    return true;
+  }
+
+  if (pathname.startsWith("/api/social/oauth/")) {
+    return true;
+  }
+
+  if (isWorkerApiRoute(pathname)) {
+    return true;
+  }
+
+  return false;
+}
+
+export function isDevPreviewRoute(pathname: string): boolean {
+  return (
+    process.env.NODE_ENV === "development" &&
+    (pathname === "/dev/command-centre-preview" ||
+      pathname.startsWith("/dev/organic-growth-preview") ||
+      pathname.startsWith("/dev/analytics-preview") ||
+      pathname.startsWith("/dev/security-preview"))
+  );
+}
+
+export function isProtectedRoute(pathname: string): boolean {
+  if (isPublicRoute(pathname)) {
     return false;
   }
 
@@ -44,26 +100,11 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
-  if (pathname.startsWith("/api/auth/")) {
+  if (isPublicApiRoute(pathname)) {
     return false;
   }
 
-  if (pathname.startsWith("/api/tracking/v1/events")) {
-    return false;
-  }
-
-  if (pathname.startsWith("/api/connectors/oauth/")) {
-    return false;
-  }
-
-  if (
-    process.env.NODE_ENV === "development" &&
-    (pathname === "/dev/command-centre-preview" || pathname.startsWith("/dev/organic-growth-preview"))
-  ) {
-    return false;
-  }
-
-  if (isWorkerApiRoute(pathname)) {
+  if (isDevPreviewRoute(pathname)) {
     return false;
   }
 
