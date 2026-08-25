@@ -1,4 +1,4 @@
-import { isOnboardingRoute } from "@/lib/auth/routes";
+import { isOnboardingRoute, isActivationRoute } from "@/lib/auth/routes";
 import type { ClientOnboardingStatus } from "@/lib/onboarding/status";
 
 export type OnboardingRouteDecision = "allow" | "redirect-onboarding" | "redirect-dashboard";
@@ -12,8 +12,9 @@ export function resolveOnboardingRouteDecision(input: {
   }
 
   const onOnboarding = isOnboardingRoute(input.pathname);
+  const onActivation = isActivationRoute(input.pathname);
 
-  if (input.status === "incomplete" && !onOnboarding) {
+  if (input.status === "incomplete" && !onOnboarding && !onActivation) {
     return "redirect-onboarding";
   }
 

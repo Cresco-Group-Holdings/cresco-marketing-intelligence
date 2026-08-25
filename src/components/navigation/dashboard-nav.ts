@@ -14,6 +14,7 @@ import {
   Megaphone,
   PenSquare,
   Plug,
+  Rocket,
   Settings,
   Share2,
   Sprout,
@@ -47,6 +48,12 @@ export const dashboardNavigationSections: NavigationSection[] = [
         href: "/dashboard",
         icon: LayoutDashboard,
         description: "Your daily operating cockpit for growth and marketing decisions",
+      },
+      {
+        label: "Getting Started",
+        href: "/getting-started",
+        icon: Rocket,
+        description: "Activation checklist and guided setup",
       },
       {
         label: "Activity",

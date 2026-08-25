@@ -6,12 +6,11 @@ test.describe("onboarding flows", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 
-  test("onboarding page renders eight-step wizard for authenticated test user", async ({ page }) => {
+  test("onboarding page renders welcome experience for authenticated test user", async ({ page }) => {
     test.skip(process.env.ALLOW_TEST_AUTH !== "true", "Requires ALLOW_TEST_AUTH");
 
     await page.goto("/onboarding");
-    await expect(page.getByRole("heading", { name: "Set up your workspace" })).toBeVisible();
-    await expect(page.getByText("Account profile")).toBeVisible();
-    await expect(page.getByText("Review and completion")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Welcome to Cresco" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue setup" })).toBeVisible();
   });
 });
