@@ -260,6 +260,28 @@ export const workerJobService = {
     });
   },
 
+  async requeueForManualRetry(jobId: string, organisationId: string): Promise<WorkerJob> {
+    const job = await prisma.workerJob.findFirst({
+      where: { id: jobId, organisationId },
+    });
+    if (!job) throw new AppError("NOT_FOUND", "Worker job not found.");
+    if (!["FAILED", "DEAD_LETTER", "RETRY_WAIT"].includes(job.status)) {
+      throw new AppError("VALIDATION_ERROR", `Cannot retry job in status ${job.status}.`);
+    }
+    return prisma.workerJob.update({
+      where: { id: jobId },
+      data: {
+        status: "READY",
+        nextRetryAt: null,
+        leaseExpiresAt: null,
+        claimedBy: null,
+        failedAt: null,
+        errorCategory: null,
+        safeErrorMessage: null,
+      },
+    });
+  },
+
   async recoverExpiredJobs(now = getClock().now()): Promise<number> {
     const expired = await prisma.workerJob.findMany({
       where: {

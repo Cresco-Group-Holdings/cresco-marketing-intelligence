@@ -9,18 +9,14 @@ import { getPublishingConfig } from "@/lib/publishing/config";
 import { publishingSchedulerService } from "@/server/services/publishing-scheduler-service";
 import { workerDispatcherService } from "@/server/services/worker-dispatcher-service";
 import { workerExecutorService } from "@/server/services/worker-executor-service";
+import { automationScheduleService } from "@/server/services/automation-schedule-service";
+import { backgroundIntelligenceService } from "@/server/services/background-intelligence-service";
 
 export type DailyDispatchJobResult = {
   jobId: InternalCronJobId;
   passes: number;
   stoppedReason: "IDLE" | "PASS_LIMIT" | "DURATION_LIMIT" | "DISABLED";
-  lastPass?: {
-    scheduledEnqueued: number;
-    scheduledSkipped: number;
-    jobsProcessed: number;
-    dispatch?: Awaited<ReturnType<typeof workerDispatcherService.dispatchDueJobs>>;
-    worker?: Awaited<ReturnType<typeof workerExecutorService.processAvailableJobs>>;
-  };
+  lastPass?: Record<string, unknown>;
 };
 
 export type DailyDispatchResult = {
@@ -83,6 +79,73 @@ async function runPublishingPasses(input: {
   return { jobId: "publishing", passes, stoppedReason, lastPass };
 }
 
+async function runWorkerDispatchPasses(input: {
+  maxPasses: number;
+  deadlineMs: number;
+  workerId: string;
+}): Promise<DailyDispatchJobResult> {
+  let passes = 0;
+  let lastDispatch: Awaited<ReturnType<typeof workerDispatcherService.dispatchDueJobs>> | undefined;
+  let lastWorker: Awaited<ReturnType<typeof workerExecutorService.processAvailableJobs>> | undefined;
+
+  while (passes < input.maxPasses && Date.now() < input.deadlineMs) {
+    const dispatch = await workerDispatcherService.dispatchDueJobs();
+    const worker = await workerExecutorService.processAvailableJobs({
+      workerId: input.workerId,
+      deadlineMs: input.deadlineMs,
+    });
+    passes += 1;
+    lastDispatch = dispatch;
+    lastWorker = worker;
+
+    const didWork = dispatch.created > 0 || worker.claimed > 0;
+    if (!didWork) {
+      return {
+        jobId: "worker_dispatch",
+        passes,
+        stoppedReason: "IDLE",
+        lastPass: { dispatch, worker },
+      };
+    }
+  }
+
+  return {
+    jobId: "worker_dispatch",
+    passes,
+    stoppedReason: Date.now() >= input.deadlineMs ? "DURATION_LIMIT" : "PASS_LIMIT",
+    lastPass: lastDispatch && lastWorker ? { dispatch: lastDispatch, worker: lastWorker } : undefined,
+  };
+}
+
+async function runAutomationPass(): Promise<DailyDispatchJobResult> {
+  const schedule = await automationScheduleService.dispatchDueSchedules(new Date());
+  const dispatch = await workerDispatcherService.dispatchDueJobs({
+    jobTypes: ["AUTOMATION_EXECUTION"],
+  });
+  const worker = await workerExecutorService.processAvailableJobs({
+    workerId: `automation-${Date.now()}`,
+    limit: 20,
+  });
+
+  const didWork = schedule.triggered > 0 || dispatch.created > 0 || worker.claimed > 0;
+  return {
+    jobId: "automation",
+    passes: 1,
+    stoppedReason: didWork ? "PASS_LIMIT" : "IDLE",
+    lastPass: { schedule, dispatch, worker },
+  };
+}
+
+async function runIntelligencePass(): Promise<DailyDispatchJobResult> {
+  const intelligence = await backgroundIntelligenceService.runIntelligencePass();
+  return {
+    jobId: "intelligence",
+    passes: 1,
+    stoppedReason: "PASS_LIMIT",
+    lastPass: { intelligence },
+  };
+}
+
 export const dailyCronDispatchService = {
   async run(input?: { workerId?: string; jobIds?: InternalCronJobId[] }): Promise<DailyDispatchResult> {
     const startedAt = new Date();
@@ -126,6 +189,22 @@ export const dailyCronDispatchService = {
           deadlineMs,
           workerId,
         });
+        totalPasses += result.passes;
+        jobs.push(result);
+      } else if (jobId === "worker_dispatch") {
+        const result = await runWorkerDispatchPasses({
+          maxPasses: remainingPasses,
+          deadlineMs,
+          workerId,
+        });
+        totalPasses += result.passes;
+        jobs.push(result);
+      } else if (jobId === "automation") {
+        const result = await runAutomationPass();
+        totalPasses += result.passes;
+        jobs.push(result);
+      } else if (jobId === "intelligence") {
+        const result = await runIntelligencePass();
         totalPasses += result.passes;
         jobs.push(result);
       }
