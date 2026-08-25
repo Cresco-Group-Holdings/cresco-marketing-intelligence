@@ -27,6 +27,10 @@ export function buildUnifiedKpis(input: {
   organicContributionRevenue: number | null;
   paidContributionRevenue: number | null;
   contentAssistedRevenue: number | null;
+  organicReach: number | null;
+  previousOrganicReach: number | null;
+  webSessions: number | null;
+  previousWebSessions: number | null;
   attributionModelLabel: string;
   revenueCoveragePercent: number | null;
   paidSpendCoveragePercent: number | null;
@@ -162,5 +166,54 @@ export function buildUnifiedKpis(input: {
         ],
       },
     },
+    {
+      label: "Organic Reach",
+      value:
+        input.organicReach != null && input.organicReach > 0
+          ? formatNumber(input.organicReach)
+          : unavailableValue(),
+      change:
+        input.showComparison &&
+        input.organicReach != null &&
+        input.previousOrganicReach != null &&
+        input.previousOrganicReach > 0
+          ? ((input.organicReach - input.previousOrganicReach) / input.previousOrganicReach) * 100
+          : null,
+      comparisonLabel: input.comparisonLabel,
+      metadata: { kind: "Observed", source: ["Social analytics providers"] },
+    },
+    {
+      label: "Website Sessions",
+      value:
+        input.webSessions != null && input.webSessions > 0
+          ? formatNumber(input.webSessions)
+          : unavailableValue(),
+      change:
+        input.showComparison &&
+        input.webSessions != null &&
+        input.previousWebSessions != null &&
+        input.previousWebSessions > 0
+          ? ((input.webSessions - input.previousWebSessions) / input.previousWebSessions) * 100
+          : null,
+      comparisonLabel: input.comparisonLabel,
+      metadata: { kind: "Observed", source: ["GA4"] },
+    },
   ];
+}
+
+/** Returns the launch-priority overview KPI strip (up to 6 cards with valid data). */
+export function buildOverviewKpiStrip(allKpis: UnifiedKpi[]): UnifiedKpi[] {
+  const priorityLabels = [
+    "Total Marketing Spend",
+    "Attributed Revenue",
+    "Conversions",
+    "Blended ROAS",
+    "Organic Reach",
+    "Website Sessions",
+  ];
+
+  return priorityLabels
+    .map((label) => allKpis.find((kpi) => kpi.label === label))
+    .filter((kpi): kpi is UnifiedKpi => kpi != null && kpi.value !== unavailableValue())
+    .slice(0, 6);
 }

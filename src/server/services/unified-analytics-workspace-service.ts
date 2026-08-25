@@ -17,7 +17,8 @@ import {
   type JourneyForAssist,
 } from "@/lib/unified-analytics/assist";
 import { buildCoverageDimensions } from "@/lib/unified-analytics/coverage";
-import { buildUnifiedKpis } from "@/lib/unified-analytics/kpis";
+import { computeAttributionConfidence } from "@/lib/unified-analytics/attribution-confidence";
+import { buildOverviewKpiStrip, buildUnifiedKpis } from "@/lib/unified-analytics/kpis";
 import type {
   ChannelAnalyticsRow,
   ContentAnalyticsRow,
@@ -42,6 +43,7 @@ import { paidAdsDashboardService } from "@/server/services/paid-ads-dashboard-se
 import { revenueDashboardService } from "@/server/services/revenue-dashboard-service";
 import { socialAnalyticsQueryService } from "@/server/services/social-analytics-query-service";
 import { socialConnectionService } from "@/server/services/social-connection-service";
+import { ga4AnalyticsQueryService } from "@/server/services/ga4-analytics-query-service";
 import { workspaceService } from "@/server/services/workspace-service";
 
 const PAID_CONNECTORS: ConnectorType[] = ["GOOGLE_ADS", "META", "TIKTOK", "LINKEDIN"];
@@ -127,6 +129,23 @@ function buildEmptyWorkspace(
       description: "Insufficient data.",
     },
     unattributed: { conversions: 0, revenue: null },
+    attributionConfidence: {
+      level: "Low",
+      label: "Limited coverage — connect data sources to improve attribution.",
+      sourceCoveragePercent: null,
+      journeyCoveragePercent: null,
+      limitations: [],
+    },
+    webAnalytics: {
+      connected: false,
+      sessions: null,
+      users: null,
+      pageviews: null,
+      conversions: null,
+      freshness: "unavailable",
+      lastSyncedAt: null,
+      source: null,
+    },
     insights: [],
     disclaimer: ATTRIBUTION_DISCLAIMER,
     modelOptions: (Object.keys(ATTRIBUTION_MODEL_LABELS) as AttributionModelType[]).map((type) => ({
@@ -200,6 +219,9 @@ export const unifiedAnalyticsWorkspaceService = {
       contentAttribution,
       paidSyncAt,
       organicSyncAt,
+      webOverview,
+      previousWebOverview,
+      previousSocialOverview,
     ] = await Promise.all([
       paidAdsDashboardService
         .getOverview(brandId, organisationId, range.from, range.to, tenant)
@@ -239,6 +261,21 @@ export const unifiedAnalyticsWorkspaceService = {
         .catch(() => []),
       latestPaidSyncAt(brandId, organisationId),
       latestOrganicSyncAt(brandId, organisationId),
+      ga4AnalyticsQueryService
+        .getWebOverview(brandId, organisationId, range.from, range.to, tenant)
+        .catch(() => null),
+      ga4AnalyticsQueryService
+        .getWebOverview(
+          brandId,
+          organisationId,
+          range.comparisonFrom,
+          range.comparisonTo,
+          tenant,
+        )
+        .catch(() => null),
+      socialAnalyticsQueryService
+        .overview(brandId, organisationId, { from: range.comparisonFrom, to: range.comparisonTo }, tenant)
+        .catch(() => null),
     ]);
 
     await attributionModelService.ensureDefaultModels(brandId, organisationId, tenant).catch(() => undefined);
@@ -278,12 +315,24 @@ export const unifiedAnalyticsWorkspaceService = {
       paidSpendAvailable: paidSpend > 0,
       organicConnected,
       organicAnalyticsAvailable: socialOverview != null,
+      webAnalyticsConnected: webOverview?.connected ?? false,
+      webAnalyticsAvailable: (webOverview?.sessions ?? 0) > 0,
       conversionsTracked: conversions,
       conversionsObserved: conversions + unattributedConversions,
       revenueObserved: observedRevenue,
       revenueAttributed: attributedRevenue,
       journeysWithTouchpoints: journeys.filter((j) => j.touchpointCount > 0).length,
       totalJourneys: journeys.length,
+    });
+
+    const attributionConfidence = computeAttributionConfidence({
+      totalJourneys: journeys.length,
+      journeysWithTouchpoints: journeys.filter((j) => j.touchpointCount > 0).length,
+      attributedConversions: conversions,
+      unattributedConversions,
+      revenueObserved: observedRevenue,
+      revenueAttributed: attributedRevenue,
+      coverageDimensions: coverage,
     });
 
     const revenueCoveragePercent =
@@ -471,11 +520,12 @@ export const unifiedAnalyticsWorkspaceService = {
     const impressions = paidOverview?.impressions ?? socialOverview?.totals?.impressions ?? null;
     const clicks = paidOverview?.clicks ?? socialOverview?.totals?.clicks ?? null;
     const visits = socialOverview?.totals?.profileVisits ?? null;
+    const webSessions = webOverview?.sessions ?? null;
 
     const funnel: FunnelStage[] = [
       {
-        stage: "Impressions",
-        count: impressions,
+        stage: "Impressions / Reach",
+        count: impressions ?? socialOverview?.totals?.reach ?? null,
         conversionRate: null,
         dropOffPercent: null,
       },
@@ -498,7 +548,17 @@ export const unifiedAnalyticsWorkspaceService = {
         dropOffPercent: null,
       },
       {
-        stage: "Visits",
+        stage: "Sessions",
+        count: webSessions,
+        conversionRate:
+          clicks && webSessions ? (webSessions / clicks) * 100 : null,
+        dropOffPercent:
+          clicks && webSessions && clicks > 0
+            ? ((clicks - webSessions) / clicks) * 100
+            : null,
+      },
+      {
+        stage: "Profile Visits",
         count: visits,
         conversionRate: clicks && visits ? (visits / clicks) * 100 : null,
         dropOffPercent:
@@ -596,7 +656,7 @@ export const unifiedAnalyticsWorkspaceService = {
       })),
     );
 
-    const executiveKpis = buildUnifiedKpis({
+    const allKpis = buildUnifiedKpis({
       paidSpend,
       previousPaidSpend,
       attributedRevenue,
@@ -608,12 +668,17 @@ export const unifiedAnalyticsWorkspaceService = {
       organicContributionRevenue: organicContribution > 0 ? organicContribution : null,
       paidContributionRevenue: paidContribution > 0 ? paidContribution : null,
       contentAssistedRevenue: contentAssistedRevenue > 0 ? contentAssistedRevenue : null,
+      organicReach: socialOverview?.totals?.reach ?? null,
+      previousOrganicReach: previousSocialOverview?.totals?.reach ?? null,
+      webSessions: webOverview?.sessions ?? null,
+      previousWebSessions: previousWebOverview?.sessions ?? null,
       attributionModelLabel: ATTRIBUTION_MODEL_LABELS[attributionModel],
       revenueCoveragePercent,
       paidSpendCoveragePercent,
       showComparison,
       comparisonLabel: range.comparisonLabel,
     });
+    const executiveKpis = buildOverviewKpiStrip(allKpis);
 
     const paidByProvider = PAID_CHANNELS.map((provider) => {
       const metrics = paidOverview?.byProvider?.[provider];
@@ -708,6 +773,7 @@ export const unifiedAnalyticsWorkspaceService = {
         attributionCoveragePercent:
           coverage.find((item) => item.dimension === "Attribution Coverage")?.coveragePercent ?? null,
         revenueCoveragePercent,
+        attributionConfidenceLevel: attributionConfidence.level,
         organicAssistRate: organicAssist.rate,
         contentAssistedRevenue: contentAssistedRevenue > 0 ? contentAssistedRevenue : null,
         contentAttributedRevenue: content.reduce(
@@ -778,6 +844,17 @@ export const unifiedAnalyticsWorkspaceService = {
       unattributed: {
         conversions: unattributedConversions,
         revenue: unattributedRevenue,
+      },
+      attributionConfidence,
+      webAnalytics: {
+        connected: webOverview?.connected ?? false,
+        sessions: webOverview?.sessions ?? null,
+        users: webOverview?.users ?? null,
+        pageviews: webOverview?.pageviews ?? null,
+        conversions: webOverview?.conversions ?? null,
+        freshness: webOverview?.freshness ?? "unavailable",
+        lastSyncedAt: webOverview?.lastSyncedAt ?? null,
+        source: webOverview?.source ?? null,
       },
       insights,
       disclaimer: ATTRIBUTION_DISCLAIMER,

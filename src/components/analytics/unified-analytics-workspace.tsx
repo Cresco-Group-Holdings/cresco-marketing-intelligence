@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api/client";
 import type { UnifiedAnalyticsWorkspaceData } from "@/lib/unified-analytics/types";
+import { useUnifiedAnalyticsPreviewData } from "@/components/analytics/unified-analytics-preview-context";
 
 export type UnifiedAnalyticsTab =
   | "overview"
@@ -61,13 +62,19 @@ function ModelSelector({
 }
 
 function UnifiedAnalyticsWorkspaceContent({ tab }: { tab: UnifiedAnalyticsTab }) {
+  const previewData = useUnifiedAnalyticsPreviewData();
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [data, setData] = useState<UnifiedAnalyticsWorkspaceData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<UnifiedAnalyticsWorkspaceData | null>(previewData);
+  const [loading, setLoading] = useState(!previewData);
   const [error, setError] = useState<string | null>(null);
 
   const loadWorkspace = useCallback(async () => {
+    if (previewData) {
+      setData(previewData);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -81,7 +88,7 @@ function UnifiedAnalyticsWorkspaceContent({ tab }: { tab: UnifiedAnalyticsTab })
     } finally {
       setLoading(false);
     }
-  }, [searchParams]);
+  }, [previewData, searchParams]);
 
   useEffect(() => {
     void loadWorkspace();
@@ -168,6 +175,13 @@ function UnifiedAnalyticsWorkspaceContent({ tab }: { tab: UnifiedAnalyticsTab })
         <span>{data.dateRange.comparisonLabel || "No comparison"}</span>
         <span aria-hidden="true">·</span>
         <span>Lookback {data.lookbackWindowDays}d</span>
+        <span aria-hidden="true">·</span>
+        <span>
+          Attribution confidence: {data.attributionConfidence.level}
+          {data.attributionConfidence.sourceCoveragePercent != null
+            ? ` (${data.attributionConfidence.sourceCoveragePercent}% source coverage)`
+            : ""}
+        </span>
       </div>
 
       {(tab === "overview" || tab === "revenue") && (
@@ -212,6 +226,8 @@ function UnifiedAnalyticsWorkspaceContent({ tab }: { tab: UnifiedAnalyticsTab })
           journeyFlows={data.journeyFlows}
           lookbackWindowDays={data.lookbackWindowDays}
           disclaimer={data.disclaimer}
+          attributionConfidence={data.attributionConfidence}
+          unattributed={data.unattributed}
         />
       )}
 
