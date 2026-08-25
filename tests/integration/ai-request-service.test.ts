@@ -44,6 +44,13 @@ vi.mock("@/server/services/ai-usage-recorder", () => ({
   aiUsageRecorder: { record: vi.fn() },
 }));
 
+vi.mock("@/server/services/entitlement-service", () => ({
+  entitlementService: {
+    assert: vi.fn().mockResolvedValue({ allowed: true }),
+    check: vi.fn().mockResolvedValue({ allowed: true }),
+  },
+}));
+
 import { aiRequestService } from "@/server/services/ai-request-service";
 import { promptTemplateService } from "@/server/services/prompt-template-service";
 

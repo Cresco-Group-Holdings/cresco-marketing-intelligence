@@ -18,6 +18,9 @@ import type { TenantContext } from "@/lib/tenancy/context";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { automationActionExecutor } from "@/server/services/automation-action-executor";
 import { brandService } from "@/server/services/workspace-service";
+import { ENTITLEMENT_KEYS, USAGE_METER_KEYS } from "@/lib/billing/entitlements";
+import { entitlementService } from "@/server/services/entitlement-service";
+import { usageMeteringService } from "@/server/services/usage-metering-service";
 
 type ActionContext = {
   organisationId: string;
@@ -145,6 +148,15 @@ export const automationEngineExecutionService = {
       if (!quotaCheck.allowed) {
         results.push({ workflowId: workflow.id, status: "SKIPPED", reason: quotaCheck.reason });
         continue;
+      }
+
+      if (!input.dryRun) {
+        await entitlementService.assert({
+          workspaceId: organisationId,
+          organisationId,
+          entitlement: ENTITLEMENT_KEYS.AUTOMATION_EXECUTIONS_MONTHLY,
+          requestedAmount: 1,
+        });
       }
 
       const execution = await this.runExecution({
@@ -320,6 +332,16 @@ export const automationEngineExecutionService = {
       resourceId: input.workflowId,
       metadata: { executionId: execution.id, status: finalStatus },
     });
+
+    if (!input.dryRun && finalStatus === "COMPLETED") {
+      await usageMeteringService.recordUsage({
+        organisationId: input.organisationId,
+        meterKey: USAGE_METER_KEYS.AUTOMATION_EXECUTIONS,
+        amount: 1,
+        idempotencyKey: `automation-execution-${execution.id}`,
+        period: "BILLING_PERIOD",
+      });
+    }
 
     return { workflowId: input.workflowId, executionId: updated.id, status: finalStatus, errorMessage };
   },

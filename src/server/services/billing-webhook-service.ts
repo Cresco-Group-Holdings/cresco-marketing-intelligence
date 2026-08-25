@@ -1,8 +1,12 @@
 import { prisma } from "@/lib/database/prisma";
 import { verifyStripeWebhookSignature } from "@/lib/revenue/stripe-webhook";
+import { isProductionRuntime } from "@/lib/providers/oauth/runtime";
+import { mapStripeStatusToSubscriptionStatus } from "@/lib/billing/subscription-state";
 import { getStripeBillingConfig } from "@/server/providers/billing/stripe-billing-provider";
 import { getCurrentPlanVersion } from "@/lib/billing/plan-seed";
 import { entitlementService } from "@/server/services/entitlement-service";
+import { trackCommercialEvent } from "@/lib/billing/commercial-analytics";
+import { recordAuditEvent } from "@/server/services/audit-service";
 
 type StripeEvent = {
   id: string;
@@ -22,6 +26,9 @@ export const billingWebhookService = {
 
     let event: StripeEvent;
     if (!config) {
+      if (isProductionRuntime()) {
+        throw new Error("Stripe billing webhook is not configured.");
+      }
       event = JSON.parse(payload) as StripeEvent;
     } else {
       const verified = verifyStripeWebhookSignature(payload, signatureHeader, {
@@ -124,6 +131,14 @@ export const billingWebhookService = {
         });
 
         await entitlementService.syncWorkspaceEntitlementsFromPlan(organisationId);
+        trackCommercialEvent("checkout_completed", { organisationId, planKey });
+        trackCommercialEvent("subscription_started", { organisationId, planKey });
+        await recordAuditEvent({
+          organisationId,
+          action: "billing.subscription_started",
+          resourceType: "Subscription",
+          metadata: { planKey, source: "stripe_webhook" },
+        });
         break;
       }
       case "invoice.paid": {
@@ -161,6 +176,7 @@ export const billingWebhookService = {
           where: { billingAccountId: account.id },
           data: { status: "PAST_DUE" },
         });
+        trackCommercialEvent("payment_failed", { organisationId });
         break;
       }
       case "customer.subscription.deleted": {
@@ -171,30 +187,33 @@ export const billingWebhookService = {
           where: { billingAccountId: account.id },
           data: { status: "CANCELLED", cancelledAt: new Date() },
         });
+        trackCommercialEvent("subscription_cancelled", { organisationId });
         break;
       }
       case "customer.subscription.updated": {
         if (!organisationId) return;
         const account = await prisma.billingAccount.findUnique({ where: { organisationId } });
         if (!account) return;
-        const status = String(obj.status ?? "active").toUpperCase();
-        const mapped =
-          status === "ACTIVE"
-            ? "ACTIVE"
-            : status === "PAST_DUE"
-              ? "PAST_DUE"
-              : status === "CANCELED"
-                ? "CANCELLED"
-                : status === "TRIALING"
-                  ? "TRIALING"
-                  : "ACTIVE";
+        const status = String(obj.status ?? "active");
+        const mapped = mapStripeStatusToSubscriptionStatus(status);
+        const periodStart = obj.current_period_start
+          ? new Date(Number(obj.current_period_start) * 1000)
+          : undefined;
+        const periodEnd = obj.current_period_end
+          ? new Date(Number(obj.current_period_end) * 1000)
+          : undefined;
         await prisma.subscription.updateMany({
           where: { billingAccountId: account.id },
           data: {
-            status: mapped as "ACTIVE",
+            status: mapped,
             cancelAtPeriodEnd: Boolean(obj.cancel_at_period_end),
+            ...(periodStart ? { currentPeriodStart: periodStart } : {}),
+            ...(periodEnd ? { currentPeriodEnd: periodEnd } : {}),
           },
         });
+        if (mapped === "ACTIVE" || mapped === "TRIALING") {
+          await entitlementService.syncWorkspaceEntitlementsFromPlan(organisationId);
+        }
         break;
       }
       default:

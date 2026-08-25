@@ -36,6 +36,17 @@ vi.mock("@/server/services/crm-activity-service", () => ({
 vi.mock("@/server/services/notification-service", () => ({
   notificationService: { emit: vi.fn().mockResolvedValue([]) },
 }));
+vi.mock("@/server/services/entitlement-service", () => ({
+  entitlementService: {
+    assert: vi.fn().mockResolvedValue({ allowed: true }),
+    check: vi.fn().mockResolvedValue({ allowed: true }),
+  },
+}));
+vi.mock("@/server/services/usage-metering-service", () => ({
+  usageMeteringService: {
+    recordUsage: vi.fn().mockResolvedValue({ recorded: true }),
+  },
+}));
 
 import { automationEngineService } from "@/server/services/automation-engine-service";
 import { automationEngineExecutionService } from "@/server/services/automation-engine-execution-service";

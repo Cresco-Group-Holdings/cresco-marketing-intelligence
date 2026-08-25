@@ -2,6 +2,8 @@ import type { AIPurpose, AIProviderName, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import type { AITokenUsage } from "@/lib/ai/types";
 import { estimateTokenCostUsd, aiModelRegistry } from "@/lib/ai/model-registry";
+import { USAGE_METER_KEYS } from "@/lib/billing/entitlements";
+import { usageMeteringService } from "@/server/services/usage-metering-service";
 
 export class AIUsageRecorder {
   async record(input: {
@@ -34,6 +36,17 @@ export class AIUsageRecorder {
         estimatedCostUsd,
       },
     });
+
+    if (input.aiExecutionId) {
+      await usageMeteringService.recordUsage({
+        organisationId: input.organisationId,
+        meterKey: USAGE_METER_KEYS.AI_TOKENS,
+        amount: input.usage.totalTokens,
+        idempotencyKey: `ai-execution-${input.aiExecutionId}`,
+        period: "BILLING_PERIOD",
+        metadata: { purpose: input.purpose, provider: input.provider, model: input.model },
+      });
+    }
   }
 
   async getOrganisationUsageToday(organisationId: string) {

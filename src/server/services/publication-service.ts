@@ -10,6 +10,9 @@ import { hasPermission, PERMISSIONS } from "@/lib/tenancy/permissions";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { complianceAgentService } from "@/server/services/compliance-agent-service";
 import { brandService } from "@/server/services/workspace-service";
+import { ENTITLEMENT_KEYS, USAGE_METER_KEYS } from "@/lib/billing/entitlements";
+import { entitlementService } from "@/server/services/entitlement-service";
+import { usageMeteringService } from "@/server/services/usage-metering-service";
 
 export type CreatePublicationInput = {
   contentItemId: string;
@@ -160,6 +163,15 @@ export const publicationService = {
     });
     if (!connection) throw new AppError("NOT_FOUND", "Provider connection not found.");
 
+    if (!input.dryRun) {
+      await entitlementService.assert({
+        workspaceId: organisationId,
+        organisationId,
+        entitlement: ENTITLEMENT_KEYS.PUBLICATIONS_MONTHLY,
+        requestedAmount: 1,
+      });
+    }
+
     const variant = input.contentVariantId
       ? content.variants.find((entry) => entry.id === input.contentVariantId)
       : content.variants[0];
@@ -246,6 +258,16 @@ export const publicationService = {
       requestId,
       metadata: { operationType: input.operationType, status: publication.status },
     });
+
+    if (!input.dryRun) {
+      await usageMeteringService.recordUsage({
+        organisationId,
+        meterKey: USAGE_METER_KEYS.PUBLICATIONS,
+        amount: 1,
+        idempotencyKey: `publication-${publication.id}`,
+        period: "BILLING_PERIOD",
+      });
+    }
 
     return { publication: toSafePublication(publication), governance, adaptation };
   },

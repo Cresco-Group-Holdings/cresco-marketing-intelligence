@@ -27,7 +27,6 @@ import {
 } from "@/lib/ai/constants";
 import { serialiseBrandContext, type BrandContextPayload } from "@/lib/ai/context-builder";
 import {
-  assertOrganisationDailyBudget,
   assertRequestTokenBudget,
   assertUserDailyBudget,
 } from "@/lib/ai/cost-controls";
@@ -42,7 +41,9 @@ import type { AIExecutionInput, AIExecutionResult } from "@/lib/ai/types";
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import { assertOrganisationScope, type TenantContext } from "@/lib/tenancy/context";
+import { ENTITLEMENT_KEYS } from "@/lib/billing/entitlements";
 import { aiUsageRecorder } from "@/server/services/ai-usage-recorder";
+import { entitlementService } from "@/server/services/entitlement-service";
 import { promptTemplateService } from "@/server/services/prompt-template-service";
 
 const OUTPUT_SCHEMAS = {
@@ -160,7 +161,12 @@ export const aiRequestService = {
       estimateTokensFromText(redactedBrandContext?.text ?? "");
 
     await assertRequestTokenBudget(estimatedPromptTokens + AI_MAX_OUTPUT_TOKENS_DEFAULT);
-    await assertOrganisationDailyBudget(input.organisationId);
+    await entitlementService.assert({
+      workspaceId: input.organisationId,
+      organisationId: input.organisationId,
+      entitlement: ENTITLEMENT_KEYS.AI_TOKENS_MONTHLY,
+      requestedAmount: estimatedPromptTokens + AI_MAX_OUTPUT_TOKENS_DEFAULT,
+    });
     await assertUserDailyBudget(input.userProfileId);
 
     const rateLimiter = createTenantRateLimiter();
