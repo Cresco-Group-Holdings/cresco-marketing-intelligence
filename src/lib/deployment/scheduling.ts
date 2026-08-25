@@ -5,6 +5,10 @@
  * (≤1 invocation/day) can coexist with future Pro or external high-frequency schedulers.
  */
 
+/** GitHub Actions is the supported launch scheduler for high-frequency wake-up on Vercel Hobby. */
+export const LAUNCH_SCHEDULER_CADENCE = "*/5 * * * *";
+export const LAUNCH_SCHEDULER_SLA_MINUTES = 10;
+
 /** Target production cadence when high-frequency scheduling is available (Pro / external worker). */
 export const PRODUCTION_TARGET_SCHEDULES = {
   /** Enqueue and drain due social publishing schedules. */

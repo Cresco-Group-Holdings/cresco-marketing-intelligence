@@ -1,6 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
+vi.mock("@/server/services/scheduler-health-service", () => ({
+  schedulerHealthService: {
+    recordDispatch: vi.fn().mockResolvedValue(undefined),
+    recordProcess: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 vi.mock("@/server/services/worker-dispatcher-service", () => ({
   workerDispatcherService: {
     dispatchDueJobs: vi.fn().mockResolvedValue({ discovered: 0, created: 0, activated: 0, skipped: 0, byType: {} }),

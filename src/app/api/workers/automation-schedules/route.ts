@@ -2,10 +2,10 @@ import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiSuccess } from "@/lib/api/handler";
 import { isAuthorisedSchedulerRequest } from "@/lib/api/worker-auth";
+import { automationScheduleService } from "@/server/services/automation-schedule-service";
 import { schedulerHealthService } from "@/server/services/scheduler-health-service";
-import { workerDispatcherService } from "@/server/services/worker-dispatcher-service";
 
-async function handleDispatch(request: NextRequest) {
+async function handleAutomationSchedules(request: NextRequest) {
   const requestId = randomUUID();
   if (!isAuthorisedSchedulerRequest(request)) {
     return NextResponse.json(
@@ -15,17 +15,23 @@ async function handleDispatch(request: NextRequest) {
   }
 
   const limitParam = Number(request.nextUrl.searchParams.get("limit"));
-  const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined;
+  const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 50;
 
-  const result = await workerDispatcherService.dispatchDueJobs({ limit });
-  await schedulerHealthService.recordDispatch(result);
-  return apiSuccess(result, { requestId });
+  const summary = await automationScheduleService.dispatchDueSchedules(new Date(), limit);
+  await schedulerHealthService.recordDispatch({
+    discovered: summary.evaluated,
+    created: summary.triggered,
+    activated: summary.executionIds.length,
+    skipped: summary.skipped,
+  });
+
+  return apiSuccess({ summary }, { requestId });
 }
 
 export async function GET(request: NextRequest) {
-  return handleDispatch(request);
+  return handleAutomationSchedules(request);
 }
 
 export async function POST(request: NextRequest) {
-  return handleDispatch(request);
+  return handleAutomationSchedules(request);
 }
