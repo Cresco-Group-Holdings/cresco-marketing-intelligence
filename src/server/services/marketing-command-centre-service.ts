@@ -869,7 +869,10 @@ export const marketingCommandCentreService = {
         {
           label: attributedRevenueKpi.label,
           value: attributedRevenueKpi.value,
-          change: percentChange(attributedRevenue, previousAttributedRevenue),
+          change:
+            attributedRevenue != null && previousAttributedRevenue != null
+              ? percentChange(attributedRevenue, previousAttributedRevenue)
+              : null,
           comparisonLabel: range.comparisonLabel,
           sparkline: extractSparkline(paidChart.revenue),
           state: attributedRevenueKpi.state,

@@ -76,9 +76,9 @@ export function resolveBlendedRoas(
   paidSpend: number,
   paidAttributedRevenue: number | null,
 ): number | null {
-  if (paidSpend <= 0 || paidAttributedRevenue == null || paidAttributedRevenue <= 0) {
-    return null;
-  }
+  if (paidSpend <= 0) return null;
+  if (paidAttributedRevenue == null) return null;
+  if (paidAttributedRevenue === 0) return 0;
   return paidAttributedRevenue / paidSpend;
 }
 

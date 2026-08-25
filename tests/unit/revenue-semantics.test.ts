@@ -54,20 +54,23 @@ describe("revenue semantics", () => {
 });
 
 describe("blended ROAS contract", () => {
-  it("calculates ROAS from paid-attributable revenue", () => {
-    expect(resolveBlendedRoas(10_000, 38_000)).toBe(3.8);
+  it("returns 2.00x when paid attributed revenue exceeds spend", () => {
+    expect(resolveBlendedRoas(600, 1200)).toBe(2);
+  });
+
+  it("returns 0.00x when paid attributed revenue is a known zero", () => {
+    expect(resolveBlendedRoas(600, 0)).toBe(0);
+  });
+
+  it("returns unavailable when paid attributed revenue cannot be established", () => {
+    expect(resolveBlendedRoas(600, null)).toBeNull();
+  });
+
+  it("returns unavailable when paid spend is zero", () => {
+    expect(resolveBlendedRoas(0, 1200)).toBeNull();
   });
 
   it("returns unavailable when only global observed revenue exists", () => {
-    expect(resolveBlendedRoas(10_000, null)).toBeNull();
-  });
-
-  it("returns unavailable when there is no revenue", () => {
-    expect(resolveBlendedRoas(10_000, 0)).toBeNull();
-    expect(resolveBlendedRoas(0, 5_000)).toBeNull();
-  });
-
-  it("returns unavailable under partial paid attribution when paid credit is zero", () => {
     const semantics = resolveRevenueSemantics({
       observedRevenue: 100_000,
       attributedRevenue: 15_000,
@@ -77,7 +80,7 @@ describe("blended ROAS contract", () => {
     });
 
     expect(semantics.paidAttributedRevenue).toBeNull();
-    expect(resolveBlendedRoas(12_000, semantics.paidAttributedRevenue)).toBeNull();
+    expect(resolveBlendedRoas(600, semantics.paidAttributedRevenue)).toBeNull();
   });
 });
 
