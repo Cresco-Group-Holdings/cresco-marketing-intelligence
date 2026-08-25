@@ -78,11 +78,7 @@ export function ActivationWorkspace() {
       <ErrorState
         title="Activation status unavailable"
         description={error ?? "Try again in a moment."}
-        action={
-          <Button variant="outline" onClick={() => void loadActivation()}>
-            Retry
-          </Button>
-        }
+        onRetry={() => void loadActivation()}
       />
     );
   }

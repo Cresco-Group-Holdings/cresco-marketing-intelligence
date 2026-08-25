@@ -1,9 +1,18 @@
 import type { ActivationMilestoneState } from "@/lib/activation/milestones";
 
+export type ActivationChecklistItemStatus =
+  | "complete"
+  | "in_progress"
+  | "pending"
+  | "needs_action"
+  | "waiting"
+  | "requires_admin"
+  | "skipped";
+
 export type ActivationChecklistItem = {
   id: string;
   label: string;
-  status: "complete" | "in_progress" | "pending" | "skipped";
+  status: ActivationChecklistItemStatus;
   essential: boolean;
   href?: string;
   consequence?: string;
@@ -22,6 +31,8 @@ export type ActivationChecklistInput = {
   brandId: string | null;
   canManageIntegrations: boolean;
   demoModeEnabled: boolean;
+  workspaceProviderConnected: boolean;
+  syncInProgress: boolean;
 };
 
 const MILESTONE_ROUTES: Partial<Record<string, string>> = {
@@ -33,6 +44,18 @@ const MILESTONE_ROUTES: Partial<Record<string, string>> = {
   first_publication_scheduled: "/publishing",
   first_recommendation_generated: "/dashboard",
 };
+
+function milestoneStatus(
+  milestone: ActivationMilestoneState,
+): ActivationChecklistItemStatus {
+  if (milestone.inProgress) {
+    return "in_progress";
+  }
+  if (milestone.complete) {
+    return "complete";
+  }
+  return "pending";
+}
 
 export function buildActivationChecklist(input: ActivationChecklistInput): ActivationChecklist {
   const brandKnowledgeHref = input.brandId ? `/brands/${input.brandId}/knowledge` : "/onboarding";
@@ -51,15 +74,11 @@ export function buildActivationChecklist(input: ActivationChecklistInput): Activ
       return {
         id: milestone.key,
         label: milestone.label,
-        status: milestone.inProgress
-          ? "in_progress"
-          : milestone.complete
-            ? "complete"
-            : "pending",
+        status: milestoneStatus(milestone),
         essential: true,
         href,
         summary: milestone.summary,
-      } satisfies ActivationChecklistItem;
+      } as ActivationChecklistItem;
     });
 
   const optional = input.milestones
@@ -67,28 +86,33 @@ export function buildActivationChecklist(input: ActivationChecklistInput): Activ
     .map((milestone) => ({
       id: milestone.key,
       label: milestone.label,
-      status: milestone.inProgress
-        ? "in_progress"
-        : milestone.complete
-          ? "complete"
-          : "pending",
+      status: milestoneStatus(milestone),
       essential: false,
       href: MILESTONE_ROUTES[milestone.key],
       summary: milestone.summary,
     }));
 
-  if (!input.canManageIntegrations && !input.demoModeEnabled) {
-    const connectItem = essential.find((item) => item.id === "first_provider_connected");
-    if (connectItem && connectItem.status === "pending") {
-      connectItem.status = "skipped";
-      connectItem.consequence = "Ask an organisation admin to connect marketing data sources.";
+  const connectItem = essential.find((item) => item.id === "first_provider_connected");
+  if (connectItem && !input.demoModeEnabled) {
+    if (input.workspaceProviderConnected) {
+      connectItem.status = "complete";
+    } else if (input.syncInProgress) {
+      connectItem.status = "waiting";
+      connectItem.summary = "Initial sync is running.";
+    } else if (!input.canManageIntegrations) {
+      connectItem.status = "requires_admin";
+      connectItem.consequence = "Requires an Organisation Owner or Admin to connect marketing data.";
+    } else if (connectItem.status === "pending") {
+      connectItem.status = "needs_action";
     }
   }
+
+  const countableStatuses: ActivationChecklistItemStatus[] = ["complete"];
 
   return {
     essential,
     optional,
-    essentialCompleted: essential.filter((item) => item.status === "complete").length,
+    essentialCompleted: essential.filter((item) => countableStatuses.includes(item.status)).length,
     essentialTotal: essential.length,
   };
 }

@@ -8,6 +8,7 @@ describe("activation status", () => {
     const result = calculateActivationStatus({
       milestones: createEmptyMilestoneSnapshot(),
       demoModeEnabled: false,
+      demoProductExperienced: false,
       onboardingCompleted: false,
       syncInProgress: false,
     });
@@ -28,12 +29,32 @@ describe("activation status", () => {
     const result = calculateActivationStatus({
       milestones,
       demoModeEnabled: false,
+      demoProductExperienced: false,
       onboardingCompleted: true,
       syncInProgress: false,
     });
 
     expect(result.isActivated).toBe(true);
     expect(result.status).toBe("activated");
+  });
+
+  it("does not activate from demo mode without real domain milestones", () => {
+    const milestones = createEmptyMilestoneSnapshot();
+    milestones.organisation_ready = true;
+    milestones.project_ready = true;
+    milestones.brand_ready = true;
+    milestones.minimum_brand_knowledge = true;
+
+    const result = calculateActivationStatus({
+      milestones,
+      demoModeEnabled: true,
+      demoProductExperienced: true,
+      onboardingCompleted: true,
+      syncInProgress: false,
+    });
+
+    expect(result.isActivated).toBe(false);
+    expect(result.demoProductExperienced).toBe(true);
   });
 
   it("counts essential milestones for progress indicator", () => {
@@ -44,6 +65,7 @@ describe("activation status", () => {
     const result = calculateActivationStatus({
       milestones,
       demoModeEnabled: false,
+      demoProductExperienced: false,
       onboardingCompleted: true,
       syncInProgress: false,
     });
@@ -59,6 +81,7 @@ describe("activation status", () => {
     const snapshot = buildMilestoneSnapshot({
       milestones,
       demoModeEnabled: false,
+      demoProductExperienced: false,
       onboardingCompleted: true,
       syncInProgress: true,
     });
@@ -73,6 +96,7 @@ describe("activation checklist", () => {
     const milestones = buildMilestoneSnapshot({
       milestones: createEmptyMilestoneSnapshot(),
       demoModeEnabled: false,
+      demoProductExperienced: false,
       onboardingCompleted: true,
       syncInProgress: false,
     });
@@ -82,9 +106,60 @@ describe("activation checklist", () => {
       brandId: "brand-1",
       canManageIntegrations: true,
       demoModeEnabled: false,
+      workspaceProviderConnected: false,
+      syncInProgress: false,
     });
 
     expect(checklist.essential).toHaveLength(7);
     expect(checklist.optional.length).toBeGreaterThan(0);
+  });
+
+  it("marks provider complete for members when workspace already connected", () => {
+    const milestones = buildMilestoneSnapshot({
+      milestones: {
+        ...createEmptyMilestoneSnapshot(),
+        first_provider_connected: true,
+      },
+      demoModeEnabled: false,
+      demoProductExperienced: false,
+      onboardingCompleted: true,
+      syncInProgress: false,
+    });
+
+    const checklist = buildActivationChecklist({
+      milestones,
+      brandId: "brand-1",
+      canManageIntegrations: false,
+      demoModeEnabled: false,
+      workspaceProviderConnected: true,
+      syncInProgress: false,
+    });
+
+    const connectItem = checklist.essential.find((item) => item.id === "first_provider_connected");
+    expect(connectItem?.status).toBe("complete");
+    expect(checklist.essentialCompleted).toBe(1);
+  });
+
+  it("shows requires_admin without inflating completion count", () => {
+    const milestones = buildMilestoneSnapshot({
+      milestones: createEmptyMilestoneSnapshot(),
+      demoModeEnabled: false,
+      demoProductExperienced: false,
+      onboardingCompleted: true,
+      syncInProgress: false,
+    });
+
+    const checklist = buildActivationChecklist({
+      milestones,
+      brandId: "brand-1",
+      canManageIntegrations: false,
+      demoModeEnabled: false,
+      workspaceProviderConnected: false,
+      syncInProgress: false,
+    });
+
+    const connectItem = checklist.essential.find((item) => item.id === "first_provider_connected");
+    expect(connectItem?.status).toBe("requires_admin");
+    expect(checklist.essentialCompleted).toBe(0);
   });
 });

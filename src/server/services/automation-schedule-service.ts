@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { cronMatches, idempotencyKeyForScheduledRun } from "@/lib/background/scheduling";
 import { checkDailyExecutionLimit, checkMonthlyQuota, dayStart, monthStart } from "@/lib/automation-engine/safety";
@@ -223,7 +224,7 @@ export const automationScheduleService = {
             versionId: version.id,
             field: condition.field,
             operator: condition.operator,
-            value: condition.value,
+            value: condition.value as Prisma.InputJsonValue | undefined,
             sortOrder: index,
           },
         });
@@ -234,7 +235,7 @@ export const automationScheduleService = {
           data: {
             versionId: version.id,
             actionType: action.actionType,
-            config: action.config,
+            config: action.config as Prisma.InputJsonValue,
             sortOrder: index,
             maxRetries: action.maxRetries ?? 3,
           },

@@ -6,7 +6,7 @@ import { activationService } from "@/server/services/activation-service";
 
 const eventSchema = z.object({
   event: z.enum(ACTIVATION_EVENT_NAMES),
-  metadata: z.record(z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
+  metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
 export async function POST(request: NextRequest) {

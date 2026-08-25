@@ -18,6 +18,7 @@ export type ActivationNextActionInput = {
   syncInProgress: boolean;
   canManageIntegrations: boolean;
   invitedMember: boolean;
+  workspaceProviderConnected: boolean;
 };
 
 export function resolveActivationNextAction(
@@ -59,7 +60,7 @@ export function resolveActivationNextAction(
   if (!milestone("minimum_brand_knowledge")?.complete) {
     return {
       id: "add-brand-knowledge",
-      title: "Add audience context",
+      title: "Complete core Brand Knowledge",
       description: "Complete essential Brand Knowledge for better AI drafts.",
       href: brandBase ? `${brandBase}/knowledge` : "/onboarding",
       priority: 4,
@@ -69,12 +70,12 @@ export function resolveActivationNextAction(
 
   if (
     !input.demoModeEnabled &&
-    !milestone("first_provider_connected")?.complete &&
+    !input.workspaceProviderConnected &&
     input.canManageIntegrations
   ) {
     return {
       id: "connect-provider",
-      title: "Connect GA4 or social account",
+      title: "Connect provider",
       description: "Connect a data source to unlock analytics and publishing.",
       href: "/integrations",
       priority: 5,
@@ -82,10 +83,52 @@ export function resolveActivationNextAction(
     };
   }
 
+  if (
+    !input.demoModeEnabled &&
+    !input.workspaceProviderConnected &&
+    !input.canManageIntegrations
+  ) {
+    return {
+      id: "provider-requires-admin",
+      title: "Connect provider",
+      description:
+        "An Organisation Owner or Admin must connect marketing data. You can continue other setup steps.",
+      href: "/getting-started",
+      priority: 5,
+    };
+  }
+
+  if (
+    milestone("first_recommendation_generated")?.complete &&
+    !milestone("first_recommendation_viewed")?.complete
+  ) {
+    return {
+      id: "review-cresco-insight",
+      title: "Review Cresco insight",
+      description: "Open your first recommendation to complete activation.",
+      href: "/dashboard",
+      priority: 6,
+    };
+  }
+
+  if (
+    milestone("first_analytics_observation")?.complete &&
+    !milestone("first_recommendation_generated")?.complete &&
+    !milestone("first_content_created")?.complete
+  ) {
+    return {
+      id: "review-analytics",
+      title: "Review analytics",
+      description: "Analytics are available. Cresco will surface insights as data accumulates.",
+      href: "/analytics",
+      priority: 6,
+    };
+  }
+
   if (input.syncInProgress && !milestone("initial_sync_complete")?.complete) {
     return {
       id: "create-while-syncing",
-      title: "Create first content",
+      title: "Create your first content",
       description: "Initial sync is running. You can create content while analytics load.",
       href: input.brandId ? `/content/studio/new?brandId=${input.brandId}` : "/content/studio",
       priority: 6,
@@ -126,10 +169,10 @@ export function resolveActivationNextAction(
   if (!milestone("first_recommendation_generated")?.complete) {
     return {
       id: "review-insight",
-      title: "Review first insight",
+      title: "Review Cresco insight",
       description: "Open Command Centre to review your first Cresco recommendation.",
       href: "/dashboard",
-      priority: 10,
+      priority: 11,
     };
   }
 

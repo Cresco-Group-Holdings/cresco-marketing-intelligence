@@ -13,6 +13,7 @@ export const ACTIVATION_MILESTONE_KEYS = [
   "first_publication_scheduled",
   "first_analytics_observation",
   "first_recommendation_generated",
+  "first_recommendation_viewed",
 ] as const;
 
 export type ActivationMilestoneKey = (typeof ACTIVATION_MILESTONE_KEYS)[number];
@@ -44,6 +45,7 @@ export const ACTIVATION_MILESTONE_LABELS: Record<ActivationMilestoneKey, string>
   first_publication_scheduled: "Schedule publication",
   first_analytics_observation: "Analytics available",
   first_recommendation_generated: "First insight",
+  first_recommendation_viewed: "Insight reviewed",
 };
 
 export type ActivationHighLevelStatus =

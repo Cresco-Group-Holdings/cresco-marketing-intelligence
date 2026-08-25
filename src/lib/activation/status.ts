@@ -10,6 +10,7 @@ import {
 export type ActivationStatusInput = {
   milestones: ActivationMilestoneSnapshot;
   demoModeEnabled: boolean;
+  demoProductExperienced: boolean;
   onboardingCompleted: boolean;
   syncInProgress: boolean;
 };
@@ -19,10 +20,17 @@ export type ActivationStatusResult = {
   milestones: ActivationMilestoneState[];
   essentialCompleted: number;
   essentialTotal: number;
+  /** Real workspace has reached meaningful first value (domain truth only). */
   isActivated: boolean;
+  /** User has experienced product value in demo mode (does not imply real setup). */
+  demoProductExperienced: boolean;
   readyForFirstValue: boolean;
 };
 
+/**
+ * Core value actions — at least one must be true for real workspace activation.
+ * Content-first: AI generation or publication. Analytics-first: observations or insight.
+ */
 const CORE_VALUE_MILESTONES: ActivationMilestoneKey[] = [
   "first_ai_generation_completed",
   "first_publication_scheduled",
@@ -49,6 +57,10 @@ export function buildMilestoneSnapshot(input: ActivationStatusInput): Activation
       summary = "Essential brand context is available.";
     }
 
+    if (milestoneKey === "first_recommendation_generated" && complete) {
+      summary = "A Cresco recommendation or data-gap insight is available.";
+    }
+
     return {
       key: milestoneKey,
       label: ACTIVATION_MILESTONE_LABELS[milestoneKey],
@@ -71,21 +83,20 @@ export function calculateActivationStatus(input: ActivationStatusInput): Activat
     input.milestones.project_ready &&
     input.milestones.brand_ready;
 
-  const hasDataSource =
-    input.demoModeEnabled || input.milestones.first_provider_connected;
+  const hasRealDataSource = input.milestones.first_provider_connected;
 
   const hasCoreValueAction = CORE_VALUE_MILESTONES.some((key) => input.milestones[key]);
 
   const isActivated =
     hasWorkspaceFoundation &&
     input.milestones.minimum_brand_knowledge &&
-    hasDataSource &&
+    hasRealDataSource &&
     hasCoreValueAction;
 
   const readyForFirstValue =
     hasWorkspaceFoundation &&
     input.milestones.minimum_brand_knowledge &&
-    hasDataSource;
+    hasRealDataSource;
 
   let status: ActivationHighLevelStatus = "not_started";
 
@@ -105,6 +116,7 @@ export function calculateActivationStatus(input: ActivationStatusInput): Activat
     essentialCompleted,
     essentialTotal,
     isActivated,
+    demoProductExperienced: input.demoProductExperienced,
     readyForFirstValue,
   };
 }
@@ -125,5 +137,6 @@ export function createEmptyMilestoneSnapshot(): ActivationMilestoneSnapshot {
     first_publication_scheduled: false,
     first_analytics_observation: false,
     first_recommendation_generated: false,
+    first_recommendation_viewed: false,
   };
 }

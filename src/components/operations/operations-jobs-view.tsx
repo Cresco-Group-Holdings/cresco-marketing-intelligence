@@ -86,7 +86,7 @@ export function OperationsJobsView() {
                 {job.safeErrorMessage ? <p className="text-muted-foreground">{job.safeErrorMessage}</p> : null}
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline">{job.status}</Badge>
+                <Badge variant="muted">{job.status}</Badge>
                 {["FAILED", "DEAD_LETTER", "RETRY_WAIT"].includes(job.status) ? (
                   <Button size="sm" variant="outline" onClick={() => retryJob(job.id)}>Retry</Button>
                 ) : null}

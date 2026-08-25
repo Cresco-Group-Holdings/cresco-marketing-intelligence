@@ -12,6 +12,10 @@ function checklistIcon(status: ActivationChecklistItem["status"]): string {
       return "✓";
     case "in_progress":
       return "⏳";
+    case "waiting":
+      return "⏳";
+    case "requires_admin":
+      return "🔒";
     case "skipped":
       return "—";
     default:
@@ -51,8 +55,13 @@ function ChecklistSection({
                 <div className="flex flex-wrap items-center gap-2">
                   <span aria-hidden="true">{checklistIcon(item.status)}</span>
                   <p className="text-sm font-medium text-foreground">{item.label}</p>
-                  {item.status === "in_progress" ? (
-                    <Badge variant="warning">In progress</Badge>
+                  {item.status === "in_progress" || item.status === "waiting" ? (
+                    <Badge variant="warning">
+                      {item.status === "waiting" ? "Waiting" : "In progress"}
+                    </Badge>
+                  ) : null}
+                  {item.status === "requires_admin" ? (
+                    <Badge variant="muted">Requires admin</Badge>
                   ) : null}
                 </div>
                 {item.summary ? (
@@ -62,7 +71,7 @@ function ChecklistSection({
                   <p className="mt-1 text-sm text-foreground-subtle">{item.consequence}</p>
                 ) : null}
               </div>
-              {item.href && item.status !== "complete" ? (
+              {item.href && item.status !== "complete" && item.status !== "requires_admin" ? (
                 <Link href={item.href} className="shrink-0 text-sm font-medium hover:underline">
                   Open
                 </Link>

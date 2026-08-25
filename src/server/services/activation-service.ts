@@ -1,5 +1,7 @@
 import {
   BrandMarketingChannel,
+  GrowthRecommendationStatus,
+  MarketingAnalystRecommendationStatus,
   OrganisationRole,
   ProviderConnectionStatus,
   ProviderSyncRunStatus,
@@ -19,8 +21,13 @@ import { createEmptyMilestoneSnapshot } from "@/lib/activation/status";
 import { calculateActivationStatus } from "@/lib/activation/status";
 import { resolveActivationNextAction } from "@/lib/activation/next-action";
 import { recommendProviders, type ActivationGoal } from "@/lib/activation/providers";
+import {
+  IDEMPOTENT_ACTIVATION_EVENTS,
+  isClientDomainAssertingEvent,
+} from "@/lib/activation/truth";
 import { hasPermission, PERMISSIONS } from "@/lib/tenancy/permissions";
 import { buildTenantContextForUser } from "@/lib/tenancy/guards";
+import { AppError } from "@/lib/errors";
 import { brandKnowledgeService } from "@/server/services/brand-knowledge-service";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { workspaceService } from "@/server/services/workspace-service";
@@ -39,6 +46,7 @@ export type ActivationPreferences = {
 export type ActivationState = {
   status: ActivationHighLevelStatus;
   isActivated: boolean;
+  demoProductExperienced: boolean;
   readyForFirstValue: boolean;
   essentialCompleted: number;
   essentialTotal: number;
@@ -92,6 +100,57 @@ async function hasInvitedMembership(userProfileId: string): Promise<boolean> {
   return Boolean(acceptedInvitation);
 }
 
+async function hasCanonicalInsight(
+  organisationId: string,
+  brandId: string,
+): Promise<boolean> {
+  const [growthRecommendation, analystRecommendation] = await Promise.all([
+    prisma.growthRecommendation.findFirst({
+      where: {
+        organisationId,
+        brandId,
+        status: GrowthRecommendationStatus.ACTIVE,
+      },
+      select: { id: true },
+    }),
+    prisma.marketingAnalystRecommendation.findFirst({
+      where: {
+        organisationId,
+        brandId,
+        status: MarketingAnalystRecommendationStatus.OPEN,
+      },
+      select: { id: true },
+    }),
+  ]);
+
+  return Boolean(growthRecommendation ?? analystRecommendation);
+}
+
+async function safeCountAnalyticsObservations(
+  organisationId: string,
+  brandId: string,
+): Promise<number> {
+  try {
+    return await prisma.marketingMetricObservation.count({
+      where: { organisationId, brandId },
+      take: 1,
+    });
+  } catch {
+    return 0;
+  }
+}
+
+async function safeHasCanonicalInsight(
+  organisationId: string,
+  brandId: string,
+): Promise<boolean> {
+  try {
+    return await hasCanonicalInsight(organisationId, brandId);
+  } catch {
+    return false;
+  }
+}
+
 export const activationService = {
   async getState(userProfileId: string): Promise<ActivationState> {
     const workspace = await workspaceService.getResolvedWorkspace(userProfileId);
@@ -138,11 +197,15 @@ export const activationService = {
       publicationCount,
       providerConnections,
       syncRuns,
-      analyticsViewEvent,
+      completedSync,
+      analyticsObservationCount,
+      hasInsight,
       recommendationViewEvent,
+      demoEnteredEvent,
+      activationCompleteEvent,
     ] = await Promise.all([
       brandId && organisationId && tenant
-        ? brandKnowledgeService.getSnapshot(brandId, organisationId, tenant)
+        ? brandKnowledgeService.getSnapshot(brandId, organisationId, tenant).catch(() => null)
         : Promise.resolve(null),
       brandId && organisationId
         ? prisma.contentItem.count({ where: { brandId, organisationId } })
@@ -179,7 +242,9 @@ export const activationService = {
         ? prisma.providerConnection.findMany({
             where: {
               organisationId,
-              status: { in: [ProviderConnectionStatus.CONNECTED, ProviderConnectionStatus.RECONNECTED] },
+              status: {
+                in: [ProviderConnectionStatus.CONNECTED, ProviderConnectionStatus.RECONNECTED],
+              },
             },
             select: { providerKey: true, status: true },
           })
@@ -195,10 +260,25 @@ export const activationService = {
           })
         : Promise.resolve([]),
       organisationId
+        ? prisma.providerSyncRun.findFirst({
+            where: {
+              connection: { organisationId },
+              status: ProviderSyncRunStatus.SUCCEEDED,
+            },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+      organisationId && brandId
+        ? safeCountAnalyticsObservations(organisationId, brandId)
+        : Promise.resolve(0),
+      organisationId && brandId
+        ? safeHasCanonicalInsight(organisationId, brandId)
+        : Promise.resolve(false),
+      organisationId
         ? prisma.auditLog.findFirst({
             where: {
               organisationId,
-              action: activationAuditAction("first_analytics_view"),
+              action: activationAuditAction("first_recommendation_view"),
             },
             select: { id: true },
           })
@@ -207,7 +287,16 @@ export const activationService = {
         ? prisma.auditLog.findFirst({
             where: {
               organisationId,
-              action: activationAuditAction("first_recommendation_view"),
+              action: activationAuditAction("demo_workspace_entered"),
+            },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+      organisationId
+        ? prisma.auditLog.findFirst({
+            where: {
+              organisationId,
+              action: activationAuditAction("activation_complete"),
             },
             select: { id: true },
           })
@@ -218,16 +307,9 @@ export const activationService = {
     const recommendedKnowledge = evaluateRecommendedBrandKnowledge(knowledgeSnapshot);
 
     const connectedProviderKeys = providerConnections.map((connection) => connection.providerKey);
+    const workspaceProviderConnected = connectedProviderKeys.length > 0;
     const syncInProgress = syncRuns.length > 0;
-    const completedSync = organisationId
-      ? await prisma.providerSyncRun.findFirst({
-          where: {
-            connection: { organisationId },
-            status: ProviderSyncRunStatus.SUCCEEDED,
-          },
-          select: { id: true },
-        })
-      : null;
+    const demoProductExperienced = Boolean(demoEnteredEvent);
 
     const milestones = createEmptyMilestoneSnapshot();
     milestones.account_ready = true;
@@ -235,24 +317,35 @@ export const activationService = {
     milestones.project_ready = Boolean(project);
     milestones.brand_ready = Boolean(brand);
     milestones.minimum_brand_knowledge = essentialKnowledge.complete;
-    milestones.first_provider_connected = demoModeEnabled || connectedProviderKeys.length > 0;
-    milestones.initial_sync_complete = demoModeEnabled || Boolean(completedSync);
+    milestones.first_provider_connected = workspaceProviderConnected;
+    milestones.initial_sync_complete = Boolean(completedSync);
     milestones.first_content_created = contentCount > 0;
     milestones.first_ai_generation_completed = aiContentCount > 0;
     milestones.first_variant_created = variantCount > 0;
     milestones.first_approval_completed = approvedContentCount > 0;
     milestones.first_publication_scheduled = publicationCount > 0;
-    milestones.first_analytics_observation =
-      demoModeEnabled || Boolean(analyticsViewEvent) || Boolean(completedSync);
-    milestones.first_recommendation_generated =
-      demoModeEnabled || Boolean(recommendationViewEvent) || milestones.first_analytics_observation;
+    milestones.first_analytics_observation = analyticsObservationCount > 0;
+    milestones.first_recommendation_generated = hasInsight;
+    milestones.first_recommendation_viewed = Boolean(recommendationViewEvent);
 
     const activationStatus = calculateActivationStatus({
       milestones,
       demoModeEnabled,
+      demoProductExperienced,
       onboardingCompleted,
       syncInProgress,
     });
+
+    if (activationStatus.isActivated && organisationId && !activationCompleteEvent) {
+      await recordAuditEvent({
+        organisationId,
+        projectId: projectId ?? undefined,
+        actorUserId: userProfileId,
+        action: activationAuditAction("activation_complete"),
+        resourceType: "activation_event",
+        metadata: { status: activationStatus.status },
+      });
+    }
 
     const preferences: ActivationPreferences = {
       goal: stepData.activationGoal ?? null,
@@ -271,6 +364,8 @@ export const activationService = {
       brandId,
       canManageIntegrations,
       demoModeEnabled,
+      workspaceProviderConnected,
+      syncInProgress,
     });
 
     const nextAction = resolveActivationNextAction({
@@ -282,14 +377,16 @@ export const activationService = {
       syncInProgress,
       canManageIntegrations,
       invitedMember,
+      workspaceProviderConnected,
     });
 
     return {
       status: activationStatus.status,
       isActivated: activationStatus.isActivated,
+      demoProductExperienced: activationStatus.demoProductExperienced,
       readyForFirstValue: activationStatus.readyForFirstValue,
-      essentialCompleted: activationStatus.essentialCompleted,
-      essentialTotal: activationStatus.essentialTotal,
+      essentialCompleted: checklist.essentialCompleted,
+      essentialTotal: checklist.essentialTotal,
       demoModeEnabled,
       demoLabel: demoModeEnabled ? DEMO_WORKSPACE_LABEL : null,
       invitedMember,
@@ -393,11 +490,32 @@ export const activationService = {
     metadata?: Record<string, string | number | boolean | null>,
     requestId?: string,
   ) {
+    if (isClientDomainAssertingEvent(event)) {
+      throw new AppError(
+        "FORBIDDEN",
+        `Activation event "${event}" cannot be recorded from the client. Domain milestones are derived from server state.`,
+      );
+    }
+
     const workspace = await workspaceService.getResolvedWorkspace(userProfileId);
     const organisationId = workspace.preference.currentOrganisationId;
 
     if (!organisationId) {
       return null;
+    }
+
+    if (IDEMPOTENT_ACTIVATION_EVENTS.includes(event)) {
+      const existing = await prisma.auditLog.findFirst({
+        where: {
+          organisationId,
+          action: activationAuditAction(event),
+        },
+        select: { id: true },
+      });
+
+      if (existing) {
+        return existing;
+      }
     }
 
     return recordAuditEvent({

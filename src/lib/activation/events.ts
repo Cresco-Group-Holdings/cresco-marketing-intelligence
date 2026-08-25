@@ -13,6 +13,7 @@ export const ACTIVATION_EVENT_NAMES = [
   "first_publication_scheduled",
   "first_publication_published",
   "first_analytics_view",
+  "first_recommendation_generated",
   "first_recommendation_view",
   "activation_complete",
   "demo_workspace_entered",
