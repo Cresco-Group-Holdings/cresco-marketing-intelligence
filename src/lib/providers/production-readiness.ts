@@ -31,7 +31,7 @@ const TIER_1_KEYS = [
 
 const TIER_2_KEYS = ["tiktok", "google-search-console"] as const;
 
-const CAPABILITY_MATRIX: Record<
+export const CAPABILITY_MATRIX: Record<
   string,
   Pick<
     ProviderReadinessRow,
@@ -124,7 +124,7 @@ export function buildProviderReadinessMatrix(): ProviderReadinessRow[] {
 
     const envConfigured = config.status === "READY";
     const productionStatus = envConfigured
-      ? providerKey === "x" || providerKey === "tiktok"
+      ? providerKey === "x"
         ? "beta"
         : "ready"
       : "not_configured";

@@ -77,7 +77,7 @@ export const ORGANIC_PROVIDER_REGISTRY: OrganicProviderDefinition[] =
             item.provider !== "X" &&
             item.provider !== "TIKTOK",
         },
-        connectHref: "/social/connections",
+        connectHref: "/integrations",
         formats: [],
       },
       false,

@@ -9,6 +9,7 @@ import {
   isProductionOAuthProvider,
 } from "@/lib/providers/oauth/production-providers";
 import { resolveOAuthProviderKey } from "@/lib/providers/provider-availability";
+import { buildProviderTruthContract } from "@/lib/providers/provider-truth-contract";
 import { getProviderDefinition, listProviderDefinitions } from "@/lib/providers/registry";
 import { providerConnectionService } from "@/server/services/provider-connection-service";
 import { providerGateway } from "@/server/services/provider-gateway-service";
@@ -29,9 +30,17 @@ export const integrationConnectionService = {
       const oauthConfig = isProductionOAuthProvider(oauthProviderKey)
         ? getProviderOAuthConfigDetail(oauthProviderKey)
         : null;
-      const isAvailable = organicStatus
-        ? organicStatus.status === "AVAILABLE" || organicStatus.status === "BETA"
-        : def.enabled || oauthConfig?.status === "READY";
+      const truth = buildProviderTruthContract(def.key, {
+        productAvailability: organicStatus
+          ? organicStatus.status === "AVAILABLE"
+            ? "available"
+            : organicStatus.status === "BETA"
+              ? "beta"
+              : organicStatus.status === "DISABLED" || organicStatus.status === "MISCONFIGURED"
+                ? "unavailable"
+                : "unavailable"
+          : undefined,
+      });
       return {
         key: def.key,
         displayName: def.displayName,
@@ -39,14 +48,20 @@ export const integrationConnectionService = {
         authTypes: [def.authType],
         status: organicStatus
           ? organicStatus.status
-          : isAvailable
+          : truth.customerAvailability === "available"
             ? "AVAILABLE"
-            : oauthConfig?.status === "MISCONFIGURED"
-              ? "MISCONFIGURED"
-              : def.apiVersionStatus === "DEPRECATED"
-                ? "DEPRECATED"
-                : "DISABLED",
-        statusLabel: organicStatus?.statusLabel,
+            : truth.customerAvailability === "beta"
+              ? "BETA"
+              : truth.customerAvailability === "pending_provider_approval"
+                ? "DISABLED"
+                : truth.customerAvailability === "not_configured"
+                  ? oauthConfig?.status === "MISCONFIGURED"
+                    ? "MISCONFIGURED"
+                    : "DISABLED"
+                  : def.apiVersionStatus === "DEPRECATED"
+                    ? "DEPRECATED"
+                    : "DISABLED",
+        statusLabel: organicStatus?.statusLabel ?? truth.customerAvailability.replace(/_/g, " "),
         defaultApiVersion: def.apiVersion,
         documentationUrl: def.documentationUrl,
         supportsWebhooks: def.webhookSupport,
@@ -59,6 +74,10 @@ export const integrationConnectionService = {
           missingEnv: oauthConfig?.missingEnv ?? [],
           organicSocial: organicStatus?.organicSocial ?? false,
           connectRoute: organicStatus?.connectRoute ?? null,
+          engineeringStatus: truth.engineeringStatus,
+          configurationStatus: truth.configurationStatus,
+          externalApprovalStatus: truth.externalApprovalStatus,
+          customerAvailability: truth.customerAvailability,
         },
       };
     });
