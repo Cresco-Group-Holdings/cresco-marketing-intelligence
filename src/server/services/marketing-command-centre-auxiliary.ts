@@ -51,6 +51,8 @@ export async function buildDashboardPriorities(input: {
   paidLabels: string[];
   organicLabels: string[];
   organicReauthRequired?: number;
+  providerReauthRequired?: number;
+  providerInitialSyncInProgress?: number;
   publishingGap?: boolean;
   winningContentReady?: number;
   engagementDecline?: boolean;
@@ -65,6 +67,8 @@ export async function buildDashboardPriorities(input: {
     openAlertsResult,
     readyPlans,
     completedExperiments,
+    providerReauthRequired,
+    providerInitialSyncInProgress,
   ] = await Promise.all([
     prisma.publication.count({
       where: {
@@ -110,6 +114,19 @@ export async function buildDashboardPriorities(input: {
         status: "COMPLETED",
       },
     }),
+    prisma.providerConnection.count({
+      where: {
+        organisationId: input.organisationId,
+        status: { in: ["REAUTH_REQUIRED", "EXPIRED", "ACTION_REQUIRED"] },
+      },
+    }),
+    prisma.providerSyncRun.count({
+      where: {
+        organisationId: input.organisationId,
+        triggerType: "INITIAL_IMPORT",
+        status: { in: ["QUEUED", "RUNNING", "RETRYING"] },
+      },
+    }),
   ]);
 
   const staleProviders = mapFreshnessToStaleProviders([
@@ -137,6 +154,8 @@ export async function buildDashboardPriorities(input: {
     experimentsReady: completedExperiments,
     staleDataProviders: [...new Set(staleProviders)],
     organicReauthRequired: input.organicReauthRequired,
+    providerReauthRequired,
+    providerInitialSyncInProgress,
     publishingGap: input.publishingGap,
     winningContentReady: input.winningContentReady,
     engagementDecline: input.engagementDecline,

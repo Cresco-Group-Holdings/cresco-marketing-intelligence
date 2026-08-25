@@ -5,7 +5,10 @@ import {
   resolveUnifiedProviderOrganicStatus,
 } from "@/lib/providers/organic-social-catalogue";
 import { getProviderOAuthConfigDetail } from "@/lib/providers/oauth/provider-config";
-import { isProductionOAuthProvider } from "@/lib/providers/oauth/production-providers";
+import {
+  isProductionOAuthProvider,
+} from "@/lib/providers/oauth/production-providers";
+import { resolveOAuthProviderKey } from "@/lib/providers/provider-availability";
 import { getProviderDefinition, listProviderDefinitions } from "@/lib/providers/registry";
 import { providerConnectionService } from "@/server/services/provider-connection-service";
 import { providerGateway } from "@/server/services/provider-gateway-service";
@@ -22,8 +25,9 @@ export const integrationConnectionService = {
       const organicStatus = isOrganicSocialUnifiedKey(def.key)
         ? resolveUnifiedProviderOrganicStatus(def.key)
         : null;
-      const oauthConfig = isProductionOAuthProvider(def.key)
-        ? getProviderOAuthConfigDetail(def.key)
+      const oauthProviderKey = resolveOAuthProviderKey(def.key);
+      const oauthConfig = isProductionOAuthProvider(oauthProviderKey)
+        ? getProviderOAuthConfigDetail(oauthProviderKey)
         : null;
       const isAvailable = organicStatus
         ? organicStatus.status === "AVAILABLE" || organicStatus.status === "BETA"
