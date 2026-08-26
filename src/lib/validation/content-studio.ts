@@ -96,6 +96,26 @@ export const contentStudioKnowledgeRefSchema = z.object({
   excerpt: optionalTrimmed(5000),
 });
 
+export const contentStudioGenerateBriefSchema = z.object({
+  studioType: z.nativeEnum(ContentStudioType),
+  topic: optionalTrimmed(2000),
+  audienceId: z.string().optional(),
+  personaId: z.string().optional(),
+  offerId: z.string().optional(),
+  objectiveId: z.string().optional(),
+  primaryChannel: z.nativeEnum(BrandMarketingChannel).optional(),
+  idempotencyKey: z.string().trim().min(8).max(128),
+});
+
+export const contentStudioRegenerateBriefSchema = z.object({
+  topic: optionalTrimmed(2000),
+  audienceId: z.string().optional(),
+  personaId: z.string().optional(),
+  offerId: z.string().optional(),
+  objectiveId: z.string().optional(),
+  idempotencyKey: z.string().trim().min(8).max(128),
+});
+
 export const contentStudioScheduleSchema = z
   .object({
     scheduledFor: z.string().datetime(),
@@ -114,3 +134,5 @@ export type ContentStudioUpdateInput = z.infer<typeof contentStudioUpdateSchema>
 export type ContentStudioVariantInput = z.infer<typeof contentStudioVariantInputSchema>;
 export type ContentStudioTemplateCreateInput = z.infer<typeof contentStudioTemplateCreateSchema>;
 export type ContentStudioKnowledgeRefInput = z.infer<typeof contentStudioKnowledgeRefSchema>;
+export type ContentStudioGenerateBriefInput = z.infer<typeof contentStudioGenerateBriefSchema>;
+export type ContentStudioRegenerateBriefInput = z.infer<typeof contentStudioRegenerateBriefSchema>;

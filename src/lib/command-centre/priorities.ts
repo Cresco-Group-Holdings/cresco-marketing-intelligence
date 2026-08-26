@@ -62,6 +62,7 @@ type BuildPrioritiesInput = {
   publishingGap?: boolean;
   winningContentReady?: number;
   engagementDecline?: boolean;
+  contentAwaitingApproval?: number;
 };
 
 const URGENCY_ORDER = { critical: 3, high: 2, normal: 1 } as const;
@@ -185,6 +186,20 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
             : "/integrations"
           : "/operations",
       },
+    });
+  }
+
+  if ((input.contentAwaitingApproval ?? 0) > 0) {
+    priorities.push({
+      id: "content-studio-approval",
+      type: "content",
+      title:
+        input.contentAwaitingApproval === 1
+          ? "1 content item awaiting approval"
+          : `${input.contentAwaitingApproval} content items awaiting approval`,
+      urgency: "high",
+      context: "Studio content requires review before publishing.",
+      action: { label: "Review content", href: "/content/studio/workflow" },
     });
   }
 

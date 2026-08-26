@@ -67,8 +67,7 @@ export async function buildDashboardPriorities(input: {
     openAlertsResult,
     readyPlans,
     completedExperiments,
-    providerReauthRequired,
-    providerInitialSyncInProgress,
+    contentAwaitingApproval,
   ] = await Promise.all([
     prisma.publication.count({
       where: {
@@ -114,17 +113,13 @@ export async function buildDashboardPriorities(input: {
         status: "COMPLETED",
       },
     }),
-    prisma.providerConnection.count({
+    prisma.contentItem.count({
       where: {
+        brandId: input.brandId,
         organisationId: input.organisationId,
-        status: { in: ["REAUTH_REQUIRED", "EXPIRED", "ACTION_REQUIRED"] },
-      },
-    }),
-    prisma.providerSyncRun.count({
-      where: {
-        organisationId: input.organisationId,
-        triggerType: "INITIAL_IMPORT",
-        status: { in: ["QUEUED", "RUNNING", "RETRYING"] },
+        archivedAt: null,
+        studioType: { not: null },
+        status: "IN_REVIEW",
       },
     }),
   ]);
@@ -159,6 +154,7 @@ export async function buildDashboardPriorities(input: {
     publishingGap: input.publishingGap,
     winningContentReady: input.winningContentReady,
     engagementDecline: input.engagementDecline,
+    contentAwaitingApproval,
   });
 }
 

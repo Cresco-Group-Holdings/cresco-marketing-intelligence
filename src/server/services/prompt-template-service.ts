@@ -140,6 +140,28 @@ const DEFAULT_TEMPLATES = [
     outputSchemaKey: "content.ideas",
   },
   {
+    key: "content.intelligence.brief",
+    name: "Content Intelligence Brief",
+    description: "Generate a structured marketing content brief from brand context.",
+    purpose: "CONTENT_DRAFT" as const,
+    systemPrompt:
+      `${CONTENT_TEMPLATE_BASE} Generate a structured content brief only — not final copy. ` +
+      "Use supplied brand context, campaign, audience, and evidence. Never fabricate statistics or competitor claims. " +
+      "Return valid JSON matching the content intelligence brief schema.",
+    outputSchemaKey: "content.intelligence.brief",
+  },
+  {
+    key: "content.intelligence.master",
+    name: "Content Intelligence Master",
+    description: "Generate master content from an approved content brief.",
+    purpose: "CONTENT_DRAFT" as const,
+    systemPrompt:
+      `${CONTENT_TEMPLATE_BASE} Generate channel-agnostic master content from the supplied brief. ` +
+      "Do not fabricate testimonials, grants, or performance guarantees. Flag compliance risks in riskFlags. " +
+      "Return valid JSON matching the content intelligence master schema.",
+    outputSchemaKey: "content.intelligence.master",
+  },
+  {
     key: "growth.insight.explain",
     name: "Growth Insight Explanation",
     description: "Explain deterministic growth insights without inventing statistics.",

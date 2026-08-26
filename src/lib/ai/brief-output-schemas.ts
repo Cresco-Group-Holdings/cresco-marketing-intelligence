@@ -42,6 +42,30 @@ export const seoBriefOutputSchema = z.object({
   originalityGuidance: z.string(),
 });
 
+/** Structured Content Studio brief — not full master copy. */
+export const contentStudioBriefOutputSchema = z.object({
+  title: z.string().min(1),
+  studioObjective: z.string().min(1),
+  audienceSummary: z.string().min(1),
+  keyMessages: z.array(z.string()).min(1),
+  talkingPoints: z.array(z.string()),
+  toneGuidance: z.string(),
+  primaryCTA: z.string(),
+  channelRecommendations: z.array(
+    z.object({
+      channel: z.string(),
+      rationale: z.string(),
+    }),
+  ),
+  contentAngle: z.string(),
+  successMetrics: z.array(z.string()),
+  complianceNotes: z.array(z.string()),
+  limitations: z.string(),
+});
+
 export const BRIEF_OUTPUT_SCHEMAS = {
   "seo.briefs.generate": seoBriefOutputSchema,
+  "content.studio.brief.generate": contentStudioBriefOutputSchema,
 } as const;
+
+export type ContentStudioBriefOutput = z.infer<typeof contentStudioBriefOutputSchema>;

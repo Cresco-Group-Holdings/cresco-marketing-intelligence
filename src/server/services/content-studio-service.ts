@@ -29,6 +29,13 @@ import type {
   ContentStudioTemplateCreateInput,
   ContentStudioKnowledgeRefInput,
 } from "@/lib/validation/content-studio";
+import type { ContentStudioBriefOutput } from "@/lib/ai/brief-output-schemas";
+import {
+  getStudioGenerationState,
+  mergeStudioGenerationState,
+  type StudioGenerationState,
+} from "@/lib/content-studio/generation-tracking";
+import type { UsedKnowledgeRecord } from "@/lib/ai/brand-context-builder";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { brandService } from "@/server/services/workspace-service";
 
@@ -50,6 +57,7 @@ const STUDIO_INCLUDE = {
     take: 20,
   },
   complianceChecks: { orderBy: { checkedAt: "desc" as const }, take: 30 },
+  provenance: true,
 } satisfies Prisma.ContentItemInclude;
 
 const STUDIO_TYPE_TO_CONTENT_TYPE: Record<ContentStudioType, ContentType> = {
@@ -192,6 +200,16 @@ function toPublicStudioItem(item: Awaited<ReturnType<typeof getStudioItemOrThrow
     comments: item.comments,
     complianceChecks: item.complianceChecks,
     allowedTransitions: getAllowedStudioTransitions(item.status),
+    provenance: item.provenance
+      ? {
+          createdManually: item.provenance.createdManually,
+          aiProvider: item.provenance.aiProvider,
+          aiModel: item.provenance.aiModel,
+          generatedAt: item.provenance.generatedAt?.toISOString() ?? null,
+          briefGeneration: getStudioGenerationState(item.provenance.metadata, "brief"),
+          masterGeneration: getStudioGenerationState(item.provenance.metadata, "master"),
+        }
+      : null,
   };
 }
 
@@ -345,6 +363,72 @@ async function transitionStudioStatus(input: {
       },
     }),
   ]);
+}
+
+function mapUsedRecordToReferenceType(
+  type: UsedKnowledgeRecord["type"],
+): import("@prisma/client").ContentKnowledgeReferenceType {
+  switch (type) {
+    case "audience":
+      return "AUDIENCE";
+    case "persona":
+      return "PERSONA";
+    case "offer":
+      return "OFFER";
+    case "messaging":
+      return "MESSAGING";
+    case "voice":
+      return "VOICE";
+    case "compliance":
+      return "COMPLIANCE_RULE";
+    default:
+      return "CUSTOM";
+  }
+}
+
+async function upsertProvenanceGenerationState(input: {
+  scope: BrandScope;
+  contentItemId: string;
+  phase: "brief" | "master" | "variants";
+  state: StudioGenerationState;
+  aiFields?: {
+    aiProvider?: string;
+    aiModel?: string;
+    promptTemplateVersionId?: string;
+    generatedAt?: Date;
+    createdManually?: boolean;
+  };
+}) {
+  const existing = await prisma.contentProvenance.findUnique({
+    where: { contentItemId: input.contentItemId },
+  });
+  const metadata = mergeStudioGenerationState(existing?.metadata ?? null, input.phase, input.state);
+
+  if (existing) {
+    await prisma.contentProvenance.update({
+      where: { contentItemId: input.contentItemId },
+      data: {
+        metadata: metadata as Prisma.InputJsonValue,
+        ...(input.aiFields ?? {}),
+      },
+    });
+    return;
+  }
+
+  await prisma.contentProvenance.create({
+    data: {
+      organisationId: input.scope.organisationId,
+      projectId: input.scope.projectId,
+      brandId: input.scope.brandId,
+      contentItemId: input.contentItemId,
+      createdManually: input.aiFields?.createdManually ?? false,
+      aiProvider: input.aiFields?.aiProvider,
+      aiModel: input.aiFields?.aiModel,
+      promptTemplateVersionId: input.aiFields?.promptTemplateVersionId,
+      generatedAt: input.aiFields?.generatedAt,
+      metadata: metadata as Prisma.InputJsonValue,
+    },
+  });
 }
 
 export const contentStudioService = {
@@ -1027,5 +1111,198 @@ export const contentStudioService = {
       where: { contentItemId: contentId, organisationId: scope.organisationId },
       orderBy: { versionNumber: "desc" },
     });
+  },
+
+  async markBriefGenerationInProgress(
+    brandId: string,
+    organisationId: string,
+    contentId: string,
+    context: TenantContext,
+    input: { idempotencyKey: string; aiRequestId: string },
+  ) {
+    const scope = await resolveBrandScope(brandId, organisationId, context);
+    await getStudioItemOrThrow(scope, contentId);
+    await upsertProvenanceGenerationState({
+      scope,
+      contentItemId: contentId,
+      phase: "brief",
+      state: {
+        phase: "brief",
+        idempotencyKey: input.idempotencyKey,
+        status: "in_progress",
+        aiRequestId: input.aiRequestId,
+      },
+      aiFields: { createdManually: false },
+    });
+  },
+
+  async markBriefGenerationFailed(
+    brandId: string,
+    organisationId: string,
+    contentId: string,
+    context: TenantContext,
+    input: { idempotencyKey: string; aiRequestId?: string; errorMessage: string },
+  ) {
+    const scope = await resolveBrandScope(brandId, organisationId, context);
+    await getStudioItemOrThrow(scope, contentId);
+    await upsertProvenanceGenerationState({
+      scope,
+      contentItemId: contentId,
+      phase: "brief",
+      state: {
+        phase: "brief",
+        idempotencyKey: input.idempotencyKey,
+        status: "failed",
+        aiRequestId: input.aiRequestId,
+        failedAt: new Date().toISOString(),
+        errorMessage: input.errorMessage,
+      },
+    });
+  },
+
+  async persistAiGeneratedBrief(
+    brandId: string,
+    organisationId: string,
+    contentId: string,
+    context: TenantContext,
+    input: {
+      output: ContentStudioBriefOutput;
+      idempotencyKey: string;
+      aiRequestId: string;
+      aiProvider: string;
+      aiModel: string;
+      promptTemplateVersionId?: string;
+      usedRecords: UsedKnowledgeRecord[];
+      estimatedCostUsd: number;
+    },
+    requestId?: string,
+  ) {
+    const scope = await resolveBrandScope(brandId, organisationId, context);
+    const existing = await getStudioItemOrThrow(scope, contentId);
+
+    if (!["IDEA", "BRIEF"].includes(existing.status)) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "AI brief generation is only available for content in IDEA or BRIEF status.",
+      );
+    }
+
+    const nextVersion = existing.version + 1;
+    const structuredOutput = input.output as unknown as Record<string, unknown>;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.contentItem.update({
+        where: { id: contentId },
+        data: {
+          title: input.output.title,
+          studioObjective: input.output.studioObjective,
+          audienceSummary: input.output.audienceSummary,
+          primaryCTA: input.output.primaryCTA,
+          version: nextVersion,
+          status: "BRIEF",
+        },
+      });
+
+      await tx.contentKnowledgeReference.deleteMany({
+        where: { contentItemId: contentId, organisationId: scope.organisationId },
+      });
+
+      if (input.usedRecords.length > 0) {
+        await tx.contentKnowledgeReference.createMany({
+          data: input.usedRecords.map((record) => ({
+            organisationId: scope.organisationId,
+            projectId: scope.projectId,
+            brandId: scope.brandId,
+            contentItemId: contentId,
+            referenceType: mapUsedRecordToReferenceType(record.type),
+            referenceId: record.id,
+            label: record.label,
+            excerpt: null,
+            createdByUserId: context.userProfileId,
+          })),
+        });
+      }
+
+      if (existing.status !== "BRIEF") {
+        await tx.contentStatusHistory.create({
+          data: {
+            organisationId: scope.organisationId,
+            projectId: scope.projectId,
+            brandId: scope.brandId,
+            contentItemId: contentId,
+            fromStatus: existing.status,
+            toStatus: "BRIEF",
+            changedByUserId: context.userProfileId,
+            reason: "AI brief generated",
+          },
+        });
+      }
+    });
+
+    await createContentVersion({
+      scope,
+      contentItemId: contentId,
+      versionNumber: nextVersion,
+      snapshot: {
+        phase: "brief",
+        title: input.output.title,
+        studioObjective: input.output.studioObjective,
+        audienceSummary: input.output.audienceSummary,
+        primaryCTA: input.output.primaryCTA,
+        structuredBrief: structuredOutput,
+        aiRequestId: input.aiRequestId,
+        generatedAt: new Date().toISOString(),
+      },
+      createdByUserId: context.userProfileId,
+      changeSummary: "AI brief generated",
+    });
+
+    await upsertProvenanceGenerationState({
+      scope,
+      contentItemId: contentId,
+      phase: "brief",
+      state: {
+        phase: "brief",
+        idempotencyKey: input.idempotencyKey,
+        status: "completed",
+        aiRequestId: input.aiRequestId,
+        versionNumber: nextVersion,
+        structuredOutput,
+        completedAt: new Date().toISOString(),
+      },
+      aiFields: {
+        createdManually: false,
+        aiProvider: input.aiProvider,
+        aiModel: input.aiModel,
+        promptTemplateVersionId: input.promptTemplateVersionId,
+        generatedAt: new Date(),
+      },
+    });
+
+    await recordActivity({
+      scope,
+      contentItemId: contentId,
+      activityType: "VERSION_CREATED",
+      actorUserId: context.userProfileId,
+      summary: "AI content brief generated",
+      campaignId: existing.contentCampaignId,
+      metadata: {
+        aiRequestId: input.aiRequestId,
+        estimatedCostUsd: input.estimatedCostUsd,
+        idempotencyKey: input.idempotencyKey,
+      },
+    });
+
+    await recordAuditEvent({
+      organisationId: scope.organisationId,
+      projectId: scope.projectId,
+      actorUserId: context.userProfileId,
+      action: "contentStudio.briefGenerated",
+      resourceType: "contentItem",
+      resourceId: contentId,
+      requestId,
+    });
+
+    return this.getById(brandId, organisationId, contentId, context);
   },
 };
