@@ -39,6 +39,7 @@ const CONNECTION_STATUS_MAP: Record<string, ConnectionHealthState> = {
   CONNECTED: "connected",
   ACTION_REQUIRED: "reauthentication_required",
   REAUTH_REQUIRED: "reauthentication_required",
+  EXPIRED: "reauthentication_required",
   DEGRADED: "error",
   ERROR: "error",
   DISCONNECTED: "disconnected",
@@ -144,4 +145,42 @@ export function buildConnectionHealthView(input: {
     reconnectRequired: state === "reauthentication_required",
     capabilitiesDegraded: state === "error" || state === "reauthentication_required",
   };
+}
+
+export type ProviderConnectionHealthInput = {
+  status: string;
+  hasSelectedAccount?: boolean;
+  initialSyncInProgress?: boolean;
+  lastSyncFailed?: boolean;
+  stale?: boolean;
+  tokenExpired?: boolean;
+};
+
+export function summarizeProviderConnectionHealthCounts(
+  connections: ProviderConnectionHealthInput[],
+): {
+  reauthRequired: number;
+  initialSyncInProgress: number;
+} {
+  let reauthRequired = 0;
+  let initialSyncInProgress = 0;
+
+  for (const connection of connections) {
+    const state = mapConnectionStatusToHealthState(connection.status, {
+      hasSelectedAccount: connection.hasSelectedAccount,
+      initialSyncInProgress: connection.initialSyncInProgress,
+      lastSyncFailed: connection.lastSyncFailed,
+      stale: connection.stale,
+      tokenExpired: connection.tokenExpired,
+    });
+
+    if (state === "reauthentication_required") {
+      reauthRequired += 1;
+    }
+    if (state === "initial_sync") {
+      initialSyncInProgress += 1;
+    }
+  }
+
+  return { reauthRequired, initialSyncInProgress };
 }

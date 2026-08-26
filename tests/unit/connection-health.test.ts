@@ -3,6 +3,7 @@ import {
   buildConnectionHealthView,
   connectionHealthLabel,
   mapConnectionStatusToHealthState,
+  summarizeProviderConnectionHealthCounts,
 } from "@/lib/providers/connection-health";
 
 describe("connection health", () => {
@@ -30,5 +31,21 @@ describe("connection health", () => {
     expect(view.state).toBe("healthy");
     expect(view.freshness).toBe("current");
     expect(view.reconnectRequired).toBe(false);
+  });
+
+  it("summarizes reauth and initial sync counts from canonical health states", () => {
+    const summary = summarizeProviderConnectionHealthCounts([
+      { status: "REAUTH_REQUIRED", hasSelectedAccount: true },
+      { status: "EXPIRED" },
+      {
+        status: "CONNECTED",
+        hasSelectedAccount: true,
+        initialSyncInProgress: true,
+      },
+      { status: "CONNECTED", hasSelectedAccount: true },
+    ]);
+
+    expect(summary.reauthRequired).toBe(2);
+    expect(summary.initialSyncInProgress).toBe(1);
   });
 });
