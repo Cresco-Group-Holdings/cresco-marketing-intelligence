@@ -28,6 +28,8 @@ export const STAGE_13_SYNC_PROVIDER_KEYS = [
   "mailchimp",
   "meta",
   "linkedin",
+  "youtube",
+  "x",
   "tiktok",
 ] as const;
 
@@ -45,6 +47,8 @@ export const PROVIDER_DEFAULT_RESOURCE_TYPES: Record<string, SyncResourceType[]>
   mailchimp: ["provider_account", "email_campaign", "email_performance"],
   meta: ["provider_account", "social_post", "content_performance", "metric_daily"],
   linkedin: ["provider_account", "social_post", "content_performance", "metric_daily"],
+  youtube: ["provider_account", "social_post", "content_performance", "metric_daily"],
+  x: ["provider_account", "social_post", "content_performance", "metric_daily"],
   tiktok: ["provider_account", "social_post", "content_performance", "metric_daily"],
 };
 

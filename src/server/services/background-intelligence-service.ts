@@ -77,6 +77,8 @@ export const backgroundIntelligenceService = {
     const now = new Date();
     const stale = await this.evaluateStaleData(now);
     const workerHealthAlert = await this.checkWorkerHealth(now);
+    const { schedulerHealthService } = await import("@/server/services/scheduler-health-service");
+    const schedulerAlerts = await schedulerHealthService.evaluateSchedulerAlerts(now);
 
     return {
       staleSourcesChecked: stale.checked,
@@ -87,7 +89,7 @@ export const backgroundIntelligenceService = {
           where: { organisation: { status: "ACTIVE", archivedAt: null } },
         }),
       ),
-      workerHealthAlert,
+      workerHealthAlert: workerHealthAlert || schedulerAlerts > 0,
     };
   },
 };

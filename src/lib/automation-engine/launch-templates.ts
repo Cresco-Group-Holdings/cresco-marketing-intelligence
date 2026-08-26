@@ -35,10 +35,10 @@ export const LAUNCH_AUTOMATION_TEMPLATES: LaunchAutomationTemplate[] = [
       {
         actionType: "CREATE_NOTIFICATION",
         config: {
-          title: "Weekly marketing digest is ready",
-          body: "Your weekly performance summary has been generated.",
+          generateWeeklyDigest: true,
           category: "REPORT",
           priority: "NORMAL",
+          actionPath: "/dashboard",
         },
       },
     ],
