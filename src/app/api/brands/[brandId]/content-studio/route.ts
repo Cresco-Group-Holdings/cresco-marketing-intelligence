@@ -4,9 +4,11 @@ import { apiSuccess, jsonBody, parseBody } from "@/lib/api/handler";
 import {
   requireOrganisationId,
   withContentCreate,
+  withContentGenerate,
   withContentRead,
 } from "@/lib/api/content-handler";
-import { contentStudioCreateSchema } from "@/lib/validation/content-studio";
+import { contentStudioCreateSchema, contentStudioGenerateBriefSchema } from "@/lib/validation/content-studio";
+import { contentStudioBriefAiService } from "@/server/services/content-studio-brief-ai-service";
 import { contentStudioService } from "@/server/services/content-studio-service";
 
 type Params = { params: Promise<{ brandId: string }> };
@@ -35,6 +37,22 @@ export async function GET(request: NextRequest, { params }: Params) {
 export async function POST(request: NextRequest, { params }: Params) {
   const { brandId } = await params;
   const organisationId = requireOrganisationId(request);
+  const action = request.nextUrl.searchParams.get("action");
+
+  if (action === "generate-brief") {
+    const body = parseBody(contentStudioGenerateBriefSchema, await jsonBody(request));
+    return withContentGenerate(request, organisationId, async ({ requestId, tenant }) => {
+      const result = await contentStudioBriefAiService.createAndGenerateBrief(
+        brandId,
+        organisationId,
+        body,
+        tenant!,
+        requestId,
+      );
+      return apiSuccess(result, { requestId });
+    });
+  }
+
   const body = parseBody(contentStudioCreateSchema, await jsonBody(request));
 
   return withContentCreate(request, organisationId, async ({ requestId, tenant }) => {

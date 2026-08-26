@@ -113,7 +113,12 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
-  if (pathname.startsWith("/auth/")) {
+  if (
+    process.env.NODE_ENV === "development" &&
+    (pathname === "/dev/command-centre-preview" ||
+      pathname.startsWith("/dev/organic-growth-preview") ||
+      pathname.startsWith("/dev/content-intelligence-preview"))
+  ) {
     return false;
   }
 

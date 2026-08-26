@@ -65,6 +65,7 @@ export async function buildDashboardPriorities(input: {
     openAlertsResult,
     readyPlans,
     completedExperiments,
+    contentAwaitingApproval,
   ] = await Promise.all([
     prisma.publication.count({
       where: {
@@ -110,6 +111,15 @@ export async function buildDashboardPriorities(input: {
         status: "COMPLETED",
       },
     }),
+    prisma.contentItem.count({
+      where: {
+        brandId: input.brandId,
+        organisationId: input.organisationId,
+        archivedAt: null,
+        studioType: { not: null },
+        status: "IN_REVIEW",
+      },
+    }),
   ]);
 
   const staleProviders = mapFreshnessToStaleProviders([
@@ -140,6 +150,7 @@ export async function buildDashboardPriorities(input: {
     publishingGap: input.publishingGap,
     winningContentReady: input.winningContentReady,
     engagementDecline: input.engagementDecline,
+    contentAwaitingApproval,
   });
 }
 
