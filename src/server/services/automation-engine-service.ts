@@ -230,6 +230,43 @@ export const automationEngineService = {
     });
   },
 
+  async listOverview(brandId: string, organisationId: string, context: TenantContext) {
+    await brandService.getById(brandId, organisationId, context);
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - 7);
+
+    const [active, runsThisWeek, failures, recentExecutions] = await Promise.all([
+      prisma.automationWorkflow.count({
+        where: { organisationId, brandId, status: "ACTIVE", archivedAt: null },
+      }),
+      prisma.automationExecution.count({
+        where: { organisationId, brandId, createdAt: { gte: weekStart } },
+      }),
+      prisma.automationExecution.count({
+        where: {
+          organisationId,
+          brandId,
+          status: { in: ["FAILED", "DEAD_LETTER"] },
+          createdAt: { gte: weekStart },
+        },
+      }),
+      prisma.automationExecution.findMany({
+        where: { organisationId, brandId },
+        orderBy: { createdAt: "desc" },
+        take: 10,
+        select: {
+          id: true,
+          status: true,
+          createdAt: true,
+          completedAt: true,
+          workflow: { select: { name: true } },
+        },
+      }),
+    ]);
+
+    return { active, runsThisWeek, failures, recentExecutions };
+  },
+
   async dryRunVersion(
     workflowId: string,
     brandId: string,

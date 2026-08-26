@@ -152,16 +152,45 @@ export const automationActionExecutor = {
         return { notified: approverUserId, awaitingApproval: true };
       }
       case "CREATE_NOTIFICATION": {
-        const recipientUserIds = (config.recipientUserIds as string[]) ?? [];
+        let title = String(config.title);
+        let body = String(config.body ?? "");
+        let recipientUserIds = (config.recipientUserIds as string[]) ?? [];
+
+        if (config.generateWeeklyDigest === true) {
+          const { weeklyMarketingDigestService } = await import(
+            "@/server/services/weekly-marketing-digest-service"
+          );
+          const digest = await weeklyMarketingDigestService.generate(
+            ctx.organisationId,
+            ctx.brandId,
+            ctx.userProfileId,
+          );
+          title = "Weekly marketing digest is ready";
+          body = digest.summary;
+        }
+
+        if (recipientUserIds.length === 0) {
+          const admins = await prisma.organisationMembership.findMany({
+            where: {
+              organisationId: ctx.organisationId,
+              role: { in: ["OWNER", "ADMIN"] },
+              status: "ACTIVE",
+            },
+            select: { userId: true },
+            take: 10,
+          });
+          recipientUserIds = admins.map((member) => member.userId);
+        }
+
         await notificationService.emit({
           organisationId: ctx.organisationId,
           projectId: ctx.projectId,
           brandId: ctx.brandId,
           eventType: String(config.eventType ?? "SYSTEM"),
-          title: String(config.title),
-          body: String(config.body ?? ""),
+          title,
+          body,
           recipientUserIds,
-          actionPath: config.actionPath ? String(config.actionPath) : undefined,
+          actionPath: config.actionPath ? String(config.actionPath) : "/dashboard",
           idempotencyKey: String(config.idempotencyKey ?? `automation-notify:${Date.now()}`),
         });
         return { recipientCount: recipientUserIds.length, executed: true };
