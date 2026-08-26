@@ -57,29 +57,55 @@ export const META_SOCIAL_CAPABILITIES: CanonicalProviderCapability[] = [
   "SOCIAL_CONTENT_PUBLISH",
   "SOCIAL_ACCOUNTS_READ",
   "SOCIAL_CONTENT_READ",
+  "SOCIAL_INSIGHTS_READ",
+];
+
+export const LINKEDIN_SOCIAL_CAPABILITIES: CanonicalProviderCapability[] = [
+  "SOCIAL_CONTENT_PUBLISH",
+  "SOCIAL_ACCOUNTS_READ",
+  "SOCIAL_CONTENT_READ",
+  "SOCIAL_INSIGHTS_READ",
+];
+
+export const YOUTUBE_SOCIAL_CAPABILITIES: CanonicalProviderCapability[] = [
+  "SOCIAL_ACCOUNTS_READ",
+  "SOCIAL_CONTENT_READ",
+  "SOCIAL_INSIGHTS_READ",
+  "SOCIAL_CONTENT_PUBLISH",
+];
+
+export const X_SOCIAL_CAPABILITIES: CanonicalProviderCapability[] = [
+  "SOCIAL_ACCOUNTS_READ",
+  "SOCIAL_CONTENT_READ",
+  "SOCIAL_INSIGHTS_READ",
+  "SOCIAL_CONTENT_PUBLISH",
+];
+
+export const GA4_CAPABILITIES: CanonicalProviderCapability[] = [
+  "ANALYTICS_PROPERTIES_READ",
+  "ANALYTICS_REPORTS_READ",
+];
+
+export const GSC_CAPABILITIES: CanonicalProviderCapability[] = [
+  "ANALYTICS_PROPERTIES_READ",
+  "ANALYTICS_REPORTS_READ",
 ];
 
 export function providerSupportsCapability(
   providerKey: string,
   capability: CanonicalProviderCapability,
 ): boolean {
-  if (providerKey === "meta" || providerKey === "meta-ads") {
-    return META_SOCIAL_CAPABILITIES.includes(capability);
-  }
-  if (providerKey === "mock-advertising") {
-    return MOCK_ADVERTISING_CAPABILITIES.includes(capability);
-  }
-  if (providerKey === "mock-crm") {
-    return MOCK_CRM_CAPABILITIES.includes(capability);
-  }
-  if (providerKey === "mock-social") {
-    return MOCK_SOCIAL_CAPABILITIES.includes(capability);
-  }
-  return false;
+  return listProviderCapabilities(providerKey).includes(capability);
 }
 
 export function listProviderCapabilities(providerKey: string): CanonicalProviderCapability[] {
   if (providerKey === "meta" || providerKey === "meta-ads") return META_SOCIAL_CAPABILITIES;
+  if (providerKey === "linkedin") return LINKEDIN_SOCIAL_CAPABILITIES;
+  if (providerKey === "youtube") return YOUTUBE_SOCIAL_CAPABILITIES;
+  if (providerKey === "x") return X_SOCIAL_CAPABILITIES;
+  if (providerKey === "google-analytics") return GA4_CAPABILITIES;
+  if (providerKey === "google-search-console") return GSC_CAPABILITIES;
+  if (providerKey === "tiktok") return [...YOUTUBE_SOCIAL_CAPABILITIES];
   if (providerKey === "mock-advertising") return MOCK_ADVERTISING_CAPABILITIES;
   if (providerKey === "mock-crm") return MOCK_CRM_CAPABILITIES;
   if (providerKey === "mock-social") return MOCK_SOCIAL_CAPABILITIES;

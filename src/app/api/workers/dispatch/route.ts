@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiSuccess } from "@/lib/api/handler";
 import { isAuthorisedSchedulerRequest } from "@/lib/api/worker-auth";
+import { schedulerHealthService } from "@/server/services/scheduler-health-service";
 import { workerDispatcherService } from "@/server/services/worker-dispatcher-service";
 
 async function handleDispatch(request: NextRequest) {
@@ -17,6 +18,7 @@ async function handleDispatch(request: NextRequest) {
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined;
 
   const result = await workerDispatcherService.dispatchDueJobs({ limit });
+  await schedulerHealthService.recordDispatch(result);
   return apiSuccess(result, { requestId });
 }
 

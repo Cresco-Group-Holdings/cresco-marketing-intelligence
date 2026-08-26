@@ -10,6 +10,7 @@ import { connectionScopeResolver } from "@/server/services/connection-scope-reso
 import { oauthAuthorizationService } from "@/server/services/oauth-authorization-service";
 import { providerAccountDiscoveryService } from "@/server/services/provider-account-discovery-service";
 import { providerConnectionService } from "@/server/services/provider-connection-service";
+import { providerInitialSyncService } from "@/server/services/provider-initial-sync-service";
 import { oauthAdapterRegistry } from "@/server/providers/oauth/oauth-adapter-registry";
 import { providerAuditService } from "@/server/services/provider-audit-service";
 
@@ -213,13 +214,32 @@ export const integrationsConnectionService = {
     connectionId: string,
     externalAccountIds: string[],
   ) {
-    await providerConnectionService.getConnection(context, connectionId);
+    const connection = await providerConnectionService.getConnection(context, connectionId);
     const accounts = await providerAccountDiscoveryService.selectAccounts({
       organisationId: context.organisationId,
       connectionId,
       externalAccountIds,
       actorUserId: context.userId,
     });
+
+    if (externalAccountIds.length > 0) {
+      await providerAuditService.recordEvent({
+        organisationId: context.organisationId,
+        providerKey: connection.providerKey,
+        action: "CONNECTION_STATUS_CHANGED",
+        connectionId,
+        actorUserId: context.userId,
+        result: "success",
+        metadata: { category: "account_selected", selectedCount: externalAccountIds.length },
+      });
+
+      await providerInitialSyncService.triggerAfterAccountSelection(
+        context,
+        connectionId,
+        connection.providerKey,
+      );
+    }
+
     return accounts.map((account) => ({
       id: account.id,
       externalAccountId: account.externalAccountId,

@@ -16,6 +16,7 @@ import { connectionScopeResolver } from "@/server/services/connection-scope-reso
 import { connectionLifecycleService } from "@/server/services/connection-lifecycle-service";
 import { providerAccountDiscoveryService } from "@/server/services/provider-account-discovery-service";
 import { buildTenantContextForUser } from "@/lib/tenancy/guards";
+import { mapOAuthErrorToUserMessage } from "@/lib/providers/user-facing-errors";
 import { providerAuditService } from "@/server/services/provider-audit-service";
 
 export const oauthCallbackService = {
@@ -29,10 +30,8 @@ export const oauthCallbackService = {
     mode?: string;
   }) {
     if (input.error) {
-      throw new AppError(
-        "VALIDATION_ERROR",
-        input.errorDescription ?? `OAuth error: ${input.error}`,
-      );
+      const userError = mapOAuthErrorToUserMessage(input.providerKey, input.errorDescription ?? input.error);
+      throw new AppError("VALIDATION_ERROR", userError.message);
     }
     if (!input.state) {
       throw new AppError("VALIDATION_ERROR", "Missing OAuth state.");

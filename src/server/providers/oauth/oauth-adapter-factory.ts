@@ -5,11 +5,23 @@ import { getProviderOAuthConfigDetail } from "@/lib/providers/oauth/provider-con
 import { isOAuthMockAllowed } from "@/lib/providers/oauth/runtime";
 import type { ProviderOAuthAdapter } from "@/lib/providers/oauth/types";
 import { createMockOAuthAdapter } from "@/server/providers/oauth/adapters/mock-oauth-adapter";
+import {
+  googleAnalyticsOAuthAdapter,
+  googleSearchConsoleOAuthAdapter,
+  youtubeOAuthAdapter,
+} from "@/server/providers/oauth/adapters/google-oauth-adapter";
+import { linkedinOAuthAdapter } from "@/server/providers/oauth/adapters/linkedin-oauth-adapter";
 import { metaAdsOAuthAdapter, metaOAuthAdapter } from "@/server/providers/oauth/adapters/meta-oauth-adapter";
+import { xOAuthAdapter } from "@/server/providers/oauth/adapters/x-oauth-adapter";
 
 const REAL_ADAPTERS: Record<string, ProviderOAuthAdapter> = {
+  "google-analytics": googleAnalyticsOAuthAdapter,
+  "google-search-console": googleSearchConsoleOAuthAdapter,
+  youtube: youtubeOAuthAdapter,
   meta: metaOAuthAdapter,
   "meta-ads": metaAdsOAuthAdapter,
+  linkedin: linkedinOAuthAdapter,
+  x: xOAuthAdapter,
 };
 
 export function resolveProviderOAuthAdapter(providerKey: string): ProviderOAuthAdapter {

@@ -30,6 +30,7 @@ export const AUTOMATION_ACTION_TYPES = [
 export const AUTOMATION_CONDITION_FIELDS = [
   "campaign.status",
   "content.status",
+  "content.upcomingCount",
   "lead.score",
   "lead.status",
   "kpi.variancePercent",

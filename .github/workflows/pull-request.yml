@@ -44,6 +44,7 @@ jobs:
     outputs:
       app: ${{ steps.filter.outputs.app }}
       prisma: ${{ steps.filter.outputs.prisma }}
+      providers: ${{ steps.filter.outputs.providers }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -65,6 +66,17 @@ jobs:
               - ".github/workflows/**"
             prisma:
               - "prisma/**"
+            providers:
+              - "src/lib/providers/**"
+              - "src/server/services/oauth-*"
+              - "src/server/services/integration*"
+              - "src/server/services/provider-*"
+              - "src/server/providers/**"
+              - "src/app/api/integrations/**"
+              - "tests/integration/provider-*"
+              - "tests/database/provider-*"
+              - "tests/e2e/provider-*"
+              - "tests/unit/provider-*"
 
   quality:
     name: Lint, typecheck, and validation
@@ -102,6 +114,21 @@ jobs:
       - run: npm ci
       - run: npm run test:unit
       - run: npm run test:integration
+
+  provider-tests:
+    name: Provider integration gate
+    needs: [changes, quality]
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.providers == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run test:integration -- tests/integration/provider-
+      - run: npm run test:unit -- tests/unit/provider- tests/unit/command-centre-provider-priorities.test.ts tests/unit/integrations-oauth-security.test.ts tests/unit/token-lifecycle-service.test.ts
 
   database-tests:
     name: Database tests

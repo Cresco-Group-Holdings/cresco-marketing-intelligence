@@ -1,13 +1,22 @@
-# Canonical worker dispatcher — production scheduler entry point.
+# Worker Platform Scheduler — production wake-up cadence
 #
-# Invokes dispatch + process on a bounded cadence. Uses WORKER_TOKEN or
-# PUBLISHING_WORKER_TOKEN for machine authentication. Never embed provider credentials.
+# Launch infrastructure (Task 6.1): GitHub Actions invokes the canonical Postgres-backed
+# dispatcher every 5 minutes. This is the supported production mechanism on Vercel Hobby,
+# where Vercel Cron is limited to once per day.
+#
+# Timing limitations (documented):
+# - GitHub Actions scheduled workflows may start up to ~3–5 minutes late during peak load.
+# - Combined with the 5-minute cadence, scheduled publications target ±5–10 minutes SLA.
+# - For sub-minute precision, migrate to Vercel Pro cron (*/5) or an external scheduler.
+#
+# Authentication: WORKER_TOKEN or PUBLISHING_WORKER_TOKEN (never provider credentials).
+# Concurrency: single flight — overlapping runs are serialised via concurrency group.
 
 name: Worker Platform Scheduler
 
 on:
   schedule:
-    - cron: "0 */6 * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
     inputs:
       limit:
@@ -28,18 +37,38 @@ jobs:
     environment: production
     timeout-minutes: 5
     steps:
-      - name: Dispatch due canonical worker jobs
+      - name: Recover expired worker leases
         env:
           APP_URL: ${{ secrets.APP_URL }}
           WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
-          WORKER_LIMIT: ${{ github.event.inputs.limit || '25' }}
         run: |
           if [ -z "${APP_URL:-}" ] || [ -z "${WORKER_TOKEN:-}" ]; then
             echo "APP_URL and WORKER_TOKEN (or PUBLISHING_WORKER_TOKEN) must be configured."
             exit 1
           fi
           base="${APP_URL%/}"
+          curl --fail-with-body -sS -X POST "${base}/api/workers/recover" \
+            -H "authorization: Bearer ${WORKER_TOKEN}" \
+            -H "content-type: application/json"
+
+      - name: Dispatch due canonical worker jobs
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
+          WORKER_LIMIT: ${{ github.event.inputs.limit || '25' }}
+        run: |
+          base="${APP_URL%/}"
           curl --fail-with-body -sS -X POST "${base}/api/workers/dispatch?limit=${WORKER_LIMIT}" \
+            -H "authorization: Bearer ${WORKER_TOKEN}" \
+            -H "content-type: application/json"
+
+      - name: Evaluate automation schedule triggers
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
+        run: |
+          base="${APP_URL%/}"
+          curl --fail-with-body -sS -X POST "${base}/api/workers/automation-schedules" \
             -H "authorization: Bearer ${WORKER_TOKEN}" \
             -H "content-type: application/json"
 
@@ -53,3 +82,13 @@ jobs:
           curl --fail-with-body -sS -X POST "${base}/api/workers/process?limit=${WORKER_LIMIT}" \
             -H "authorization: Bearer ${WORKER_TOKEN}" \
             -H "content-type: application/json"
+
+      - name: Drain legacy publishing scheduler pass
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
+        run: |
+          base="${APP_URL%/}"
+          curl --fail-with-body -sS -X POST "${base}/api/publishing-scheduler/process-due" \
+            -H "authorization: Bearer ${WORKER_TOKEN}" \
+            -H "content-type: application/json" || true

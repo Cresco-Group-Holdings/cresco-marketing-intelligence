@@ -1,5 +1,9 @@
 import type { SocialProvider } from "@prisma/client";
 import { getServerEnv } from "@/lib/environment";
+import {
+  isProductionOAuthReady,
+  resolveOAuthProviderKey,
+} from "@/lib/providers/provider-availability";
 import { socialAdapterFactory } from "@/lib/social/adapters/mock-social-adapter";
 import { createSocialProviderRegistry } from "@/lib/social/registry";
 import type { SocialProviderCatalogueItem } from "@/lib/social/types";
@@ -32,7 +36,7 @@ export type CanonicalOrganicProvider = {
   unifiedProviderKey?: string;
 };
 
-const SOCIAL_CONNECT_ROUTE = "/social/connections";
+const INTEGRATIONS_CONNECT_ROUTE = "/integrations";
 
 const ROADMAP_PROVIDERS: CanonicalOrganicProvider[] = [
   {
@@ -42,7 +46,7 @@ const ROADMAP_PROVIDERS: CanonicalOrganicProvider[] = [
     productAvailability: "coming_soon",
     availabilityReason: "Threads integration is on the provider roadmap.",
     capabilities: { accountRead: false, analytics: false, publish: false, schedule: false },
-    connectHref: SOCIAL_CONNECT_ROUTE,
+    connectHref: INTEGRATIONS_CONNECT_ROUTE,
     formats: ["text_post", "image_post"],
   },
   {
@@ -52,7 +56,7 @@ const ROADMAP_PROVIDERS: CanonicalOrganicProvider[] = [
     productAvailability: "coming_soon",
     availabilityReason: "Pinterest integration is on the provider roadmap.",
     capabilities: { accountRead: false, analytics: false, publish: false, schedule: false },
-    connectHref: SOCIAL_CONNECT_ROUTE,
+    connectHref: INTEGRATIONS_CONNECT_ROUTE,
     formats: ["image_post", "carousel"],
   },
   {
@@ -62,7 +66,7 @@ const ROADMAP_PROVIDERS: CanonicalOrganicProvider[] = [
     productAvailability: "planned",
     availabilityReason: "Reddit is planned for community intelligence.",
     capabilities: { accountRead: false, analytics: false, publish: false, schedule: false },
-    connectHref: SOCIAL_CONNECT_ROUTE,
+    connectHref: INTEGRATIONS_CONNECT_ROUTE,
     formats: ["text_post", "image_post"],
   },
   {
@@ -72,7 +76,7 @@ const ROADMAP_PROVIDERS: CanonicalOrganicProvider[] = [
     productAvailability: "planned",
     availabilityReason: "Bluesky is on the long-term roadmap.",
     capabilities: { accountRead: false, analytics: false, publish: false, schedule: false },
-    connectHref: SOCIAL_CONNECT_ROUTE,
+    connectHref: INTEGRATIONS_CONNECT_ROUTE,
     formats: ["text_post", "image_post"],
   },
   {
@@ -82,7 +86,7 @@ const ROADMAP_PROVIDERS: CanonicalOrganicProvider[] = [
     productAvailability: "planned",
     availabilityReason: "Medium distribution is planned.",
     capabilities: { accountRead: false, analytics: false, publish: false, schedule: false },
-    connectHref: SOCIAL_CONNECT_ROUTE,
+    connectHref: INTEGRATIONS_CONNECT_ROUTE,
     formats: ["article"],
   },
   {
@@ -92,7 +96,7 @@ const ROADMAP_PROVIDERS: CanonicalOrganicProvider[] = [
     productAvailability: "planned",
     availabilityReason: "Substack distribution is planned.",
     capabilities: { accountRead: false, analytics: false, publish: false, schedule: false },
-    connectHref: SOCIAL_CONNECT_ROUTE,
+    connectHref: INTEGRATIONS_CONNECT_ROUTE,
     formats: ["article"],
   },
   {
@@ -102,7 +106,7 @@ const ROADMAP_PROVIDERS: CanonicalOrganicProvider[] = [
     productAvailability: "planned",
     availabilityReason: "Telegram is on the long-term roadmap.",
     capabilities: { accountRead: false, analytics: false, publish: false, schedule: false },
-    connectHref: SOCIAL_CONNECT_ROUTE,
+    connectHref: INTEGRATIONS_CONNECT_ROUTE,
     formats: ["text_post", "image_post"],
   },
 ];
@@ -154,6 +158,15 @@ function capabilitiesForSocialProvider(provider: SocialProvider): OrganicProvide
   };
 }
 
+function isOrganicProviderAdapterReady(provider: SocialProvider): boolean {
+  const unifiedKey = UNIFIED_KEY_BY_SOCIAL[provider];
+  const oauthKey = resolveOAuthProviderKey(unifiedKey);
+  if (isProductionOAuthReady(oauthKey)) {
+    return true;
+  }
+  return socialAdapterFactory.getAdapter(provider) !== null;
+}
+
 function socialItemToCanonical(item: SocialProviderCatalogueItem): CanonicalOrganicProvider {
   const productAvailability = mapMaturityToProductAvailability(item.maturity);
   const connectable = productAvailability === "available" || productAvailability === "beta";
@@ -167,14 +180,14 @@ function socialItemToCanonical(item: SocialProviderCatalogueItem): CanonicalOrga
     capabilities: connectable
       ? capabilitiesForSocialProvider(item.provider)
       : { accountRead: false, analytics: false, publish: false, schedule: false },
-    connectHref: SOCIAL_CONNECT_ROUTE,
+    connectHref: INTEGRATIONS_CONNECT_ROUTE,
     formats: PROVIDER_FORMATS[item.provider],
     unifiedProviderKey: UNIFIED_KEY_BY_SOCIAL[item.provider],
   };
 }
 
 export function createOrganicSocialCatalogue(
-  isAdapterRegistered: (provider: SocialProvider) => boolean = () => false,
+  isAdapterRegistered: (provider: SocialProvider) => boolean = isOrganicProviderAdapterReady,
 ): CanonicalOrganicProvider[] {
   const registry = createSocialProviderRegistry(isAdapterRegistered);
   const socialProviders = registry.list().map(socialItemToCanonical);
@@ -194,9 +207,7 @@ export function resolveUnifiedProviderOrganicStatus(unifiedKey: string): {
   const socialProvider = SOCIAL_BY_UNIFIED_KEY[unifiedKey];
   if (!socialProvider) return null;
 
-  const registry = createSocialProviderRegistry(
-    (provider) => socialAdapterFactory.getAdapter(provider) !== null,
-  );
+  const registry = createSocialProviderRegistry(isOrganicProviderAdapterReady);
 
   const item = registry.get(socialProvider);
   const productAvailability = mapMaturityToProductAvailability(item.maturity);
@@ -207,14 +218,14 @@ export function resolveUnifiedProviderOrganicStatus(unifiedKey: string): {
       return {
         status: "AVAILABLE",
         statusLabel: "Available",
-        connectRoute: SOCIAL_CONNECT_ROUTE,
+        connectRoute: INTEGRATIONS_CONNECT_ROUTE,
         organicSocial: true,
       };
     case "beta":
       return {
         status: "BETA",
         statusLabel: "Beta",
-        connectRoute: SOCIAL_CONNECT_ROUTE,
+        connectRoute: INTEGRATIONS_CONNECT_ROUTE,
         organicSocial: true,
       };
     case "not_configured":
@@ -275,9 +286,7 @@ export function resolveConnectionAvailability(
 }
 
 export function getServerOrganicSocialCatalogue(): CanonicalOrganicProvider[] {
-  return createOrganicSocialCatalogue(
-    (provider) => socialAdapterFactory.getAdapter(provider) !== null,
-  );
+  return createOrganicSocialCatalogue(isOrganicProviderAdapterReady);
 }
 
 const STATIC_SOCIAL_PROVIDER_KEYS: Array<{

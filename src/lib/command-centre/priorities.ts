@@ -57,9 +57,12 @@ type BuildPrioritiesInput = {
   experimentsReady: number;
   staleDataProviders: string[];
   organicReauthRequired?: number;
+  providerReauthRequired?: number;
+  providerInitialSyncInProgress?: number;
   publishingGap?: boolean;
   winningContentReady?: number;
   engagementDecline?: boolean;
+  contentAwaitingApproval?: number;
 };
 
 const URGENCY_ORDER = { critical: 3, high: 2, normal: 1 } as const;
@@ -91,7 +94,35 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
           : `${input.organicReauthRequired} organic accounts need reauthentication`,
       urgency: "critical",
       context: "Publishing and analytics may be interrupted until reconnected",
-      action: { label: "Reconnect", href: "/social/connections" },
+      action: { label: "Reconnect", href: "/integrations" },
+    });
+  }
+
+  if ((input.providerReauthRequired ?? 0) > 0) {
+    priorities.push({
+      id: "provider-reauth-required",
+      type: "integration",
+      title:
+        input.providerReauthRequired === 1
+          ? "1 integration needs reauthentication"
+          : `${input.providerReauthRequired} integrations need reauthentication`,
+      urgency: "critical",
+      context: "Provider tokens expired — reconnect to resume syncing",
+      action: { label: "Reconnect", href: "/integrations" },
+    });
+  }
+
+  if ((input.providerInitialSyncInProgress ?? 0) > 0) {
+    priorities.push({
+      id: "provider-initial-sync",
+      type: "integration",
+      title:
+        input.providerInitialSyncInProgress === 1
+          ? "1 provider initial sync in progress"
+          : `${input.providerInitialSyncInProgress} provider initial syncs in progress`,
+      urgency: "normal",
+      context: "Data will appear across Cresco once the first sync completes",
+      action: { label: "View integrations", href: "/integrations" },
     });
   }
 
@@ -151,10 +182,24 @@ export function buildCommandCentrePriorities(input: BuildPrioritiesInput): Comma
         label: isConnector ? "Fix connection" : "View alert",
         href: isConnector
           ? alert.provider?.match(/LINKEDIN|INSTAGRAM|FACEBOOK|X|TIKTOK|YOUTUBE/i)
-            ? "/social/connections"
+            ? "/integrations"
             : "/integrations"
           : "/operations",
       },
+    });
+  }
+
+  if ((input.contentAwaitingApproval ?? 0) > 0) {
+    priorities.push({
+      id: "content-studio-approval",
+      type: "content",
+      title:
+        input.contentAwaitingApproval === 1
+          ? "1 content item awaiting approval"
+          : `${input.contentAwaitingApproval} content items awaiting approval`,
+      urgency: "high",
+      context: "Studio content requires review before publishing.",
+      action: { label: "Review content", href: "/content/studio/workflow" },
     });
   }
 

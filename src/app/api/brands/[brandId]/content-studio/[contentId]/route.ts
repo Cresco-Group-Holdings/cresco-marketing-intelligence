@@ -3,12 +3,15 @@ import { apiSuccess, jsonBody, parseBody } from "@/lib/api/handler";
 import {
   requireOrganisationId,
   withContentEdit,
+  withContentGenerate,
   withContentRead,
 } from "@/lib/api/content-handler";
 import {
+  contentStudioRegenerateBriefSchema,
   contentStudioTransitionSchema,
   contentStudioUpdateSchema,
 } from "@/lib/validation/content-studio";
+import { contentStudioBriefAiService } from "@/server/services/content-studio-brief-ai-service";
 import { contentStudioService } from "@/server/services/content-studio-service";
 
 type Params = { params: Promise<{ brandId: string; contentId: string }> };
@@ -49,6 +52,23 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 export async function POST(request: NextRequest, { params }: Params) {
   const { brandId, contentId } = await params;
   const organisationId = requireOrganisationId(request);
+  const action = request.nextUrl.searchParams.get("action");
+
+  if (action === "generate-brief") {
+    const body = parseBody(contentStudioRegenerateBriefSchema, await jsonBody(request));
+    return withContentGenerate(request, organisationId, async ({ requestId, tenant }) => {
+      const result = await contentStudioBriefAiService.generateBrief(
+        brandId,
+        organisationId,
+        contentId,
+        body,
+        tenant!,
+        requestId,
+      );
+      return apiSuccess(result, { requestId });
+    });
+  }
+
   const body = parseBody(contentStudioTransitionSchema, await jsonBody(request));
 
   return withContentEdit(request, organisationId, async ({ requestId, tenant }) => {

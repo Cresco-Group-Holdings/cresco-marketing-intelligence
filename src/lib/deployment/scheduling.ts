@@ -5,6 +5,10 @@
  * (≤1 invocation/day) can coexist with future Pro or external high-frequency schedulers.
  */
 
+/** GitHub Actions is the supported launch scheduler for high-frequency wake-up on Vercel Hobby. */
+export const LAUNCH_SCHEDULER_CADENCE = "*/5 * * * *";
+export const LAUNCH_SCHEDULER_SLA_MINUTES = 10;
+
 /** Target production cadence when high-frequency scheduling is available (Pro / external worker). */
 export const PRODUCTION_TARGET_SCHEDULES = {
   /** Enqueue and drain due social publishing schedules. */
@@ -30,7 +34,11 @@ export const VERCEL_CRON_PATHS = {
   publishingScheduler: "/api/publishing-scheduler/process-due",
 } as const;
 
-export type InternalCronJobId = "publishing";
+export type InternalCronJobId =
+  | "publishing"
+  | "worker_dispatch"
+  | "automation"
+  | "intelligence";
 
 export type InternalCronJobDefinition = {
   id: InternalCronJobId;
@@ -46,6 +54,24 @@ export const INTERNAL_CRON_JOBS: Record<InternalCronJobId, InternalCronJobDefini
     description: "Enqueue due content schedules and drain publishing jobs",
     targetSchedule: PRODUCTION_TARGET_SCHEDULES.publishing,
     maxPassesPerDailyDispatch: 8,
+  },
+  worker_dispatch: {
+    id: "worker_dispatch",
+    description: "Dispatch and process canonical worker jobs (sync, analytics, tokens)",
+    targetSchedule: PRODUCTION_TARGET_SCHEDULES.socialAnalytics,
+    maxPassesPerDailyDispatch: 4,
+  },
+  automation: {
+    id: "automation",
+    description: "Evaluate schedule triggers and process automation executions",
+    targetSchedule: "0 * * * *",
+    maxPassesPerDailyDispatch: 2,
+  },
+  intelligence: {
+    id: "intelligence",
+    description: "Stale data detection and background intelligence evaluation",
+    targetSchedule: "0 6 * * *",
+    maxPassesPerDailyDispatch: 1,
   },
 };
 
