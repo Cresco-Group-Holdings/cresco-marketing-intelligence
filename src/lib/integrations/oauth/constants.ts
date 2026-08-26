@@ -10,6 +10,8 @@ export const STAGE_12_OAUTH_PROVIDER_KEYS = [
   "linkedin-ads",
   "tiktok",
   "tiktok-ads",
+  "youtube",
+  "x",
   "microsoft-ads",
   "hubspot",
   "mailchimp",

@@ -11,10 +11,39 @@ import { apiFetch } from "@/lib/api/client";
 import { ResendConnectionPanel } from "@/components/integrations/resend-connection-panel";
 import { OAuthConnectionPanel } from "@/components/integrations/oauth-connection-panel";
 import { isStage12OAuthProvider } from "@/lib/integrations/oauth/provider-definitions";
+import { resolveOAuthProviderKey } from "@/lib/providers/provider-availability";
 import type {
   IntegrationConnectionView,
   ProviderCatalogueItem,
 } from "@/components/integrations/integration-types";
+
+type ProviderGroupKey = "connected" | "available" | "beta" | "coming_soon" | "planned" | "other";
+
+const GROUP_LABELS: Record<ProviderGroupKey, string> = {
+  connected: "Connected",
+  available: "Available to connect",
+  beta: "Beta",
+  coming_soon: "Coming soon",
+  planned: "Planned",
+  other: "Other providers",
+};
+
+function resolveProviderGroup(
+  definition: ProviderCatalogueItem,
+  connection: IntegrationConnectionView | undefined,
+): ProviderGroupKey {
+  if (connection && connection.status !== "REVOKED" && connection.status !== "ARCHIVED") {
+    return "connected";
+  }
+  if (definition.status === "BETA") return "beta";
+  if (definition.statusLabel?.toLowerCase().includes("coming soon") || definition.status === "DISABLED") {
+    return definition.statusLabel?.toLowerCase().includes("planned") ? "planned" : "coming_soon";
+  }
+  if (definition.status === "AVAILABLE" || definition.status === "MISCONFIGURED") {
+    return "available";
+  }
+  return "other";
+}
 
 function providerStatusLabel(definition: ProviderCatalogueItem): string {
   if (definition.statusLabel) return definition.statusLabel;
@@ -103,14 +132,29 @@ export default function IntegrationsPage() {
   }, [providers, search]);
 
   const groupedProviders = useMemo(() => {
-    const groups = new Map<string, ProviderCatalogueItem[]>();
+    const groups = new Map<ProviderGroupKey, ProviderCatalogueItem[]>();
     for (const item of filteredProviders) {
-      const list = groups.get(item.category) ?? [];
+      const connection = connections.find((c) => {
+        const oauthKey = resolveOAuthProviderKey(item.key);
+        return c.providerKey === item.key || c.providerKey === oauthKey;
+      });
+      const group = resolveProviderGroup(item, connection);
+      const list = groups.get(group) ?? [];
       list.push(item);
-      groups.set(item.category, list);
+      groups.set(group, list);
     }
-    return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [filteredProviders]);
+    const order: ProviderGroupKey[] = [
+      "connected",
+      "available",
+      "beta",
+      "coming_soon",
+      "planned",
+      "other",
+    ];
+    return order
+      .filter((key) => (groups.get(key)?.length ?? 0) > 0)
+      .map((key) => [key, groups.get(key)!] as const);
+  }, [filteredProviders, connections]);
 
   async function connectMockProvider(providerKey: string) {
     if (!organisationId) return;
@@ -176,7 +220,7 @@ export default function IntegrationsPage() {
             <h2 className="text-lg font-semibold">Active connections</h2>
             <p className="text-sm text-muted-foreground">
               {connections.length === 0
-                ? "No connections yet. Connect a provider from the catalogue below."
+                ? "No marketing accounts connected. Connect your analytics or social accounts to start syncing real marketing data into Cresco."
                 : `${connections.length} connection${connections.length === 1 ? "" : "s"} configured.`}
             </p>
           </div>
@@ -215,19 +259,24 @@ export default function IntegrationsPage() {
         ) : (
           <Card>
             <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              No active connections. Use the provider catalogue to connect a reference adapter in
-              development, or configure Resend for email delivery.
+              <p className="mb-4">
+                No marketing accounts connected. Connect your analytics or social accounts to start
+                syncing real marketing data into Cresco.
+              </p>
+              <ButtonLink href="#available-providers" size="sm">
+                Connect first account
+              </ButtonLink>
             </CardContent>
           </Card>
         )}
       </section>
 
-      <section className="space-y-4">
+      <section className="space-y-4" id="available-providers">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-lg font-semibold">Provider catalogue</h2>
             <p className="text-sm text-muted-foreground">
-              Browse supported providers, capabilities, and connection availability.
+              What can you connect now? Browse supported providers grouped by availability.
             </p>
           </div>
           <div className="relative w-full sm:max-w-xs">
@@ -244,19 +293,45 @@ export default function IntegrationsPage() {
 
         {loading ? <p className="text-sm text-muted-foreground">Loading provider catalogue...</p> : null}
 
-        {groupedProviders.map(([category, items]) => (
-          <div key={category} className="space-y-3">
+        {groupedProviders.map(([groupKey, items]) => (
+          <div key={groupKey} className="space-y-3">
             <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              {category}
+              {GROUP_LABELS[groupKey]}
             </h3>
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {items.map((definition) => {
-                const connection = connections.find((item) => item.providerKey === definition.key);
+                const oauthProviderKey = resolveOAuthProviderKey(definition.key);
+                const connection = connections.find(
+                  (item) =>
+                    item.providerKey === definition.key || item.providerKey === oauthProviderKey,
+                );
                 const isAvailable =
                   definition.status === "AVAILABLE" || definition.status === "BETA";
                 const isMisconfigured = definition.status === "MISCONFIGURED";
                 const isMock = definition.key.startsWith("mock-");
                 const organicConnectRoute = definition.metadata?.connectRoute;
+                const organicUsesProductionOAuth =
+                  definition.metadata?.organicSocial &&
+                  isStage12OAuthProvider(oauthProviderKey);
+
+                if (organicUsesProductionOAuth) {
+                  return (
+                    <OAuthConnectionPanel
+                      key={definition.key}
+                      providerKey={oauthProviderKey}
+                      displayName={definition.displayName}
+                      connection={connection}
+                      oauthConfigStatus={
+                        (definition.metadata?.oauthConfigStatus as string | null) ??
+                        (isAvailable || isMisconfigured ? "READY" : "DISABLED")
+                      }
+                      missingEnv={(definition.metadata?.missingEnv as string[]) ?? []}
+                      onUpdated={() => {
+                        void loadData();
+                      }}
+                    />
+                  );
+                }
 
                 if (definition.metadata?.organicSocial && organicConnectRoute) {
                   return (
@@ -265,7 +340,7 @@ export default function IntegrationsPage() {
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <CardTitle className="text-base">{definition.displayName}</CardTitle>
-                            <CardDescription>Organic social · connect via Social Connections</CardDescription>
+                            <CardDescription>Organic social</CardDescription>
                           </div>
                         </div>
                       </CardHeader>
@@ -275,12 +350,12 @@ export default function IntegrationsPage() {
                         </Badge>
                         <p className="text-sm text-muted-foreground">
                           {isAvailable
-                            ? "Connect through the organic social account workspace."
+                            ? "Connect through Integrations to sync organic analytics and publishing."
                             : definition.statusLabel ?? "Provider is not yet available in this environment."}
                         </p>
                         {isAvailable ? (
                           <ButtonLink href={organicConnectRoute} size="sm" variant="outline">
-                            Manage in Social Connections
+                            Connect
                           </ButtonLink>
                         ) : null}
                       </CardContent>
@@ -301,13 +376,13 @@ export default function IntegrationsPage() {
                 }
 
                 if (
-                  isStage12OAuthProvider(definition.key) &&
+                  isStage12OAuthProvider(oauthProviderKey) &&
                   (isAvailable || isMisconfigured || connection)
                 ) {
                   return (
                     <OAuthConnectionPanel
                       key={definition.key}
-                      providerKey={definition.key}
+                      providerKey={oauthProviderKey}
                       displayName={definition.displayName}
                       connection={connection}
                       oauthConfigStatus={
