@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { isProtectedRoute, isPublicRoute, isAuthRoute } from "@/lib/auth/routes";
+import { isProtectedRoute, isPublicApiRoute, isPublicRoute, isAuthRoute } from "@/lib/auth/routes";
 
 describe("route protection rules", () => {
   it("marks public routes as accessible without authentication", () => {

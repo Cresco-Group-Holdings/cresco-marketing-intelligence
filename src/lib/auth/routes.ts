@@ -113,6 +113,10 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
+  if (pathname.startsWith("/auth/")) {
+    return false;
+  }
+
   if (
     process.env.NODE_ENV === "development" &&
     (pathname === "/dev/command-centre-preview" ||
