@@ -48,4 +48,36 @@ describe("connection health", () => {
     expect(summary.reauthRequired).toBe(2);
     expect(summary.initialSyncInProgress).toBe(1);
   });
+
+  it("treats selected account presence as hasSelectedAccount for health mapping", () => {
+    expect(
+      mapConnectionStatusToHealthState("CONNECTED", { hasSelectedAccount: true }),
+    ).toBe("healthy");
+    expect(
+      mapConnectionStatusToHealthState("CONNECTED", { hasSelectedAccount: false }),
+    ).toBe("connected");
+    expect(mapConnectionStatusToHealthState("CONNECTED")).toBe("connected");
+  });
+
+  it("increments reauth count for reconnect-required connections", () => {
+    const summary = summarizeProviderConnectionHealthCounts([
+      { status: "REAUTH_REQUIRED", hasSelectedAccount: true },
+    ]);
+
+    expect(summary.reauthRequired).toBe(1);
+    expect(summary.initialSyncInProgress).toBe(0);
+  });
+
+  it("increments initial sync count when initial import is in progress", () => {
+    const summary = summarizeProviderConnectionHealthCounts([
+      {
+        status: "CONNECTED",
+        hasSelectedAccount: true,
+        initialSyncInProgress: true,
+      },
+    ]);
+
+    expect(summary.reauthRequired).toBe(0);
+    expect(summary.initialSyncInProgress).toBe(1);
+  });
 });

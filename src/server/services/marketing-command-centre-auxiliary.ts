@@ -134,7 +134,7 @@ export async function buildDashboardPriorities(input: {
         tokenExpiresAt: true,
         lastErrorAt: true,
         lastSuccessfulAt: true,
-        accounts: {
+        providerAccounts: {
           where: { selected: true },
           select: { id: true },
           take: 1,
@@ -159,7 +159,7 @@ export async function buildDashboardPriorities(input: {
     summarizeProviderConnectionHealthCounts(
       providerConnections.map((connection) => ({
         status: connection.status,
-        hasSelectedAccount: connection.accounts.length > 0,
+        hasSelectedAccount: connection.providerAccounts.length > 0,
         initialSyncInProgress: activeInitialSyncConnectionIds.has(connection.id),
         tokenExpired:
           connection.tokenExpiresAt != null && connection.tokenExpiresAt.getTime() <= now,
