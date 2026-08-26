@@ -12,7 +12,15 @@ type ProviderEnvRequirements = {
   check: (env: ReturnType<typeof getServerEnv>) => boolean;
 };
 
+const GOOGLE_ENV: ProviderEnvRequirements = {
+  required: ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"],
+  check: (env) => Boolean(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
+};
+
 const PROVIDER_ENV_REQUIREMENTS: Record<string, ProviderEnvRequirements> = {
+  "google-analytics": GOOGLE_ENV,
+  "google-search-console": GOOGLE_ENV,
+  youtube: GOOGLE_ENV,
   meta: {
     required: ["META_APP_ID", "META_APP_SECRET"],
     check: (env) => Boolean(env.META_APP_ID && env.META_APP_SECRET),
@@ -20,6 +28,18 @@ const PROVIDER_ENV_REQUIREMENTS: Record<string, ProviderEnvRequirements> = {
   "meta-ads": {
     required: ["META_APP_ID", "META_APP_SECRET"],
     check: (env) => Boolean(env.META_APP_ID && env.META_APP_SECRET),
+  },
+  linkedin: {
+    required: ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"],
+    check: (env) => Boolean(env.LINKEDIN_CLIENT_ID && env.LINKEDIN_CLIENT_SECRET),
+  },
+  x: {
+    required: ["X_CLIENT_ID", "X_CLIENT_SECRET"],
+    check: (env) => Boolean(env.X_CLIENT_ID && env.X_CLIENT_SECRET),
+  },
+  tiktok: {
+    required: ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"],
+    check: (env) => Boolean(env.TIKTOK_CLIENT_KEY && env.TIKTOK_CLIENT_SECRET),
   },
 };
 

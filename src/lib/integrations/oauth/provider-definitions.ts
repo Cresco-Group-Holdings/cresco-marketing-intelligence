@@ -29,6 +29,8 @@ const HUBSPOT_AUTH = "https://app.hubspot.com/oauth/authorize";
 const HUBSPOT_TOKEN = "https://api.hubapi.com/oauth/v1/token";
 const MAILCHIMP_AUTH = "https://login.mailchimp.com/oauth2/authorize";
 const MAILCHIMP_TOKEN = "https://login.mailchimp.com/oauth2/token";
+const X_AUTH = "https://twitter.com/i/oauth2/authorize";
+const X_TOKEN = "https://api.twitter.com/2/oauth2/token";
 const SLACK_AUTH = "https://slack.com/oauth/v2/authorize";
 const SLACK_TOKEN = "https://slack.com/api/oauth.v2.access";
 
@@ -169,6 +171,29 @@ export const OAUTH_PROVIDER_DEFINITIONS: OAuthProviderDefinition[] = [
     defaultScopes: [],
     optionalScopes: [],
     accountDiscoveryTypes: ["mailchimp_audience"],
+  }),
+  oauthDef({
+    providerKey: "youtube",
+    displayName: "YouTube",
+    authType: "OAUTH2_AUTHORIZATION_CODE",
+    authorizationUrl: GOOGLE_AUTH,
+    tokenUrl: GOOGLE_TOKEN,
+    defaultScopes: [
+      "https://www.googleapis.com/auth/youtube.readonly",
+      "https://www.googleapis.com/auth/yt-analytics.readonly",
+    ],
+    optionalScopes: ["https://www.googleapis.com/auth/youtube.upload"],
+    accountDiscoveryTypes: ["youtube_channel"],
+  }),
+  oauthDef({
+    providerKey: "x",
+    displayName: "X",
+    authType: "OAUTH2_PKCE",
+    authorizationUrl: X_AUTH,
+    tokenUrl: X_TOKEN,
+    defaultScopes: ["tweet.read", "tweet.write", "users.read", "offline.access"],
+    optionalScopes: [],
+    accountDiscoveryTypes: ["x_account"],
   }),
   oauthDef({
     providerKey: "slack",

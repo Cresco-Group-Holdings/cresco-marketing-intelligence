@@ -86,7 +86,7 @@ export const marketingIntelligenceContextService = {
     ]);
 
     const connectedPaidCount = paidConnections.filter(
-      (item: { connector: string; status: { connected: boolean } }) => item.status.connected,
+      (item: { status: { connected: boolean } }) => item.status.connected,
     ).length;
     const connectedOrganic = new Set(
       socialCatalogue
