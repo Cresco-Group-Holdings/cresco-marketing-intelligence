@@ -4,6 +4,7 @@ import {
   mapFreshnessToStaleProviders,
 } from "@/lib/command-centre/priorities";
 import { buildFunnelStages } from "@/lib/command-centre/metrics";
+import { summarizeProviderConnectionHealthCounts } from "@/lib/providers/connection-health";
 import type {
   CommandCentreActivity,
   CommandCentreFunnelStage,
@@ -65,6 +66,9 @@ export async function buildDashboardPriorities(input: {
     openAlertsResult,
     readyPlans,
     completedExperiments,
+    contentAwaitingApproval,
+    providerConnections,
+    activeInitialImportRuns,
   ] = await Promise.all([
     prisma.publication.count({
       where: {
@@ -110,7 +114,61 @@ export async function buildDashboardPriorities(input: {
         status: "COMPLETED",
       },
     }),
+    prisma.contentItem.count({
+      where: {
+        brandId: input.brandId,
+        organisationId: input.organisationId,
+        archivedAt: null,
+        studioType: { not: null },
+        status: "IN_REVIEW",
+      },
+    }),
+    prisma.providerConnection.findMany({
+      where: {
+        organisationId: input.organisationId,
+        status: { notIn: ["REVOKED", "ARCHIVED"] },
+      },
+      select: {
+        id: true,
+        status: true,
+        tokenExpiresAt: true,
+        lastErrorAt: true,
+        lastSuccessfulAt: true,
+        providerAccounts: {
+          where: { selected: true },
+          select: { id: true },
+          take: 1,
+        },
+      },
+    }),
+    prisma.providerSyncRun.findMany({
+      where: {
+        organisationId: input.organisationId,
+        triggerType: "INITIAL_IMPORT",
+        status: { in: ["PENDING", "QUEUED", "RUNNING", "RETRYING"] },
+      },
+      select: { connectionId: true },
+    }),
   ]);
+
+  const activeInitialSyncConnectionIds = new Set(
+    activeInitialImportRuns.map((run) => run.connectionId),
+  );
+  const now = Date.now();
+  const { reauthRequired: providerReauthRequired, initialSyncInProgress: providerInitialSyncInProgress } =
+    summarizeProviderConnectionHealthCounts(
+      providerConnections.map((connection) => ({
+        status: connection.status,
+        hasSelectedAccount: connection.providerAccounts.length > 0,
+        initialSyncInProgress: activeInitialSyncConnectionIds.has(connection.id),
+        tokenExpired:
+          connection.tokenExpiresAt != null && connection.tokenExpiresAt.getTime() <= now,
+        lastSyncFailed:
+          connection.lastErrorAt != null &&
+          (connection.lastSuccessfulAt == null ||
+            connection.lastErrorAt > connection.lastSuccessfulAt),
+      })),
+    );
 
   const staleProviders = mapFreshnessToStaleProviders([
     { label: "Paid data", freshness: input.paidFreshness },
@@ -137,9 +195,12 @@ export async function buildDashboardPriorities(input: {
     experimentsReady: completedExperiments,
     staleDataProviders: [...new Set(staleProviders)],
     organicReauthRequired: input.organicReauthRequired,
+    providerReauthRequired,
+    providerInitialSyncInProgress,
     publishingGap: input.publishingGap,
     winningContentReady: input.winningContentReady,
     engagementDecline: input.engagementDecline,
+    contentAwaitingApproval,
   });
 }
 

@@ -152,4 +152,29 @@ describe("token lifecycle service", () => {
       }),
     );
   });
+
+  it("serializes concurrent refresh attempts via advisory lock", async () => {
+    prismaMock.providerConnection.findFirst.mockResolvedValue({
+      id: "conn_1",
+      organisationId: "org_1",
+      providerKey: "meta",
+      status: "EXPIRED",
+      tokenExpiresAt: new Date(Date.now() - 1000),
+      metadata: {},
+    });
+    credentialVaultMock.readForExecution.mockResolvedValue("refresh_token_value");
+    oauthAdapterRegistryMock.refreshAccessToken.mockResolvedValue({
+      accessToken: "new_access_token",
+      expiresAt: new Date(Date.now() + 3600_000),
+      grantedScopes: [],
+    });
+
+    await Promise.all([
+      tokenLifecycleService.refreshConnectionTokens({ organisationId: "org_1" }, "conn_1"),
+      tokenLifecycleService.refreshConnectionTokens({ organisationId: "org_1" }, "conn_1"),
+    ]);
+
+    expect(oauthAdapterRegistryMock.refreshAccessToken).toHaveBeenCalledTimes(2);
+    expect(prismaMock.$executeRaw).toHaveBeenCalled();
+  });
 });

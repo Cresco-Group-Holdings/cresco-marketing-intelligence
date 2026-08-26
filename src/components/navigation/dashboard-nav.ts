@@ -164,9 +164,9 @@ export const dashboardNavigationSections: NavigationSection[] = [
       },
       {
         label: "Automations",
-        href: "/automation",
+        href: "/automations",
         icon: Bot,
-        description: "Customer journey automations",
+        description: "Background monitoring and launch templates",
       },
       {
         label: "Agents",

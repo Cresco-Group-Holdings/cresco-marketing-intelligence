@@ -14,6 +14,7 @@ type Mode = "all" | "failures" | "publishing" | "connectors" | "rendering";
 
 const nav: Array<[string, string]> = [
   ["Overview", "/operations"],
+  ["Jobs", "/operations/jobs"],
   ["Failures", "/operations/failures"],
   ["Publishing", "/operations/publishing"],
   ["Connectors", "/operations/connectors"],

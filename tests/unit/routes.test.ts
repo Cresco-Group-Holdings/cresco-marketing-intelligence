@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { isProtectedRoute, isPublicRoute, isAuthRoute } from "@/lib/auth/routes";
 
 describe("route protection rules", () => {
@@ -29,5 +29,13 @@ describe("route protection rules", () => {
     expect(isAuthRoute("/login")).toBe(true);
     expect(isAuthRoute("/verify-email")).toBe(true);
     expect(isAuthRoute("/dashboard")).toBe(false);
+  });
+
+  it("exempts content intelligence dev preview routes in development only", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    expect(isProtectedRoute("/dev/content-intelligence-preview/create")).toBe(false);
+    vi.stubEnv("NODE_ENV", "production");
+    expect(isProtectedRoute("/dev/content-intelligence-preview/create")).toBe(true);
+    vi.unstubAllEnvs();
   });
 });
