@@ -61,10 +61,10 @@ describe("post-auth redirect resolution", () => {
     await expect(resolvePostAuthRedirectPath("profile-1")).resolves.toBe("/dashboard");
   });
 
-  it("redirects users with active memberships but incomplete onboarding to onboarding", async () => {
+  it("redirects users with active memberships but incomplete onboarding to getting-started", async () => {
     vi.mocked(prisma.organisationMembership.count).mockResolvedValue(1);
 
-    await expect(resolvePostAuthRedirectPath("profile-1")).resolves.toBe("/onboarding");
+    await expect(resolvePostAuthRedirectPath("profile-1")).resolves.toBe("/getting-started?invited=1");
   });
 
   it("redirects users with completed onboarding to dashboard", async () => {

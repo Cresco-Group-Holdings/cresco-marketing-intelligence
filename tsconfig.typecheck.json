@@ -15,6 +15,7 @@
     "coverage",
     "dist",
     "out",
-    ".vercel"
+    ".vercel",
+    "tests/**"
   ]
 }

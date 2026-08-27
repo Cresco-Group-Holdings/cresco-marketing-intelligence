@@ -317,7 +317,7 @@ export function OnboardingWizard() {
       }
 
       router.refresh();
-      await router.replace("/dashboard");
+      await router.replace("/getting-started");
       router.refresh();
     } catch (completeError) {
       setError(

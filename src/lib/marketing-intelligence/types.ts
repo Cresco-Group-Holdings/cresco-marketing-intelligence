@@ -152,6 +152,7 @@ export type MarketingIntelligenceContext = {
     observedRevenue: number | null;
     attributionCoveragePercent: number | null;
     revenueCoveragePercent: number | null;
+    attributionConfidenceLevel?: "Low" | "Medium" | "High" | null;
     organicAssistRate: number | null;
     contentAssistedRevenue: number | null;
     contentAttributedRevenue: number | null;

@@ -31,6 +31,26 @@ export const ATTRIBUTION_MODEL_TYPES = [
   "TIME_DECAY",
 ] as const satisfies readonly AttributionModelType[];
 
+export const LAUNCH_ATTRIBUTION_MODELS = [
+  "FIRST_TOUCH",
+  "LAST_TOUCH",
+  "LINEAR",
+] as const satisfies readonly AttributionModelType[];
+
+export const ADVANCED_ATTRIBUTION_MODELS = [
+  "POSITION_BASED",
+  "TIME_DECAY",
+] as const satisfies readonly AttributionModelType[];
+
+export function isAdvancedAttributionModel(type: AttributionModelType): boolean {
+  return (ADVANCED_ATTRIBUTION_MODELS as readonly string[]).includes(type);
+}
+
+export function buildAttributionModelLabel(type: AttributionModelType): string {
+  const base = ATTRIBUTION_MODEL_LABELS[type];
+  return isAdvancedAttributionModel(type) ? `${base} (Advanced)` : base;
+}
+
 export const DEFAULT_MODEL_CONFIGS: Record<
   AttributionModelType,
   { name: string; isDefault?: boolean }
