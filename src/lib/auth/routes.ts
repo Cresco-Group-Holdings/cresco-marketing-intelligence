@@ -7,6 +7,7 @@ export const PUBLIC_ROUTES = new Set([
   "/reset-password",
   "/privacy",
   "/terms",
+  "/accept-invite",
 ]);
 
 export const AUTH_ROUTES = new Set([
@@ -18,6 +19,21 @@ export const AUTH_ROUTES = new Set([
 ]);
 
 export const ONBOARDING_ROUTE = "/onboarding";
+export const GETTING_STARTED_ROUTE = "/getting-started";
+export const DEMO_WORKSPACE_ROUTE = "/demo";
+
+export const ACTIVATION_ROUTES = new Set([
+  GETTING_STARTED_ROUTE,
+  DEMO_WORKSPACE_ROUTE,
+]);
+
+export function isActivationRoute(pathname: string): boolean {
+  if (ACTIVATION_ROUTES.has(pathname)) {
+    return true;
+  }
+
+  return pathname.startsWith(`${DEMO_WORKSPACE_ROUTE}/`);
+}
 
 export function isPublicRoute(pathname: string): boolean {
   return PUBLIC_ROUTES.has(pathname);

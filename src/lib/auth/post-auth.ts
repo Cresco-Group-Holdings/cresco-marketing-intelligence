@@ -58,6 +58,11 @@ export async function resolvePostAuthRedirectPath(userProfileId: string): Promis
     return "/dashboard";
   }
 
+  const hasMembership = await hasActiveOrganisationMembership(userProfileId);
+  if (hasMembership) {
+    return "/getting-started?invited=1";
+  }
+
   return "/onboarding";
 }
 

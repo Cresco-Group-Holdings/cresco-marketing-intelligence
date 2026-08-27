@@ -135,7 +135,11 @@ describe("dashboard navigation", () => {
 
   it("places Command Centre and Activity under Command", () => {
     const command = dashboardNavigationSections.find((section) => section.id === "command");
-    expect(command?.items.map((item) => item.href)).toEqual(["/dashboard", "/operations"]);
+    expect(command?.items.map((item) => item.href)).toEqual([
+      "/dashboard",
+      "/getting-started",
+      "/operations",
+    ]);
   });
 
   it("keeps legacy campaigns route accessible via secondary navigation", () => {
