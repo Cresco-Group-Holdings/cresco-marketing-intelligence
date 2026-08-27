@@ -92,6 +92,7 @@ export type AttributionModelOption = {
   type: AttributionModelType;
   label: string;
   description: string;
+  maturity: "launch" | "advanced";
 };
 
 export type ModelComparisonRow = {
@@ -114,6 +115,27 @@ export type OrganicAssistSummary = {
   totalPaidAttributedConversions: number;
   topAssistingChannel: string | null;
   description: string;
+};
+
+export type AttributionConfidenceLevel = "Low" | "Medium" | "High";
+
+export type AttributionConfidenceSummary = {
+  level: AttributionConfidenceLevel;
+  label: string;
+  sourceCoveragePercent: number | null;
+  journeyCoveragePercent: number | null;
+  limitations: string[];
+};
+
+export type WebAnalyticsSummary = {
+  connected: boolean;
+  sessions: number | null;
+  users: number | null;
+  pageviews: number | null;
+  conversions: number | null;
+  freshness: DataFreshnessState;
+  lastSyncedAt: string | null;
+  source: "GA4" | null;
 };
 
 export type UnifiedAnalyticsWorkspaceData = {
@@ -143,6 +165,8 @@ export type UnifiedAnalyticsWorkspaceData = {
     conversions: number;
     revenue: number | null;
   };
+  attributionConfidence: AttributionConfidenceSummary;
+  webAnalytics: WebAnalyticsSummary;
   insights: import("@/lib/marketing-intelligence/types").MarketingSignal[];
   disclaimer: string;
   modelOptions: AttributionModelOption[];
