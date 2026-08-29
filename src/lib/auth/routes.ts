@@ -7,6 +7,9 @@ export const PUBLIC_ROUTES = new Set([
   "/reset-password",
   "/privacy",
   "/terms",
+  "/pricing",
+  "/product",
+  "/cookies",
   "/accept-invite",
 ]);
 

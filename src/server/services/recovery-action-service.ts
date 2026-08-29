@@ -127,8 +127,8 @@ export const recoveryActionService = {
         case "RECONNECT":
           result = {
             reconnectPath: alert.brandId
-              ? `/social/connections?brandId=${alert.brandId}`
-              : "/social/connections",
+              ? `/organic-social/accounts?brandId=${alert.brandId}`
+              : "/organic-social/accounts",
           };
           break;
         case "MANUAL_CONFIRM":

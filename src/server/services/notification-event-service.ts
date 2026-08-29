@@ -130,7 +130,7 @@ export const notificationEventService = {
       body: `Your ${input.provider} connection needs to be reconnected.`,
       resourceType: "SocialConnection",
       resourceId: input.connectionId,
-      actionPath: `/social/connections`,
+      actionPath: `/organic-social/accounts`,
       recipientUserIds: input.recipientUserIds,
       idempotencyKey: input.idempotencyKey,
       priority: "HIGH",

@@ -65,7 +65,7 @@ export function AccountRow({ account }: { account: OrganicAccountRow }) {
             Connect account
           </ButtonLink>
         ) : account.connectionState === "reauth_required" ? (
-          <ButtonLink href="/social/connections" variant="organic" size="sm">
+          <ButtonLink href="/organic-social/accounts" variant="organic" size="sm">
             Reconnect
           </ButtonLink>
         ) : (

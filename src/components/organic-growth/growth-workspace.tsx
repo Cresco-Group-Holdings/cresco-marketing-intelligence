@@ -20,7 +20,7 @@ export function GrowthWorkspace() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Organic Growth Intelligence"
+        title="Cresco Intelligence"
         description="Follower momentum, channel contribution, opportunities, and experiments."
       />
       <div className="grid gap-4 lg:grid-cols-3">

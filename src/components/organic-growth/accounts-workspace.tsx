@@ -49,10 +49,10 @@ export function AccountsWorkspace() {
         description="Connected organic social accounts, sync health, and channel actions."
         actions={
           <>
-            <ButtonLink href="/social/connections" variant="outline" size="sm" className="hidden sm:inline-flex">
+            <ButtonLink href="/organic-social/accounts" variant="outline" size="sm" className="hidden sm:inline-flex">
               Manage connections
             </ButtonLink>
-            <ButtonLink href="/social/connections" variant="organic" size="sm">
+            <ButtonLink href="/organic-social/accounts" variant="organic" size="sm">
               Connect accounts
             </ButtonLink>
           </>

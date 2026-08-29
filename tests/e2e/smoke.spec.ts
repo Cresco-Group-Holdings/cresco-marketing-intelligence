@@ -3,7 +3,11 @@ import { test, expect } from "@playwright/test";
 test.describe("public smoke tests", () => {
   test("landing page loads", async ({ page }) => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Turn marketing data into growth." })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: /Connect your marketing stack/i,
+      }),
+    ).toBeVisible();
   });
 
   test("login page loads", async ({ page }) => {

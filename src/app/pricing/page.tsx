@@ -1,7 +1,21 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { DEFAULT_PLAN_CATALOG } from "@/lib/billing/plan-catalog";
-import { BILLING_CURRENCY, formatPlanPrice, LAUNCH_PLAN_KEYS, SELF_SERVICE_PLAN_KEYS } from "@/lib/billing/commercial-config";
+import { ButtonLink } from "@/components/ui/button";
+import { MarketingShell } from "@/components/layout/marketing-shell";
 import { PricingPageAnalytics } from "@/components/billing/pricing-page-analytics";
+import { DEFAULT_PLAN_CATALOG } from "@/lib/billing/plan-catalog";
+import {
+  BILLING_CURRENCY,
+  formatPlanPrice,
+  LAUNCH_PLAN_KEYS,
+  SELF_SERVICE_PLAN_KEYS,
+} from "@/lib/billing/commercial-config";
+
+export const metadata: Metadata = {
+  title: "Pricing",
+  description:
+    "Cresco Marketing Intelligence pricing — plans aligned with in-app entitlements for teams of every size.",
+};
 
 const COMPARISON_FEATURES = [
   { label: "Team seats", key: "users.max" },
@@ -9,7 +23,7 @@ const COMPARISON_FEATURES = [
   { label: "Connected accounts", key: "provider.connections.max" },
   { label: "AI content generations", key: "ai.tokens_monthly" },
   { label: "Monthly publications", key: "publications.monthly" },
-];
+] as const;
 
 export default function PricingPage() {
   const plans = DEFAULT_PLAN_CATALOG.filter((plan) =>
@@ -17,62 +31,86 @@ export default function PricingPage() {
   );
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-16">
+    <MarketingShell activeNav="pricing">
       <PricingPageAnalytics />
-      <div className="mb-10 text-center">
-        <h1 className="text-3xl font-semibold tracking-tight">Plans that grow with your marketing</h1>
-        <p className="mt-3 text-muted-foreground">
-          Choose the plan that fits your team. Upgrade anytime as your channels and content scale.
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Prices shown in {BILLING_CURRENCY}. Billed monthly unless annual billing is selected at checkout.
-        </p>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-3">
-        {plans.map((plan) => (
-          <section
-            key={plan.key}
-            className={`rounded-xl border p-6 ${plan.key === LAUNCH_PLAN_KEYS.PRO ? "border-primary shadow-sm" : ""}`}
-          >
-            <h2 className="text-xl font-semibold">{plan.displayName}</h2>
-            <p className="mt-2 text-sm text-muted-foreground">{plan.description}</p>
-            <p className="mt-6 text-3xl font-semibold">
-              {formatPlanPrice(plan.monthlyPriceCents)}
-              {plan.monthlyPriceCents > 0 ? <span className="text-base font-normal text-muted-foreground"> / month</span> : null}
+      <section className="border-b border-border bg-surface-subtle">
+        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+          <div className="max-w-2xl">
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground">Pricing</h1>
+            <p className="mt-4 text-lg text-foreground-muted">
+              Plans that match what you can actually do in Cresco. Upgrade anytime as your channels
+              and content scale.
             </p>
-            <ul className="mt-6 space-y-2 text-sm">
-              {COMPARISON_FEATURES.map((feature) => {
-                const entitlement = plan.entitlements.find((e) => e.entitlementKey === feature.key);
-                const value =
-                  entitlement?.valueType === "BOOLEAN"
-                    ? entitlement.booleanValue
-                      ? "Included"
-                      : "—"
-                    : entitlement?.limitValue?.toLocaleString() ?? "—";
-                return (
-                  <li key={feature.key} className="flex justify-between gap-4">
-                    <span className="text-muted-foreground">{feature.label}</span>
-                    <span className="font-medium">{value}</span>
-                  </li>
-                );
-              })}
-            </ul>
-            <div className="mt-8">
-              <Link
-                href="/settings/billing"
-                className="inline-flex w-full items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-              >
-                {plan.key === LAUNCH_PLAN_KEYS.STARTER ? "Start with Starter" : `Choose ${plan.displayName}`}
-              </Link>
-            </div>
-          </section>
-        ))}
-      </div>
+            <p className="mt-2 text-sm text-foreground-subtle">
+              Prices shown in {BILLING_CURRENCY}. Billed monthly unless annual billing is selected
+              at checkout.
+            </p>
+          </div>
+        </div>
+      </section>
 
-      <p className="mt-10 text-center text-sm text-muted-foreground">
-        Already a customer? <Link href="/settings/billing" className="underline">Manage your subscription</Link>.
-      </p>
-    </main>
+      <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <div className="grid gap-6 md:grid-cols-3">
+          {plans.map((plan) => (
+            <article
+              key={plan.key}
+              className={`flex flex-col rounded-xl border p-6 shadow-sm ${
+                plan.key === LAUNCH_PLAN_KEYS.PRO
+                  ? "border-paid-accent bg-surface-elevated ring-1 ring-paid-accent/30"
+                  : "border-border bg-surface-elevated"
+              }`}
+            >
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold text-foreground">{plan.displayName}</h2>
+                <p className="mt-2 text-sm text-foreground-muted">{plan.description}</p>
+                <p className="mt-6 text-3xl font-semibold text-foreground">
+                  {formatPlanPrice(plan.monthlyPriceCents)}
+                  {plan.monthlyPriceCents > 0 ? (
+                    <span className="text-base font-normal text-foreground-subtle"> / month</span>
+                  ) : null}
+                </p>
+                <ul className="mt-6 space-y-2 text-sm text-foreground-muted">
+                  {COMPARISON_FEATURES.map((feature) => {
+                    const entitlement = plan.entitlements.find(
+                      (entry) => entry.entitlementKey === feature.key,
+                    );
+                    const value =
+                      entitlement?.valueType === "BOOLEAN"
+                        ? entitlement.booleanValue
+                          ? "Included"
+                          : "—"
+                        : (entitlement?.limitValue?.toLocaleString() ?? "—");
+                    return (
+                      <li key={feature.key} className="flex justify-between gap-4">
+                        <span>{feature.label}</span>
+                        <span className="font-medium text-foreground">{value}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+              <div className="mt-8">
+                <ButtonLink
+                  href="/signup"
+                  variant={plan.key === LAUNCH_PLAN_KEYS.PRO ? "primary" : "outline"}
+                  className="w-full"
+                >
+                  {plan.key === LAUNCH_PLAN_KEYS.STARTER
+                    ? "Start with Starter"
+                    : `Choose ${plan.displayName}`}
+                </ButtonLink>
+              </div>
+            </article>
+          ))}
+        </div>
+        <p className="mt-10 text-sm text-foreground-subtle">
+          Already a customer?{" "}
+          <Link href="/settings/billing" className="font-medium text-foreground hover:underline">
+            Manage your subscription
+          </Link>
+          . Final billing is confirmed at checkout.
+        </p>
+      </section>
+    </MarketingShell>
   );
 }

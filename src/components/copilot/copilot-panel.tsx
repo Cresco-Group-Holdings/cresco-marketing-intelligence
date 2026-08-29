@@ -48,7 +48,7 @@ export function CopilotPanel() {
         setLastResponse(result.response);
         setQuestion("");
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to reach Cresco Copilot.");
+        setError(err instanceof Error ? err.message : "Failed to reach Ask Cresco.");
       } finally {
         setLoading(false);
       }
@@ -82,12 +82,12 @@ export function CopilotPanel() {
       <button
         type="button"
         className="fixed inset-0 z-40 bg-foreground/30 backdrop-blur-[1px] lg:bg-transparent lg:backdrop-blur-none"
-        aria-label="Close Cresco Copilot"
+        aria-label="Close Ask Cresco"
         onClick={close}
       />
       <aside
         className="fixed inset-0 z-50 flex w-full flex-col bg-surface-elevated shadow-xl sm:inset-y-0 sm:left-auto sm:right-0 sm:max-w-[480px] sm:border-l sm:border-border"
-        aria-label="Cresco Copilot"
+        aria-label="Ask Cresco"
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <div className="flex items-center gap-2.5">
