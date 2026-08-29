@@ -366,6 +366,8 @@ export function AttributionPanel({
   journeyFlows,
   lookbackWindowDays,
   disclaimer,
+  attributionConfidence,
+  unattributed,
 }: {
   modelOptions: import("@/lib/unified-analytics/types").AttributionModelOption[];
   selectedModel: string;
@@ -374,6 +376,8 @@ export function AttributionPanel({
   journeyFlows: import("@/lib/unified-analytics/types").JourneyFlow[];
   lookbackWindowDays: number;
   disclaimer: string;
+  attributionConfidence: import("@/lib/unified-analytics/types").AttributionConfidenceSummary;
+  unattributed: { conversions: number; revenue: number | null };
 }) {
   const selected = modelOptions.find((option) => option.type === selectedModel);
 
@@ -383,10 +387,47 @@ export function AttributionPanel({
         <h2 className="text-sm font-semibold text-foreground">Attribution model</h2>
         <p className="mt-2 text-sm text-foreground-muted">
           {selected?.label ?? selectedModel}: {selected?.description}
+          {selected?.maturity === "advanced" ? " This model is marked Advanced and has not completed full launch validation." : ""}
         </p>
         <p className="mt-2 text-xs text-foreground-subtle">
           Lookback window: {lookbackWindowDays} days · {disclaimer}
         </p>
+      </section>
+
+      <section className="rounded-xl border border-border bg-surface-elevated p-4 sm:p-5">
+        <h2 className="text-sm font-semibold text-foreground">Attribution confidence & coverage</h2>
+        <p className="mt-2 text-sm text-foreground-muted">{attributionConfidence.label}</p>
+        <div className="mt-3 flex flex-wrap gap-4 text-sm">
+          <span>
+            Confidence: <strong>{attributionConfidence.level}</strong>
+          </span>
+          {attributionConfidence.sourceCoveragePercent != null ? (
+            <span>Source coverage: {attributionConfidence.sourceCoveragePercent}%</span>
+          ) : null}
+          {attributionConfidence.journeyCoveragePercent != null ? (
+            <span>Journey coverage: {attributionConfidence.journeyCoveragePercent}%</span>
+          ) : null}
+        </div>
+        {attributionConfidence.limitations.length > 0 ? (
+          <ul className="mt-3 space-y-1 text-xs text-warning">
+            {attributionConfidence.limitations.map((limitation) => (
+              <li key={limitation}>{limitation}</li>
+            ))}
+          </ul>
+        ) : null}
+        {unattributed.conversions > 0 ? (
+          <p className="mt-3 text-sm text-foreground">
+            {unattributed.conversions.toLocaleString("en-GB")} conversions and{" "}
+            {unattributed.revenue != null
+              ? unattributed.revenue.toLocaleString("en-GB", {
+                  style: "currency",
+                  currency: "GBP",
+                  maximumFractionDigits: 0,
+                })
+              : "unavailable revenue"}{" "}
+            remain unattributed.
+          </p>
+        ) : null}
       </section>
 
       <section className="rounded-xl border border-border bg-surface-elevated p-4 sm:p-5">

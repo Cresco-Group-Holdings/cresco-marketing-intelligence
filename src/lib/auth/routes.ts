@@ -7,7 +7,6 @@ export const PUBLIC_ROUTES = new Set([
   "/reset-password",
   "/privacy",
   "/terms",
-  "/pricing",
   "/accept-invite",
 ]);
 
@@ -72,6 +71,10 @@ export function isPublicApiRoute(pathname: string): boolean {
 
   if (pathname.startsWith("/api/tracking/v1/server-events")) {
     return true;
+  }
+
+  if (pathname.startsWith("/api/webhooks/")) {
+    return false;
   }
 
   if (pathname.startsWith("/api/connectors/oauth/")) {

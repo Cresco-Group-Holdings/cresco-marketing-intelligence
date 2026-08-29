@@ -11,6 +11,15 @@ import {
   type ResolvedMarketingDateRange,
 } from "@/lib/marketing/date-range";
 import { evaluateMarketingSignals } from "@/lib/marketing-intelligence/engine";
+import { DEFAULT_LOOKBACK_WINDOW_DAYS } from "@/lib/attribution/constants";
+import { computeAttributionFromJourneys } from "@/lib/unified-analytics/attribution";
+import { computeAttributionConfidence } from "@/lib/unified-analytics/attribution-confidence";
+import { buildCoverageDimensions } from "@/lib/unified-analytics/coverage";
+import {
+  buildCommandCentreAttributedRevenueKpi,
+  resolveBlendedRoas,
+  resolveRevenueSemantics,
+} from "@/lib/unified-analytics/revenue-semantics";
 import { calculateMarketingHealth } from "@/lib/marketing-intelligence/scoring/health-score";
 import {
   formatFreshnessLabel,
@@ -31,12 +40,13 @@ import { socialConnectionService } from "@/server/services/social-connection-ser
 import { socialAnalyticsQueryService } from "@/server/services/social-analytics-query-service";
 import { calendarService } from "@/server/services/calendar-service";
 import { publicationService } from "@/server/services/publication-service";
+import { attributionDashboardService } from "@/server/services/attribution-dashboard-service";
+import { revenueDashboardService } from "@/server/services/revenue-dashboard-service";
 import { workspaceService } from "@/server/services/workspace-service";
 import {
   buildPaidMetricSeries,
   latestOrganicSyncAt,
   latestPaidSyncAt,
-  sumPaidRevenue,
 } from "@/server/services/marketing-command-centre-metrics";
 import {
   buildDashboardActivity,
@@ -336,8 +346,10 @@ export const marketingCommandCentreService = {
     const [
       paidOverview,
       previousPaidOverview,
-      previousRevenue,
-      currentRevenue,
+      revenueOverview,
+      previousRevenueOverview,
+      attributionJourneys,
+      previousAttributionJourneys,
       paidConnections,
       socialCatalogue,
       publications,
@@ -350,8 +362,18 @@ export const marketingCommandCentreService = {
     ] = await Promise.all([
       safePaidOverview(brandId, organisationId, range.from, range.to, tenant),
       safePaidOverview(brandId, organisationId, range.comparisonFrom, range.comparisonTo, tenant),
-      sumPaidRevenue(brandId, organisationId, range.comparisonFrom, range.comparisonTo),
-      sumPaidRevenue(brandId, organisationId, range.from, range.to),
+      revenueDashboardService
+        .getOverview(brandId, organisationId, range.from, range.to, tenant)
+        .catch(() => null),
+      revenueDashboardService
+        .getOverview(brandId, organisationId, range.comparisonFrom, range.comparisonTo, tenant)
+        .catch(() => null),
+      attributionDashboardService
+        .getJourneys(brandId, organisationId, range.from, range.to, tenant)
+        .catch(() => []),
+      attributionDashboardService
+        .getJourneys(brandId, organisationId, range.comparisonFrom, range.comparisonTo, tenant)
+        .catch(() => []),
       Promise.all(
         PAID_CONNECTORS.map(async (connector) => ({
           connector: connector.key,
@@ -396,6 +418,37 @@ export const marketingCommandCentreService = {
         (socialOverview?.totals?.likes ?? 0) > 0 ||
         publications.some((item) => item.status === "PUBLISHED"));
 
+    const observedRevenue = revenueOverview?.metrics.totalRevenue ?? null;
+    const previousObservedRevenue = previousRevenueOverview?.metrics.totalRevenue ?? null;
+    const currentAttribution = computeAttributionFromJourneys(
+      attributionJourneys,
+      "LAST_TOUCH",
+      DEFAULT_LOOKBACK_WINDOW_DAYS,
+    );
+    const previousAttribution = computeAttributionFromJourneys(
+      previousAttributionJourneys,
+      "LAST_TOUCH",
+      DEFAULT_LOOKBACK_WINDOW_DAYS,
+    );
+    const attributedRevenue =
+      currentAttribution.attributedRevenue > 0 ? currentAttribution.attributedRevenue : null;
+    const previousAttributedRevenue =
+      previousAttribution.attributedRevenue > 0 ? previousAttribution.attributedRevenue : null;
+    const revenueSemantics = resolveRevenueSemantics({
+      observedRevenue,
+      attributedRevenue,
+      channelBreakdown: currentAttribution.channelBreakdown,
+    });
+    const previousRevenueSemantics = resolveRevenueSemantics({
+      observedRevenue: previousObservedRevenue,
+      attributedRevenue: previousAttributedRevenue,
+      channelBreakdown: previousAttribution.channelBreakdown,
+    });
+    const paidAttributedRevenue = revenueSemantics.paidAttributedRevenue;
+    const previousPaidAttributedRevenue = previousRevenueSemantics.paidAttributedRevenue;
+    const currency = paidOverview.currencies[0] ?? "GBP";
+    const attributedRevenueKpi = buildCommandCentreAttributedRevenueKpi(attributedRevenue, currency);
+
     const spendChange = percentChange(paidOverview.spend, previousPaidOverview.spend);
     const conversionsChange = percentChange(paidOverview.conversions, previousPaidOverview.conversions);
     const cpa =
@@ -404,9 +457,34 @@ export const marketingCommandCentreService = {
       previousPaidOverview.conversions > 0
         ? previousPaidOverview.spend / previousPaidOverview.conversions
         : null;
-    const roas = paidOverview.spend > 0 ? currentRevenue / paidOverview.spend : null;
-    const previousRoas =
-      previousPaidOverview.spend > 0 ? previousRevenue / previousPaidOverview.spend : null;
+    const roas = resolveBlendedRoas(paidOverview.spend, paidAttributedRevenue);
+    const previousRoas = resolveBlendedRoas(
+      previousPaidOverview.spend,
+      previousPaidAttributedRevenue,
+    );
+
+    const { coverage: analyticsCoverage } = buildCoverageDimensions({
+      paidConnected: hasPaidConnections,
+      paidSpendAvailable: paidOverview.spend > 0,
+      organicConnected: hasOrganicConnections,
+      organicAnalyticsAvailable: socialOverview != null,
+      conversionsTracked: currentAttribution.attributedConversions,
+      conversionsObserved:
+        currentAttribution.attributedConversions + currentAttribution.unattributedConversions,
+      revenueObserved: observedRevenue,
+      revenueAttributed: attributedRevenue,
+      journeysWithTouchpoints: attributionJourneys.filter((j) => j.touchpointCount > 0).length,
+      totalJourneys: attributionJourneys.length,
+    });
+    const attributionConfidence = computeAttributionConfidence({
+      totalJourneys: attributionJourneys.length,
+      journeysWithTouchpoints: attributionJourneys.filter((j) => j.touchpointCount > 0).length,
+      attributedConversions: currentAttribution.attributedConversions,
+      unattributedConversions: currentAttribution.unattributedConversions,
+      revenueObserved: observedRevenue,
+      revenueAttributed: attributedRevenue,
+      coverageDimensions: analyticsCoverage,
+    });
 
     const activeCampaigns = await prisma.marketingCampaign.count({
       where: { brandId, organisationId, status: "ACTIVE" },
@@ -515,8 +593,8 @@ export const marketingCommandCentreService = {
         previousSpend: previousPaidOverview.spend,
         conversions: paidOverview.conversions,
         previousConversions: previousPaidOverview.conversions,
-        revenue: currentRevenue,
-        previousRevenue,
+        revenue: attributedRevenue ?? 0,
+        previousRevenue: previousAttributedRevenue ?? 0,
         roas,
         previousRoas,
         cpa,
@@ -569,6 +647,21 @@ export const marketingCommandCentreService = {
         paidTotal: PAID_CONNECTORS.length,
         organicConnected: connectedOrganicProviders.size,
         organicTotal: ORGANIC_CHANNELS.length,
+      },
+      analytics: {
+        attributionModel: "Last Touch",
+        attributedRevenue,
+        observedRevenue,
+        attributionCoveragePercent:
+          analyticsCoverage.find((item) => item.dimension === "Attribution Coverage")
+            ?.coveragePercent ?? null,
+        revenueCoveragePercent:
+          analyticsCoverage.find((item) => item.dimension === "Revenue Coverage")?.coveragePercent ??
+          null,
+        attributionConfidenceLevel: attributionConfidence.level,
+        organicAssistRate: null,
+        contentAssistedRevenue: null,
+        contentAttributedRevenue: null,
       },
     };
 
@@ -640,7 +733,7 @@ export const marketingCommandCentreService = {
       clicks: clicks && clicks > 0 ? clicks : null,
       visits: visits && visits > 0 ? visits : null,
       conversions: paidOverview.conversions > 0 ? paidOverview.conversions : null,
-      revenue: currentRevenue > 0 ? currentRevenue : null,
+      revenue: attributedRevenue != null && attributedRevenue > 0 ? attributedRevenue : null,
     });
 
     const previousPaidByProvider: PaidProviderMetrics[] = PAID_CONNECTORS.map((channel) => {
@@ -754,8 +847,6 @@ export const marketingCommandCentreService = {
       .slice(0, 4)
       .map(([dateLabel, items]) => ({ dateLabel, items }));
 
-    const currency = paidOverview.currencies[0] ?? "GBP";
-
     return {
       workspace,
       hasBrandContext: true,
@@ -776,17 +867,16 @@ export const marketingCommandCentreService = {
           state: hasPaidData ? (paidFreshness === "stale" ? "stale" : "normal") : "empty",
         },
         {
-          label: "Revenue Influenced",
-          value:
-            currentRevenue > 0 ? formatCurrency(currentRevenue, currency) : unavailableValue(),
-          change: percentChange(currentRevenue, previousRevenue),
+          label: attributedRevenueKpi.label,
+          value: attributedRevenueKpi.value,
+          change:
+            attributedRevenue != null && previousAttributedRevenue != null
+              ? percentChange(attributedRevenue, previousAttributedRevenue)
+              : null,
           comparisonLabel: range.comparisonLabel,
           sparkline: extractSparkline(paidChart.revenue),
-          state: currentRevenue > 0 ? "normal" : "empty",
-          stateMessage:
-            currentRevenue <= 0
-              ? "Connect a revenue source to unlock revenue attribution."
-              : undefined,
+          state: attributedRevenueKpi.state,
+          stateMessage: attributedRevenueKpi.stateMessage,
         },
         {
           label: "Conversions",

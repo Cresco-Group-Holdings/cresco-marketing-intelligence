@@ -5,6 +5,8 @@ export function buildCoverageDimensions(input: {
   paidSpendAvailable: boolean;
   organicConnected: boolean;
   organicAnalyticsAvailable: boolean;
+  webAnalyticsConnected?: boolean;
+  webAnalyticsAvailable?: boolean;
   conversionsTracked: number;
   conversionsObserved: number;
   revenueObserved: number | null;
@@ -116,8 +118,35 @@ export function buildCoverageDimensions(input: {
     coveragePercent: attributionCoveragePercent,
   };
 
+  const webAnalyticsCoverage: CoverageDimension = {
+    dimension: "Web Analytics Coverage",
+    state:
+      input.webAnalyticsConnected === false
+        ? "Unavailable"
+        : input.webAnalyticsAvailable
+          ? "Strong"
+          : input.webAnalyticsConnected
+            ? "Partial"
+            : "Unavailable",
+    label:
+      input.webAnalyticsConnected === false
+        ? "No web analytics connected"
+        : input.webAnalyticsAvailable
+          ? "GA4 sessions and conversion data available"
+          : "GA4 connected but no data in selected period",
+    coveragePercent:
+      input.webAnalyticsConnected && input.webAnalyticsAvailable
+        ? 100
+        : input.webAnalyticsConnected
+          ? 40
+          : null,
+  };
+
   if (organicCoverage.state === "Limited") {
     warnings.push("Organic analytics missing for one or more connected channels.");
+  }
+  if (webAnalyticsCoverage.state === "Unavailable") {
+    warnings.push("Connect GA4 to measure sessions, landing pages and conversion journeys.");
   }
   if (revenueCoverage.state === "Unavailable") {
     warnings.push("Revenue data not connected.");
@@ -132,6 +161,7 @@ export function buildCoverageDimensions(input: {
     coverage: [
       paidSpendCoverage,
       organicCoverage,
+      webAnalyticsCoverage,
       conversionCoverage,
       revenueCoverage,
       attributionCoverage,

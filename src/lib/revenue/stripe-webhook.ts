@@ -20,8 +20,7 @@ export function verifyStripeWebhookSignature(
   const signature = parts.v1;
   if (!timestamp || !signature) return { valid: false };
 
-  const toleranceMs =
-    (options?.toleranceSeconds ?? STRIPE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS) * 1000;
+  const toleranceMs = (options?.toleranceSeconds ?? STRIPE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS) * 1000;
   const timestampMs = Number(timestamp) * 1000;
   if (!Number.isFinite(timestampMs)) return { valid: false };
   if (options?.requireTimestamp !== false && Math.abs(Date.now() - timestampMs) > toleranceMs) {
