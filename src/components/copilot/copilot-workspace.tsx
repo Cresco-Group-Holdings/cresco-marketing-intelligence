@@ -59,7 +59,7 @@ export function CopilotWorkspace() {
       setQuestion("");
       await loadHistory();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reach Cresco Copilot.");
+      setError(err instanceof Error ? err.message : "Failed to reach Ask Cresco.");
     } finally {
       setLoading(false);
     }

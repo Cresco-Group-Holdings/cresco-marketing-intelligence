@@ -133,13 +133,9 @@ describe("dashboard navigation", () => {
     ]);
   });
 
-  it("places Command Centre and Activity under Command", () => {
+  it("places Command Centre under Command", () => {
     const command = dashboardNavigationSections.find((section) => section.id === "command");
-    expect(command?.items.map((item) => item.href)).toEqual([
-      "/dashboard",
-      "/getting-started",
-      "/operations",
-    ]);
+    expect(command?.items.map((item) => item.href)).toEqual(["/dashboard"]);
   });
 
   it("keeps legacy campaigns route accessible via secondary navigation", () => {
@@ -155,7 +151,7 @@ describe("dashboard navigation", () => {
     const execute = dashboardNavigationSections.find((section) => section.id === "execute");
     expect(execute?.items.some((item) => item.href === "/advertising")).toBe(true);
     expect(execute?.items.some((item) => item.href === "/organic-social")).toBe(true);
-    expect(execute?.items.some((item) => item.href === "/content")).toBe(true);
+    expect(execute?.items.some((item) => item.href === "/content/studio")).toBe(true);
   });
 });
 

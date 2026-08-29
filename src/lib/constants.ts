@@ -8,5 +8,5 @@ export const defaultMetadata: Metadata = {
     template: `%s | ${APP_NAME}`,
   },
   description:
-    "AI Marketing & Growth Platform for planning, creating, publishing, measuring, and optimising marketing campaigns.",
+    "Connect your marketing stack. Understand what drives growth. Create and distribute better content. Know what to do next.",
 };

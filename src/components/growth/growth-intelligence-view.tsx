@@ -258,7 +258,7 @@ export function GrowthIntelligenceView({ mode }: { mode: Mode }) {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Organic Growth Intelligence"
+        title="Cresco Intelligence"
         description="Evidence-backed recommendations from real social performance data."
       />
 

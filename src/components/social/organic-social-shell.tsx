@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 const TABS = [
-  { label: "Overview", href: "/social", match: (path: string) => path === "/social" },
+  { label: "Overview", href: "/organic-social", match: (path: string) => path === "/organic-social" },
   {
     label: "Content",
     href: "/content/studio",
@@ -13,13 +13,13 @@ const TABS = [
   },
   {
     label: "Reels & Shorts",
-    href: "/social/reels",
-    match: (path: string) => path.startsWith("/social/reels"),
+    href: "/organic-social/content",
+    match: (path: string) => path.startsWith("/organic-social/content"),
   },
   {
     label: "Publishing",
-    href: "/publishing",
-    match: (path: string) => path.startsWith("/publishing"),
+    href: "/organic-social/publishing",
+    match: (path: string) => path.startsWith("/organic-social/publishing"),
   },
   {
     label: "Calendar",
@@ -28,13 +28,14 @@ const TABS = [
   },
   {
     label: "Channels",
-    href: "/social/connections",
-    match: (path: string) => path.startsWith("/social/connections"),
+    href: "/organic-social/accounts",
+    match: (path: string) => path.startsWith("/organic-social/accounts"),
   },
   {
     label: "Performance",
-    href: "/social/performance",
-    match: (path: string) => path.startsWith("/social/performance"),
+    href: "/organic-social/content",
+    match: (path: string) =>
+      path.startsWith("/organic-social/content") || path.startsWith("/organic-social/growth"),
   },
 ] as const;
 

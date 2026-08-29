@@ -15,7 +15,7 @@ const SEARCH_ROUTES = [
   { label: "Growth Intelligence", href: "/organic-social/growth", keywords: "organic growth opportunities" },
   { label: "Organic Publishing", href: "/organic-social/publishing", keywords: "schedule publish queue" },
   { label: "Community Intelligence", href: "/organic-social/community", keywords: "conversations community" },
-  { label: "Content Studio", href: "/content", keywords: "content draft posts" },
+  { label: "Content Studio", href: "/content/studio", keywords: "content draft posts studio" },
   { label: "Calendar", href: "/calendar", keywords: "schedule publishing" },
   { label: "Analytics", href: "/analytics", keywords: "performance metrics" },
   { label: "Attribution", href: "/analytics/attribution", keywords: "attribution journeys" },

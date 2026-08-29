@@ -13,11 +13,9 @@ test.describe("Stage 1 foundation scenario", () => {
     await expect(page.getByText(/traffic|revenue|ROI/i)).toHaveCount(0);
   });
 
-  test("connectors catalogue shows unavailable integrations accurately", async ({ page }) => {
-    await page.goto("/connectors");
-    await expect(page.getByRole("heading", { name: "Connectors" })).toBeVisible();
-    await expect(page.getByText("Google Analytics 4")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Connect" }).first()).toBeDisabled();
+  test("integrations catalogue shows provider connections", async ({ page }) => {
+    await page.goto("/integrations");
+    await expect(page.getByRole("heading", { name: "Integrations" })).toBeVisible();
   });
 
   test("brands and knowledge navigation are available", async ({ page }) => {

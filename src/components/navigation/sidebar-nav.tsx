@@ -44,7 +44,7 @@ function isNavItemActive(pathname: string, href: string): boolean {
     return true;
   }
 
-  if (href === "/content" && pathname.startsWith("/content")) {
+  if (href === "/content/studio" && pathname.startsWith("/content")) {
     return true;
   }
 
@@ -160,7 +160,9 @@ function SidebarContent({
                 aria-label={`${section.label} navigation`}
                 className={cn("mt-1 flex flex-col gap-0.5", collapsed && "mt-0")}
               >
-                {section.items.map((item) => (
+                {section.items
+          .filter((item) => !item.comingSoon)
+          .map((item) => (
                   <NavLink
                     key={item.href}
                     item={item}

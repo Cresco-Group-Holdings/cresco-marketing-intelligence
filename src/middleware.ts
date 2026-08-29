@@ -6,10 +6,26 @@ import { applySecurityHeaders } from "@/lib/security/headers";
 import { resolveSafeRedirectPath } from "@/lib/security/redirects";
 import { isTestAuthBypassEnabled } from "@/lib/security/production-guards";
 import { createRequestHeadersWithPathname } from "@/lib/middleware/pathname";
+import { resolveLegacyRouteRedirect } from "@/lib/navigation/legacy-redirects";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const requestHeaders = createRequestHeadersWithPathname(request);
+
+  if (process.env.NODE_ENV !== "development" && pathname.startsWith("/dev/")) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/";
+    redirectUrl.search = "";
+    return applySecurityHeaders(NextResponse.redirect(redirectUrl));
+  }
+
+  const legacyRedirect = resolveLegacyRouteRedirect(pathname);
+  if (legacyRedirect) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = legacyRedirect;
+    redirectUrl.search = "";
+    return applySecurityHeaders(NextResponse.redirect(redirectUrl));
+  }
 
   let response = NextResponse.next({
     request: {
