@@ -10,6 +10,7 @@ import {
   type AuthenticatedUser,
 } from "@/lib/tenancy/guards";
 import { runWithTenantContext, type TenantContext } from "@/lib/tenancy/context";
+import { isTestAuthBypassEnabled } from "@/lib/security/production-guards";
 
 export type ApiHandlerContext = {
   request: NextRequest;
@@ -19,7 +20,7 @@ export type ApiHandlerContext = {
 };
 
 export async function resolveApiUser(): Promise<AuthenticatedUser> {
-  if (process.env.ALLOW_TEST_AUTH === "true") {
+  if (isTestAuthBypassEnabled()) {
     const testUserId = process.env.TEST_AUTH_USER_ID;
     const testEmail = process.env.TEST_AUTH_EMAIL ?? "test@example.com";
     if (testUserId) {

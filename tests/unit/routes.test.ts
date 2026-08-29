@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { isProtectedRoute, isPublicRoute, isAuthRoute } from "@/lib/auth/routes";
+import { isProtectedRoute, isPublicApiRoute, isPublicRoute, isAuthRoute } from "@/lib/auth/routes";
 
 describe("route protection rules", () => {
   it("marks public routes as accessible without authentication", () => {
@@ -23,6 +23,14 @@ describe("route protection rules", () => {
     expect(isProtectedRoute("/api/readiness")).toBe(false);
     expect(isProtectedRoute("/auth/callback")).toBe(false);
     expect(isProtectedRoute("/api/auth/login")).toBe(false);
+    expect(isPublicApiRoute("/api/auth/login")).toBe(true);
+  });
+
+  it("allows external webhooks and public forms without session", () => {
+    expect(isProtectedRoute("/api/webhooks/stripe")).toBe(false);
+    expect(isProtectedRoute("/api/webhooks/billing/stripe")).toBe(false);
+    expect(isProtectedRoute("/api/forms/v1/public-form/submit")).toBe(false);
+    expect(isProtectedRoute("/api/tracking/v1/server-events")).toBe(false);
   });
 
   it("identifies auth routes", () => {

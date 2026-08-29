@@ -4,11 +4,8 @@ import { isAuthRoute, isProtectedRoute } from "@/lib/auth/routes";
 import { getSupabaseServerConfig, readSupabaseServerConfigFromProcessEnv } from "@/lib/environment/supabase";
 import { applySecurityHeaders } from "@/lib/security/headers";
 import { resolveSafeRedirectPath } from "@/lib/security/redirects";
+import { isTestAuthBypassEnabled } from "@/lib/security/production-guards";
 import { createRequestHeadersWithPathname } from "@/lib/middleware/pathname";
-
-function isTestAuthEnabled(): boolean {
-  return process.env.ALLOW_TEST_AUTH === "true" && Boolean(process.env.TEST_AUTH_USER_ID);
-}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -30,7 +27,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (isTestAuthEnabled() && isProtectedRoute(pathname)) {
+  if (isTestAuthBypassEnabled() && isProtectedRoute(pathname)) {
     return applySecurityHeaders(response);
   }
 
