@@ -6,7 +6,9 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button";
 import { apiFetch } from "@/lib/api/client";
+import { formatPlanPrice } from "@/lib/billing/commercial-config";
 
 type BillingAccountResponse = {
   summary: {
@@ -48,9 +50,18 @@ type PlanOption = {
   } | null;
 };
 
+type InvoiceRow = {
+  id: string;
+  externalInvoiceRef: string;
+  invoiceUrl: string | null;
+  amountCents: number;
+  currency: string;
+  status: string;
+  createdAt: string;
+};
+
 function formatPrice(cents: number) {
-  if (cents === 0) return "Free";
-  return `$${(cents / 100).toFixed(0)}/mo`;
+  return formatPlanPrice(cents);
 }
 
 function statusBadgeVariant(status: string): "default" | "muted" | "warning" {
@@ -64,6 +75,7 @@ export function BillingSettingsPanel() {
   const organisationId = preference.currentOrganisationId;
   const [account, setAccount] = useState<BillingAccountResponse | null>(null);
   const [plans, setPlans] = useState<PlanOption[]>([]);
+  const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionError, setActionError] = useState<string | null>(null);
   const [billingInterval, setBillingInterval] = useState<"MONTHLY" | "ANNUAL">("MONTHLY");
@@ -73,16 +85,20 @@ export function BillingSettingsPanel() {
     setLoading(true);
     setActionError(null);
     try {
-      const [accountData, planData] = await Promise.all([
+      const [accountData, planData, invoiceData] = await Promise.all([
         apiFetch<BillingAccountResponse>(`/api/billing/account?organisationId=${organisationId}`, {
           organisationId,
         }),
         apiFetch<{ plans: PlanOption[] }>(`/api/billing/plans?organisationId=${organisationId}`, {
           organisationId,
         }),
+        apiFetch<{ invoices: InvoiceRow[] }>(`/api/billing/invoices?organisationId=${organisationId}`, {
+          organisationId,
+        }).catch(() => ({ invoices: [] })),
       ]);
       setAccount(accountData);
       setPlans(planData.plans);
+      setInvoices(invoiceData.invoices);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Failed to load billing data.");
     } finally {
@@ -133,6 +149,19 @@ export function BillingSettingsPanel() {
     await load();
   }
 
+  async function handleResume() {
+    if (!organisationId) return;
+    setActionError(null);
+    await apiFetch("/api/billing/subscription/resume", {
+      method: "POST",
+      organisationId,
+      body: JSON.stringify({}),
+    });
+    await load();
+  }
+
+  const allowDirectPlanChange = process.env.NODE_ENV !== "production";
+
   async function handleCancel(immediate = false) {
     if (!organisationId) return;
     setActionError(null);
@@ -180,6 +209,20 @@ export function BillingSettingsPanel() {
               <span className="font-medium">{account?.summary.plan?.displayName ?? "Free"}</span>
               <Badge variant={statusBadgeVariant(subscriptionStatus)}>{subscriptionStatus}</Badge>
             </div>
+            {account?.summary.plan?.monthlyPriceCents ? (
+              <p className="text-foreground-muted">
+                {formatPrice(account.summary.plan.monthlyPriceCents)} / month
+              </p>
+            ) : null}
+            {subscriptionStatus === "PAST_DUE" ? (
+              <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                <p className="font-medium">Payment needs attention</p>
+                <p className="mt-1 text-xs">
+                  We couldn&apos;t process your latest subscription payment. Update your billing details to
+                  restore full access.
+                </p>
+              </div>
+            ) : null}
             {account?.summary.trial ? (
               <p className="text-foreground-muted">
                 Trial ends {new Date(account.summary.trial.endsAt).toLocaleDateString()}
@@ -201,6 +244,11 @@ export function BillingSettingsPanel() {
                   Cancel at period end
                 </Button>
               ) : null}
+              {account?.summary.subscription?.cancelAtPeriodEnd ? (
+                <Button variant="outline" size="sm" onClick={() => void handleResume()}>
+                  Resume subscription
+                </Button>
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -214,18 +262,20 @@ export function BillingSettingsPanel() {
             {account?.usage.length ? (
               account.usage.map((meter) => {
                 const pct = meter.allowance > 0 ? Math.min(100, (meter.used / meter.allowance) * 100) : 0;
-                const atLimit = meter.remaining <= 0;
+                const warning =
+                  pct >= 100 ? "Limit reached" : pct >= 90 ? "90% used" : pct >= 70 ? "70% used" : null;
                 return (
                   <div key={meter.meterKey}>
                     <div className="mb-1 flex justify-between text-sm">
                       <span>{meter.displayName}</span>
-                      <span className={atLimit ? "font-medium text-amber-700" : "text-foreground-muted"}>
+                      <span className={warning ? "font-medium text-amber-700" : "text-foreground-muted"}>
                         {meter.used.toLocaleString()} / {meter.allowance.toLocaleString()} {meter.unit}
+                        {warning ? ` · ${warning}` : ""}
                       </span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-surface-hover">
                       <div
-                        className={`h-full rounded-full ${atLimit ? "bg-amber-500" : "bg-primary"}`}
+                        className={`h-full rounded-full ${warning ? "bg-amber-500" : "bg-primary"}`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -279,7 +329,7 @@ export function BillingSettingsPanel() {
                     <CardContent className="space-y-3">
                       <p className="text-2xl font-semibold">
                         {billingInterval === "ANNUAL" && price > 0
-                          ? `$${(price / 100).toFixed(0)}/yr`
+                          ? `${formatPlanPrice(price)}/yr`
                           : formatPrice(price)}
                       </p>
                       {isCurrent ? (
@@ -287,11 +337,13 @@ export function BillingSettingsPanel() {
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" onClick={() => void handleCheckout(plan.key)}>
-                            Upgrade via checkout
+                            {currentPlanKey === "free" ? "Subscribe" : "Upgrade"}
                           </Button>
-                          <Button size="sm" variant="outline" onClick={() => void handleChangePlan(plan.key)}>
-                            Change plan
-                          </Button>
+                          {allowDirectPlanChange ? (
+                            <Button size="sm" variant="outline" onClick={() => void handleChangePlan(plan.key)}>
+                              Change plan (dev)
+                            </Button>
+                          ) : null}
                         </div>
                       )}
                     </CardContent>
@@ -301,6 +353,31 @@ export function BillingSettingsPanel() {
           </div>
         </CardContent>
       </Card>
+
+      {invoices.length > 0 ? (
+        <Card className="mt-4">
+          <CardHeader>
+            <CardTitle>Invoices</CardTitle>
+            <CardDescription>Recent billing invoices from Stripe.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm">
+              {invoices.map((invoice) => (
+                <li key={invoice.id} className="flex items-center justify-between rounded border px-3 py-2">
+                  <span>
+                    {formatPlanPrice(invoice.amountCents, invoice.currency)} · {invoice.status}
+                  </span>
+                  {invoice.invoiceUrl ? (
+                    <a href={invoice.invoiceUrl} target="_blank" rel="noreferrer" className="underline">
+                      View invoice
+                    </a>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card className="mt-4">
         <CardHeader>

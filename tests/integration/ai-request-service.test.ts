@@ -44,6 +44,21 @@ vi.mock("@/server/services/ai-usage-recorder", () => ({
   aiUsageRecorder: { record: vi.fn() },
 }));
 
+vi.mock("@/server/services/entitlement-service", () => ({
+  entitlementService: {
+    assert: vi.fn().mockResolvedValue({ allowed: true }),
+    check: vi.fn().mockResolvedValue({ allowed: true }),
+    reserveMeteredUsage: vi.fn().mockResolvedValue({ reserved: true, duplicate: false }),
+  },
+}));
+
+vi.mock("@/lib/billing/usage-reservation", () => ({
+  usageReservationService: {
+    commit: vi.fn().mockResolvedValue({ committed: true }),
+    release: vi.fn().mockResolvedValue({ released: true }),
+  },
+}));
+
 import { aiRequestService } from "@/server/services/ai-request-service";
 import { promptTemplateService } from "@/server/services/prompt-template-service";
 

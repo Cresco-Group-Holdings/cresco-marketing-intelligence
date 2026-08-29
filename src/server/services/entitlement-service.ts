@@ -1,11 +1,15 @@
 import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
-import { ENTITLEMENT_TO_METER } from "@/lib/billing/entitlements";
+import { ENTITLEMENT_KEYS, ENTITLEMENT_TO_METER } from "@/lib/billing/entitlements";
 import {
   buildFeatureNotIncludedResult,
   buildLimitExceededResult,
   type EntitlementCheckResult,
 } from "@/lib/billing/errors";
+import { suggestUpgradePlanKey } from "@/lib/billing/commercial-config";
+import { isCommercialUsageExempt } from "@/lib/billing/commercial-exempt";
+import { normalizeSubscriptionAccess } from "@/lib/billing/subscription-state";
+import { usageReservationService } from "@/lib/billing/usage-reservation";
 import { billingAccountService } from "@/server/services/billing-account-service";
 import { usageMeteringService } from "@/server/services/usage-metering-service";
 
@@ -20,28 +24,75 @@ async function isSubscriptionActive(organisationId: string): Promise<{
   active: boolean;
   trialExpired: boolean;
   paymentRequired: boolean;
+  inGracePeriod: boolean;
+  planKey: string;
 }> {
   const account = await billingAccountService.getAccount(organisationId);
   if (account.status === "SUSPENDED" || account.status === "CLOSED") {
-    return { active: false, trialExpired: false, paymentRequired: false };
+    return { active: false, trialExpired: false, paymentRequired: false, inGracePeriod: false, planKey: "free" };
   }
 
+  const planKey = account.subscription?.planVersion.plan.key ?? "free";
+
   if (account.trial?.status === "ACTIVE" && account.trial.endsAt < new Date()) {
-    return { active: false, trialExpired: true, paymentRequired: false };
+    return { active: false, trialExpired: true, paymentRequired: false, inGracePeriod: false, planKey };
   }
 
   const sub = account.subscription;
-  if (!sub) return { active: false, trialExpired: false, paymentRequired: false };
+  if (!sub) return { active: false, trialExpired: false, paymentRequired: false, inGracePeriod: false, planKey };
 
-  if (sub.status === "PAST_DUE" || sub.status === "UNPAID") {
-    return { active: false, trialExpired: false, paymentRequired: true };
+  const access = normalizeSubscriptionAccess({
+    status: sub.status,
+    cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
+    pastDueSince: sub.status === "PAST_DUE" ? sub.updatedAt : null,
+    trialEndsAt: sub.trialEnd,
+  });
+
+  return {
+    active: access.entitlementsActive,
+    trialExpired: false,
+    paymentRequired: access.paymentActionRequired && !access.inGracePeriod,
+    inGracePeriod: access.inGracePeriod,
+    planKey,
+  };
+}
+
+async function resolveCountBasedUsage(
+  organisationId: string,
+  entitlementKey: string,
+): Promise<number | null> {
+  switch (entitlementKey) {
+    case ENTITLEMENT_KEYS.PROVIDER_CONNECTIONS_MAX:
+      return prisma.providerConnection.count({
+        where: {
+          organisationId,
+          status: { in: ["CONNECTED", "REAUTH_REQUIRED", "ACTION_REQUIRED", "DEGRADED"] },
+        },
+      });
+    case ENTITLEMENT_KEYS.BRANDS_MAX:
+      return prisma.brand.count({
+        where: { organisationId, status: { not: "ARCHIVED" } },
+      });
+    case ENTITLEMENT_KEYS.USERS_MAX: {
+      const [members, pendingInvites] = await Promise.all([
+        prisma.organisationMembership.count({
+          where: { organisationId, status: "ACTIVE" },
+        }),
+        prisma.invitation.count({
+          where: { organisationId, status: "PENDING" },
+        }),
+      ]);
+      return members + pendingInvites;
+    }
+    case ENTITLEMENT_KEYS.PROJECTS_MAX:
+      return prisma.project.count({ where: { organisationId } });
+    case ENTITLEMENT_KEYS.CAMPAIGNS_MAX_ACTIVE:
+      return prisma.campaign.count({
+        where: { organisationId, status: "ACTIVE", archivedAt: null },
+      });
+    default:
+      return null;
   }
-
-  if (["CANCELLED", "PAUSED", "INCOMPLETE"].includes(sub.status)) {
-    return { active: false, trialExpired: false, paymentRequired: false };
-  }
-
-  return { active: true, trialExpired: false, paymentRequired: false };
 }
 
 async function resolveEntitlementLimit(
@@ -89,7 +140,7 @@ export const entitlementService = {
         code: "TRIAL_EXPIRED",
         message: "Your trial has expired. Upgrade to continue.",
         entitlement: input.entitlement,
-        upgradePlanKey: "starter",
+        upgradePlanKey: suggestUpgradePlanKey(subscriptionState.planKey) ?? "starter",
       };
     }
     if (subscriptionState.paymentRequired) {
@@ -127,9 +178,16 @@ export const entitlementService = {
 
     const meterKey = ENTITLEMENT_TO_METER[input.entitlement as keyof typeof ENTITLEMENT_TO_METER];
     let currentUsage = 0;
-    if (meterKey) {
-      const usage = await usageMeteringService.getUsage(input.organisationId, meterKey);
-      currentUsage = usage.total;
+    const countBased = await resolveCountBasedUsage(input.organisationId, input.entitlement);
+    if (countBased !== null) {
+      currentUsage = countBased;
+    } else if (meterKey) {
+      const usage = await usageReservationService.getReservedUsage(
+        input.organisationId,
+        meterKey,
+        "BILLING_PERIOD",
+      );
+      currentUsage = usage;
     }
 
     if (currentUsage + requested > resolved.limitValue) {
@@ -137,7 +195,7 @@ export const entitlementService = {
         entitlement: input.entitlement,
         currentUsage,
         allowance: resolved.limitValue,
-        upgradePlanKey: "professional",
+        upgradePlanKey: suggestUpgradePlanKey(subscriptionState.planKey),
       });
     }
 
@@ -157,6 +215,41 @@ export const entitlementService = {
       });
     }
     return result;
+  },
+
+  async reserveMeteredUsage(input: {
+    organisationId: string;
+    entitlement: string;
+    meterKey: string;
+    amount: number;
+    idempotencyKey: string;
+    operationType?: string;
+  }) {
+    if (isCommercialUsageExempt(input.organisationId)) {
+      return { reserved: true, exempt: true, duplicate: false, reservationId: "exempt" };
+    }
+
+    const check = await this.check({
+      workspaceId: input.organisationId,
+      organisationId: input.organisationId,
+      entitlement: input.entitlement,
+      requestedAmount: input.amount,
+    });
+    if (!check.allowed || check.allowance == null) {
+      throw new AppError(check.code ?? "PLAN_LIMIT_EXCEEDED", check.message ?? "Plan limit exceeded.", {
+        status: check.code === "PAYMENT_ACTION_REQUIRED" ? 402 : 403,
+      });
+    }
+
+    return usageReservationService.reserve({
+      organisationId: input.organisationId,
+      meterKey: input.meterKey,
+      amount: input.amount,
+      idempotencyKey: input.idempotencyKey,
+      allowance: check.allowance,
+      period: "BILLING_PERIOD",
+      operationType: input.operationType,
+    });
   },
 
   async syncWorkspaceEntitlementsFromPlan(organisationId: string) {
@@ -198,5 +291,32 @@ export const entitlementService = {
       where: { organisationId, source: "PLAN" },
       orderBy: { entitlementKey: "asc" },
     });
+  },
+
+  async resolveEntitlements(organisationId: string) {
+    const account = await billingAccountService.getAccount(organisationId);
+    const subscriptionState = await isSubscriptionActive(organisationId);
+    const entitlements = await this.listEntitlements(organisationId);
+    const usage = await usageMeteringService.getUsageOverview(organisationId);
+
+    return {
+      organisationId,
+      planKey: account.subscription?.planVersion.plan.key ?? "free",
+      planDisplayName: account.subscription?.planVersion.plan.displayName ?? "Free",
+      subscriptionStatus: account.subscription?.status ?? "ACTIVE",
+      productAccess: subscriptionState,
+      entitlements,
+      usage,
+      warnings: usage
+        .filter((meter) => meter.allowance > 0)
+        .map((meter) => {
+          const pct = (meter.used / meter.allowance) * 100;
+          if (pct >= 100) return { meterKey: meter.meterKey, level: "limit" as const, percent: pct };
+          if (pct >= 90) return { meterKey: meter.meterKey, level: "critical" as const, percent: pct };
+          if (pct >= 70) return { meterKey: meter.meterKey, level: "warning" as const, percent: pct };
+          return null;
+        })
+        .filter(Boolean),
+    };
   },
 };

@@ -2,10 +2,16 @@ import { prisma } from "@/lib/database/prisma";
 import { AppError } from "@/lib/errors";
 import type { TenantContext } from "@/lib/tenancy/context";
 import type { BillingInterval } from "@prisma/client";
+import { isProductionRuntime } from "@/lib/providers/oauth/runtime";
 import { getCurrentPlanVersion } from "@/lib/billing/plan-seed";
+import { resolvePlanKeyFromStripePriceId } from "@/lib/billing/commercial-config";
+import { trackCommercialEvent } from "@/lib/billing/commercial-analytics";
+import { mapStripeStatusToSubscriptionStatus } from "@/lib/billing/subscription-state";
+import { isStripeBillingConfigured } from "@/server/providers/billing/stripe-billing-provider";
 import { billingAccountService } from "@/server/services/billing-account-service";
 import { entitlementService } from "@/server/services/entitlement-service";
 import { stripeBillingProvider } from "@/server/providers/billing/stripe-billing-provider";
+import { recordAuditEvent } from "@/server/services/audit-service";
 
 export const subscriptionService = {
   async getSubscriptionSummary(organisationId: string) {
@@ -103,6 +109,19 @@ export const subscriptionService = {
         ? planVersion.externalPriceAnnualRef
         : planVersion.externalPriceMonthlyRef;
 
+    if (isProductionRuntime() && isStripeBillingConfigured() && !externalPriceRef) {
+      throw new AppError(
+        "AUTH_CONFIGURATION_ERROR",
+        `Stripe price is not configured for plan ${input.planKey}.`,
+      );
+    }
+
+    trackCommercialEvent("checkout_started", {
+      organisationId: context.organisationId,
+      planKey: input.planKey,
+      billingInterval: input.billingInterval,
+    });
+
     return stripeBillingProvider.createCheckoutSession({
       organisationId: context.organisationId,
       billingAccountId: account.id,
@@ -131,6 +150,13 @@ export const subscriptionService = {
   },
 
   async changePlan(context: TenantContext, planKey: string, billingInterval: BillingInterval = "MONTHLY") {
+    if (isProductionRuntime() && isStripeBillingConfigured()) {
+      throw new AppError(
+        "VALIDATION_ERROR",
+        "Plan changes must be completed through checkout or the billing portal in production.",
+      );
+    }
+
     const account = await billingAccountService.getAccount(context.organisationId);
     const planVersion = await getCurrentPlanVersion(planKey);
     if (!planVersion) throw new AppError("NOT_FOUND", "Plan not found.");
@@ -160,11 +186,58 @@ export const subscriptionService = {
     const account = await billingAccountService.getAccount(context.organisationId);
     if (!account.subscription) throw new AppError("NOT_FOUND", "No active subscription.");
 
+    if (account.subscription.externalSubscriptionRef && !immediate) {
+      await stripeBillingProvider.cancelSubscriptionAtPeriodEnd(
+        account.subscription.externalSubscriptionRef,
+      );
+    }
+
     await prisma.subscription.update({
       where: { billingAccountId: account.id },
       data: immediate
         ? { status: "CANCELLED", cancelledAt: new Date(), cancelAtPeriodEnd: false }
         : { cancelAtPeriodEnd: true },
+    });
+
+    trackCommercialEvent("cancellation_requested", {
+      organisationId: context.organisationId,
+      immediate,
+    });
+
+    await recordAuditEvent({
+      organisationId: context.organisationId,
+      actorUserId: context.userProfileId,
+      action: "billing.cancellation_requested",
+      resourceType: "Subscription",
+      resourceId: account.subscription.id,
+      metadata: { immediate },
+    });
+
+    return this.getSubscriptionSummary(context.organisationId);
+  },
+
+  async resumeSubscription(context: TenantContext) {
+    const account = await billingAccountService.getAccount(context.organisationId);
+    if (!account.subscription?.externalSubscriptionRef) {
+      throw new AppError("VALIDATION_ERROR", "No subscription to resume.");
+    }
+
+    await stripeBillingProvider.resumeSubscription(account.subscription.externalSubscriptionRef);
+    await prisma.subscription.update({
+      where: { billingAccountId: account.id },
+      data: { cancelAtPeriodEnd: false },
+    });
+
+    trackCommercialEvent("subscription_resumed", {
+      organisationId: context.organisationId,
+    });
+
+    await recordAuditEvent({
+      organisationId: context.organisationId,
+      actorUserId: context.userProfileId,
+      action: "billing.subscription_resumed",
+      resourceType: "Subscription",
+      resourceId: account.subscription.id,
     });
 
     return this.getSubscriptionSummary(context.organisationId);
@@ -177,5 +250,58 @@ export const subscriptionService = {
       orderBy: { createdAt: "desc" },
       take: 24,
     });
+  },
+
+  async reconcileWithStripe(context: TenantContext) {
+    const account = await billingAccountService.getAccount(context.organisationId);
+    const subscriptionRef = account.subscription?.externalSubscriptionRef;
+    if (!subscriptionRef) {
+      throw new AppError("VALIDATION_ERROR", "No Stripe subscription reference to reconcile.");
+    }
+
+    const remote = await stripeBillingProvider.retrieveSubscription(subscriptionRef);
+    if (!remote) {
+      throw new AppError("INTERNAL_ERROR", "Unable to retrieve subscription from Stripe.");
+    }
+
+    const mappedStatus = mapStripeStatusToSubscriptionStatus(remote.status);
+    let planVersionId = account.subscription!.planVersionId;
+
+    if (remote.priceId) {
+      const planKey = resolvePlanKeyFromStripePriceId(remote.priceId);
+      if (planKey) {
+        const planVersion = await getCurrentPlanVersion(planKey);
+        if (planVersion) planVersionId = planVersion.id;
+      }
+    }
+
+    await prisma.subscription.update({
+      where: { billingAccountId: account.id },
+      data: {
+        status: mappedStatus,
+        planVersionId,
+        currentPeriodStart: remote.currentPeriodStart,
+        currentPeriodEnd: remote.currentPeriodEnd,
+        cancelAtPeriodEnd: remote.cancelAtPeriodEnd,
+      },
+    });
+
+    await entitlementService.syncWorkspaceEntitlementsFromPlan(context.organisationId);
+
+    trackCommercialEvent("subscription_reconciled", {
+      organisationId: context.organisationId,
+      status: mappedStatus,
+    });
+
+    await recordAuditEvent({
+      organisationId: context.organisationId,
+      actorUserId: context.userProfileId,
+      action: "billing.subscription_reconciled",
+      resourceType: "Subscription",
+      resourceId: account.subscription!.id,
+      metadata: { status: mappedStatus },
+    });
+
+    return this.getSubscriptionSummary(context.organisationId);
   },
 };

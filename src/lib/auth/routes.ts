@@ -68,6 +68,10 @@ export function isProtectedRoute(pathname: string): boolean {
     return false;
   }
 
+  if (pathname.startsWith("/api/webhooks/")) {
+    return false;
+  }
+
   if (pathname.startsWith("/api/connectors/oauth/")) {
     return false;
   }

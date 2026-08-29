@@ -3,7 +3,6 @@ import { ENTITLEMENT_KEYS } from "@/lib/billing/entitlements";
 import { AppError } from "@/lib/errors";
 import type { TenantContext } from "@/lib/tenancy/context";
 import { entitlementService } from "@/server/services/entitlement-service";
-import { usageMeteringService } from "@/server/services/usage-metering-service";
 import {
   getProviderDefinition,
   validateProviderConfiguration,
@@ -82,18 +81,11 @@ export const providerConnectionService = {
   ) {
     assertProviderConnectorsEnabled();
 
-    const activeConnections = await prisma.providerConnection.count({
-      where: {
-        organisationId: context.organisationId,
-        status: { in: ["CONNECTED", "DRAFT", "REAUTH_REQUIRED"] },
-      },
-    });
-
     await entitlementService.assert({
       workspaceId: context.organisationId,
       organisationId: context.organisationId,
       entitlement: ENTITLEMENT_KEYS.PROVIDER_CONNECTIONS_MAX,
-      requestedAmount: activeConnections + 1,
+      requestedAmount: 1,
     });
 
     const definition = getProviderDefinition(input.providerKey);
@@ -131,14 +123,6 @@ export const providerConnectionService = {
       connectionId: connection.id,
       actorUserId: context.userId,
       result: "success",
-    });
-
-    await usageMeteringService.recordUsage({
-      organisationId: context.organisationId,
-      meterKey: "provider.connections",
-      amount: 1,
-      idempotencyKey: `connection-created-${connection.id}`,
-      period: "LIFETIME",
     });
 
     return toSafeConnection(connection);
