@@ -72,8 +72,7 @@ jobs:
 
   database-tests:
     name: Database tests
-    needs: changes
-    if: needs.changes.outputs.prisma == 'true'
+    needs: quality
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -105,7 +104,7 @@ jobs:
 
   build:
     name: Production build
-    needs: test
+    needs: [test, database-tests]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

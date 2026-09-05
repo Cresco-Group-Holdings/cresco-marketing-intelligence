@@ -132,11 +132,13 @@ jobs:
 
   database-tests:
     name: Database tests
-    needs: changes
+    needs: [changes, quality]
     if: |
-      (github.event_name == 'workflow_dispatch' && inputs.run_database_tests) ||
+      github.event_name == 'workflow_dispatch' && inputs.run_database_tests ||
       needs.changes.outputs.prisma == 'true' ||
-      contains(github.event.pull_request.labels.*.name, 'run-database-tests')
+      needs.changes.outputs.app == 'true' ||
+      contains(github.event.pull_request.labels.*.name, 'run-database-tests') ||
+      contains(github.event.pull_request.labels.*.name, 'database-certification')
     runs-on: ubuntu-latest
     services:
       postgres:
