@@ -11,8 +11,8 @@ import { EmptyState, ErrorState } from "@/components/ui/empty-state";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api/client";
 import type { MarketingCommandCentreData } from "@/server/services/marketing-command-centre-service";
-import type { ActivationState } from "@/server/services/activation-service";
 import { useLoadingTimeout } from "@/hooks/use-loading-timeout";
+import { useActivationState } from "@/hooks/use-activation-state";
 import { MetricCardGrid, type MetricCardData } from "@/components/command-centre/metric-card";
 import { HealthScore } from "@/components/command-centre/health-score";
 import { TodaysPrioritiesPanel } from "@/components/command-centre/priority-item";
@@ -62,9 +62,14 @@ function mapExecutiveKpis(metrics: MarketingCommandCentreData["executiveKpis"]):
 
 function CommandCentreDashboardContent() {
   const searchParams = useSearchParams();
+  const queryString = searchParams.toString();
   const previewData = useCommandCentrePreviewData();
   const [data, setData] = useState<MarketingCommandCentreData | null>(previewData ?? null);
-  const [activation, setActivation] = useState<ActivationState | null>(null);
+  const {
+    activation,
+    loading: activationLoading,
+    error: activationError,
+  } = useActivationState({ enabled: !previewData });
   const [loading, setLoading] = useState(!previewData);
   const [error, setError] = useState<string | null>(null);
   const [channelMetric, setChannelMetric] = useState<ChannelPerformanceMetric>("spend");
@@ -84,21 +89,16 @@ function CommandCentreDashboardContent() {
     setError(null);
     resetTimeout();
     try {
-      const query = searchParams.toString();
-      const [dashboardResponse, activationResponse] = await Promise.all([
-        apiFetch<{ dashboard: MarketingCommandCentreData }>(
-          `/api/dashboard/command-centre${query ? `?${query}` : ""}`,
-        ),
-        apiFetch<{ activation: ActivationState }>("/api/activation").catch(() => null),
-      ]);
+      const dashboardResponse = await apiFetch<{ dashboard: MarketingCommandCentreData }>(
+        `/api/dashboard/command-centre${queryString ? `?${queryString}` : ""}`,
+      );
       setData(dashboardResponse.dashboard);
-      setActivation(activationResponse?.activation ?? null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard.");
     } finally {
       setLoading(false);
     }
-  }, [previewData, searchParams, resetTimeout]);
+  }, [previewData, queryString, resetTimeout]);
 
   useEffect(() => {
     void loadDashboard();
@@ -169,6 +169,12 @@ function CommandCentreDashboardContent() {
       />
 
       {activation && !activation.isActivated ? <ActivationBanner activation={activation} /> : null}
+
+      {activationError && !activationLoading ? (
+        <p className="text-sm text-foreground-muted">
+          Activation checklist is temporarily unavailable. Command Centre data below may still be usable.
+        </p>
+      ) : null}
 
       {activation && !activation.isActivated ? (
         <ActivationChecklistPanel checklist={activation.checklist} essentialOnly />

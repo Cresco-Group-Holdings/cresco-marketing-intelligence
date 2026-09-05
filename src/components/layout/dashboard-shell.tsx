@@ -1,4 +1,5 @@
 import { DashboardHeader } from "@/components/layout/dashboard-header";
+import { RouteErrorBoundary } from "@/components/layout/route-error-boundary";
 import { CopilotShell } from "@/components/copilot/copilot-shell";
 import { DesktopSidebar } from "@/components/navigation/sidebar-nav";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -19,7 +20,9 @@ export function DashboardShell({ children }: DashboardShellProps) {
               <div className="flex min-w-0 flex-1 flex-col">
                 <DashboardHeader />
                 <main className="mx-auto w-full max-w-[1600px] flex-1 px-4 py-5 sm:px-5 lg:px-6">
-                  {children}
+                  <RouteErrorBoundary title="This page is temporarily unavailable">
+                    {children}
+                  </RouteErrorBoundary>
                 </main>
               </div>
             </div>
