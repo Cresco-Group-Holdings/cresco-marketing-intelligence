@@ -3,7 +3,7 @@
 **Certification date:** 2026-09-05  
 **PR:** [#158](https://github.com/Cresco-Group-Holdings/cresco-marketing-intelligence/pull/158)  
 **Branch:** `cursor/task-3-database-certification-6bdf`  
-**Final certification SHA:** `5ee8b1d` (closure updates pending push)
+**Final certification SHA:** `0646747`
 
 ---
 
