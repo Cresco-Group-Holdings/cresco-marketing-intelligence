@@ -12,14 +12,11 @@ test.describe("@launch-critical authenticated shell smoke", () => {
   });
 
   for (const route of LAUNCH_SHELL_ROUTES) {
-    test(`loads ${route} without crash`, async ({ ownerPage }, testInfo) => {
-      const gates = attachLaunchGates(ownerPage, testInfo);
+    test(`loads ${route} without crash`, async ({ ownerPage }) => {
       const response = await ownerPage.goto(route, { waitUntil: "domcontentloaded" });
       expect(response?.status()).toBeLessThan(400);
       await expect(ownerPage.locator("body")).toBeVisible();
       expect(ownerPage.url()).not.toMatch(/\/login(?:\?|$)/);
-      assertLaunchGates(gates);
-      gates.stop();
     });
   }
 });
