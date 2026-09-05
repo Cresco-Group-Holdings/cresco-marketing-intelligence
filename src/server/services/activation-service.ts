@@ -28,6 +28,7 @@ import {
 import { hasPermission, PERMISSIONS } from "@/lib/tenancy/permissions";
 import { buildTenantContextForUser } from "@/lib/tenancy/guards";
 import { AppError } from "@/lib/errors";
+import { logger } from "@/lib/logging";
 import { brandKnowledgeService } from "@/server/services/brand-knowledge-service";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { workspaceService } from "@/server/services/workspace-service";
@@ -71,6 +72,7 @@ export type ActivationState = {
     project: { id: string; name: string } | null;
     brand: { id: string; name: string } | null;
   };
+  degradedSources: string[];
 };
 
 type ActivationStepData = {
@@ -151,12 +153,60 @@ async function safeHasCanonicalInsight(
   }
 }
 
+async function safeHasInvitedMembership(userProfileId: string): Promise<boolean> {
+  try {
+    return await hasInvitedMembership(userProfileId);
+  } catch {
+    return false;
+  }
+}
+
+async function safeQuery<T>(
+  source: string,
+  query: () => Promise<T>,
+  fallback: T,
+  degradedSources?: string[],
+): Promise<T> {
+  try {
+    return await query();
+  } catch (error) {
+    logger.warn("activation.query_failed", {
+      source,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    degradedSources?.push(source);
+    return fallback;
+  }
+}
+
 export const activationService = {
   async getState(userProfileId: string): Promise<ActivationState> {
-    const workspace = await workspaceService.getResolvedWorkspace(userProfileId);
-    const progress = await prisma.onboardingProgress.findUnique({
-      where: { userId: userProfileId },
-    });
+    const degradedSources: string[] = [];
+
+    let workspace: Awaited<ReturnType<typeof workspaceService.getResolvedWorkspace>>;
+    try {
+      workspace = await workspaceService.getResolvedWorkspace(userProfileId);
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      logger.error("activation.workspace_resolution_failed", {
+        userProfileId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      throw error;
+    }
+
+    const progress = await safeQuery(
+      "onboardingProgress",
+      () =>
+        prisma.onboardingProgress.findUnique({
+          where: { userId: userProfileId },
+        }),
+      null,
+      degradedSources,
+    );
     const stepData = parseStepData(progress?.stepData);
     const demoModeEnabled = stepData.demoModeEnabled ?? false;
 
@@ -175,18 +225,32 @@ export const activationService = {
 
     let tenant = null;
     if (organisationId) {
-      tenant = await buildTenantContextForUser(userProfileId, {
-        organisationId,
-        projectId: projectId ?? undefined,
-        brandId: brandId ?? undefined,
-      });
+      try {
+        tenant = await buildTenantContextForUser(userProfileId, {
+          organisationId,
+          projectId: projectId ?? undefined,
+          brandId: brandId ?? undefined,
+        });
+      } catch (error) {
+        if (error instanceof AppError) {
+          throw error;
+        }
+
+        logger.warn("activation.tenant_context_failed", {
+          organisationId,
+          projectId,
+          brandId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        degradedSources.push("tenantContext");
+      }
     }
 
     const canManageIntegrations = tenant
       ? hasPermission(tenant.organisationRole, PERMISSIONS["providerConnections.create"])
       : false;
 
-    const invitedMember = await hasInvitedMembership(userProfileId);
+    const invitedMember = await safeHasInvitedMembership(userProfileId);
 
     const [
       knowledgeSnapshot,
@@ -205,68 +269,125 @@ export const activationService = {
       activationCompleteEvent,
     ] = await Promise.all([
       brandId && organisationId && tenant
-        ? brandKnowledgeService.getSnapshot(brandId, organisationId, tenant).catch(() => null)
+        ? brandKnowledgeService
+            .getSnapshot(brandId, organisationId, tenant)
+            .catch((error) => {
+              logger.warn("activation.brand_knowledge_failed", {
+                brandId,
+                organisationId,
+                error: error instanceof Error ? error.message : String(error),
+              });
+              degradedSources.push("brandKnowledge");
+              return null;
+            })
         : Promise.resolve(null),
       brandId && organisationId
-        ? prisma.contentItem.count({ where: { brandId, organisationId } })
+        ? safeQuery(
+            "contentItem",
+            () => prisma.contentItem.count({ where: { brandId, organisationId } }),
+            0,
+            degradedSources,
+          )
         : Promise.resolve(0),
       brandId && organisationId
-        ? prisma.contentProvenance.count({
-            where: {
-              brandId,
-              organisationId,
-            },
-          })
+        ? safeQuery(
+            "contentProvenance",
+            () =>
+              prisma.contentProvenance.count({
+                where: {
+                  brandId,
+                  organisationId,
+                },
+              }),
+            0,
+            degradedSources,
+          )
         : Promise.resolve(0),
       brandId && organisationId
-        ? prisma.contentVariant.count({ where: { brandId, organisationId } })
+        ? safeQuery(
+            "contentVariant",
+            () => prisma.contentVariant.count({ where: { brandId, organisationId } }),
+            0,
+            degradedSources,
+          )
         : Promise.resolve(0),
       brandId && organisationId
-        ? prisma.contentApproval.count({
-            where: {
-              contentItem: { brandId, organisationId },
-              decision: "APPROVED",
-            },
-          })
+        ? safeQuery(
+            "contentApproval",
+            () =>
+              prisma.contentApproval.count({
+                where: {
+                  brandId,
+                  organisationId,
+                  decision: "APPROVED",
+                },
+              }),
+            0,
+            degradedSources,
+          )
         : Promise.resolve(0),
       brandId && organisationId
-        ? prisma.publication.count({
-            where: {
-              brandId,
-              organisationId,
-              status: { in: ["SCHEDULED", "PUBLISHED", "PUBLISHING"] },
-            },
-          })
+        ? safeQuery(
+            "publication",
+            () =>
+              prisma.publication.count({
+                where: {
+                  brandId,
+                  organisationId,
+                  status: { in: ["SCHEDULED", "PUBLISHED", "PUBLISHING"] },
+                },
+              }),
+            0,
+            degradedSources,
+          )
         : Promise.resolve(0),
       organisationId
-        ? prisma.providerConnection.findMany({
-            where: {
-              organisationId,
-              status: {
-                in: [ProviderConnectionStatus.CONNECTED, ProviderConnectionStatus.RECONNECTED],
-              },
-            },
-            select: { providerKey: true, status: true },
-          })
+        ? safeQuery(
+            "providerConnection",
+            () =>
+              prisma.providerConnection.findMany({
+                where: {
+                  organisationId,
+                  status: {
+                    in: [ProviderConnectionStatus.CONNECTED, ProviderConnectionStatus.RECONNECTED],
+                  },
+                },
+                select: { providerKey: true, status: true },
+              }),
+            [],
+            degradedSources,
+          )
         : Promise.resolve([]),
       organisationId
-        ? prisma.providerSyncRun.findMany({
-            where: {
-              connection: { organisationId },
-              status: { in: [ProviderSyncRunStatus.RUNNING, ProviderSyncRunStatus.QUEUED] },
-            },
-            take: 1,
-            select: { id: true },
-          })
+        ? safeQuery(
+            "providerSyncRun.active",
+            () =>
+              prisma.providerSyncRun.findMany({
+                where: {
+                  connection: { organisationId },
+                  status: { in: [ProviderSyncRunStatus.RUNNING, ProviderSyncRunStatus.QUEUED] },
+                },
+                take: 1,
+                select: { id: true },
+              }),
+            [],
+            degradedSources,
+          )
         : Promise.resolve([]),
       organisationId
-        ? prisma.providerSyncRun.findFirst({
-            where: {
-              connection: { organisationId },
-              status: ProviderSyncRunStatus.SUCCEEDED,
-            },
-            select: { id: true },
-          })
+        ? safeQuery(
+            "providerSyncRun.completed",
+            () =>
+              prisma.providerSyncRun.findFirst({
+                where: {
+                  connection: { organisationId },
+                  status: ProviderSyncRunStatus.SUCCEEDED,
+                },
+                select: { id: true },
+              }),
+            null,
+            degradedSources,
+          )
         : Promise.resolve(null),
       organisationId && brandId
         ? safeCountAnalyticsObservations(organisationId, brandId)
@@ -275,31 +396,49 @@ export const activationService = {
         ? safeHasCanonicalInsight(organisationId, brandId)
         : Promise.resolve(false),
       organisationId
-        ? prisma.auditLog.findFirst({
-            where: {
-              organisationId,
-              action: activationAuditAction("first_recommendation_view"),
-            },
-            select: { id: true },
-          })
+        ? safeQuery(
+            "auditLog.recommendationView",
+            () =>
+              prisma.auditLog.findFirst({
+                where: {
+                  organisationId,
+                  action: activationAuditAction("first_recommendation_view"),
+                },
+                select: { id: true },
+              }),
+            null,
+            degradedSources,
+          )
         : Promise.resolve(null),
       organisationId
-        ? prisma.auditLog.findFirst({
-            where: {
-              organisationId,
-              action: activationAuditAction("demo_workspace_entered"),
-            },
-            select: { id: true },
-          })
+        ? safeQuery(
+            "auditLog.demoEntered",
+            () =>
+              prisma.auditLog.findFirst({
+                where: {
+                  organisationId,
+                  action: activationAuditAction("demo_workspace_entered"),
+                },
+                select: { id: true },
+              }),
+            null,
+            degradedSources,
+          )
         : Promise.resolve(null),
       organisationId
-        ? prisma.auditLog.findFirst({
-            where: {
-              organisationId,
-              action: activationAuditAction("activation_complete"),
-            },
-            select: { id: true },
-          })
+        ? safeQuery(
+            "auditLog.activationComplete",
+            () =>
+              prisma.auditLog.findFirst({
+                where: {
+                  organisationId,
+                  action: activationAuditAction("activation_complete"),
+                },
+                select: { id: true },
+              }),
+            null,
+            degradedSources,
+          )
         : Promise.resolve(null),
     ]);
 
@@ -337,13 +476,19 @@ export const activationService = {
     });
 
     if (activationStatus.isActivated && organisationId && !activationCompleteEvent) {
-      await recordAuditEvent({
+      void recordAuditEvent({
         organisationId,
         projectId: projectId ?? undefined,
         actorUserId: userProfileId,
         action: activationAuditAction("activation_complete"),
         resourceType: "activation_event",
         metadata: { status: activationStatus.status },
+      }).catch((error) => {
+        logger.warn("activation.audit_write_failed", {
+          organisationId,
+          action: "activation_complete",
+          error: error instanceof Error ? error.message : String(error),
+        });
       });
     }
 
@@ -407,6 +552,7 @@ export const activationService = {
         project: project ? { id: project.id, name: project.name } : null,
         brand: brand ? { id: brand.id, name: brand.name } : null,
       },
+      degradedSources,
     };
   },
 

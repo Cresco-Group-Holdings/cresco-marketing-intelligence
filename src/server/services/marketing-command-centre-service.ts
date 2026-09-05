@@ -1,6 +1,8 @@
 import type { ConnectorType, SocialProvider } from "@prisma/client";
 import { prisma } from "@/lib/database/prisma";
 import { buildTenantContextForUser } from "@/lib/tenancy/guards";
+import { AppError } from "@/lib/errors";
+import { logger } from "@/lib/logging";
 import type { PublishingQueueItem } from "@/components/marketing/publishing-queue";
 import type { PaidChartMetric, PaidChartPoint } from "@/components/marketing/paid-performance-chart.types";
 import type { ChannelConnectionState } from "@/components/marketing/channel-card";
@@ -337,11 +339,25 @@ export const marketingCommandCentreService = {
       return buildEmptyResponse(workspace, range);
     }
 
-    const tenant = await buildTenantContextForUser(userProfileId, {
-      organisationId,
-      projectId: workspace.preference.currentProjectId ?? undefined,
-      brandId,
-    });
+    let tenant: Awaited<ReturnType<typeof buildTenantContextForUser>>;
+    try {
+      tenant = await buildTenantContextForUser(userProfileId, {
+        organisationId,
+        projectId: workspace.preference.currentProjectId ?? undefined,
+        brandId,
+      });
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+
+      logger.warn("command_centre.tenant_context_failed", {
+        organisationId,
+        brandId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return buildEmptyResponse(workspace, range);
+    }
 
     const [
       paidOverview,
@@ -399,8 +415,8 @@ export const marketingCommandCentreService = {
       })),
       safeSocialOverview(brandId, organisationId, range.from, range.to, tenant),
       safeSocialOverview(brandId, organisationId, range.comparisonFrom, range.comparisonTo, tenant),
-      latestPaidSyncAt(brandId, organisationId),
-      latestOrganicSyncAt(brandId, organisationId),
+      latestPaidSyncAt(brandId, organisationId).catch(() => null),
+      latestOrganicSyncAt(brandId, organisationId).catch(() => null),
     ]);
 
     const connectedPaidCount = paidConnections.filter((item) => item.status.connected).length;
@@ -486,9 +502,11 @@ export const marketingCommandCentreService = {
       coverageDimensions: analyticsCoverage,
     });
 
-    const activeCampaigns = await prisma.marketingCampaign.count({
-      where: { brandId, organisationId, status: "ACTIVE" },
-    });
+    const activeCampaigns = await prisma.marketingCampaign
+      .count({
+        where: { brandId, organisationId, status: "ACTIVE" },
+      })
+      .catch(() => 0);
 
     const paidByProvider: PaidProviderMetrics[] = PAID_CONNECTORS.map((channel) => {
       const providerKey = CONNECTOR_TO_PROVIDER[channel.key];
@@ -721,8 +739,8 @@ export const marketingCommandCentreService = {
         publishingGap: scheduledUpcoming === 0 && hasOrganicConnections,
         winningContentReady: insights.filter((signal) => signal.type === "organic" && signal.id.startsWith("repurpose")).length,
         engagementDecline,
-      }),
-      buildDashboardActivity({ organisationId, tenant }),
+      }).catch(() => []),
+      buildDashboardActivity({ organisationId, tenant }).catch(() => []),
     ]);
 
     const impressions = paidOverview.impressions || socialOverview?.totals?.impressions || null;

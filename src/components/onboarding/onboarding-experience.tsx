@@ -3,25 +3,17 @@
 import { useEffect, useState } from "react";
 import { OnboardingWizard } from "@/components/onboarding/onboarding-wizard";
 import { OnboardingWelcome } from "@/components/onboarding/onboarding-welcome";
-import { apiFetch } from "@/lib/api/client";
-import type { ActivationState } from "@/server/services/activation-service";
+import { useActivationState } from "@/hooks/use-activation-state";
 
 export function OnboardingExperience() {
+  const { activation, loading } = useActivationState();
   const [showWelcome, setShowWelcome] = useState(true);
-  const [invitedMember, setInvitedMember] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void apiFetch<{ activation: ActivationState }>("/api/activation")
-      .then((response) => {
-        setInvitedMember(response.activation.invitedMember);
-        if (response.activation.onboardingCompleted) {
-          setShowWelcome(false);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+    if (activation?.onboardingCompleted) {
+      setShowWelcome(false);
+    }
+  }, [activation?.onboardingCompleted]);
 
   if (loading) {
     return <p className="text-sm text-foreground-muted">Loading onboarding...</p>;
@@ -30,7 +22,7 @@ export function OnboardingExperience() {
   if (showWelcome) {
     return (
       <OnboardingWelcome
-        invitedMember={invitedMember}
+        invitedMember={activation?.invitedMember ?? false}
         onContinue={() => setShowWelcome(false)}
       />
     );
