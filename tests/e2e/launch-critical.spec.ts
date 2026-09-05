@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { requireLaunchE2e } from "./support/environment";
 
 test.describe("@launch-critical public website", () => {
   test("home page communicates product value", async ({ page }) => {
@@ -61,7 +62,7 @@ test.describe("@launch-critical legacy redirects", () => {
   });
 });
 
-test.describe("@launch-critical dev route gating", () => {
+test.describe("@preview-visual dev route gating", () => {
   test("dev preview routes are accessible in development for local QA", async ({ page }) => {
     await page.goto("/dev/command-centre-preview");
     await expect(page).toHaveURL(/\/dev\/command-centre-preview/);
@@ -70,7 +71,7 @@ test.describe("@launch-critical dev route gating", () => {
 
 test.describe("@launch-critical authenticated navigation", () => {
   test.beforeEach(() => {
-    test.skip(process.env.ALLOW_TEST_AUTH !== "true", "Requires ALLOW_TEST_AUTH for authenticated flows");
+    requireLaunchE2e(test);
   });
 
   test("integrations page is canonical for provider connections", async ({ page }) => {

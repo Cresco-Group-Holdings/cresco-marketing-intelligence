@@ -1,0 +1,93 @@
+name: Launch E2E
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cresco_e2e?schema=public
+  DIRECT_URL: postgresql://postgres:postgres@localhost:5432/cresco_e2e?schema=public
+  ANALYTICS_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cresco_e2e?schema=public
+  NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: public-anon-key
+  SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+  APP_URL: http://localhost:3000
+  ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+  CRESCO_E2E_HARNESS: "true"
+  ALLOW_TEST_AUTH: "true"
+  AI_ALLOW_MOCK: "true"
+  ALLOW_OAUTH_MOCK: "true"
+  ALLOW_MOCK_SOCIAL_ADAPTERS: "true"
+
+jobs:
+  launch-e2e:
+    name: Launch-critical E2E
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'push' ||
+      (
+        github.event_name == 'pull_request' &&
+        (
+          github.event.action == 'ready_for_review' ||
+          contains(github.event.pull_request.labels.*.name, 'ready-to-merge')
+        )
+      )
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cresco_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run validate:prisma
+      - run: npm run validate:migrations
+      - run: npm run build:ci
+      - run: npx playwright install --with-deps chromium
+      - name: Run launch-critical E2E
+        run: npm run test:e2e:launch
+      - name: Upload Playwright artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: launch-e2e-artifacts
+          path: |
+            artifacts/playwright-report
+            test-results
+          if-no-files-found: ignore

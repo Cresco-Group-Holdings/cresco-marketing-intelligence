@@ -32,6 +32,15 @@ describe("production guards", () => {
     vi.stubEnv("TEST_AUTH_USER_ID", "user-1");
     expect(isTestAuthBypassEnabled()).toBe(false);
   });
+
+  it("enables test auth bypass only with explicit harness flag in development", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("ALLOW_TEST_AUTH", "true");
+    vi.stubEnv("TEST_AUTH_USER_ID", "user-1");
+    expect(isTestAuthBypassEnabled()).toBe(false);
+    vi.stubEnv("CRESCO_E2E_HARNESS", "true");
+    expect(isTestAuthBypassEnabled()).toBe(true);
+  });
 });
 
 describe("public API route exclusions", () => {
