@@ -28,5 +28,5 @@ export function isTestAuthBypassEnabled(): boolean {
   if (!isE2eHarnessEnabled()) {
     return false;
   }
-  return process.env.ALLOW_TEST_AUTH === "true" && Boolean(process.env.TEST_AUTH_USER_ID);
+  return process.env.ALLOW_TEST_AUTH === "true";
 }

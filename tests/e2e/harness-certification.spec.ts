@@ -22,6 +22,7 @@ test.describe("@launch-critical harness certification", () => {
       headers: authHeaders(tenantManifest.tenantA.users.member.authUserId),
     });
     expect(response.ok()).toBeTruthy();
+    expect(response.headers()["content-type"] ?? "").toContain("application/json");
   });
 
   test("C — tenant A/B isolation enforced via API", async ({ request, tenantManifest }) => {
@@ -76,6 +77,7 @@ test.describe("@launch-critical harness certification", () => {
   test("J — failure artifacts configured via Playwright trace policy", async ({ ownerPage }, testInfo) => {
     expect(testInfo.project.retries).toBeLessThanOrEqual(1);
     await ownerPage.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    expect(ownerPage.url()).not.toMatch(/\/login(?:\?|$)/);
     await expect(ownerPage.locator("body")).toBeVisible();
   });
 

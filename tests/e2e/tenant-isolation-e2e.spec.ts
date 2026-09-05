@@ -17,6 +17,7 @@ test.describe("@launch-critical tenant isolation", () => {
       },
     );
     expect(response.status()).toBeGreaterThanOrEqual(400);
+    expect(response.headers()["content-type"] ?? "").toContain("application/json");
   });
 
   test("Tenant B owner cannot read Tenant A organisation", async ({
@@ -30,6 +31,7 @@ test.describe("@launch-critical tenant isolation", () => {
       },
     );
     expect(response.status()).toBeGreaterThanOrEqual(400);
+    expect(response.headers()["content-type"] ?? "").toContain("application/json");
   });
 
   test("restricted member session is distinct from owner", async ({

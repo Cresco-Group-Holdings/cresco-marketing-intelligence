@@ -1,8 +1,15 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 
 const manifestPath = path.join(process.cwd(), ".e2e", "tenant-manifest.json");
+const nextBuildDir = path.join(process.cwd(), ".next");
+
+// build:ci leaves a production-shaped .next bundle whose middleware inlines
+// NODE_ENV=production. Remove it so `next dev` recompiles harness auth for E2E.
+if (process.env.CI === "true" && process.env.CRESCO_E2E_HARNESS === "true" && existsSync(nextBuildDir)) {
+  rmSync(nextBuildDir, { recursive: true, force: true });
+}
 
 if (existsSync(manifestPath)) {
   const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
