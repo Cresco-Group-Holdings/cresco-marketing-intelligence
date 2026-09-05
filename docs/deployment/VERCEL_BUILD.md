@@ -62,11 +62,12 @@ By default, **cursor development branches do not deploy to Vercel**. GitHub Acti
 
 Vercel builds proceed only when one of:
 
-1. Branch is **`main`** (production)
-2. File **`.vercel/preview-required`** exists on the branch
-3. Latest commit message contains **`[vercel-preview]`**
-4. Branch name contains **`-preview-`** or **`-vercel-preview`**
-5. GitHub label **`vercel-preview`** on the PR (workflow commits the marker file)
+1. Branch is **`main`** (customer production project)
+2. Branch is **`staging`** on Vercel project **`cresco-marketing-intelligence-staging`** only (dedicated staging production)
+3. File **`.vercel/preview-required`** exists on the branch
+4. Latest commit message contains **`[vercel-preview]`**
+5. Branch name contains **`-preview-`** or **`-vercel-preview`**
+6. GitHub label **`vercel-preview`** on the PR (workflow commits the marker file)
 
 ### Requesting a preview
 

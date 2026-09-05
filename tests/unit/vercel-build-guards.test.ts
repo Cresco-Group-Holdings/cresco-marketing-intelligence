@@ -76,6 +76,39 @@ describe("vercel-should-build.sh", () => {
     }).toThrow(); // exit 1
   });
 
+  it("builds staging only on dedicated staging Vercel project (exit 1)", () => {
+    expect(() => {
+      execSync(script, {
+        env: {
+          ...process.env,
+          VERCEL_GIT_COMMIT_REF: "staging",
+          VERCEL_PROJECT_NAME: "cresco-marketing-intelligence-staging",
+        },
+        stdio: "pipe",
+      });
+    }).toThrow(); // exit 1
+  });
+
+  it("skips staging on customer production Vercel project (exit 0)", () => {
+    const result = execSync(script, {
+      env: {
+        ...process.env,
+        VERCEL_GIT_COMMIT_REF: "staging",
+        VERCEL_PROJECT_NAME: "cresco-marketing-intelligence",
+      },
+      stdio: "pipe",
+    });
+    expect(result.toString()).toMatch(/Skipping: staging branch/);
+  });
+
+  it("skips staging when project name is unknown (exit 0)", () => {
+    const result = execSync(script, {
+      env: { ...process.env, VERCEL_GIT_COMMIT_REF: "staging" },
+      stdio: "pipe",
+    });
+    expect(result.toString()).toMatch(/Skipping: staging branch/);
+  });
+
   it("skips cursor branches without opt-in (exit 0)", () => {
     const result = execSync(script, {
       env: { ...process.env, VERCEL_GIT_COMMIT_REF: "cursor/feature-7a66" },

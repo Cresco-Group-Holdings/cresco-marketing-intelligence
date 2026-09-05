@@ -8,11 +8,24 @@
 set -euo pipefail
 
 branch="${VERCEL_GIT_COMMIT_REF:-}"
+staging_project_name="cresco-marketing-intelligence-staging"
+current_project_name="${VERCEL_PROJECT_NAME:-}"
 
 # Production: always deploy main
 if [[ "$branch" == "main" ]]; then
   echo "Building: production branch (main)"
   exit 1
+fi
+
+# Staging: deploy only on the dedicated staging Vercel project (Production Branch = staging).
+# Prevents staging pushes from creating previews on the customer production project.
+if [[ "$branch" == "staging" ]]; then
+  if [[ "$current_project_name" == "$staging_project_name" ]]; then
+    echo "Building: staging branch on dedicated staging project (${staging_project_name})"
+    exit 1
+  fi
+  echo "Skipping: staging branch on project '${current_project_name:-unknown}' (not ${staging_project_name})"
+  exit 0
 fi
 
 # Explicit opt-in marker committed to the branch
