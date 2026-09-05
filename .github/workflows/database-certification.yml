@@ -1,0 +1,183 @@
+# Task 3 — Live Database Certification Workflow
+#
+# Runs read-only operational certification against staging and production databases.
+# Requires GitHub environment secrets (no values printed in logs).
+#
+# Secrets:
+#   STAGING_DIRECT_URL or ANALYTICS_TEST_DATABASE_URL — staging Supabase direct URL
+#   PRODUCTION_DIRECT_URL — production Supabase direct URL (production environment)
+#   RESTORE_VALIDATION_DATABASE_URL — optional isolated restore target for recovery validation
+
+name: Database Certification
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type CERTIFY_DATABASE to run live certification"
+        required: true
+        type: string
+      run_staging:
+        description: "Run staging live certification"
+        required: false
+        type: boolean
+        default: true
+      run_production:
+        description: "Run production read-only certification"
+        required: false
+        type: boolean
+        default: true
+      run_restore:
+        description: "Run restore validation (requires RESTORE_VALIDATION_DATABASE_URL)"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: database-certification
+  cancel-in-progress: false
+
+jobs:
+  reject-invalid:
+    name: Reject invalid confirmation
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirmation != 'CERTIFY_DATABASE' }}
+    steps:
+      - run: |
+          echo "Confirmation phrase did not match. Expected exactly: CERTIFY_DATABASE"
+          exit 1
+
+  ci-database-certification:
+    name: CI database certification (Postgres 16)
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirmation == 'CERTIFY_DATABASE' }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: cresco_analytics_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cresco_analytics_test
+      DIRECT_URL: postgresql://postgres:postgres@localhost:5432/cresco_analytics_test
+      ANALYTICS_TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/cresco_analytics_test
+      NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: public-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: test-service-role-key
+      APP_URL: http://localhost:3000
+      ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma validate
+      - run: npm run validate:migrations
+      - run: npm run validate:rls-security
+      - run: npx prisma migrate deploy
+      - run: node scripts/run-database-certification.mjs --target ci
+      - run: npm run test:database
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ci-database-certification
+          path: artifacts/database-certification/
+
+  staging-live-certification:
+    name: Staging live certification
+    runs-on: ubuntu-latest
+    needs: [ci-database-certification]
+    if: ${{ github.event.inputs.confirmation == 'CERTIFY_DATABASE' && github.event.inputs.run_staging == true }}
+    env:
+      STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL || secrets.ANALYTICS_TEST_DATABASE_URL }}
+      ANALYTICS_TEST_DATABASE_URL: ${{ secrets.STAGING_DIRECT_URL || secrets.ANALYTICS_TEST_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Verify staging database URL configured
+        run: |
+          if [ -z "${STAGING_DIRECT_URL:-}" ] && [ -z "${ANALYTICS_TEST_DATABASE_URL:-}" ]; then
+            echo "STAGING_DIRECT_URL or ANALYTICS_TEST_DATABASE_URL must be configured."
+            exit 1
+          fi
+      - run: npm ci
+      - run: npx prisma generate
+      - run: node scripts/run-database-certification.mjs --target staging
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staging-database-certification
+          path: artifacts/database-certification/
+
+  production-readonly-certification:
+    name: Production read-only certification
+    runs-on: ubuntu-latest
+    needs: [ci-database-certification]
+    environment: production
+    if: ${{ github.event.inputs.confirmation == 'CERTIFY_DATABASE' && github.event.inputs.run_production == true }}
+    env:
+      PRODUCTION_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Verify production database URL configured
+        run: |
+          if [ -z "${PRODUCTION_DIRECT_URL:-}" ]; then
+            echo "PRODUCTION_DIRECT_URL must be configured in the production environment."
+            exit 1
+          fi
+      - run: npm ci
+      - run: npx prisma generate
+      - run: node scripts/run-database-certification.mjs --target production
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: production-database-certification
+          path: artifacts/database-certification/
+
+  restore-validation:
+    name: Restore validation (isolated target)
+    runs-on: ubuntu-latest
+    needs: [staging-live-certification]
+    if: ${{ github.event.inputs.confirmation == 'CERTIFY_DATABASE' && github.event.inputs.run_restore == true }}
+    env:
+      RESTORE_VALIDATION_DATABASE_URL: ${{ secrets.RESTORE_VALIDATION_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Verify restore validation URL configured
+        run: |
+          if [ -z "${RESTORE_VALIDATION_DATABASE_URL:-}" ]; then
+            echo "RESTORE_VALIDATION_DATABASE_URL must be configured for restore validation."
+            exit 1
+          fi
+      - run: npm ci
+      - run: npx prisma generate
+      - run: node scripts/run-database-certification.mjs --target restored
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: restored-database-certification
+          path: artifacts/database-certification/

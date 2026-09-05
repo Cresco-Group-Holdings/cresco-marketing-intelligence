@@ -78,7 +78,7 @@ export function classifyDatabaseTarget(
 export function assertSafeDatabaseOperation(input: {
   operation: DestructiveDatabaseOperation;
   databaseUrl?: string;
-  nodeEnv?: string;
+  nodeEnv?: "development" | "production" | "test";
   allowProduction?: boolean;
   explicitAllowFlag?: string;
 }): DatabaseTargetClassification {

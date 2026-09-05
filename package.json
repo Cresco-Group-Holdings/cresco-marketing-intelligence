@@ -39,6 +39,7 @@
     "verify:rls-staging": "node scripts/verify-rls-staging.mjs",
     "audit:data-integrity": "node scripts/audit-data-integrity.mjs",
     "audit:database-baseline": "node scripts/audit-database-baseline.mjs",
+    "certify:database": "node scripts/run-database-certification.mjs",
     "audit:public-functions": "node scripts/audit-public-functions.mjs",
     "audit:rls-exposure": "node scripts/audit-rls-exposure.mjs",
     "generate:rls-inventory": "node scripts/generate-rls-inventory.mjs",
