@@ -3,10 +3,16 @@
 # Runs read-only operational certification against staging and production databases.
 # Requires GitHub environment secrets (no values printed in logs).
 #
-# Secrets:
-#   STAGING_DIRECT_URL or ANALYTICS_TEST_DATABASE_URL — staging Supabase direct URL
-#   PRODUCTION_DIRECT_URL — production Supabase direct URL (production environment)
-#   RESTORE_VALIDATION_DATABASE_URL — optional isolated restore target for recovery validation
+# Credential separation (canonical):
+#   STAGING_CERTIFICATION_DATABASE_URL — staging live certification (read-only role recommended)
+#   PRODUCTION_AUDIT_DATABASE_URL       — production read-only audit (must be read-only DB role)
+#   RESTORE_VALIDATION_DATABASE_URL     — isolated restore target for recovery validation
+#
+# Legacy fallbacks (deprecated, migrate secrets to canonical names):
+#   STAGING_DIRECT_URL, ANALYTICS_TEST_DATABASE_URL, PRODUCTION_DIRECT_URL
+#
+# Production migration credentials (PRODUCTION_DIRECT_URL) belong ONLY in
+# production-database-migrate.yml — not in this workflow.
 
 name: Database Certification
 
@@ -100,10 +106,12 @@ jobs:
     name: Staging live certification
     runs-on: ubuntu-latest
     needs: [ci-database-certification]
+    environment: staging-certification
     if: ${{ github.event.inputs.confirmation == 'CERTIFY_DATABASE' && github.event.inputs.run_staging == true }}
     env:
-      STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL || secrets.ANALYTICS_TEST_DATABASE_URL }}
-      ANALYTICS_TEST_DATABASE_URL: ${{ secrets.STAGING_DIRECT_URL || secrets.ANALYTICS_TEST_DATABASE_URL }}
+      STAGING_CERTIFICATION_DATABASE_URL: ${{ secrets.STAGING_CERTIFICATION_DATABASE_URL || secrets.STAGING_DIRECT_URL || secrets.ANALYTICS_TEST_DATABASE_URL }}
+      STAGING_DIRECT_URL: ${{ secrets.STAGING_CERTIFICATION_DATABASE_URL || secrets.STAGING_DIRECT_URL || secrets.ANALYTICS_TEST_DATABASE_URL }}
+      ANALYTICS_TEST_DATABASE_URL: ${{ secrets.STAGING_CERTIFICATION_DATABASE_URL || secrets.STAGING_DIRECT_URL || secrets.ANALYTICS_TEST_DATABASE_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -112,8 +120,8 @@ jobs:
           cache: npm
       - name: Verify staging database URL configured
         run: |
-          if [ -z "${STAGING_DIRECT_URL:-}" ] && [ -z "${ANALYTICS_TEST_DATABASE_URL:-}" ]; then
-            echo "STAGING_DIRECT_URL or ANALYTICS_TEST_DATABASE_URL must be configured."
+          if [ -z "${STAGING_CERTIFICATION_DATABASE_URL:-}" ]; then
+            echo "STAGING_CERTIFICATION_DATABASE_URL (or legacy STAGING_DIRECT_URL) must be configured in staging-certification environment."
             exit 1
           fi
       - run: npm ci
@@ -129,24 +137,30 @@ jobs:
     name: Production read-only certification
     runs-on: ubuntu-latest
     needs: [ci-database-certification]
-    environment: production
+    environment: production-audit
     if: ${{ github.event.inputs.confirmation == 'CERTIFY_DATABASE' && github.event.inputs.run_production == true }}
     env:
-      PRODUCTION_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}
+      PRODUCTION_AUDIT_DATABASE_URL: ${{ secrets.PRODUCTION_AUDIT_DATABASE_URL || secrets.PRODUCTION_DIRECT_URL }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Verify production database URL configured
+      - name: Verify production audit database URL configured
         run: |
-          if [ -z "${PRODUCTION_DIRECT_URL:-}" ]; then
-            echo "PRODUCTION_DIRECT_URL must be configured in the production environment."
+          if [ -z "${PRODUCTION_AUDIT_DATABASE_URL:-}" ]; then
+            echo "PRODUCTION_AUDIT_DATABASE_URL must be configured in production-audit environment."
+            echo "Use a read-only database role — not the migration owner credential."
             exit 1
           fi
       - run: npm ci
       - run: npx prisma generate
+      - name: Production migration state (read-only)
+        run: node scripts/verify-production-migration.mjs
+        env:
+          DATABASE_URL: ${{ env.PRODUCTION_AUDIT_DATABASE_URL }}
+          DIRECT_URL: ${{ env.PRODUCTION_AUDIT_DATABASE_URL }}
       - run: node scripts/run-database-certification.mjs --target production
       - uses: actions/upload-artifact@v4
         if: always()
@@ -158,6 +172,7 @@ jobs:
     name: Restore validation (isolated target)
     runs-on: ubuntu-latest
     needs: [staging-live-certification]
+    environment: restore-validation
     if: ${{ github.event.inputs.confirmation == 'CERTIFY_DATABASE' && github.event.inputs.run_restore == true }}
     env:
       RESTORE_VALIDATION_DATABASE_URL: ${{ secrets.RESTORE_VALIDATION_DATABASE_URL }}
@@ -170,7 +185,7 @@ jobs:
       - name: Verify restore validation URL configured
         run: |
           if [ -z "${RESTORE_VALIDATION_DATABASE_URL:-}" ]; then
-            echo "RESTORE_VALIDATION_DATABASE_URL must be configured for restore validation."
+            echo "RESTORE_VALIDATION_DATABASE_URL must be configured in restore-validation environment."
             exit 1
           fi
       - run: npm ci
@@ -181,3 +196,46 @@ jobs:
         with:
           name: restored-database-certification
           path: artifacts/database-certification/
+
+  certification-summary:
+    name: Certification phase summary
+    runs-on: ubuntu-latest
+    needs:
+      - ci-database-certification
+      - staging-live-certification
+      - production-readonly-certification
+      - restore-validation
+    if: ${{ always() && github.event.inputs.confirmation == 'CERTIFY_DATABASE' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: "*-database-certification"
+          path: artifacts/
+          merge-multiple: true
+      - name: Print phase matrix
+        run: |
+          echo "## Database Certification Phase Matrix"
+          echo ""
+          for artifact in ci staging production restored; do
+            file="artifacts/${artifact}-certification.json"
+            if [ -f "$file" ]; then
+              echo "### ${artifact}"
+              node -e "
+                const r = require('./${file}');
+                for (const [k,v] of Object.entries(r.phaseMatrix ?? {})) {
+                  console.log('| ' + k + ' | ' + v + ' |');
+                }
+              "
+              echo ""
+            else
+              echo "### ${artifact}: NOT CERTIFIED (artifact missing)"
+              echo ""
+            fi
+          done
+          echo "| Phase | staging | production | restore |"
+          echo "|---|---|---|---|"
+          echo "| staging baseline | see artifact | NOT REQUESTED | see artifact |"
+          echo "| production baseline | NOT REQUESTED | see artifact | NOT REQUESTED |"
+          echo ""
+          echo "Missing credentials or skipped jobs produce NOT CERTIFIED — not a green pass."

@@ -17,19 +17,28 @@ describe("database certification workflow", () => {
     expect(workflow).toContain("npm run test:database");
   });
 
-  it("runs staging live certification with staging secrets", () => {
-    expect(workflow).toContain("STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL || secrets.ANALYTICS_TEST_DATABASE_URL }}");
+  it("uses canonical staging certification credential in protected environment", () => {
+    expect(workflow).toContain("environment: staging-certification");
+    expect(workflow).toContain("STAGING_CERTIFICATION_DATABASE_URL");
     expect(workflow).toContain("--target staging");
   });
 
-  it("runs production read-only certification in production environment", () => {
-    expect(workflow).toContain("environment: production");
-    expect(workflow).toContain("PRODUCTION_DIRECT_URL: ${{ secrets.PRODUCTION_DIRECT_URL }}");
+  it("uses canonical production audit credential in protected environment", () => {
+    expect(workflow).toContain("environment: production-audit");
+    expect(workflow).toContain("PRODUCTION_AUDIT_DATABASE_URL");
     expect(workflow).toContain("--target production");
+    expect(workflow).toContain("verify-production-migration.mjs");
   });
 
-  it("supports optional restore validation target", () => {
+  it("supports optional restore validation in protected environment", () => {
+    expect(workflow).toContain("environment: restore-validation");
     expect(workflow).toContain("RESTORE_VALIDATION_DATABASE_URL");
     expect(workflow).toContain("--target restored");
+  });
+
+  it("emits certification phase summary", () => {
+    expect(workflow).toContain("certification-summary");
+    expect(workflow).toContain("phaseMatrix");
+    expect(workflow).toContain("NOT CERTIFIED");
   });
 });

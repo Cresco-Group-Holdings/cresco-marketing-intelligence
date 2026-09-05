@@ -4,11 +4,16 @@
  * Task 3 database certification runner — aggregates live operational evidence.
  * Emits aggregate JSON only; never prints connection strings or row payloads.
  *
+ * Canonical credential env vars (see docs/TASK_3_DATABASE_CERTIFICATION.md):
+ *   STAGING_CERTIFICATION_DATABASE_URL — staging live certification (read-only audits + RLS)
+ *   PRODUCTION_AUDIT_DATABASE_URL       — production read-only audit (must use read-only DB role)
+ *   RESTORE_VALIDATION_DATABASE_URL     — isolated restore/recovery validation target
+ *
  * Usage:
+ *   node scripts/run-database-certification.mjs --target ci
  *   node scripts/run-database-certification.mjs --target staging
  *   node scripts/run-database-certification.mjs --target production
  *   node scripts/run-database-certification.mjs --target restored
- *   node scripts/run-database-certification.mjs --target ci
  */
 
 import { execSync } from "node:child_process";
@@ -25,16 +30,16 @@ const TARGETS = {
     runTenantTests: true,
   },
   staging: {
-    envKey: "STAGING_DIRECT_URL",
-    fallbackKeys: ["ANALYTICS_TEST_DATABASE_URL", "DATABASE_URL"],
+    envKey: "STAGING_CERTIFICATION_DATABASE_URL",
+    fallbackKeys: ["STAGING_DIRECT_URL", "ANALYTICS_TEST_DATABASE_URL", "DATABASE_URL"],
     runRls: true,
     runIntegrity: true,
     runBaseline: true,
     runTenantTests: false,
   },
   production: {
-    envKey: "PRODUCTION_DIRECT_URL",
-    fallbackKeys: ["DATABASE_URL", "DIRECT_URL"],
+    envKey: "PRODUCTION_AUDIT_DATABASE_URL",
+    fallbackKeys: ["PRODUCTION_DIRECT_URL", "DATABASE_URL", "DIRECT_URL"],
     runRls: false,
     runIntegrity: true,
     runBaseline: true,
@@ -49,6 +54,20 @@ const TARGETS = {
     runTenantTests: false,
   },
 };
+
+const PHASE_DEFINITIONS = [
+  { id: "staging_baseline", label: "Staging baseline", targets: ["staging", "restored"] },
+  { id: "staging_rls", label: "Staging RLS (PostgREST roles)", targets: ["staging", "restored"] },
+  { id: "staging_tenant_ab", label: "Staging Tenant A/B", targets: ["staging"] },
+  { id: "staging_integrity", label: "Staging data integrity", targets: ["staging", "restored"] },
+  { id: "production_baseline", label: "Production read-only baseline", targets: ["production"] },
+  { id: "production_integrity", label: "Production read-only integrity", targets: ["production"] },
+  { id: "restore_validation", label: "Restore validation", targets: ["restored"] },
+  { id: "ci_baseline", label: "CI baseline", targets: ["ci"] },
+  { id: "ci_rls", label: "CI RLS", targets: ["ci"] },
+  { id: "ci_tenant_ab", label: "CI Tenant A/B", targets: ["ci"] },
+  { id: "ci_integrity", label: "CI data integrity", targets: ["ci"] },
+];
 
 function parseArgs() {
   const targetArg = process.argv.find((arg) => arg.startsWith("--target="));
@@ -108,6 +127,55 @@ function aggregateIntegrityCategories(report) {
   return categories;
 }
 
+function buildPhaseMatrix(target, steps, databaseConfigured) {
+  const stepByName = Object.fromEntries(steps.map((step) => [step.name, step]));
+  const matrix = {};
+
+  function phaseResult(phaseId, applicable, passFn) {
+    if (!applicable) {
+      matrix[phaseId] = "NOT REQUESTED";
+      return;
+    }
+    if (!databaseConfigured) {
+      matrix[phaseId] = "NOT CERTIFIED";
+      return;
+    }
+    matrix[phaseId] = passFn() ? "PASS" : "FAIL";
+  }
+
+  phaseResult("staging_baseline", target === "staging" || target === "restored", () =>
+    stepByName["database-baseline"]?.passed === true,
+  );
+  phaseResult("staging_rls", target === "staging" || target === "restored", () =>
+    stepByName["rls-staging"]?.passed === true,
+  );
+  phaseResult(
+    "staging_tenant_ab",
+    target === "staging",
+    () => stepByName["tenant-isolation-tests"]?.passed === true,
+  );
+  phaseResult("staging_integrity", target === "staging" || target === "restored", () =>
+    stepByName["data-integrity"]?.passed === true,
+  );
+  phaseResult("production_baseline", target === "production", () =>
+    stepByName["database-baseline"]?.passed === true,
+  );
+  phaseResult("production_integrity", target === "production", () =>
+    stepByName["data-integrity"]?.passed === true,
+  );
+  phaseResult("restore_validation", target === "restored", () =>
+    stepByName["database-baseline"]?.passed === true &&
+    stepByName["data-integrity"]?.passed === true &&
+    stepByName["rls-staging"]?.passed === true,
+  );
+  phaseResult("ci_baseline", target === "ci", () => stepByName["database-baseline"]?.passed === true);
+  phaseResult("ci_rls", target === "ci", () => stepByName["rls-staging"]?.passed === true);
+  phaseResult("ci_tenant_ab", target === "ci", () => stepByName["tenant-isolation-tests"]?.passed === true);
+  phaseResult("ci_integrity", target === "ci", () => stepByName["data-integrity"]?.passed === true);
+
+  return matrix;
+}
+
 async function main() {
   const target = parseArgs();
   const targetConfig = TARGETS[target];
@@ -119,6 +187,7 @@ async function main() {
     databaseConfigured: Boolean(resolved),
     databaseEnvKey: resolved?.key ?? null,
     steps: [],
+    phaseMatrix: {},
     passed: true,
   };
 
@@ -129,6 +198,12 @@ async function main() {
       passed: false,
       detail: `No database URL configured for ${target} target.`,
     });
+    result.phaseMatrix = buildPhaseMatrix(target, result.steps, false);
+    for (const phase of PHASE_DEFINITIONS) {
+      if (phase.targets.includes(target) && result.phaseMatrix[phase.id] === "NOT REQUESTED") {
+        result.phaseMatrix[phase.id] = "NOT CERTIFIED";
+      }
+    }
     console.log(JSON.stringify(result, null, 2));
     process.exit(1);
   }
@@ -152,7 +227,9 @@ async function main() {
         failedMigrations: baseline.failedMigrationCount,
         appliedMigrationCount: baseline.appliedMigrationCount,
         latestAppliedMigration: baseline.latestAppliedMigration,
+        lastRepositoryMigration: baseline.lastRepositoryMigration,
         postgresVersion: baseline.postgresVersion,
+        databaseTarget: baseline.databaseTarget?.safeIdentifier ?? null,
       });
       if (!stepPass) result.passed = false;
     } catch (error) {
@@ -221,11 +298,14 @@ async function main() {
 
   if (targetConfig.runTenantTests) {
     try {
-      execSync("npm run test:database -- tests/database/tenant-isolation-certification.test.ts tests/database/provider-cross-tenant.test.ts tests/database/rls-security.test.ts", {
-        encoding: "utf8",
-        env: { ...process.env, ...env, NODE_ENV: "test" },
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+      execSync(
+        "npm run test:database -- tests/database/tenant-isolation-certification.test.ts tests/database/provider-cross-tenant.test.ts tests/database/rls-security.test.ts",
+        {
+          encoding: "utf8",
+          env: { ...process.env, ...env, NODE_ENV: "test" },
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
       result.steps.push({ name: "tenant-isolation-tests", passed: true });
     } catch (error) {
       result.passed = false;
@@ -236,6 +316,8 @@ async function main() {
       });
     }
   }
+
+  result.phaseMatrix = buildPhaseMatrix(target, result.steps, true);
 
   const artifactDir = path.join(process.cwd(), "artifacts", "database-certification");
   fs.mkdirSync(artifactDir, { recursive: true });

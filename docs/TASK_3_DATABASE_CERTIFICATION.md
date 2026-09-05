@@ -31,6 +31,17 @@ Destructive commands are guarded by `scripts/guard-destructive-database-command.
 - Allows read-only `audit:*` commands on any target
 - Allows controlled `db:migrate:deploy` only with `--allow-production` in production deploy workflow
 
+### Credential separation (canonical env vars)
+
+| Env var | Purpose | GitHub environment | Notes |
+|---|---|---|---|
+| `STAGING_CERTIFICATION_DATABASE_URL` | Staging live certification | `staging-certification` | Read-only role recommended |
+| `PRODUCTION_AUDIT_DATABASE_URL` | Production read-only audit | `production-audit` | **Must be read-only** — not migration owner |
+| `RESTORE_VALIDATION_DATABASE_URL` | Isolated restore validation | `restore-validation` | Never production primary |
+| `PRODUCTION_DIRECT_URL` | Production migration only | `production` (migrate workflow) | Not used by certification workflow |
+
+Normal PR CI does **not** receive production or staging certification secrets.
+
 ## 3. Certification tooling
 
 | Command | Purpose |
