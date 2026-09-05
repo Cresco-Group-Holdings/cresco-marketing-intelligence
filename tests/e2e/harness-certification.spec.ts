@@ -7,8 +7,8 @@ test.describe("@launch-critical harness certification", () => {
     requireLaunchE2e(test);
   });
 
-  test("A — authenticated owner session resolves workspace", async ({ request, tenantManifest }) => {
-    const response = await request.get("/api/workspace", {
+  test("A — authenticated owner session resolves workspace", async ({ ownerPage, tenantManifest }) => {
+    const response = await ownerPage.request.get("/api/workspace", {
       headers: authHeaders(tenantManifest.tenantA.users.owner.authUserId),
     });
     expect(response.ok()).toBeTruthy();
@@ -33,8 +33,8 @@ test.describe("@launch-critical harness certification", () => {
     expect(crossTenant.status()).toBeGreaterThanOrEqual(400);
   });
 
-  test("D — real PostgreSQL persistence for seeded brand", async ({ request, tenantManifest }) => {
-    const response = await request.get(
+  test("D — real PostgreSQL persistence for seeded brand", async ({ ownerPage, tenantManifest }) => {
+    const response = await ownerPage.request.get(
       `/api/organisations/${tenantManifest.tenantA.organisationId}`,
       { headers: authHeaders(tenantManifest.tenantA.users.owner.authUserId) },
     );

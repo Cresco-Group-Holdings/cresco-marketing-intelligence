@@ -4,8 +4,7 @@ import { isAuthRoute, isProtectedRoute } from "@/lib/auth/routes";
 import { getSupabaseServerConfig, readSupabaseServerConfigFromProcessEnv } from "@/lib/environment/supabase";
 import { applySecurityHeaders } from "@/lib/security/headers";
 import { resolveSafeRedirectPath } from "@/lib/security/redirects";
-import { E2E_AUTH_USER_HEADER, isE2eHarnessEnabled } from "@/lib/e2e/environment";
-import { isProductionEnvironment, isTestAuthBypassEnabled } from "@/lib/security/production-guards";
+import { shouldBypassHarnessProtectedRoute } from "@/lib/e2e/middleware-auth";
 import { createRequestHeadersWithPathname } from "@/lib/middleware/pathname";
 import { resolveLegacyRouteRedirect } from "@/lib/navigation/legacy-redirects";
 
@@ -44,17 +43,8 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (isProtectedRoute(pathname)) {
-    const harnessAuthHeader = request.headers.get(E2E_AUTH_USER_HEADER)?.trim();
-    const harnessHeaderBypass =
-      !isProductionEnvironment() &&
-      isE2eHarnessEnabled() &&
-      process.env.ALLOW_TEST_AUTH === "true" &&
-      Boolean(harnessAuthHeader);
-
-    if (isTestAuthBypassEnabled() || harnessHeaderBypass) {
-      return applySecurityHeaders(response);
-    }
+  if (shouldBypassHarnessProtectedRoute(request, pathname)) {
+    return applySecurityHeaders(response);
   }
 
   if (!supabaseConfig) {
