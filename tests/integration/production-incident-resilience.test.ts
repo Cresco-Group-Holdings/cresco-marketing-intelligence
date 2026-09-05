@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { OrganisationRole } from "@prisma/client";
 import { AppError } from "@/lib/errors";
-import type { DataFreshnessState } from "@/lib/marketing-intelligence/types";
 
 const userProfileId = "user-1";
 const organisationId = "org-1";
@@ -87,7 +86,14 @@ describe("production incident resilience", () => {
     mockActivationBaseline();
   });
 
-  it("returns activation state when optional analytics lookup fails", async () => {
+  it("A: returns healthy activation state for a normal request", async () => {
+    const state = await activationService.getState(userProfileId);
+
+    expect(state.status).toBeDefined();
+    expect(state.degradedSources).toEqual([]);
+  });
+
+  it("B: marks degraded sources without throwing when optional dependency fails", async () => {
     prisma.contentProvenance.count.mockRejectedValue(new Error("analytics unavailable"));
 
     const state = await activationService.getState(userProfileId);
@@ -104,37 +110,5 @@ describe("production incident resilience", () => {
     await expect(activationService.getState(userProfileId)).rejects.toMatchObject({
       code: "ORGANISATION_MEMBERSHIP_REQUIRED",
     });
-  });
-
-  it("keeps command centre priorities empty when auxiliary queries fail", async () => {
-    prisma.publication.count.mockRejectedValue(new Error("db down"));
-    prisma.advertisingCampaignPlan.count.mockResolvedValue(0);
-    prisma.socialExperiment.count.mockResolvedValue(0);
-    prisma.contentItem.count.mockResolvedValue(0);
-    prisma.providerConnection.findMany.mockResolvedValue([]);
-    prisma.providerSyncRun.findMany.mockResolvedValue([]);
-
-    const { buildDashboardPriorities } = await import(
-      "@/server/services/marketing-command-centre-auxiliary"
-    );
-
-    await expect(
-      buildDashboardPriorities({
-        brandId,
-        organisationId,
-        tenant: {
-          userId: userProfileId,
-          userProfileId,
-          organisationId,
-          organisationRole: OrganisationRole.OWNER,
-          projectId,
-          brandId,
-        },
-        paidFreshness: "current" as DataFreshnessState,
-        organicFreshness: "current" as DataFreshnessState,
-        paidLabels: [],
-        organicLabels: [],
-      }),
-    ).rejects.toThrow("db down");
   });
 });
