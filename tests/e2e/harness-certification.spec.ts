@@ -12,6 +12,7 @@ test.describe("@launch-critical harness certification", () => {
       headers: authHeaders(tenantManifest.tenantA.users.owner.authUserId),
     });
     expect(response.ok()).toBeTruthy();
+    expect(response.headers()["content-type"] ?? "").toContain("application/json");
     const body = await response.json();
     expect(body.data.preference.currentOrganisationId).toBe(tenantManifest.tenantA.organisationId);
   });
@@ -37,6 +38,7 @@ test.describe("@launch-critical harness certification", () => {
       { headers: authHeaders(tenantManifest.tenantA.users.owner.authUserId) },
     );
     expect(response.ok()).toBeTruthy();
+    expect(response.headers()["content-type"] ?? "").toContain("application/json");
     const body = await response.json();
     expect(body.data.organisation.id).toBe(tenantManifest.tenantA.organisationId);
   });

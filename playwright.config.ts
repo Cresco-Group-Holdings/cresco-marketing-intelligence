@@ -46,6 +46,7 @@ export default defineConfig({
           timeout: 180_000,
           env: {
             ...process.env,
+            NODE_ENV: "development",
             CRESCO_E2E_HARNESS: process.env.CRESCO_E2E_HARNESS ?? "true",
             ALLOW_TEST_AUTH: process.env.ALLOW_TEST_AUTH ?? "true",
             AI_ALLOW_MOCK: process.env.AI_ALLOW_MOCK ?? "true",

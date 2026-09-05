@@ -10,6 +10,10 @@ if (existsSync(manifestPath)) {
   process.env.TEST_AUTH_EMAIL = manifest.tenantA?.users?.owner?.email ?? "e2e-owner@example.test";
 }
 
+process.env.NODE_ENV = "development";
+process.env.CRESCO_E2E_HARNESS = process.env.CRESCO_E2E_HARNESS ?? "true";
+process.env.ALLOW_TEST_AUTH = process.env.ALLOW_TEST_AUTH ?? "true";
+
 const child = spawn("npm", ["run", "dev"], {
   stdio: "inherit",
   env: process.env,

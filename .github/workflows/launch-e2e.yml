@@ -37,6 +37,7 @@ env:
   AI_ALLOW_MOCK: "true"
   ALLOW_OAUTH_MOCK: "true"
   ALLOW_MOCK_SOCIAL_ADAPTERS: "true"
+  NODE_ENV: development
 
 jobs:
   launch-e2e:
