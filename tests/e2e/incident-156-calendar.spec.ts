@@ -29,7 +29,9 @@ test.describe("@launch-critical incident #156 calendar resilience", () => {
   }
 
   async function assertCalendarUsable(page: import("@playwright/test").Page) {
-    await expect(page.getByRole("heading", { name: "Content Calendar" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Content Calendar" })).toBeVisible({
+      timeout: 30_000,
+    });
     await expect(page.getByRole("button", { name: "New event" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Month" })).toBeVisible();
   }

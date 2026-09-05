@@ -40,7 +40,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: "npm run dev",
+          command: "node scripts/start-e2e-web-server.mjs",
           url: `${baseURL}/api/readiness`,
           reuseExistingServer: !isCi,
           timeout: 180_000,

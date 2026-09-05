@@ -7,8 +7,8 @@ test.describe("@launch-critical harness certification", () => {
     requireLaunchE2e(test);
   });
 
-  test("A — authenticated owner session resolves workspace", async ({ ownerPage, tenantManifest }) => {
-    const response = await ownerPage.request.get("/api/workspace", {
+  test("A — authenticated owner session resolves workspace", async ({ request, tenantManifest }) => {
+    const response = await request.get("/api/workspace", {
       headers: authHeaders(tenantManifest.tenantA.users.owner.authUserId),
     });
     expect(response.ok()).toBeTruthy();
@@ -77,39 +77,54 @@ test.describe("@launch-critical harness certification", () => {
     await expect(ownerPage.locator("body")).toBeVisible();
   });
 
-  test("K — unexpected 5xx gate catches unmocked failures", async ({ ownerPage }, testInfo) => {
-    const gates = attachLaunchGates(ownerPage, testInfo);
-    await ownerPage.route("**/api/workspace**", async (route) => {
+  test("K — unexpected 5xx gate catches unmocked failures", async ({ browser, tenantManifest }, testInfo) => {
+    const context = await browser.newContext({
+      extraHTTPHeaders: authHeaders(tenantManifest.tenantA.users.owner.authUserId),
+    });
+    const page = await context.newPage();
+    const gates = attachLaunchGates(page, testInfo);
+    await page.route("**/api/workspace**", async (route) => {
       await route.fulfill({ status: 500, body: "forced failure" });
     });
-    await ownerPage.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
     expect(gates.unexpected5xx.some((entry) => entry.url.includes("/api/workspace"))).toBe(true);
     gates.stop();
+    await context.close();
   });
 
-  test("L — browser exception gate captures page errors", async ({ ownerPage }, testInfo) => {
-    const gates = attachLaunchGates(ownerPage, testInfo);
-    await ownerPage.goto("/dashboard", { waitUntil: "domcontentloaded" });
-    await ownerPage.evaluate(() => {
+  test("L — browser exception gate captures page errors", async ({ browser, tenantManifest }, testInfo) => {
+    const context = await browser.newContext({
+      extraHTTPHeaders: authHeaders(tenantManifest.tenantA.users.owner.authUserId),
+    });
+    const page = await context.newPage();
+    const gates = attachLaunchGates(page, testInfo);
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    await page.evaluate(() => {
       setTimeout(() => {
         throw new Error("e2e harness exception probe");
       }, 0);
     });
-    await ownerPage.waitForTimeout(100);
+    await page.waitForTimeout(100);
     expect(gates.unexpectedConsoleErrors.join("\n")).toMatch(/e2e harness exception probe/);
     gates.stop();
+    await context.close();
   });
 
-  test("M — retry-storm detector tracks activation polling", async ({ ownerPage }, testInfo) => {
-    const gates = attachLaunchGates(ownerPage, testInfo);
-    await ownerPage.route("**/api/activation**", async (route) => {
+  test("M — retry-storm detector tracks activation polling", async ({ browser, tenantManifest }, testInfo) => {
+    const context = await browser.newContext({
+      extraHTTPHeaders: authHeaders(tenantManifest.tenantA.users.owner.authUserId),
+    });
+    const page = await context.newPage();
+    const gates = attachLaunchGates(page, testInfo);
+    await page.route("**/api/activation**", async (route) => {
       await route.fulfill({ status: 503, body: "temporary" });
     });
-    await ownerPage.goto("/dashboard", { waitUntil: "domcontentloaded" });
-    await ownerPage.waitForTimeout(1500);
+    await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1500);
     const activationCount = gates.requestCounter.counts.get("/api/activation") ?? 0;
     expect(activationCount).toBeLessThanOrEqual(12);
     gates.stop();
+    await context.close();
   });
 
   test("N — incident #156 calendar resilience covered by dedicated spec", async ({ request }) => {

@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./support/fixtures";
 import { requireLaunchE2e } from "./support/environment";
 
 test.describe("@launch-critical public website", () => {
@@ -74,13 +74,13 @@ test.describe("@launch-critical authenticated navigation", () => {
     requireLaunchE2e(test);
   });
 
-  test("integrations page is canonical for provider connections", async ({ page }) => {
-    await page.goto("/integrations");
-    await expect(page.getByRole("heading", { name: "Integrations" })).toBeVisible();
+  test("integrations page is canonical for provider connections", async ({ ownerPage }) => {
+    await ownerPage.goto("/integrations");
+    await expect(ownerPage.getByRole("heading", { name: "Integrations" })).toBeVisible();
   });
 
-  test("content studio route is reachable", async ({ page }) => {
-    await page.goto("/content/studio");
-    await expect(page).toHaveURL(/\/content\/studio/);
+  test("content studio route is reachable", async ({ ownerPage }) => {
+    await ownerPage.goto("/content/studio");
+    await expect(ownerPage).toHaveURL(/\/content\/studio/);
   });
 });
