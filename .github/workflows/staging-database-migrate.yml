@@ -1,0 +1,84 @@
+name: Staging Database Migrate
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type MIGRATE_STAGING to confirm"
+        required: true
+        type: string
+
+concurrency:
+  group: staging-database-migrate
+  cancel-in-progress: false
+
+jobs:
+  reject-invalid-confirmation:
+    name: Reject invalid confirmation phrase
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.confirmation != 'MIGRATE_STAGING' }}
+    steps:
+      - name: Fail workflow
+        run: |
+          echo "Confirmation phrase did not match. Expected exactly: MIGRATE_STAGING"
+          exit 1
+
+  migrate-staging:
+    name: Apply Prisma migrations to staging
+    runs-on: ubuntu-latest
+    environment: Production – cresco-marketing-intelligence-staging
+    if: ${{ github.event.inputs.confirmation == 'MIGRATE_STAGING' }}
+    env:
+      STAGING_DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL || secrets.DIRECT_URL || secrets.STAGING_CERTIFICATION_DATABASE_URL }}
+      STAGING_SUPABASE_PROJECT_REF: ${{ secrets.STAGING_SUPABASE_PROJECT_REF }}
+      PRODUCTION_SUPABASE_PROJECT_REF: ${{ secrets.PRODUCTION_SUPABASE_PROJECT_REF }}
+      DATABASE_URL: ${{ secrets.STAGING_DIRECT_URL || secrets.DIRECT_URL || secrets.STAGING_CERTIFICATION_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.STAGING_DIRECT_URL || secrets.DIRECT_URL || secrets.STAGING_CERTIFICATION_DATABASE_URL }}
+    steps:
+      - name: Checkout staging
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify staging database URL configured
+        run: |
+          if [ -z "${STAGING_DIRECT_URL:-}" ]; then
+            echo "STAGING_DIRECT_URL (or DIRECT_URL) must be configured in the staging environment."
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify staging database identity (safe metadata only)
+        run: node scripts/verify-staging-database-identity.mjs
+
+      - name: Validate Prisma schema
+        run: npx prisma validate
+
+      - name: Validate migrations
+        run: npm run validate:migrations
+
+      - name: Migration status (before)
+        run: npx prisma migrate status
+
+      - name: Deploy migrations
+        run: npx prisma migrate deploy
+
+      - name: Migration status (after)
+        run: npx prisma migrate status
+
+      - name: Validate RLS security migrations
+        run: npm run validate:rls-security
+
+      - name: Verify migration and representative tables
+        run: node scripts/verify-production-migration.mjs
