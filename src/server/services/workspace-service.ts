@@ -20,6 +20,7 @@ import {
   isInvitationExpired,
 } from "@/lib/security/invitations";
 import { slugFromName } from "@/lib/utils/slug";
+import { logger } from "@/lib/logging";
 import { recordAuditEvent } from "@/server/services/audit-service";
 import { buildTenantContextForUser } from "@/lib/tenancy/guards";
 import { ENTITLEMENT_KEYS } from "@/lib/billing/entitlements";
@@ -956,23 +957,43 @@ export const workspaceService = {
         preference.currentProjectId !== currentProjectId ||
         preference.currentBrandId !== currentBrandId)
     ) {
-      await prisma.workspacePreference.update({
-        where: { userId: userProfileId },
-        data: {
+      try {
+        await prisma.workspacePreference.update({
+          where: { userId: userProfileId },
+          data: {
+            currentOrganisationId,
+            currentProjectId,
+            currentBrandId,
+          },
+        });
+      } catch (error) {
+        logger.warn("workspace.preference_autocorrect_failed", {
+          userProfileId,
           currentOrganisationId,
           currentProjectId,
           currentBrandId,
-        },
-      });
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     } else if (!preference && currentOrganisationId) {
-      await prisma.workspacePreference.create({
-        data: {
-          userId: userProfileId,
+      try {
+        await prisma.workspacePreference.create({
+          data: {
+            userId: userProfileId,
+            currentOrganisationId,
+            currentProjectId,
+            currentBrandId,
+          },
+        });
+      } catch (error) {
+        logger.warn("workspace.preference_create_failed", {
+          userProfileId,
           currentOrganisationId,
           currentProjectId,
           currentBrandId,
-        },
-      });
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
 
     return {

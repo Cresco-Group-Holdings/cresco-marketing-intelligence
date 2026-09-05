@@ -166,5 +166,6 @@ export function buildOnboardingPreviewActivation(
       project: { id: "project-preview", name: "Growth" },
       brand: { id: "brand-preview", name: "Acme Brand" },
     },
+    degradedSources: [],
   };
 }

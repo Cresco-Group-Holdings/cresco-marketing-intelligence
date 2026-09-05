@@ -1,0 +1,60 @@
+{
+  "harnessVersion": "task-5.0.0",
+  "runs": 3,
+  "allPassed": true,
+  "matrix": {
+    "A": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "B": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "C": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "D": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "E": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ],
+    "F": [
+      "PASS",
+      "PASS",
+      "PASS"
+    ]
+  },
+  "results": [
+    {
+      "run": 1,
+      "passed": true,
+      "durationMs": 3091,
+      "stdout": "\n RUN  v4.1.10 /workspace\n\n\n Test Files  7 passed (7)\n      Tests  13 passed (13)\n   Start at  11:30:15\n   Duration  2.66s (transform 520ms, setup 40ms, import 1.87s, tests 144ms, environment 0ms)\n\n",
+      "stderr": ""
+    },
+    {
+      "run": 2,
+      "passed": true,
+      "durationMs": 3052,
+      "stdout": "\n RUN  v4.1.10 /workspace\n\n\n Test Files  7 passed (7)\n      Tests  13 passed (13)\n   Start at  11:30:19\n   Duration  2.61s (transform 514ms, setup 40ms, import 1.82s, tests 151ms, environment 0ms)\n\n",
+      "stderr": ""
+    },
+    {
+      "run": 3,
+      "passed": true,
+      "durationMs": 3130,
+      "stdout": "\n RUN  v4.1.10 /workspace\n\n\n Test Files  7 passed (7)\n      Tests  13 passed (13)\n   Start at  11:30:22\n   Duration  2.70s (transform 525ms, setup 40ms, import 1.90s, tests 146ms, environment 0ms)\n\n",
+      "stderr": ""
+    }
+  ]
+}
