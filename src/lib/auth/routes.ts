@@ -1,3 +1,14 @@
+import {
+  classifyApiRoute,
+  isOAuthCallbackApiRoute,
+  isPublicApiRoute as isClassifiedPublicApiRoute,
+  isSessionExemptRoute,
+  isTokenPublicPageRoute,
+  isTrackingPublicApiRoute,
+  isWebhookApiRoute,
+  isWorkerApiRoute as isClassifiedWorkerApiRoute,
+} from "@/lib/security/api-route-classification";
+
 export const PUBLIC_ROUTES = new Set([
   "/",
   "/login",
@@ -52,51 +63,7 @@ export function isOnboardingRoute(pathname: string): boolean {
 
 /** API routes that must remain reachable without a browser session. */
 export function isPublicApiRoute(pathname: string): boolean {
-  if (pathname.startsWith("/api/health") || pathname.startsWith("/api/readiness")) {
-    return true;
-  }
-
-  if (pathname.startsWith("/api/auth/")) {
-    return true;
-  }
-
-  if (pathname.startsWith("/api/webhooks/")) {
-    return true;
-  }
-
-  if (pathname.startsWith("/api/forms/v1/")) {
-    return true;
-  }
-
-  if (pathname.startsWith("/api/tracking/v1/events")) {
-    return true;
-  }
-
-  if (pathname.startsWith("/api/tracking/v1/server-events")) {
-    return true;
-  }
-
-  if (pathname.startsWith("/api/webhooks/")) {
-    return false;
-  }
-
-  if (pathname.startsWith("/api/connectors/oauth/")) {
-    return true;
-  }
-
-  if (pathname.startsWith("/api/integrations/oauth/")) {
-    return true;
-  }
-
-  if (pathname.startsWith("/api/social/oauth/")) {
-    return true;
-  }
-
-  if (isWorkerApiRoute(pathname)) {
-    return true;
-  }
-
-  return false;
+  return isClassifiedPublicApiRoute(pathname) || isSessionExemptRoute(pathname);
 }
 
 export function isDevPreviewRoute(pathname: string): boolean {
@@ -114,12 +81,21 @@ export function isDevPreviewRoute(pathname: string): boolean {
   );
 }
 
+/**
+ * Returns true when middleware must enforce a Supabase browser session.
+ * Exempt routes still require handler-level authentication (webhook signatures,
+ * share tokens, worker secrets, OAuth state, etc.).
+ */
 export function isProtectedRoute(pathname: string): boolean {
   if (isPublicRoute(pathname)) {
     return false;
   }
 
   if (pathname.startsWith("/auth/")) {
+    return false;
+  }
+
+  if (isTokenPublicPageRoute(pathname)) {
     return false;
   }
 
@@ -143,20 +119,18 @@ export function isProtectedRoute(pathname: string): boolean {
   return true;
 }
 
-const WORKER_API_PREFIXES = [
+const LEGACY_WORKER_API_PREFIXES = [
   "/api/workers/",
   "/api/cron/",
-  "/api/publishing-scheduler/",
-  "/api/publishing-jobs/",
-  "/api/social-analytics-sync/",
-  "/api/seo-crawl/",
-  "/api/notifications/digest/",
   "/api/digital-assets/process-due",
-  "/api/social-reports/process-due",
 ] as const;
 
 export function isWorkerApiRoute(pathname: string): boolean {
-  return WORKER_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  if (isClassifiedWorkerApiRoute(pathname)) {
+    return true;
+  }
+
+  return LEGACY_WORKER_API_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
 export function isSettingsAccountRoute(pathname: string): boolean {
@@ -166,3 +140,11 @@ export function isSettingsAccountRoute(pathname: string): boolean {
     pathname === "/settings/sessions"
   );
 }
+
+export {
+  classifyApiRoute,
+  isOAuthCallbackApiRoute,
+  isTokenPublicPageRoute,
+  isTrackingPublicApiRoute,
+  isWebhookApiRoute,
+};

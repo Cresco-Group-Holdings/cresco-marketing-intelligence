@@ -186,6 +186,47 @@ describe("socialReportService", () => {
     );
   });
 
+  it("returns minimised payloads for valid share tokens", async () => {
+    prismaMock.socialReport.findFirst.mockResolvedValue({
+      id: reportTestIds.reportId,
+      organisationId: reportTestIds.organisationId,
+      brandId: reportTestIds.brandId,
+      title: "Weekly report",
+      reportType: "WEEKLY_PERFORMANCE",
+      periodStart: new Date("2026-07-22T00:00:00.000Z"),
+      periodEnd: new Date("2026-07-29T00:00:00.000Z"),
+      timezone: "UTC",
+      includeCrescoBranding: true,
+      narrative: { executiveSummary: "Summary" },
+      dataLimitations: [],
+      shareExpiresAt: null,
+      sections: [
+        {
+          id: "section-internal",
+          sectionType: "OVERVIEW",
+          title: "Overview",
+          content: { impressions: 100 },
+        },
+      ],
+      snapshots: [{ snapshotData: { overview: { impressions: 100 } } }],
+    });
+
+    const payload = await socialReportService.getByShareToken("valid-token");
+
+    expect(payload).not.toHaveProperty("id");
+    expect(payload).not.toHaveProperty("organisationId");
+    expect(payload).not.toHaveProperty("brandId");
+    expect(payload).not.toHaveProperty("accountIds");
+    expect(payload).not.toHaveProperty("shareStatus");
+    expect(payload.title).toBe("Weekly report");
+    expect(payload.sections[0]).toEqual({
+      sectionType: "OVERVIEW",
+      title: "Overview",
+      content: { impressions: 100 },
+    });
+    expect(payload.latestSnapshot).toEqual({ overview: { impressions: 100 } });
+  });
+
   it("exports JSON report payloads", async () => {
     const exported = await socialReportService.exportReport(
       reportTestIds.brandId,

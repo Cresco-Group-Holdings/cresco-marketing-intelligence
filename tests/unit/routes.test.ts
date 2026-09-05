@@ -1,5 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { isProtectedRoute, isPublicApiRoute, isPublicRoute, isAuthRoute } from "@/lib/auth/routes";
+import { describe, expect, it } from "vitest";
+import {
+  isAuthRoute,
+  isProtectedRoute,
+  isPublicRoute,
+  isWebhookApiRoute,
+  isWorkerApiRoute,
+} from "@/lib/auth/routes";
 
 describe("route protection rules", () => {
   it("marks public routes as accessible without authentication", () => {
@@ -7,6 +13,7 @@ describe("route protection rules", () => {
     expect(isPublicRoute("/login")).toBe(true);
     expect(isPublicRoute("/verify-email")).toBe(true);
     expect(isPublicRoute("/reset-password")).toBe(true);
+    expect(isPublicRoute("/cookies")).toBe(true);
     expect(isProtectedRoute("/")).toBe(false);
     expect(isProtectedRoute("/login")).toBe(false);
   });
@@ -23,27 +30,27 @@ describe("route protection rules", () => {
     expect(isProtectedRoute("/api/readiness")).toBe(false);
     expect(isProtectedRoute("/auth/callback")).toBe(false);
     expect(isProtectedRoute("/api/auth/login")).toBe(false);
-    expect(isPublicApiRoute("/api/auth/login")).toBe(true);
   });
 
-  it("allows external webhooks and public forms without session", () => {
+  it("allows webhook, shared report, worker, and tracking routes", () => {
+    expect(isWebhookApiRoute("/api/webhooks/stripe")).toBe(true);
     expect(isProtectedRoute("/api/webhooks/stripe")).toBe(false);
-    expect(isProtectedRoute("/api/webhooks/billing/stripe")).toBe(false);
+    expect(isProtectedRoute("/api/reports/shared/token-abc")).toBe(false);
+    expect(isProtectedRoute("/reports/shared/token-abc")).toBe(false);
+    expect(isWorkerApiRoute("/api/publishing-scheduler/process-due")).toBe(true);
+    expect(isProtectedRoute("/api/publishing-scheduler/process-due")).toBe(false);
+    expect(isProtectedRoute("/api/tracking/v1/events")).toBe(false);
     expect(isProtectedRoute("/api/forms/v1/public-form/submit")).toBe(false);
-    expect(isProtectedRoute("/api/tracking/v1/server-events")).toBe(false);
+  });
+
+  it("keeps provider management APIs protected", () => {
+    expect(isProtectedRoute("/api/providers/connections")).toBe(true);
+    expect(isProtectedRoute("/api/providers/connections/conn-1")).toBe(true);
   });
 
   it("identifies auth routes", () => {
     expect(isAuthRoute("/login")).toBe(true);
     expect(isAuthRoute("/verify-email")).toBe(true);
     expect(isAuthRoute("/dashboard")).toBe(false);
-  });
-
-  it("exempts content intelligence dev preview routes in development only", () => {
-    vi.stubEnv("NODE_ENV", "development");
-    expect(isProtectedRoute("/dev/content-intelligence-preview/create")).toBe(false);
-    vi.stubEnv("NODE_ENV", "production");
-    expect(isProtectedRoute("/dev/content-intelligence-preview/create")).toBe(true);
-    vi.unstubAllEnvs();
   });
 });

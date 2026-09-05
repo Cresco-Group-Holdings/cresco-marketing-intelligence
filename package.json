@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
-    "build:ci": "npm run validate:routes && npm run validate:vercel-cron && npm run validate:rls-security && npm run build",
+    "build:ci": "npm run validate:routes && npm run validate:api-security && npm run validate:vercel-cron && npm run validate:rls-security && npm run build",
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -32,6 +32,7 @@
     "validate:prisma": "prisma validate",
     "validate:migrations": "node scripts/validate-migrations.mjs",
     "validate:routes": "node scripts/validate-routes.mjs",
+    "validate:api-security": "node scripts/validate-api-security-classification.mjs",
     "validate:vercel-cron": "node scripts/validate-vercel-cron.mjs",
     "validate:rls-security": "node scripts/validate-rls-security.mjs",
     "validate:vercel-build": "node scripts/validate-vercel-build.mjs",
