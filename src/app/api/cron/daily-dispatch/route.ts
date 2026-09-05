@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { apiSuccess } from "@/lib/api/handler";
 import { isAuthorisedCronRequest } from "@/lib/api/worker-auth";
 import { dailyCronDispatchService } from "@/server/services/daily-cron-dispatch-service";
+import { schedulerHealthService } from "@/server/services/scheduler-health-service";
 
 async function handleDailyDispatch(request: NextRequest) {
   const requestId = randomUUID();
@@ -16,6 +17,19 @@ async function handleDailyDispatch(request: NextRequest) {
 
   const result = await dailyCronDispatchService.run({
     workerId: `vercel-cron-${requestId}`,
+  });
+
+  await schedulerHealthService.recordDailyDispatch({
+    cycleId: requestId,
+    startedAt: new Date(result.startedAt),
+    completedAt: new Date(result.completedAt),
+    durationMs: result.durationMs,
+    success: result.gate.allowed,
+    jobSummaries: result.jobs.map((job) => ({
+      jobId: job.jobId,
+      passes: job.passes,
+      stoppedReason: job.stoppedReason,
+    })),
   });
 
   return apiSuccess(result, { requestId });

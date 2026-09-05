@@ -55,5 +55,7 @@ describe("schedulerHealthService", () => {
     const health = await schedulerHealthService.getHealth();
     expect(health.missedHeartbeat).toBe(true);
     expect(health.lagMs).toBeGreaterThan(15 * 60_000);
+    expect(health.recentCycles).toEqual([]);
+    expect(health.primarySource).toBeNull();
   });
 });

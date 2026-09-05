@@ -1,21 +1,21 @@
 # Task 6 — Background Operations Architecture
 
-## Deployment model (Task 6.1 launch)
+## Deployment model (Task 6.1 launch, updated Task 7)
 
 | Component | Production execution |
 |-----------|---------------------|
-| Vercel Cron | Daily `/api/cron/daily-dispatch` (Hobby: once/day fan-out) |
-| **GitHub Actions (launch scheduler)** | `worker-platform-scheduler.yml` every **5 minutes** — recover, dispatch, automation schedules, process, publishing pass |
+| **Vercel Cron (PRIMARY)** | `/api/cron/worker-cycle` every **5 minutes** (Pro) — recover, dispatch, automation, process, publishing |
+| **GitHub Actions (FALLBACK)** | `worker-platform-scheduler.yml` every **30 minutes** — `/api/workers/fallback-cycle` when primary heartbeat stale |
+| Vercel Cron (daily) | `/api/cron/daily-dispatch` (Hobby: once/day fan-out) |
 | Manual / external | `/api/workers/dispatch`, `/api/workers/process`, `/api/workers/automation-schedules` with `WORKER_TOKEN` |
 | Queue | Postgres `WorkerJob` (canonical) — not in-memory |
 
 ### Scheduling SLA
 
-- **Target:** scheduled publications execute within **±5–10 minutes** of requested time.
-- **Mechanism:** GitHub Actions `*/5 * * * *` cadence invoking the canonical dispatcher.
-- **Minimum configured cadence:** 5 minutes (GitHub Actions `worker-platform-scheduler.yml`).
-- **Limitation:** GHA scheduled workflows are not hard real-time. Actual execution can be delayed 3–10+ minutes during peak load; internal operational target is approximately ±5–10 minutes, not exact-second publishing.
-- **Post-launch:** If usage or precision requirements increase, migrate to a dedicated scheduler service (documented backlog item — do not market sub-minute publishing guarantees on GHA).
+- **Configured trigger:** every 5 minutes via Vercel Pro cron.
+- **Publication dispatch target:** within **10 minutes** of requested `dueAt` under normal conditions.
+- **Customer wording:** typically within about 10 minutes — not exact-second publishing.
+- **Fallback:** GitHub Actions runs only when primary heartbeat is stale (≥10 min lag).
 
 ### Scheduler health
 

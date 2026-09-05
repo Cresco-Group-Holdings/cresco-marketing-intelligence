@@ -13,6 +13,12 @@ vi.mock("@/server/services/daily-cron-dispatch-service", () => ({
   },
 }));
 
+vi.mock("@/server/services/scheduler-health-service", () => ({
+  schedulerHealthService: {
+    recordDailyDispatch: vi.fn().mockResolvedValue(undefined),
+  },
+}));
+
 import { GET } from "@/app/api/cron/daily-dispatch/route";
 
 function request(headers: Record<string, string> = {}) {

@@ -20,7 +20,7 @@
     "test:database": "vitest run --config vitest.database.config.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "test:e2e:launch": "playwright test tests/e2e/launch-critical.spec.ts tests/e2e/launch-journeys.spec.ts tests/e2e/billing-launch-gate.spec.ts tests/e2e/content-intelligence-production.spec.ts",
+    "test:e2e:launch": "playwright test tests/e2e/launch-critical.spec.ts tests/e2e/launch-journeys.spec.ts tests/e2e/billing-launch-gate.spec.ts tests/e2e/content-intelligence-production.spec.ts tests/e2e/launch-scheduled-publishing.spec.ts",
     "test:e2e:foundation": "playwright test tests/e2e/stage-1-foundation.spec.ts",
     "test:e2e:ui": "playwright test --ui",
     "db:generate": "prisma generate",

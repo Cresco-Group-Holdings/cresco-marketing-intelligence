@@ -5,6 +5,7 @@ vi.mock("@/server/services/scheduler-health-service", () => ({
   schedulerHealthService: {
     recordDispatch: vi.fn().mockResolvedValue(undefined),
     recordProcess: vi.fn().mockResolvedValue(undefined),
+    recordRecover: vi.fn().mockResolvedValue(undefined),
   },
 }));
 

@@ -71,6 +71,8 @@ export async function GET(request: NextRequest, _context: Params) {
             missedHeartbeat: scheduler.missedHeartbeat,
             lastInvokedAt: scheduler.heartbeat?.lastInvokedAt ?? null,
             schedulerSlaMinutes: scheduler.schedulerSlaMinutes,
+            primarySource: scheduler.primarySource,
+            recentCycles: scheduler.recentCycles,
           },
         },
       },

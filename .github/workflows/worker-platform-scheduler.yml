@@ -1,28 +1,31 @@
-# Worker Platform Scheduler — production wake-up cadence
+# Worker Platform Scheduler — fallback watchdog
 #
-# Launch infrastructure (Task 6.1): GitHub Actions invokes the canonical Postgres-backed
-# dispatcher every 5 minutes. This is the supported production mechanism on Vercel Hobby,
-# where Vercel Cron is limited to once per day.
+# PRIMARY scheduler: Vercel Cron `/api/cron/worker-cycle` every 5 minutes (Pro plan).
 #
-# Timing limitations (documented):
-# - GitHub Actions scheduled workflows may start up to ~3–5 minutes late during peak load.
-# - Combined with the 5-minute cadence, scheduled publications target ±5–10 minutes SLA.
-# - For sub-minute precision, migrate to Vercel Pro cron (*/5) or an external scheduler.
+# This workflow is the FALLBACK only. It runs every 30 minutes and invokes
+# `/api/workers/fallback-cycle`, which executes the canonical worker cycle
+# ONLY when the primary Vercel heartbeat is stale beyond the launch SLA.
+#
+# Do not run a second independent 5-minute clock here — idempotency is relied
+# upon only as a safety net, not as the primary scheduling mechanism.
 #
 # Authentication: WORKER_TOKEN or PUBLISHING_WORKER_TOKEN (never provider credentials).
-# Concurrency: single flight — overlapping runs are serialised via concurrency group.
 
 name: Worker Platform Scheduler
 
 on:
   schedule:
-    - cron: "*/5 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
     inputs:
       limit:
         description: Maximum jobs to dispatch/process per invocation
         required: false
         default: "25"
+      force:
+        description: Force fallback even when primary heartbeat is healthy
+        required: false
+        default: "false"
 
 permissions:
   contents: read
@@ -32,63 +35,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  dispatch-and-process:
+  fallback-watchdog:
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 5
     steps:
-      - name: Recover expired worker leases
+      - name: Run fallback worker cycle when primary is stale
         env:
           APP_URL: ${{ secrets.APP_URL }}
           WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
+          WORKER_LIMIT: ${{ github.event.inputs.limit || '25' }}
+          FORCE_FALLBACK: ${{ github.event.inputs.force || 'false' }}
         run: |
           if [ -z "${APP_URL:-}" ] || [ -z "${WORKER_TOKEN:-}" ]; then
             echo "APP_URL and WORKER_TOKEN (or PUBLISHING_WORKER_TOKEN) must be configured."
             exit 1
           fi
           base="${APP_URL%/}"
-          curl --fail-with-body -sS -X POST "${base}/api/workers/recover" \
+          query="limit=${WORKER_LIMIT}"
+          if [ "${FORCE_FALLBACK}" = "true" ]; then
+            query="${query}&force=true"
+          fi
+          response_file="$(mktemp)"
+          http_code=$(curl --fail-with-body -sS -o "${response_file}" -w "%{http_code}" \
+            -X POST "${base}/api/workers/fallback-cycle?${query}" \
             -H "authorization: Bearer ${WORKER_TOKEN}" \
-            -H "content-type: application/json"
-
-      - name: Dispatch due canonical worker jobs
-        env:
-          APP_URL: ${{ secrets.APP_URL }}
-          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
-          WORKER_LIMIT: ${{ github.event.inputs.limit || '25' }}
-        run: |
-          base="${APP_URL%/}"
-          curl --fail-with-body -sS -X POST "${base}/api/workers/dispatch?limit=${WORKER_LIMIT}" \
-            -H "authorization: Bearer ${WORKER_TOKEN}" \
-            -H "content-type: application/json"
-
-      - name: Evaluate automation schedule triggers
-        env:
-          APP_URL: ${{ secrets.APP_URL }}
-          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
-        run: |
-          base="${APP_URL%/}"
-          curl --fail-with-body -sS -X POST "${base}/api/workers/automation-schedules" \
-            -H "authorization: Bearer ${WORKER_TOKEN}" \
-            -H "content-type: application/json"
-
-      - name: Process claimed worker jobs
-        env:
-          APP_URL: ${{ secrets.APP_URL }}
-          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
-          WORKER_LIMIT: ${{ github.event.inputs.limit || '25' }}
-        run: |
-          base="${APP_URL%/}"
-          curl --fail-with-body -sS -X POST "${base}/api/workers/process?limit=${WORKER_LIMIT}" \
-            -H "authorization: Bearer ${WORKER_TOKEN}" \
-            -H "content-type: application/json"
-
-      - name: Drain legacy publishing scheduler pass
-        env:
-          APP_URL: ${{ secrets.APP_URL }}
-          WORKER_TOKEN: ${{ secrets.WORKER_TOKEN || secrets.PUBLISHING_WORKER_TOKEN }}
-        run: |
-          base="${APP_URL%/}"
-          curl --fail-with-body -sS -X POST "${base}/api/publishing-scheduler/process-due" \
-            -H "authorization: Bearer ${WORKER_TOKEN}" \
-            -H "content-type: application/json" || true
+            -H "content-type: application/json")
+          cat "${response_file}"
+          if [ "${http_code}" -ge 500 ]; then
+            echo "Fallback worker cycle returned HTTP ${http_code}"
+            exit 1
+          fi
+          if grep -q '"degraded":true' "${response_file}"; then
+            echo "Fallback worker cycle completed in degraded state (publishing failure recorded)."
+            exit 1
+          fi

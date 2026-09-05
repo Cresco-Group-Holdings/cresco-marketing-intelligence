@@ -1,13 +1,25 @@
 /**
  * Central scheduling configuration.
  *
- * Separates job implementation from deployment scheduling so Vercel Hobby
- * (≤1 invocation/day) can coexist with future Pro or external high-frequency schedulers.
+ * Launch model (Task 7):
+ * - PRIMARY: Vercel Cron `/api/cron/worker-cycle` every 5 minutes (Pro plan).
+ * - FALLBACK: GitHub Actions watchdog when primary heartbeat is stale.
+ * - DAILY: Vercel Hobby daily fan-out for bounded catch-up batches.
  */
 
-/** GitHub Actions is the supported launch scheduler for high-frequency wake-up on Vercel Hobby. */
+/** Primary high-frequency scheduler cadence (Vercel Pro cron). */
 export const LAUNCH_SCHEDULER_CADENCE = "*/5 * * * *";
+/** Publication dispatch target: within this many minutes of dueAt under normal conditions. */
 export const LAUNCH_SCHEDULER_SLA_MINUTES = 10;
+/** Primary heartbeat considered stale after this window — fallback may run. */
+export const LAUNCH_SCHEDULER_FALLBACK_STALE_MS = LAUNCH_SCHEDULER_SLA_MINUTES * 60_000;
+
+export const PRIMARY_SCHEDULER_SOURCE = "vercel_cron" as const;
+export const FALLBACK_SCHEDULER_SOURCE = "github_actions_fallback" as const;
+
+/** Customer-facing scheduling wording (do not promise exact-second execution). */
+export const CUSTOMER_SCHEDULING_WORDING =
+  "Scheduled posts are processed automatically, typically within about 10 minutes of the requested time.";
 
 /** Target production cadence when high-frequency scheduling is available (Pro / external worker). */
 export const PRODUCTION_TARGET_SCHEDULES = {
@@ -28,11 +40,32 @@ export const VERCEL_HOBBY_CRON_SCHEDULES = {
   dailyDispatch: "0 2 * * *",
 } as const;
 
+/**
+ * Vercel Pro deployment schedules — high-frequency worker cycle.
+ * Requires Vercel Pro (or equivalent) cron pricing tier.
+ */
+export const VERCEL_PRO_CRON_SCHEDULES = {
+  workerCycle: LAUNCH_SCHEDULER_CADENCE,
+} as const;
+
 export const VERCEL_CRON_PATHS = {
+  /** Primary launch scheduler — recover → dispatch → automation → process. */
+  workerCycle: "/api/cron/worker-cycle",
   dailyDispatch: "/api/cron/daily-dispatch",
   /** Legacy direct entry — manual / external scheduler only on Hobby. */
   publishingScheduler: "/api/publishing-scheduler/process-due",
 } as const;
+
+export function isProCronSchedule(expression: string): boolean {
+  return expression.trim() === LAUNCH_SCHEDULER_CADENCE;
+}
+
+export function isAllowedVercelCronSchedule(path: string, expression: string): boolean {
+  if (path === VERCEL_CRON_PATHS.workerCycle) {
+    return isProCronSchedule(expression);
+  }
+  return isHobbyCompatibleCronSchedule(expression);
+}
 
 export type InternalCronJobId =
   | "publishing"

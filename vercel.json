@@ -3,6 +3,10 @@
   "ignoreCommand": "bash scripts/vercel-should-build.sh",
   "crons": [
     {
+      "path": "/api/cron/worker-cycle",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/daily-dispatch",
       "schedule": "0 2 * * *"
     }
