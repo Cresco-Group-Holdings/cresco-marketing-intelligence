@@ -23,6 +23,10 @@ export function isSafeRedirectPath(path: string | null | undefined): boolean {
     return false;
   }
 
+  if (path.includes("..")) {
+    return false;
+  }
+
   return true;
 }
 

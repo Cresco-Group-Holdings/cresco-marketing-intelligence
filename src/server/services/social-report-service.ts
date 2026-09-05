@@ -338,6 +338,39 @@ function serializeReport(report: {
   };
 }
 
+function serializeSharedReport(report: {
+  title: string;
+  reportType: string;
+  periodStart: Date;
+  periodEnd: Date;
+  timezone: string;
+  includeCrescoBranding: boolean;
+  narrative: Prisma.JsonValue;
+  dataLimitations: string[];
+  sections?: Array<{
+    sectionType: SocialReportSectionType;
+    title: string;
+    content: Prisma.JsonValue;
+  }>;
+}) {
+  return {
+    title: report.title,
+    reportType: report.reportType,
+    periodStart: report.periodStart.toISOString(),
+    periodEnd: report.periodEnd.toISOString(),
+    timezone: report.timezone,
+    includeCrescoBranding: report.includeCrescoBranding,
+    narrative: report.narrative,
+    dataLimitations: report.dataLimitations,
+    sections:
+      report.sections?.map((section) => ({
+        sectionType: section.sectionType,
+        title: section.title,
+        content: section.content,
+      })) ?? [],
+  };
+}
+
 export const socialReportService = {
   async list(brandId: string, organisationId: string, context: TenantContext) {
     const scope = await resolveBrandScope(brandId, organisationId, context);
@@ -557,7 +590,7 @@ export const socialReportService = {
       throw new AppError("FORBIDDEN", "Shared report link has expired.");
     }
     return {
-      ...serializeReport(report),
+      ...serializeSharedReport(report),
       latestSnapshot: report.snapshots[0]?.snapshotData ?? null,
     };
   },

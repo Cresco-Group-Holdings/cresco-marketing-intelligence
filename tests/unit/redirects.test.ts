@@ -14,7 +14,9 @@ describe("safe redirect validation", () => {
   it("rejects external and protocol-relative URLs", () => {
     expect(isSafeRedirectPath("https://evil.example")).toBe(false);
     expect(isSafeRedirectPath("//evil.example")).toBe(false);
+    expect(isSafeRedirectPath("/dashboard/../../../etc/passwd")).toBe(false);
     expect(resolveSafeRedirectPath("https://evil.example", "/dashboard")).toBe("/dashboard");
+    expect(resolveSafeRedirectPath("/dashboard/../../../etc/passwd", "/dashboard")).toBe("/dashboard");
   });
 
   it("rejects auth routes as post-login destinations", () => {
