@@ -18,12 +18,14 @@ export function isOAuthMockExplicitlyAllowed(): boolean {
 
 export function isOAuthMockAllowed(): boolean {
   if (isTestRuntime()) return true;
+  if (process.env.CRESCO_E2E_HARNESS === "true") return true;
   if (isOAuthMockExplicitlyAllowed()) return true;
   return false;
 }
 
 export function isMockSocialAdapterAllowed(): boolean {
   if (isTestRuntime()) return true;
+  if (process.env.CRESCO_E2E_HARNESS === "true") return true;
   if (process.env.ALLOW_MOCK_SOCIAL_ADAPTERS === "true") return true;
   return false;
 }

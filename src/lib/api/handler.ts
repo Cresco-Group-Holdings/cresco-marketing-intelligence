@@ -10,6 +10,7 @@ import {
   type AuthenticatedUser,
 } from "@/lib/tenancy/guards";
 import { runWithTenantContext, type TenantContext } from "@/lib/tenancy/context";
+import { resolveHarnessAuthUserIdFromRequest } from "@/lib/e2e/test-auth";
 import { isTestAuthBypassEnabled } from "@/lib/security/production-guards";
 
 export type ApiHandlerContext = {
@@ -19,9 +20,11 @@ export type ApiHandlerContext = {
   tenant?: TenantContext;
 };
 
-export async function resolveApiUser(): Promise<AuthenticatedUser> {
+export async function resolveApiUser(request?: NextRequest): Promise<AuthenticatedUser> {
   if (isTestAuthBypassEnabled()) {
-    const testUserId = process.env.TEST_AUTH_USER_ID;
+    const testUserId =
+      (request ? resolveHarnessAuthUserIdFromRequest(request) : null) ??
+      process.env.TEST_AUTH_USER_ID;
     const testEmail = process.env.TEST_AUTH_EMAIL ?? "test@example.com";
     if (testUserId) {
       const provisioned = await ensureUserProfile({
@@ -85,7 +88,7 @@ export async function withApiHandler(
   const requestId = createRequestId();
 
   try {
-    const user = await resolveApiUser();
+    const user = await resolveApiUser(request);
 
     let tenant: TenantContext | undefined;
     if (options?.organisationId) {

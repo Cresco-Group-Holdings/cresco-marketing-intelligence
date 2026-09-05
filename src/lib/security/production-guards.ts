@@ -2,9 +2,13 @@
  * Runtime production guards for launch-critical security controls.
  */
 
-export function isProductionEnvironment(): boolean {
-  return process.env.NODE_ENV === "production";
-}
+import {
+  assertE2eHarnessNotEnabledInProduction,
+  isE2eHarnessEnabled,
+  isProductionEnvironment,
+} from "@/lib/e2e/environment";
+
+export { isProductionEnvironment };
 
 const FORBIDDEN_PRODUCTION_ENV_FLAGS = [
   "ALLOW_TEST_AUTH",
@@ -44,5 +48,8 @@ export function isTestAuthBypassEnabled(): boolean {
   if (isProductionEnvironment()) {
     return false;
   }
-  return process.env.ALLOW_TEST_AUTH === "true" && Boolean(process.env.TEST_AUTH_USER_ID);
+  if (!isE2eHarnessEnabled()) {
+    return false;
+  }
+  return process.env.ALLOW_TEST_AUTH === "true";
 }

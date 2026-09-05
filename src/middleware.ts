@@ -4,7 +4,7 @@ import { isAuthRoute, isProtectedRoute } from "@/lib/auth/routes";
 import { getSupabaseServerConfig, readSupabaseServerConfigFromProcessEnv } from "@/lib/environment/supabase";
 import { applySecurityHeaders } from "@/lib/security/headers";
 import { resolveSafeRedirectPath } from "@/lib/security/redirects";
-import { isTestAuthBypassEnabled } from "@/lib/security/production-guards";
+import { shouldBypassHarnessProtectedRoute } from "@/lib/e2e/middleware-auth";
 import { createRequestHeadersWithPathname } from "@/lib/middleware/pathname";
 import { resolveLegacyRouteRedirect } from "@/lib/navigation/legacy-redirects";
 
@@ -43,7 +43,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (isTestAuthBypassEnabled() && isProtectedRoute(pathname)) {
+  if (shouldBypassHarnessProtectedRoute(request, pathname)) {
     return applySecurityHeaders(response);
   }
 

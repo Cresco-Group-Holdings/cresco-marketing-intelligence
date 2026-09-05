@@ -15,7 +15,7 @@ const PRODUCT_SHOTS = [
   { file: "launch-onboarding-1440.png", url: "/onboarding" },
 ] as const;
 
-test.describe("@launch-critical product screenshots", () => {
+test.describe("@preview-visual product screenshots", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   test.beforeEach(() => {
@@ -25,7 +25,7 @@ test.describe("@launch-critical product screenshots", () => {
   for (const shot of PRODUCT_SHOTS) {
     test(`capture ${shot.file}`, async ({ page }) => {
       const needsAuth = shot.url === "/automations" || shot.url === "/integrations" || shot.url === "/onboarding";
-      test.skip(needsAuth && process.env.ALLOW_TEST_AUTH !== "true", "Requires ALLOW_TEST_AUTH");
+      test.skip(needsAuth && process.env.CRESCO_E2E_HARNESS !== "true", "Requires launch E2E harness");
 
       await page.goto(shot.url, { waitUntil: "domcontentloaded" });
       if (shot.url.startsWith("/dev/")) {
@@ -36,7 +36,7 @@ test.describe("@launch-critical product screenshots", () => {
   }
 });
 
-test.describe("@launch-critical launch journeys", () => {
+test.describe("@preview-visual launch journeys", () => {
   test("Journey 1 — Intelligence surfaces recommendation evidence", async ({ page }) => {
     test.skip(process.env.NODE_ENV === "production", "Uses dev preview fixtures");
     await page.goto("/dev/command-centre-preview");

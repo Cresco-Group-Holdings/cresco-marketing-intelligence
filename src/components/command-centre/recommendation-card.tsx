@@ -94,17 +94,17 @@ export function RecommendationCard({
       <p className="mt-1 text-sm text-foreground-muted">{signal.explanation}</p>
 
       {signal.evidence.length > 0 ? (
-        <dl className="mt-3 space-y-1 border-t border-border/60 pt-3">
-          <dt className="text-[10px] font-semibold uppercase tracking-wide text-foreground-subtle">
+        <div className="mt-3 space-y-1 border-t border-border/60 pt-3">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-foreground-subtle">
             Evidence
-          </dt>
+          </p>
           {signal.evidence.slice(0, 3).map((item) => (
             <div key={item.label} className="flex items-center justify-between gap-3 text-xs">
-              <dd className="text-foreground-subtle">{item.label}</dd>
-              <dd className="font-medium tabular-nums text-foreground">{item.value}</dd>
+              <span className="text-foreground-subtle">{item.label}</span>
+              <span className="font-medium tabular-nums text-foreground">{item.value}</span>
             </div>
           ))}
-        </dl>
+        </div>
       ) : null}
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">

@@ -9,6 +9,7 @@ import {
   runWithTenantContext,
   type TenantContext,
 } from "@/lib/tenancy/context";
+import { resolveHarnessAuthUserId } from "@/lib/e2e/test-auth";
 import { isTestAuthBypassEnabled } from "@/lib/security/production-guards";
 
 export type AuthenticatedUser = {
@@ -19,7 +20,10 @@ export type AuthenticatedUser = {
 
 export async function requireAuthenticatedUser(): Promise<AuthenticatedUser> {
   if (isTestAuthBypassEnabled()) {
-    const testUserId = process.env.TEST_AUTH_USER_ID!;
+    const testUserId = (await resolveHarnessAuthUserId()) ?? process.env.TEST_AUTH_USER_ID ?? null;
+    if (!testUserId) {
+      throw new AppError("UNAUTHORIZED", "Authentication is required.");
+    }
     const provisioned = await ensureUserProfile({
       authUserId: testUserId,
       email: process.env.TEST_AUTH_EMAIL ?? "test@example.com",

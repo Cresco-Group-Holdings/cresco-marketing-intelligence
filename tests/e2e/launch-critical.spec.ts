@@ -1,4 +1,5 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./support/fixtures";
+import { requireLaunchE2e } from "./support/environment";
 
 test.describe("@launch-critical public website", () => {
   test("home page communicates product value", async ({ page }) => {
@@ -61,7 +62,7 @@ test.describe("@launch-critical legacy redirects", () => {
   });
 });
 
-test.describe("@launch-critical dev route gating", () => {
+test.describe("@preview-visual dev route gating", () => {
   test("dev preview routes are accessible in development for local QA", async ({ page }) => {
     await page.goto("/dev/command-centre-preview");
     await expect(page).toHaveURL(/\/dev\/command-centre-preview/);
@@ -70,16 +71,16 @@ test.describe("@launch-critical dev route gating", () => {
 
 test.describe("@launch-critical authenticated navigation", () => {
   test.beforeEach(() => {
-    test.skip(process.env.ALLOW_TEST_AUTH !== "true", "Requires ALLOW_TEST_AUTH for authenticated flows");
+    requireLaunchE2e(test);
   });
 
-  test("integrations page is canonical for provider connections", async ({ page }) => {
-    await page.goto("/integrations");
-    await expect(page.getByRole("heading", { name: "Integrations" })).toBeVisible();
+  test("integrations page is canonical for provider connections", async ({ ownerPage }) => {
+    await ownerPage.goto("/integrations");
+    await expect(ownerPage.getByRole("heading", { name: "Integrations" })).toBeVisible();
   });
 
-  test("content studio route is reachable", async ({ page }) => {
-    await page.goto("/content/studio");
-    await expect(page).toHaveURL(/\/content\/studio/);
+  test("content studio route is reachable", async ({ ownerPage }) => {
+    await ownerPage.goto("/content/studio");
+    await expect(ownerPage).toHaveURL(/\/content\/studio/);
   });
 });
