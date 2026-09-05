@@ -6,7 +6,7 @@ import {
 } from "@/lib/e2e/environment";
 
 function isTestAuthEnvEnabled(): boolean {
-  return process.env.ALLOW_TEST_AUTH === "true" && Boolean(process.env.TEST_AUTH_USER_ID);
+  return process.env.ALLOW_TEST_AUTH === "true";
 }
 
 /**

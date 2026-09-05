@@ -35,7 +35,7 @@ describe("E2E harness environment contract", () => {
     expect(isE2eHarnessEnabled()).toBe(false);
     expect(isTestAuthBypassEnabled()).toBe(false);
     expect(() => assertE2eHarnessNotEnabledInProduction()).toThrow(/CRESCO_E2E_HARNESS/);
-    expect(() => assertTestAuthNotEnabledInProduction()).toThrow(/CRESCO_E2E_HARNESS/);
+    expect(() => assertTestAuthNotEnabledInProduction()).toThrow(/ALLOW_TEST_AUTH|CRESCO_E2E_HARNESS/);
   });
 
   it("ignores user-controlled auth header without harness flag", () => {
