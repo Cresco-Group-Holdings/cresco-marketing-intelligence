@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiSuccess } from "@/lib/api/handler";
+import { extractCronTransportContext } from "@/lib/api/cron-transport";
 import { isAuthorisedCronRequest } from "@/lib/api/worker-auth";
 import { dailyCronDispatchService } from "@/server/services/daily-cron-dispatch-service";
 import { schedulerHealthService } from "@/server/services/scheduler-health-service";
 
-async function handleDailyDispatch(request: NextRequest) {
+/** Vercel Cron must always execute dynamically — never serve a cached/static response. */
+export const dynamic = "force-dynamic";
+
+async function executeDailyDispatch(request: NextRequest) {
   const requestId = randomUUID();
 
   if (!isAuthorisedCronRequest(request)) {
@@ -14,6 +18,8 @@ async function handleDailyDispatch(request: NextRequest) {
       { status: 403 },
     );
   }
+
+  const transport = extractCronTransportContext(request);
 
   const result = await dailyCronDispatchService.run({
     workerId: `vercel-cron-${requestId}`,
@@ -30,6 +36,7 @@ async function handleDailyDispatch(request: NextRequest) {
       passes: job.passes,
       stoppedReason: job.stoppedReason,
     })),
+    transport,
   });
 
   return apiSuccess(result, { requestId });
@@ -38,14 +45,13 @@ async function handleDailyDispatch(request: NextRequest) {
 /**
  * Vercel Hobby daily cron entry point.
  *
- * Registered in vercel.json (once per day). Fans out to internal job handlers in
- * bounded batches. High-frequency schedules remain documented in
- * src/lib/deployment/scheduling.ts for Pro / external workers.
+ * Vercel Cron invokes this route with HTTP GET. POST is retained for manual/internal
+ * execution with identical semantics.
  */
 export async function GET(request: NextRequest) {
-  return handleDailyDispatch(request);
+  return executeDailyDispatch(request);
 }
 
 export async function POST(request: NextRequest) {
-  return handleDailyDispatch(request);
+  return executeDailyDispatch(request);
 }

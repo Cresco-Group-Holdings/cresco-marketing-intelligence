@@ -1,11 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { apiSuccess } from "@/lib/api/handler";
+import { extractCronTransportContext } from "@/lib/api/cron-transport";
 import { isAuthorisedCronRequest } from "@/lib/api/worker-auth";
 import { PRIMARY_SCHEDULER_SOURCE } from "@/lib/deployment/scheduling";
 import { workerCycleService } from "@/server/services/worker-cycle-service";
 
-async function handleWorkerCycle(request: NextRequest) {
+/** Vercel Cron must always execute dynamically — never serve a cached/static response. */
+export const dynamic = "force-dynamic";
+
+async function executeWorkerCycle(request: NextRequest) {
   const requestId = randomUUID();
   if (!isAuthorisedCronRequest(request)) {
     return NextResponse.json(
@@ -16,6 +20,7 @@ async function handleWorkerCycle(request: NextRequest) {
 
   const limitParam = Number(request.nextUrl.searchParams.get("limit"));
   const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined;
+  const transport = extractCronTransportContext(request);
 
   const result = await workerCycleService.run({
     cycleId: requestId,
@@ -23,6 +28,7 @@ async function handleWorkerCycle(request: NextRequest) {
     workerId: `vercel-cron-${requestId}`,
     limit,
     includeLegacyPublishing: true,
+    transport,
   });
 
   if (result.degraded) {
@@ -47,13 +53,13 @@ async function handleWorkerCycle(request: NextRequest) {
 /**
  * Primary launch scheduler entry point (Vercel Pro cron, every 5 minutes).
  *
- * Invokes the canonical worker cycle: recover → dispatch → automation schedules → process.
- * Business logic lives in workerCycleService — this route is a thin authenticated trigger.
+ * Vercel Cron invokes this route with HTTP GET. POST is retained for manual/internal
+ * execution with identical semantics.
  */
 export async function GET(request: NextRequest) {
-  return handleWorkerCycle(request);
+  return executeWorkerCycle(request);
 }
 
 export async function POST(request: NextRequest) {
-  return handleWorkerCycle(request);
+  return executeWorkerCycle(request);
 }

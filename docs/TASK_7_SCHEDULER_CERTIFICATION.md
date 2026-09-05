@@ -4,9 +4,30 @@
 
 | Role | Mechanism | Cadence | Endpoint |
 |------|-----------|---------|----------|
-| **PRIMARY** | Vercel Cron (Pro) | `*/5 * * * *` | `POST /api/cron/worker-cycle` |
+| **PRIMARY** | Vercel Cron (Pro) | `*/5 * * * *` | `GET /api/cron/worker-cycle` |
 | **FALLBACK** | GitHub Actions watchdog | `*/30 * * * *` | `POST /api/workers/fallback-cycle` (only when primary heartbeat stale) |
-| **DAILY CATCH-UP** | Vercel Cron (Hobby-compatible) | `0 2 * * *` | `POST /api/cron/daily-dispatch` |
+| **DAILY CATCH-UP** | Vercel Cron (Hobby-compatible) | `0 2 * * *` | `GET /api/cron/daily-dispatch` |
+
+> **Vercel Cron transport:** Vercel invokes registered cron paths with **HTTP GET**. Both cron routes export `dynamic = "force-dynamic"` and return direct JSON (no redirects). `CRON_SECRET` bearer authentication is required; `user-agent: vercel-cron/1.0` and `x-vercel-cron-schedule` are captured for observability only.
+
+## Staging architecture (live certification)
+
+**Vercel Cron only automatically invokes Production deployments.** Normal Preview deployments do **not** receive Vercel Cron invocations.
+
+### Preferred staging model
+
+Use a **separate Vercel project** whose **Production** deployment is the staging environment:
+
+| Component | Requirement |
+|-----------|-------------|
+| Stable URL | Dedicated staging project URL (e.g. `cresco-staging.vercel.app`) |
+| Identifiable SHA | Git branch/tag deployed as that project's Production |
+| Staging DB | Isolated PostgreSQL / Supabase project |
+| `CRON_SECRET` | Set in staging Vercel Production environment |
+| `WORKER_TOKEN` | Set for GHA fallback watchdog against staging URL |
+| Provider boundary | Mock/test provider gateway — no live social posts |
+
+Do not certify scheduler timing against Preview deployments or against GitHub Actions as the primary clock.
 
 ## Launch SLA
 
@@ -35,6 +56,7 @@ The thin cron route delegates to `workerCycleService.run()`:
 - `source` (`vercel_cron`, `github_actions_fallback`, `daily_dispatch`, …)
 - `cycleId`
 - `startedAt` / `completedAt` / `durationMs`
+- `transport.userAgent` / `transport.vercelCronSchedule` (when present)
 - `recentCycles` history (last 24 entries in metadata)
 - Missed heartbeat threshold: **15 minutes** → operational alert
 

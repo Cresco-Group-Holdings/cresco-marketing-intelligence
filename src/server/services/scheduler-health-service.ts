@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/database/prisma";
+import type { CronTransportContext } from "@/lib/api/cron-transport";
 import { logger } from "@/lib/logging";
 import { operationalAlertService } from "@/server/services/operational-alert-service";
 
@@ -255,6 +256,7 @@ export const schedulerHealthService = {
       scheduledSkipped: number;
       jobsProcessed: number;
     };
+    transport?: CronTransportContext;
   }) {
     const heartbeat = await readHeartbeat();
     const existing = parseMetadata(heartbeat?.metadata);
@@ -301,6 +303,12 @@ export const schedulerHealthService = {
         automation: input.automation,
         process: input.process,
         publishing: input.publishing,
+        transport: input.transport
+          ? {
+              userAgent: input.transport.userAgent,
+              vercelCronSchedule: input.transport.vercelCronSchedule,
+            }
+          : undefined,
       },
     });
   },
@@ -312,6 +320,7 @@ export const schedulerHealthService = {
     durationMs: number;
     success: boolean;
     jobSummaries: Array<{ jobId: string; passes: number; stoppedReason: string }>;
+    transport?: CronTransportContext;
   }) {
     const heartbeat = await readHeartbeat();
     const existing = parseMetadata(heartbeat?.metadata);
@@ -337,6 +346,12 @@ export const schedulerHealthService = {
         success: input.success,
         jobs: input.jobSummaries,
         recentCycles,
+        transport: input.transport
+          ? {
+              userAgent: input.transport.userAgent,
+              vercelCronSchedule: input.transport.vercelCronSchedule,
+            }
+          : undefined,
       },
     });
   },

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { CronTransportContext } from "@/lib/api/cron-transport";
 import {
   evaluateScheduledExecutionGate,
   FALLBACK_SCHEDULER_SOURCE,
@@ -86,6 +87,7 @@ async function recordSkippedCycle(input: {
   startedAt: Date;
   skipReason: string;
   gate?: ReturnType<typeof evaluateScheduledExecutionGate>;
+  transport?: CronTransportContext;
 }): Promise<WorkerCycleResult> {
   const completedAt = new Date();
   const durationMs = completedAt.getTime() - input.startedAt.getTime();
@@ -98,6 +100,7 @@ async function recordSkippedCycle(input: {
     success: true,
     skipped: true,
     skipReason: input.skipReason,
+    transport: input.transport,
   });
 
   return {
@@ -126,6 +129,7 @@ export const workerCycleService = {
     limit?: number;
     includeLegacyPublishing?: boolean;
     fallbackOnlyIfStale?: boolean;
+    transport?: CronTransportContext;
   }): Promise<WorkerCycleResult> {
     const cycleId = input?.cycleId ?? randomUUID();
     const source = input?.source ?? PRIMARY_SCHEDULER_SOURCE;
@@ -143,6 +147,7 @@ export const workerCycleService = {
           source,
           startedAt,
           skipReason: "PRIMARY_HEALTHY",
+          transport: input?.transport,
         });
       }
     }
@@ -155,6 +160,7 @@ export const workerCycleService = {
         startedAt,
         skipReason: gate.reason ?? "GATE_BLOCKED",
         gate,
+        transport: input?.transport,
       });
     }
 
@@ -203,6 +209,7 @@ export const workerCycleService = {
         skipped: false,
         degraded,
         publishingError,
+        transport: input?.transport,
         recover: recovered,
         dispatch: {
           discovered: dispatch.discovered,
@@ -251,6 +258,7 @@ export const workerCycleService = {
         skipped: false,
         degraded: true,
         error: message,
+        transport: input?.transport,
       });
 
       logger.error("worker_cycle.failed", { cycleId, source, error: message });
