@@ -15,6 +15,16 @@ suite("usage reservation PostgreSQL concurrency", () => {
   beforeEach(async () => {
     await resetDatabase();
     tenant = await createTenant();
+    await prisma.usageMeter.upsert({
+      where: { key: "ai.tokens" },
+      create: {
+        key: "ai.tokens",
+        displayName: "AI Tokens",
+        unit: "tokens",
+        description: "Database certification fixture meter",
+      },
+      update: {},
+    });
   });
 
   afterAll(async () => {

@@ -205,9 +205,9 @@ const CHECKS = [
     description: "BillingAccount Stripe customer reused across organisations",
     severity: "P0",
     sql: `SELECT COUNT(*)::int AS count FROM (
-            SELECT "stripeCustomerId", COUNT(DISTINCT "organisationId") AS orgs
+            SELECT "externalCustomerRef", COUNT(DISTINCT "organisationId") AS orgs
             FROM "BillingAccount"
-            WHERE "stripeCustomerId" IS NOT NULL
+            WHERE "externalCustomerRef" IS NOT NULL
             GROUP BY 1
             HAVING COUNT(DISTINCT "organisationId") > 1
           ) d`,

@@ -104,7 +104,7 @@ suite("Task 3 tenant isolation certification", () => {
     const { organisationService } = await import("@/server/services/workspace-service");
     await expect(
       organisationService.getById(tenantA.organisation.id, tenantContext(tenantB)),
-    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
   });
 
   it("prevents Tenant B from mutating Tenant A content", async () => {
