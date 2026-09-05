@@ -91,22 +91,25 @@ Findings from `audit:data-integrity` are **report-only**. No automatic destructi
 - manual review
 - retain intentionally
 
-## 9. Certification status template
+## 9. Certification status (2026-09-05 closure attempt)
 
-Fill at release gate after CI green + staging/production read-only audits:
+See **`docs/TASK_3_DATABASE_CERTIFICATION_CLOSURE.md`** for the full live-evidence report.
 
 ```
 P0 = 0
-P1 = 0
-P2 = documented only
+P1 = 4  (staging RLS, production integrity, restore test, backup verification not executed)
+P2 = 1  (production migrate workflow stale since 2026-08-19)
 
-Database Architecture /10
-Tenant Isolation /10
-RLS /10
-Migration Safety /10
-Data Integrity /10
-Backup/Recovery /10 (requires successful restore test for full 10/10)
+Database Architecture /10  — 10
+Tenant Isolation /10      — 8  (CI pending)
+RLS /10                   — 7  (static pass; live staging pending)
+Migration Safety /10      — 9
+Data Integrity /10        — 5
+Backup/Recovery /10       — 3  (no live restore)
 
-Final database score /10
-TASK 3 DATABASE CERTIFICATION PASSED | FAILED
+Final database score /10    — 7
+
+TASK 3 DATABASE CERTIFICATION FAILED
 ```
+
+**To pass:** merge PR #158, run `.github/workflows/database-certification.yml` with staging/production secrets, complete restore exercise, set P1 = 0.
