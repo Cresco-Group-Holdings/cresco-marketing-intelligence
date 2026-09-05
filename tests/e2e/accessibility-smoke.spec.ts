@@ -42,6 +42,11 @@ test.describe("@launch-critical accessibility smoke", () => {
       if ((await loading.count()) > 0) {
         await loading.waitFor({ state: "detached", timeout: 30_000 });
       }
+      if (route.path === "/dashboard") {
+        await ownerPage
+          .getByRole("heading", { name: "Marketing Command Centre" })
+          .waitFor({ timeout: 30_000 });
+      }
       const results = await new AxeBuilder({ page: ownerPage })
         .disableRules(["color-contrast"])
         .analyze();

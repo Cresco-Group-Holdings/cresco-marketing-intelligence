@@ -1,5 +1,5 @@
 import { test, expect } from "./support/fixtures";
-import { requireLaunchE2e } from "./support/environment";
+import { authHeaders, requireLaunchE2e } from "./support/environment";
 import { attachLaunchGates, assertLaunchGates } from "./support/gates";
 
 test.describe("@launch-critical incident #156 calendar resilience", () => {
@@ -36,51 +36,84 @@ test.describe("@launch-critical incident #156 calendar resilience", () => {
     await expect(page.getByRole("button", { name: "Month" })).toBeVisible();
   }
 
-  test("calendar remains usable when activation optional dependency fails", async ({
-    ownerPage,
-  }, testInfo) => {
-    const gates = attachLaunchGates(ownerPage, testInfo);
-    await mockOptionalDependencyFailures(ownerPage, { activation: true, commandCentre: false });
-
-    await ownerPage.goto("/calendar", { waitUntil: "domcontentloaded" });
-    await assertCalendarUsable(ownerPage);
-
-    assertLaunchGates(gates, {
-      allow5xx: [/\/api\/activation/],
+  async function withAuthenticatedPage(
+    browser: import("@playwright/test").Browser,
+    authUserId: string,
+    testInfo: import("@playwright/test").TestInfo,
+    run: (page: import("@playwright/test").Page, gates: ReturnType<typeof attachLaunchGates>) => Promise<void>,
+  ) {
+    const context = await browser.newContext({
+      extraHTTPHeaders: authHeaders(authUserId),
     });
-    gates.stop();
+    const page = await context.newPage();
+    const gates = attachLaunchGates(page, testInfo);
+    try {
+      await run(page, gates);
+    } finally {
+      gates.stop();
+      await context.close();
+    }
+  }
+
+  test("calendar remains usable when activation optional dependency fails", async ({
+    browser,
+    tenantManifest,
+  }, testInfo) => {
+    await withAuthenticatedPage(
+      browser,
+      tenantManifest.tenantA.users.owner.authUserId,
+      testInfo,
+      async (page, gates) => {
+        await mockOptionalDependencyFailures(page, { activation: true, commandCentre: false });
+        await page.goto("/calendar", { waitUntil: "domcontentloaded" });
+        await assertCalendarUsable(page);
+        assertLaunchGates(gates, {
+          allow5xx: [/\/api\/activation/],
+          allowConsole: [/503/, /api\/activation/],
+        });
+      },
+    );
   });
 
   test("calendar remains usable when command centre optional dependency fails", async ({
-    ownerPage,
+    browser,
+    tenantManifest,
   }, testInfo) => {
-    const gates = attachLaunchGates(ownerPage, testInfo);
-    await mockOptionalDependencyFailures(ownerPage, { activation: false, commandCentre: true });
-
-    await ownerPage.goto("/calendar", { waitUntil: "domcontentloaded" });
-    await assertCalendarUsable(ownerPage);
-
-    assertLaunchGates(gates, {
-      allow5xx: [/\/api\/dashboard\/command-centre/],
-    });
-    gates.stop();
+    await withAuthenticatedPage(
+      browser,
+      tenantManifest.tenantA.users.owner.authUserId,
+      testInfo,
+      async (page, gates) => {
+        await mockOptionalDependencyFailures(page, { activation: false, commandCentre: true });
+        await page.goto("/calendar", { waitUntil: "domcontentloaded" });
+        await assertCalendarUsable(page);
+        assertLaunchGates(gates, {
+          allow5xx: [/\/api\/dashboard\/command-centre/],
+          allowConsole: [/503/, /command-centre/],
+        });
+      },
+    );
   });
 
   test("app shell survives when both optional dependencies fail with bounded requests", async ({
-    ownerPage,
+    browser,
+    tenantManifest,
   }, testInfo) => {
-    const gates = attachLaunchGates(ownerPage, testInfo);
-    await mockOptionalDependencyFailures(ownerPage, { activation: true, commandCentre: true });
-
-    await ownerPage.goto("/calendar", { waitUntil: "domcontentloaded" });
-    await assertCalendarUsable(ownerPage);
-
-    await ownerPage.goto("/dashboard", { waitUntil: "domcontentloaded" });
-    await expect(ownerPage.locator("body")).toBeVisible();
-
-    assertLaunchGates(gates, {
-      allow5xx: [/\/api\/activation/, /\/api\/dashboard\/command-centre/],
-    });
-    gates.stop();
+    await withAuthenticatedPage(
+      browser,
+      tenantManifest.tenantA.users.owner.authUserId,
+      testInfo,
+      async (page, gates) => {
+        await mockOptionalDependencyFailures(page, { activation: true, commandCentre: true });
+        await page.goto("/calendar", { waitUntil: "domcontentloaded" });
+        await assertCalendarUsable(page);
+        await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
+        await expect(page.locator("body")).toBeVisible();
+        assertLaunchGates(gates, {
+          allow5xx: [/\/api\/activation/, /\/api\/dashboard\/command-centre/],
+          allowConsole: [/503/, /api\/activation/, /command-centre/],
+        });
+      },
+    );
   });
 });
