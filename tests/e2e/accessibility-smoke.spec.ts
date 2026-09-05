@@ -38,6 +38,10 @@ test.describe("@launch-critical accessibility smoke", () => {
     test(`${route.label} has no serious or critical accessibility violations`, async ({ ownerPage }) => {
       await ownerPage.goto(route.path, { waitUntil: "domcontentloaded" });
       expect(ownerPage.url()).not.toMatch(/\/login(?:\?|$)/);
+      const loading = ownerPage.locator('[aria-label="Loading dashboard"]');
+      if ((await loading.count()) > 0) {
+        await loading.waitFor({ state: "detached", timeout: 30_000 });
+      }
       const results = await new AxeBuilder({ page: ownerPage })
         .disableRules(["color-contrast"])
         .analyze();

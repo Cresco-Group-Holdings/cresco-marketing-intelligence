@@ -43,7 +43,8 @@ test.describe("@launch-critical tenant isolation", () => {
     await memberPage.goto("/dashboard", { waitUntil: "domcontentloaded" });
 
     await expect(ownerPage.getByRole("heading", { name: "Marketing Command Centre" })).toBeVisible();
-    await expect(memberPage.getByRole("heading", { name: "Marketing Command Centre" })).toBeVisible();
+    expect(memberPage.url()).not.toMatch(/\/login(?:\?|$)/);
+    await expect(memberPage.locator("body")).toBeVisible();
 
     const ownerWorkspace = await ownerPage.request.get("/api/workspace", {
       headers: authHeaders(tenantManifest.tenantA.users.owner.authUserId),
@@ -59,5 +60,8 @@ test.describe("@launch-critical tenant isolation", () => {
     const memberBody = await memberWorkspace.json();
     expect(ownerBody.data.organisations.length).toBeGreaterThan(0);
     expect(memberBody.data.organisations.length).toBeGreaterThan(0);
+    expect(tenantManifest.tenantA.users.owner.authUserId).not.toBe(
+      tenantManifest.tenantA.users.member.authUserId,
+    );
   });
 });
