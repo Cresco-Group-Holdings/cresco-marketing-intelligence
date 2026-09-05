@@ -87,11 +87,14 @@ test.describe("@launch-critical harness certification", () => {
     });
     const page = await context.newPage();
     const gates = attachLaunchGates(page, testInfo);
-    await page.route("**/api/workspace**", async (route) => {
+    await page.route("**/api/dashboard/command-centre**", async (route) => {
       await route.fulfill({ status: 500, body: "forced failure" });
     });
     await page.goto("/dashboard", { waitUntil: "domcontentloaded" });
-    expect(gates.unexpected5xx.some((entry) => entry.url.includes("/api/workspace"))).toBe(true);
+    await page.waitForTimeout(1500);
+    expect(
+      gates.unexpected5xx.some((entry) => entry.url.includes("/api/dashboard/command-centre")),
+    ).toBe(true);
     gates.stop();
     await context.close();
   });

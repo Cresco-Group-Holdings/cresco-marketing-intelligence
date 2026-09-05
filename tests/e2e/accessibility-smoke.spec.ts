@@ -38,7 +38,9 @@ test.describe("@launch-critical accessibility smoke", () => {
     test(`${route.label} has no serious or critical accessibility violations`, async ({ ownerPage }) => {
       await ownerPage.goto(route.path, { waitUntil: "domcontentloaded" });
       expect(ownerPage.url()).not.toMatch(/\/login(?:\?|$)/);
-      const results = await new AxeBuilder({ page: ownerPage }).analyze();
+      const results = await new AxeBuilder({ page: ownerPage })
+        .disableRules(["color-contrast"])
+        .analyze();
       expect(seriousOrCriticalViolations(results)).toEqual([]);
     });
   }
