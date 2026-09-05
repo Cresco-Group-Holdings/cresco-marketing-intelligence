@@ -75,6 +75,7 @@ export function BillingSettingsPanel() {
   const organisationId = preference.currentOrganisationId;
   const [account, setAccount] = useState<BillingAccountResponse | null>(null);
   const [plans, setPlans] = useState<PlanOption[]>([]);
+  const [selfServiceCheckoutEnabled, setSelfServiceCheckoutEnabled] = useState(false);
   const [invoices, setInvoices] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -89,7 +90,7 @@ export function BillingSettingsPanel() {
         apiFetch<BillingAccountResponse>(`/api/billing/account?organisationId=${organisationId}`, {
           organisationId,
         }),
-        apiFetch<{ plans: PlanOption[] }>(`/api/billing/plans?organisationId=${organisationId}`, {
+        apiFetch<{ plans: PlanOption[]; selfServiceCheckoutEnabled: boolean }>(`/api/billing/plans?organisationId=${organisationId}`, {
           organisationId,
         }),
         apiFetch<{ invoices: InvoiceRow[] }>(`/api/billing/invoices?organisationId=${organisationId}`, {
@@ -98,6 +99,7 @@ export function BillingSettingsPanel() {
       ]);
       setAccount(accountData);
       setPlans(planData.plans);
+      setSelfServiceCheckoutEnabled(planData.selfServiceCheckoutEnabled);
       setInvoices(invoiceData.invoices);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : "Failed to load billing data.");
@@ -236,19 +238,27 @@ export function BillingSettingsPanel() {
               </p>
             ) : null}
             <div className="flex flex-wrap gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => void handlePortal()}>
-                Payment methods & invoices
-              </Button>
-              {account?.summary.subscription && !account.summary.subscription.cancelAtPeriodEnd ? (
-                <Button variant="outline" size="sm" onClick={() => void handleCancel(false)}>
-                  Cancel at period end
-                </Button>
-              ) : null}
-              {account?.summary.subscription?.cancelAtPeriodEnd ? (
-                <Button variant="outline" size="sm" onClick={() => void handleResume()}>
-                  Resume subscription
-                </Button>
-              ) : null}
+              {selfServiceCheckoutEnabled ? (
+                <>
+                  <Button variant="outline" size="sm" onClick={() => void handlePortal()}>
+                    Payment methods & invoices
+                  </Button>
+                  {account?.summary.subscription && !account.summary.subscription.cancelAtPeriodEnd ? (
+                    <Button variant="outline" size="sm" onClick={() => void handleCancel(false)}>
+                      Cancel at period end
+                    </Button>
+                  ) : null}
+                  {account?.summary.subscription?.cancelAtPeriodEnd ? (
+                    <Button variant="outline" size="sm" onClick={() => void handleResume()}>
+                      Resume subscription
+                    </Button>
+                  ) : null}
+                </>
+              ) : (
+                <p className="text-xs text-foreground-muted">
+                  Self-service checkout is not yet available. Contact your account team to upgrade.
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -292,7 +302,11 @@ export function BillingSettingsPanel() {
       <Card className="mt-4">
         <CardHeader>
           <CardTitle>Compare plans</CardTitle>
-          <CardDescription>Upgrade or downgrade your workspace subscription.</CardDescription>
+          <CardDescription>
+            {selfServiceCheckoutEnabled
+              ? "Upgrade or downgrade your workspace subscription."
+              : "Plan comparison for your workspace. Self-service checkout opens after billing launch."}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4 flex gap-2">
@@ -334,7 +348,7 @@ export function BillingSettingsPanel() {
                       </p>
                       {isCurrent ? (
                         <Badge variant="muted">Current plan</Badge>
-                      ) : (
+                      ) : selfServiceCheckoutEnabled ? (
                         <div className="flex flex-wrap gap-2">
                           <Button size="sm" onClick={() => void handleCheckout(plan.key)}>
                             {currentPlanKey === "free" ? "Subscribe" : "Upgrade"}
@@ -345,6 +359,8 @@ export function BillingSettingsPanel() {
                             </Button>
                           ) : null}
                         </div>
+                      ) : (
+                        <p className="text-xs text-foreground-muted">Checkout coming soon</p>
                       )}
                     </CardContent>
                   </Card>

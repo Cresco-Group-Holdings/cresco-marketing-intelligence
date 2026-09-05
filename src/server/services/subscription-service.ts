@@ -8,6 +8,7 @@ import { resolvePlanKeyFromStripePriceId } from "@/lib/billing/commercial-config
 import { trackCommercialEvent } from "@/lib/billing/commercial-analytics";
 import { mapStripeStatusToSubscriptionStatus } from "@/lib/billing/subscription-state";
 import { isStripeBillingConfigured } from "@/server/providers/billing/stripe-billing-provider";
+import { assertBillingSelfServiceAvailable } from "@/lib/billing/launch-policy";
 import { billingAccountService } from "@/server/services/billing-account-service";
 import { entitlementService } from "@/server/services/entitlement-service";
 import { stripeBillingProvider } from "@/server/providers/billing/stripe-billing-provider";
@@ -87,6 +88,8 @@ export const subscriptionService = {
     context: TenantContext,
     input: { planKey: string; billingInterval: BillingInterval; successUrl: string; cancelUrl: string; promoCode?: string },
   ) {
+    assertBillingSelfServiceAvailable();
+
     const account = await billingAccountService.getAccount(context.organisationId);
     const planVersion = await getCurrentPlanVersion(input.planKey);
     if (!planVersion) throw new AppError("NOT_FOUND", "Plan not found.");
@@ -137,6 +140,8 @@ export const subscriptionService = {
   },
 
   async openPortal(context: TenantContext, returnUrl: string) {
+    assertBillingSelfServiceAvailable();
+
     const account = await billingAccountService.getAccount(context.organisationId);
     if (!account.externalCustomerRef) {
       throw new AppError("VALIDATION_ERROR", "No billing customer on file.");

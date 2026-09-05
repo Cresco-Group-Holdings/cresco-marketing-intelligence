@@ -10,14 +10,37 @@ import {
 
 export { isProductionEnvironment };
 
-/** Throws if test-auth bypass or harness mode is enabled in production. */
+const FORBIDDEN_PRODUCTION_ENV_FLAGS = [
+  "ALLOW_TEST_AUTH",
+  "CRESCO_E2E_HARNESS",
+] as const;
+
+function isForbiddenProductionFlagEnabled(flag: string): boolean {
+  const value = process.env[flag];
+  return value === "true" || value === "1";
+}
+
+/** Throws if test-auth or E2E harness bypass is enabled in production. */
 export function assertTestAuthNotEnabledInProduction(): void {
-  assertE2eHarnessNotEnabledInProduction();
-  if (isProductionEnvironment() && process.env.ALLOW_TEST_AUTH === "true") {
-    throw new Error(
-      "ALLOW_TEST_AUTH cannot be enabled in production. Remove it from environment configuration.",
-    );
+  if (!isProductionEnvironment()) {
+    return;
   }
+
+  for (const flag of FORBIDDEN_PRODUCTION_ENV_FLAGS) {
+    if (isForbiddenProductionFlagEnabled(flag)) {
+      throw new Error(
+        `${flag} cannot be enabled in production. Remove it from environment configuration.`,
+      );
+    }
+  }
+}
+
+/** Returns true when E2E harness mode is explicitly enabled (never in production). */
+export function isE2EHarnessEnabled(): boolean {
+  if (isProductionEnvironment()) {
+    return false;
+  }
+  return isForbiddenProductionFlagEnabled("CRESCO_E2E_HARNESS");
 }
 
 /** Safe check for middleware — returns false in production even if env is set. */

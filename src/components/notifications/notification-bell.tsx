@@ -26,14 +26,20 @@ export function NotificationBell() {
 
   const load = useCallback(async () => {
     if (!organisationId) return;
-    const data = await apiFetch<{
-      unread: number;
-      items: NotificationItem[];
-    }>(`/api/notifications?organisationId=${organisationId}&limit=8&unreadOnly=false`, {
-      organisationId,
-    });
-    setUnread(data.unread);
-    setItems(data.items);
+    try {
+      const data = await apiFetch<{
+        unread: number;
+        items: NotificationItem[];
+      }>(`/api/notifications?organisationId=${organisationId}&limit=8&unreadOnly=false`, {
+        organisationId,
+        retry: false,
+      });
+      setUnread(data.unread);
+      setItems(data.items);
+    } catch {
+      setUnread(0);
+      setItems([]);
+    }
   }, [organisationId]);
 
   useEffect(() => {

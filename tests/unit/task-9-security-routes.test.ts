@@ -26,6 +26,12 @@ describe("production guards", () => {
     expect(() => assertTestAuthNotEnabledInProduction()).toThrow(/ALLOW_TEST_AUTH/);
   });
 
+  it("throws when E2E harness is enabled in production", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("CRESCO_E2E_HARNESS", "true");
+    expect(() => assertTestAuthNotEnabledInProduction()).toThrow(/CRESCO_E2E_HARNESS/);
+  });
+
   it("disables test auth bypass in production even if env is set", () => {
     vi.stubEnv("NODE_ENV", "production");
     vi.stubEnv("ALLOW_TEST_AUTH", "true");
