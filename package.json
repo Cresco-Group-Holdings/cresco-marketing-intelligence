@@ -17,6 +17,8 @@
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
+    "test:golden": "vitest run --config vitest.golden.config.ts",
+    "test:golden:certify": "node scripts/run-golden-journeys.mjs",
     "test:database": "vitest run --config vitest.database.config.ts",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
