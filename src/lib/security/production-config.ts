@@ -4,6 +4,7 @@ import {
   SELF_SERVICE_PLAN_KEYS,
   STRIPE_PRICE_ENV_BY_PLAN,
 } from "@/lib/billing/commercial-config";
+import { isBillingSelfServiceLaunchEnabled } from "@/lib/billing/launch-policy";
 import { isStripeBillingConfigured } from "@/server/providers/billing/stripe-billing-provider";
 import {
   getCustomerConnectableLaunchMinimum,
@@ -172,7 +173,8 @@ export function validateStripeConfiguration(): ConfigCheckResult[] {
   const checks: ConfigCheckResult[] = [];
   const mode = resolveConfigMode();
   const strict = isStrictProductionMode(mode);
-  const billingEnabled = isStripeBillingConfigured() || strict;
+  const billingLaunchEnabled = isBillingSelfServiceLaunchEnabled();
+  const billingEnabled = billingLaunchEnabled && (isStripeBillingConfigured() || strict);
 
   const secretKey =
     process.env.STRIPE_BILLING_SECRET_KEY ?? process.env.STRIPE_SECRET_KEY;
@@ -184,6 +186,16 @@ export function validateStripeConfiguration(): ConfigCheckResult[] {
 
   const secretMode = stripeKeyMode(secretKey);
   const publishableMode = stripeKeyMode(publishableKey);
+
+  pushCheck(checks, {
+    id: "stripe-billing-launch-policy",
+    category: "stripe",
+    message: billingLaunchEnabled
+      ? "Self-service billing is launch-enabled."
+      : "Self-service billing is intentionally disabled for launch (NOT LAUNCH-ENABLED).",
+    severity: "info",
+    pass: true,
+  });
 
   pushCheck(checks, {
     id: "stripe-billing-configured",
@@ -210,7 +222,7 @@ export function validateStripeConfiguration(): ConfigCheckResult[] {
     });
   }
 
-  if (strict) {
+  if (strict && billingLaunchEnabled) {
     pushCheck(checks, {
       id: "stripe-production-live-mode",
       category: "stripe",
@@ -345,6 +357,7 @@ export function validateApplicationUrls(): ConfigCheckResult[] {
 
 export function validateDatabaseConnectionMode(): ConfigCheckResult[] {
   const checks: ConfigCheckResult[] = [];
+  const strict = isStrictProductionMode(resolveConfigMode());
   const databaseUrl = process.env.DATABASE_URL ?? "";
   const directUrl = process.env.DIRECT_URL ?? "";
 

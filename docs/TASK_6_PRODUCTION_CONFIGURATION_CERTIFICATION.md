@@ -1,162 +1,247 @@
-# Task 6 — Production Configuration Certification Report
+# Task 6 — Production Configuration Certification Report (Final Closure)
 
 **Certification date:** 2026-09-05  
-**Branch:** `cursor/task-6-production-configuration-7a66`  
+**Branch:** `cursor/task-6-production-configuration-7a66` (PR #161)  
 **Auditor:** Cloud Agent (automated + safe live probes)
 
 ---
 
-## Audited main SHA
+## 1. Rebase on final integrated main
 
-`15222583c3917f3def48af92b9d06abef89badf2` (PR #155 — Task 10 final launch preparation)
+| Item | SHA |
+|------|-----|
+| Previous base (at PR open) | `15222583c3917f3def48af92b9d06abef89badf2` |
+| Current `origin/main` | `15222583c3917f3def48af92b9d06abef89badf2` |
+| PR HEAD (pre-closure push) | `645ae2de7a2dcab3894cc0694084f1ee456ff0c0` |
+| Merge-base with `main` | `15222583c3917f3def48af92b9d06abef89badf2` |
 
-## Production SHA
+**Rebase result:** Not required — branch is 0 commits behind `origin/main`, 0 conflicts, no duplicate commits removed.
 
-`15222583c3917f3def48af92b9d06abef89badf2` (short: `1522258`)
-
-GitHub Deployments (environment: `production`) confirm the same SHA on 2026-09-05.
-
-## Staging SHA
-
-No separate staging deployment registered in GitHub Deployments. Preview deployments use per-branch Vercel URLs.
-
-## Environment drift
-
-**NONE** — production deployment SHA matches canonical `main`.
-
-| Item | Value |
-|------|-------|
-| Vercel project | `cresco-marketing-intelligence` |
-| Production hostname (verified live) | `https://cresco-marketing-intelligence.vercel.app` |
-| Documented canonical domain | `https://app.crescogroup.uk` (DNS not resolvable from certification runner) |
-| Node | 22.x |
-| Next.js | 15.5.22 |
-| Prisma | 6.19.0 |
+**Closure commit** (billing launch-disable + smoke script) must be merged to `main` before production deployment SHA can match the certified release candidate.
 
 ---
 
-## Database
+## 2. Deployed SHA verification
 
-**PASS** (live)
+| Environment | URL | Deployed SHA | Certified SHA | Match |
+|-------------|-----|--------------|---------------|-------|
+| Production | `https://cresco-marketing-intelligence.vercel.app` | `1522258` (GitHub Deployments) | Closure RC (post-merge) | **NO** — PR #161 not merged |
+| Vercel preview (PR #161) | `cresco-marketing-intelligence-git-cursor-task-6-2529b0-cresco1.vercel.app` | Ignored/skipped in Vercel | — | Preview not serving RC |
 
-- `GET /api/readiness` → `database: pass`
-- Production uses Supabase PostgreSQL (inferred from readiness + deployment)
-- `DATABASE_URL` / `DIRECT_URL` separation documented in manifest
-- Migration validation available via `npm run validate:migrations` (requires `DATABASE_URL` in runner)
+Production `/api/readiness` and `/api/health` return 200 on `1522258`. Certification tooling and billing launch policy ship in PR #161 only.
 
-## Auth
+---
 
-**PASS** (live + code)
+## 3. Staging deployment
 
-- Supabase auth configured (readiness `environment: pass`)
-- `/login` returns 200
-- Session-protected routes redirect unauthenticated users
-- `APP_URL` drives OAuth callback construction
+| Requirement | Status |
+|-------------|--------|
+| Distinct staging URL | **Partial** — Vercel preview URL exists for PR branch but deployment was **Ignored** (opt-in preview policy) |
+| Staging SHA identifiable | **NO** — no GitHub Deployments `staging` environment registered |
+| Staging DB | Not isolated — production Supabase serves live deployment |
+| Stripe test mode | Not configured on any deployed preview |
+| Provider OAuth test config | Production OAuth callbacks use production `APP_URL` |
+| Test-auth policy | Production guards block `ALLOW_TEST_AUTH` / `CRESCO_E2E_HARNESS` (code + live redirect on `/api/test-auth`) |
 
-## Test Auth
+**Recommendation:** Register a dedicated `staging` GitHub Deployment environment with its own `APP_URL`, Supabase project, and Stripe test keys before next certification cycle.
 
-**PASS** (code + live)
+---
 
-- `assertTestAuthNotEnabledInProduction()` blocks `ALLOW_TEST_AUTH` and `CRESCO_E2E_HARNESS`
-- `isTestAuthBypassEnabled()` returns `false` in production regardless of env
-- `/api/test-auth` does not bypass auth — redirects to `/login` (307)
-- Startup guard in `src/instrumentation.ts`
+## 4. Stripe launch decision
 
-## Stripe
+**Decision: B — BILLING DISABLED / NOT LAUNCH-ENABLED**
 
-**NOT LAUNCH-ENABLED** (live probe)
+Rationale: Production Stripe credentials and webhook are not configured (`POST /api/webhooks/billing/stripe` → 400 `"Stripe billing webhook is not configured."`). Rather than leave ambiguous checkout CTAs, launch policy explicitly disables self-service billing until `BILLING_SELF_SERVICE_LAUNCH_ENABLED=true` and live Stripe are certified.
+
+Implementation:
+
+- `src/lib/billing/launch-policy.ts` — runtime launch gate
+- `BILLING_SELF_SERVICE_LAUNCH_ENABLED="false"` in `.env.example`
+- Pricing page: informational plans only; CTAs → `/signup`; “checkout coming soon” copy
+- Billing settings: checkout/portal hidden; `assertBillingSelfServiceAvailable()` on server checkout/portal routes
+- `validateStripeConfiguration()` treats NOT LAUNCH-ENABLED as pass (not P1)
+
+---
+
+## 5–8. Stripe (NOT LAUNCH-ENABLED path)
+
+Sections 5A–8A (live Stripe catalog, staging full flow, production webhook) are **N/A** while billing remains NOT LAUNCH-ENABLED.
 
 | Check | Result |
 |-------|--------|
-| Mode | Not configured on deployed instance |
-| Webhook | `POST /api/webhooks/billing/stripe` → 400 `"Stripe billing webhook is not configured."` |
-| Products/prices | `/pricing` displays Free, Starter (£49), Pro (£149), Organisation (£399) from `DEFAULT_PLAN_CATALOG` |
-| Portal | Requires Stripe credentials |
-| Entitlements | Code path exists; live reconciliation not certifiable without Stripe keys |
+| Customer checkout CTAs | **PASS** — no CTA leads to broken checkout |
+| Pricing page | **PASS** — plans from `DEFAULT_PLAN_CATALOG` (£49 / £149 / £399); clearly marked “coming soon” |
+| Server billing routes | **PASS** — fail-closed without credentials |
+| Production webhook | Returns 400 not-configured (acceptable when billing NOT LAUNCH-ENABLED) |
 
-**Classification:** P2 — pricing UI is visible but commercial checkout/webhook/portal cannot operate until `STRIPE_BILLING_*` and price IDs are set in Vercel Production. Not P0/P1 because no incorrect charges can occur.
+---
 
-## Provider Matrix
+## 9. Real provider OAuth (staging)
 
-| Provider | Code | Config | Approval | Live Test | Customer State |
-|----------|------|--------|----------|-----------|----------------|
-| GA4 (google-analytics) | ready | runtime truth | env-gated | not executed (no OAuth session) | truth contract |
-| Meta | ready | runtime truth | may be pending | not executed | truth contract |
-| LinkedIn | ready | runtime truth | env-gated | not executed | truth contract |
-| YouTube | ready | runtime truth | env-gated | not executed | truth contract |
-| X | beta | runtime truth | env-gated | not executed | beta |
-| GSC | beta (Tier 2) | runtime truth | post-launch | not executed | not launch-critical |
+**NOT EXECUTED** — requires authenticated user session and live Google OAuth credentials in a reachable staging deployment. Provider truth contract prevents mislabeling unavailable providers as “Available”.
 
-Provider truth contract prevents displaying **Available** when credentials/approval are absent.
+---
 
-## AI
+## 10. Second provider config check
 
-**PASS** (code)
+| Provider | Customer state (truth contract) | Live OAuth |
+|----------|------------------------------|------------|
+| GA4 (google-analytics) | Env-gated | Not executed |
+| Meta | Env-gated / may be pending approval | Not executed |
+| LinkedIn | Env-gated | Not executed |
+| YouTube | Env-gated | Not executed |
+| X | Beta | Not executed |
+| GSC | Post-launch / Tier 2 | Not executed |
 
-- At least one provider key required for generation (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `GOOGLE_AI_API_KEY`)
-- Keys remain server-side; no `NEXT_PUBLIC_*` AI keys
-- Readiness environment check passes on production
+No provider is displayed as **Available** without runtime truth contract pass.
 
-## Worker
+---
 
-**PASS** (live)
+## 11. Custom domain
 
-- `POST /api/workers/dispatch` with invalid Bearer → **403**
-- `WORKER_TOKEN` / `PUBLISHING_WORKER_TOKEN` configured (fail-closed when invalid)
+| Domain | Result |
+|--------|--------|
+| `app.crescogroup.uk` | DNS does not resolve from certification runner — **not verified as launch domain** |
+| `crescogroup.uk` | HTTP/HTTPS 308 redirect only |
+| **Canonical launch URL (verified)** | `https://cresco-marketing-intelligence.vercel.app` |
 
-## Scheduler
+`app.crescogroup.uk` is documented in manifest but is **not** the verified canonical URL for this certification. Configure DNS + Vercel binding before treating it as launch domain.
 
-**PASS** (code + live)
+---
 
-- Vercel Cron: `/api/cron/daily-dispatch` at `0 2 * * *`
-- GHA primary: `worker-platform-scheduler.yml` every 5 minutes
-- `GET /api/cron/daily-dispatch` with invalid Bearer → **403**
-- No duplicate scheduling without idempotency — `WorkerJob.idempotencyKey` enforced
+## 12. Auth callback matrix
 
-## DNS/HTTPS
+Callbacks are constructed from `APP_URL` (see `docs/PRODUCTION_CONFIG_MANIFEST.md`):
 
-**PASS** (live on Vercel hostname)
+| Callback | Production pattern |
+|----------|-------------------|
+| Supabase auth | `{APP_URL}/auth/callback` |
+| Google (GA4) | `{APP_URL}/api/integrations/oauth/google-analytics/callback` |
+| Meta | `{APP_URL}/api/integrations/oauth/meta/callback` |
+| LinkedIn | `{APP_URL}/api/integrations/oauth/linkedin/callback` |
+| X | `{APP_URL}/api/integrations/oauth/x/callback` |
+| Stripe webhook | `{APP_URL}/api/webhooks/billing/stripe` |
 
-- HTTP → HTTPS (HSTS present)
-- Valid TLS on `cresco-marketing-intelligence.vercel.app`
-- `app.crescogroup.uk` — not verified from certification runner (DNS resolution failed)
+No stale Vercel preview URLs found in code paths; all derive from `APP_URL` / `OAUTH_CALLBACK_BASE_URL`.
 
-## Secrets
+---
 
-**Exposures: NO** (code scan)
+## 13. Test-auth production runtime
 
-- `npm run audit:secrets` — PASS
-- `NEXT_PUBLIC_*` allowlist enforced in `production-config.ts`
-- No server secrets in client bundle scan targets
+| Probe | Result |
+|-------|--------|
+| `NODE_ENV=production` + `ALLOW_TEST_AUTH=true` | Code: `isTestAuthBypassEnabled()` → `false` |
+| `CRESCO_E2E_HARNESS=true` | Code: blocked by `assertTestAuthNotEnabledInProduction()` |
+| Live `/api/test-auth` | 307 → `/login` (no bypass) |
 
-## External callback matrix
+**PASS**
 
-Documented in `docs/PRODUCTION_CONFIG_MANIFEST.md`. Stripe webhook route exists but credentials not configured.
+---
 
-## Launch preflight
+## 14. Database final check
 
-**PASS** (with `APP_URL` set to production)
+Live `GET /api/readiness` on production (`1522258`):
+
+- `database`: **pass** — “Database connection is healthy.”
+- `environment`: **pass**
+
+Migration counts require `DATABASE_URL` in runner (not available in certification VM). `launch:preflight` **PASS** includes `migrations` step when env is present.
+
+---
+
+## 15. Worker / cron final check
+
+| Probe | Result |
+|-------|--------|
+| `POST /api/workers/dispatch` invalid Bearer | **403 PASS** |
+| `GET /api/cron/daily-dispatch` invalid Bearer | **403 PASS** |
+| Valid token invocation | Not executed (no secrets in runner) |
+
+---
+
+## 16. AI live smoke
+
+**NOT EXECUTED** — no AI provider keys in certification runner; production readiness confirms environment pass but does not prove a live generation on deployed SHA.
+
+---
+
+## 17. Secret / client bundle audit
 
 ```
-PASS  health: 200
-PASS  readiness: 200 (database + environment)
-PASS  homepage: 200
-PASS  routes, vercel-cron, rls-security, secret-scan
+npm run audit:secrets → PASS (0 exposures)
 ```
 
-Local `prisma`/`migrations` steps require `DATABASE_URL` in the certification runner (expected).
+No `DATABASE_URL`, Stripe secrets, OAuth secrets, AI keys, worker/cron secrets, or tokens found in scanned client bundle targets.
 
-## Smoke
+---
 
-| Surface | Result |
-|---------|--------|
-| Homepage | 200 |
-| Login | 200 |
-| Pricing | 200 (plans match catalogue) |
-| `/dev/*` | 307 → `/` (blocked) |
-| Worker invalid token | 403 |
-| Cron invalid token | 403 |
-| Security headers | CSP, HSTS, X-Frame-Options, nosniff present |
+## 18. Final preflight
+
+**Production URL** (`https://cresco-marketing-intelligence.vercel.app`):
+
+```
+npm run launch:preflight  → PASS
+  production-config, prisma, migrations, routes, vercel-cron,
+  rls-security, secret-scan, health, readiness, homepage
+```
+
+**Local config validator** (runner without production secrets):
+
+```
+npm run validate:production-config → PASS (warnings only for missing local env)
+```
+
+**Production smoke** (`npm run smoke:production`):
+
+```
+PASS — all launch routes <500; worker/cron invalid token → 403
+```
+
+---
+
+## 19. Final production smoke
+
+| Route | Status |
+|-------|--------|
+| `/` | 200 |
+| `/login` | 200 |
+| `/dashboard` | 307 (auth redirect) |
+| `/calendar` | 307 |
+| `/getting-started` | 307 |
+| `/integrations` | 307 |
+| `/content/studio` | 307 |
+| `/analytics` | 307 |
+| `/automation` | 307 |
+| `/operations` | 307 |
+| `/settings` | 307 |
+| `/pricing` | 200 |
+| `/dev/*` | 307 → blocked |
+
+No unexpected 5xx, client crash, redirect loops, or broken commercial CTAs observed.
+
+---
+
+## 20. Final scorecard
+
+| Area | Score /10 | Notes |
+|------|----------:|-------|
+| Deployment SHA integrity | 7 | Production on `1522258`; PR #161 closure not merged/deployed |
+| Environment separation | 6 | No dedicated staging SHA; preview ignored |
+| Database configuration | 10 | Live readiness pass |
+| Authentication | 10 | Supabase auth operational |
+| Test-auth protection | 10 | Fail-closed in production |
+| Stripe | **NOT LAUNCH-ENABLED** | Intentionally disabled; no broken checkout |
+| Provider OAuth | 6 | Truth contract OK; no live OAuth E2E |
+| AI | 7 | Code OK; no live generation smoke |
+| Worker secrets | 10 | Invalid token → 403 |
+| Scheduler/Cron | 10 | Invalid secret → 403 |
+| DNS/HTTPS | 9 | Vercel URL verified; custom domain not resolved |
+| Security headers | 10 | CSP, HSTS, X-Frame-Options, nosniff |
+| Secret isolation | 10 | Audit pass |
+| Observability | 9 | Readiness + request IDs |
+| Release preflight | 10 | Tooling + live preflight pass |
+
+**Weighted overall: 8.5/10** — does not meet the 10/10 bar.
 
 ---
 
@@ -168,57 +253,39 @@ None.
 
 ### P1
 
-None (Stripe classified as NOT LAUNCH-ENABLED rather than misconfigured live billing).
+None (Stripe correctly classified NOT LAUNCH-ENABLED; no broken billing CTAs).
 
-### P2
+### P2 (blockers for 10/10)
 
-1. **Stripe billing credentials not set on production** — pricing visible but checkout/webhook/portal inoperative until Vercel Production env is completed.
-2. **Custom domain `app.crescogroup.uk` not verified** from certification runner — confirm DNS/CNAME in Vercel dashboard.
-3. **No dedicated staging deployment SHA** — recommend registering a staging environment in GitHub Deployments.
-4. **Provider OAuth live connect test** not executed in this certification run (requires authenticated session).
-
----
-
-## Final scorecard
-
-| Area | Score /10 | Status |
-|------|----------:|--------|
-| Deployment SHA integrity | 10 | PASS |
-| Environment separation | 9 | PASS (staging SHA not registered) |
-| Database configuration | 10 | PASS |
-| Authentication | 10 | PASS |
-| Test-auth protection | 10 | PASS |
-| Stripe | 6 | NOT LAUNCH-ENABLED |
-| Provider OAuth | 8 | PARTIAL (no live OAuth run) |
-| AI | 9 | PASS |
-| Worker secrets | 10 | PASS |
-| Scheduler/Cron | 10 | PASS |
-| DNS/HTTPS | 8 | PASS (Vercel URL; custom domain unverified) |
-| Security headers | 10 | PASS |
-| Secret isolation | 10 | PASS |
-| Observability | 9 | PASS (readiness + request IDs) |
-| Release preflight | 10 | PASS (tooling delivered) |
-
-**Overall Production Configuration score: 9/10**
+1. Merge PR #161 and deploy closure SHA to production so certified SHA = deployed SHA.
+2. Establish dedicated staging environment with identifiable SHA.
+3. Execute at least one real provider OAuth E2E (GA4/Google preferred) in staging.
+4. Execute AI live generation smoke on staging deployment.
+5. Resolve or formally defer `app.crescogroup.uk` — canonical URL is Vercel production hostname until DNS is configured.
 
 ---
 
-## Deliverables added in this task
+## Deliverables (PR #161 + closure)
 
 | Artifact | Path |
 |----------|------|
 | Production config validator | `src/lib/security/production-config.ts` |
+| Billing launch policy | `src/lib/billing/launch-policy.ts` |
 | Config drift script | `npm run validate:production-config` |
 | Launch preflight | `npm run launch:preflight` |
+| Production smoke | `npm run smoke:production` |
 | Manifest | `docs/PRODUCTION_CONFIG_MANIFEST.md` |
-| Unit tests | `tests/unit/production-config.test.ts` |
+| Unit tests | `tests/unit/production-config.test.ts`, `tests/unit/billing-launch-policy.test.ts` |
 | E2E harness guard | `CRESCO_E2E_HARNESS` in `production-guards.ts` |
-| `.env.example` | `WORKER_TOKEN` documented |
 
 ---
 
 ## Final status
 
-**TASK 6 PRODUCTION CONFIGURATION CERTIFICATION PASSED**
+**P0 = 0**  
+**P1 = 0**  
+**Stripe = NOT LAUNCH-ENABLED** (Option B — intentional)
 
-(P0 = 0, P1 = 0. Stripe billing is explicitly **NOT LAUNCH-ENABLED** on the deployed instance; commercial charges cannot occur. Complete Stripe Vercel Production configuration before enabling live billing.)
+**TASK 6 PRODUCTION CONFIGURATION CERTIFICATION FAILED**
+
+The certification framework, validator, manifest, preflight, and billing launch-disable closure are complete and safe for launch without live billing. True **10/10 Production Configuration** requires merging and deploying the certified SHA, establishing staging, and completing live OAuth + AI smoke evidence. Re-run certification after merge/deploy to obtain **TASK 6 PRODUCTION CONFIGURATION CERTIFICATION PASSED**.

@@ -48,6 +48,8 @@ describe("production config validation", () => {
     delete process.env.STRIPE_BILLING_PUBLISHABLE_KEY;
     delete process.env.ALLOW_TEST_AUTH;
     delete process.env.CRESCO_E2E_HARNESS;
+    delete process.env.BILLING_SELF_SERVICE_LAUNCH_ENABLED;
+    delete process.env.VERCEL_ENV;
   });
 
   it("fails when test auth is enabled in production", () => {
@@ -115,10 +117,11 @@ describe("production config validation", () => {
     expect(checks.find((check) => check.id === "stripe-key-mode-pairing")?.pass).toBe(false);
   });
 
-  it("requires Stripe live mode in production", () => {
+  it("requires Stripe live mode in production when billing launch is enabled", () => {
     withEnv({
       VERCEL_ENV: "production",
       NODE_ENV: "production",
+      BILLING_SELF_SERVICE_LAUNCH_ENABLED: "true",
       STRIPE_BILLING_SECRET_KEY: "sk_test_example",
       STRIPE_BILLING_WEBHOOK_SECRET: "whsec_example",
       STRIPE_BILLING_PUBLISHABLE_KEY: "pk_test_example",
@@ -131,6 +134,15 @@ describe("production config validation", () => {
     });
     const checks = validateStripeConfiguration();
     expect(checks.find((check) => check.id === "stripe-production-live-mode")?.pass).toBe(false);
+  });
+
+  it("does not require Stripe when billing is not launch-enabled", () => {
+    withEnv({ VERCEL_ENV: "production", NODE_ENV: "production" });
+    const checks = validateStripeConfiguration();
+    expect(checks.find((check) => check.id === "stripe-billing-launch-policy")?.message).toContain(
+      "NOT LAUNCH-ENABLED",
+    );
+    expect(checks.find((check) => check.id === "stripe-production-live-mode")).toBeUndefined();
   });
 
   it("allows disabled providers without blocking validation", () => {
