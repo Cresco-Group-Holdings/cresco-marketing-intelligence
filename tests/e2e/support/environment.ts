@@ -1,5 +1,4 @@
 import { readFileSync } from "node:fs";
-import path from "node:path";
 import {
   E2E_MANIFEST_PATH,
   type E2eTenantManifest,

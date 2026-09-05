@@ -1,6 +1,6 @@
 import { test, expect } from "./support/fixtures";
 import { authHeaders, loadTenantManifest, requireLaunchE2e } from "./support/environment";
-import { attachLaunchGates, assertLaunchGates, waitForReadiness } from "./support/gates";
+import { attachLaunchGates, waitForReadiness } from "./support/gates";
 
 test.describe("@launch-critical harness certification", () => {
   test.beforeEach(() => {

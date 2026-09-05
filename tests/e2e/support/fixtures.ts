@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/rules-of-hooks -- Playwright fixture `use` callback is not a React hook */
 import { test as base, expect } from "@playwright/test";
 import {
   attachLaunchGates,
