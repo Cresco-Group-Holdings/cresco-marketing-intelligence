@@ -42,8 +42,8 @@ export default function PricingPage() {
               and content scale.
             </p>
             <p className="mt-2 text-sm text-foreground-subtle">
-              Prices shown in {BILLING_CURRENCY}. Billed monthly unless annual billing is selected
-              at checkout.
+              Prices shown in {BILLING_CURRENCY}. Self-service checkout is coming soon — start with a free
+              account today.
             </p>
           </div>
         </div>
@@ -104,11 +104,11 @@ export default function PricingPage() {
           ))}
         </div>
         <p className="mt-10 text-sm text-foreground-subtle">
-          Already a customer?{" "}
-          <Link href="/settings/billing" className="font-medium text-foreground hover:underline">
-            Manage your subscription
-          </Link>
-          . Final billing is confirmed at checkout.
+          Plans are informational at launch.{" "}
+          <Link href="/signup" className="font-medium text-foreground hover:underline">
+            Create a free account
+          </Link>{" "}
+          to get started. Paid upgrades will open when self-service billing launches.
         </p>
       </section>
     </MarketingShell>
