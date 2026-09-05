@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 const DEFAULT_TIMEOUT_MS = 12_000;
 
@@ -9,6 +9,10 @@ export function useLoadingTimeout(
   timeoutMs = DEFAULT_TIMEOUT_MS,
 ): { timedOut: boolean; reset: () => void } {
   const [timedOut, setTimedOut] = useState(false);
+
+  const reset = useCallback(() => {
+    setTimedOut(false);
+  }, []);
 
   useEffect(() => {
     if (!loading) {
@@ -25,6 +29,6 @@ export function useLoadingTimeout(
 
   return {
     timedOut,
-    reset: () => setTimedOut(false),
+    reset,
   };
 }

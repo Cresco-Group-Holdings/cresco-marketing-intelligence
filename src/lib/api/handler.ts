@@ -105,7 +105,10 @@ export async function withApiHandler(
 
     return await handler({ request, requestId, user, tenant });
   } catch (error) {
-    return handleApiError(error, requestId);
+    return handleApiError(error, requestId, {
+      route: request.nextUrl.pathname,
+      organisationId: options?.organisationId ?? getOrganisationIdFromRequest(request),
+    });
   }
 }
 

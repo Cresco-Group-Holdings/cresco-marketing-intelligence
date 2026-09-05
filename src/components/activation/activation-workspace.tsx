@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { BrandMarketingChannel } from "@prisma/client";
 import { ActivationChecklistPanel } from "@/components/activation/activation-checklist";
 import { ActivationNextActionCard } from "@/components/activation/activation-banner";
@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ErrorState } from "@/components/ui/empty-state";
 import { DashboardSkeleton } from "@/components/ui/skeleton";
 import { apiFetch } from "@/lib/api/client";
+import { useActivationState } from "@/hooks/use-activation-state";
 import type { ActivationGoal } from "@/lib/activation/providers";
 import type { ActivationState } from "@/server/services/activation-service";
 
@@ -23,50 +24,33 @@ const GOAL_OPTIONS: Array<{ value: ActivationGoal; label: string }> = [
 ];
 
 export function ActivationWorkspace() {
-  const [activation, setActivation] = useState<ActivationState | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { activation, loading, error, refresh } = useActivationState();
   const [savingDemo, setSavingDemo] = useState(false);
-
-  const loadActivation = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await apiFetch<{ activation: ActivationState }>("/api/activation");
-      setActivation(response.activation);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load activation state.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadActivation();
-  }, [loadActivation]);
+  const [demoError, setDemoError] = useState<string | null>(null);
 
   async function enableDemoMode() {
     setSavingDemo(true);
+    setDemoError(null);
     try {
-      const response = await apiFetch<{ activation: ActivationState }>("/api/activation/demo", {
+      await apiFetch<{ activation: ActivationState }>("/api/activation/demo", {
         method: "POST",
         body: JSON.stringify({ enabled: true }),
       });
-      setActivation(response.activation);
+      await refresh();
       window.location.href = "/demo";
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to enable demo mode.");
+      setDemoError(err instanceof Error ? err.message : "Failed to enable demo mode.");
     } finally {
       setSavingDemo(false);
     }
   }
 
   async function saveGoal(goal: ActivationGoal) {
-    const response = await apiFetch<{ activation: ActivationState }>("/api/activation/preferences", {
+    await apiFetch<{ activation: ActivationState }>("/api/activation/preferences", {
       method: "POST",
       body: JSON.stringify({ goal }),
     });
-    setActivation(response.activation);
+    await refresh();
   }
 
   if (loading && !activation) {
@@ -78,7 +62,7 @@ export function ActivationWorkspace() {
       <ErrorState
         title="Activation status unavailable"
         description={error ?? "Try again in a moment."}
-        onRetry={() => void loadActivation()}
+        onRetry={() => void refresh()}
       />
     );
   }
@@ -186,6 +170,7 @@ export function ActivationWorkspace() {
                 <p className="text-sm text-foreground-muted">
                   Demo data is clearly labelled and isolated from your production workspace.
                 </p>
+                {demoError ? <p className="text-sm text-danger">{demoError}</p> : null}
                 <Button disabled={savingDemo} onClick={() => void enableDemoMode()}>
                   Enter demo workspace
                 </Button>
